@@ -1,0 +1,20 @@
+# Product repos (each is its own git repo — do NOT double-track)
+Agent-PROVE/
+Agent-Trace/
+Agent-Scribe/
+Agent-Cite/
+Agent-Drift/
+Agent-Litmus/
+
+# Claude Code project config (user-local, not repo content)
+.claude/
+
+# OS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+
+# Environment
+.env
