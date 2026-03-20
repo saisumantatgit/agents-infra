@@ -154,10 +154,30 @@ Nothing material. The user provided clear delegation authority ("9 agents, one p
 | 1 | **Don't ship 9 products in one session without a test pass** — the prior session built and pushed 9 products with zero testing | All 17 bugs were preventable. The test plan existed but wasn't executed. Velocity ≠ quality. |
 | 2 | **Don't assume .gitignore prevents commits** — `__pycache__` was in .gitignore for Trace but was committed anyway because files were generated before .gitignore was created | Always run `git status` after adding .gitignore to catch pre-existing tracked files |
 
-## 7. Action Items
+## 7. Litmus Self-Assessment (Dogfooding)
+
+TEST_PLAN_v1 was evaluated against Agent-Litmus's 12 violation types and TQS scoring framework.
+
+| Metric | v1 | v2 | Delta |
+|--------|-----|-----|-------|
+| Assertion Strength | 45 | 60 | +15 |
+| Violation Penalty | 43 | 13 | -30 (improvement) |
+| Edge Coverage | 20 | 70 | +50 |
+| **TQS** | **41 (EXPOSED)** | **71 (AT_RISK)** | **+30** |
+
+Key violations found in v1 and addressed in v2:
+- **HAPPY_PATH_ONLY** (critical): 85% happy-path → 65% happy / 35% error
+- **MISSING_EDGE_CASE** (critical): 0 error-path tests → 17; 0 idempotency tests → 8
+- **HOLLOW_ASSERTION** (warning): ~50 bare "exists" → ~8 (85% reduction)
+- **DUPLICATE_TEST_LOGIC** (info): ~70 copy-paste checks → parameterized Wave 0 matrix
+
+Lesson: **Dogfood your own tools.** A governance suite that doesn't apply its own quality lens to its own artifacts has a credibility gap. Litmus caught real weaknesses that manual review missed.
+
+## 8. Action Items
 
 | # | Action | Priority | Owner | Due | Status |
 |---|--------|----------|-------|-----|--------|
-| 1 | Update TEST_PLAN_v1.md → v2 incorporating lessons (cross-suite first, universal __pycache__ check, machine-counted tallies) | P2 | Agent | Next session | Open |
+| 1 | ~~Update TEST_PLAN_v1.md → v2~~ | ~~P2~~ | ~~Agent~~ | ~~This session~~ | **DONE** — v2 at `docs/TEST_PLAN_v2.md`, TQS 41→71 |
 | 2 | Create install.sh for Agent-PROVE (skipped item #17 — only product without one) | P2 | Agent | Next session | Open |
-| 3 | Verify all 7 GitHub repos render correctly (READMEs, badges, suite links) | P2 | Human | Next session | Open |
+| 3 | Verify all 8 GitHub repos render correctly (READMEs, badges, suite links) | P2 | Human | Next session | Open |
+| 4 | Execute TEST_PLAN_v2 across all 9 products (re-test with stronger assertions) | P1 | Agent | Next session | Open |

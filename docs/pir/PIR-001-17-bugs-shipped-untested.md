@@ -100,8 +100,14 @@ The inversion of test-then-push to push-then-test-later was the core process fai
 - **Cross-suite smoke test**: After any product build, run a 10-item cross-suite consistency check (naming, versioning, schema, suite links, structural files) before pushing.
 
 ### Detection improvement
-- **TEST_PLAN_v2**: Move cross-suite tests to Wave 0 (run first, not last). Add universal `__pycache__` check across all products with Python scripts.
+- **TEST_PLAN_v2**: (**DONE**) Moved cross-suite tests to Wave 0 (run first). Added universal `__pycache__` check. Added 17 error-path tests, 8 idempotency tests. Parameterized 70+ duplicate checks. TQS improved from 41 (EXPOSED) to 71 (AT_RISK).
 - **Pre-push validation script**: Consider a `scripts/validate-suite.sh` that checks cross-product consistency (version sync, naming, hooks schema) — runnable before any push.
+
+### Litmus self-assessment (added post-PIR)
+- Applied Agent-Litmus TQS framework to TEST_PLAN_v1 itself — scored 41 (EXPOSED)
+- **Critical violations found**: HAPPY_PATH_ONLY (85% happy-path), MISSING_EDGE_CASE (0 error-path tests)
+- TEST_PLAN_v2 addresses all violations — TQS 71 (+30 improvement)
+- **Meta-lesson**: A governance suite that doesn't apply its own tools to its own artifacts has a credibility gap
 
 ## 10. Action Items
 
@@ -109,8 +115,9 @@ The inversion of test-then-push to push-then-test-later was the core process fai
 |---|--------|----------|-------|-----|--------|
 | 1 | Add "no push without test evidence" to agents-infra CLAUDE.md session hygiene | P1 | Agent | Next session | Open |
 | 2 | Create `scripts/validate-suite.sh` for cross-product consistency checks | P2 | Agent | Next session | Open |
-| 3 | Update TEST_PLAN to v2 with Wave 0 cross-suite and universal __pycache__ | P2 | Agent | Next session | Open |
+| 3 | ~~Update TEST_PLAN to v2~~ | ~~P2~~ | ~~Agent~~ | ~~This session~~ | **DONE** — TQS 41→71 |
 | 4 | Adopt "template-first" rule: new products always clone from latest product | P2 | Human | Ongoing | Open |
+| 5 | Execute TEST_PLAN_v2 across all 9 products | P1 | Agent | Next session | Open |
 
 ## 11. Lessons Learned
 
@@ -119,3 +126,5 @@ The inversion of test-then-push to push-then-test-later was the core process fai
 2. **Consistency is a cross-cutting concern, not a per-product concern.** Testing each product independently got 91% pass rate. The failures were all in the spaces *between* products — naming conventions, schema formats, suite links. Cross-suite tests must be a first-class citizen, not an afterthought.
 
 3. **The test plan is the most valuable artifact from a build session.** It outlives the session, enables parallel execution, and turns "we should test this" from a vague intention into an executable checklist. Write it during the build, not after.
+
+4. **Dogfood your own tools.** The test plan for a test quality governance suite scored 41/100 on its own test quality metric. The irony is instructive: we nearly dismissed running Litmus against our own tests ("it's for code tests, not structural tests"). The user pushed back. They were right. Apply your own governance lens to your own artifacts — always.
