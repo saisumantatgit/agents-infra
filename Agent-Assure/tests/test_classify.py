@@ -94,3 +94,74 @@ def test_classify_returns_new_claim():
     assert result is not original
     assert original.kind == ClaimKind.FACTUAL  # unchanged
     assert original.citations == ()             # unchanged
+
+
+# ---------------------------------------------------------------------------
+# Fix 1 — CRITICAL: citation digits must not leak into numeric_tokens
+# ---------------------------------------------------------------------------
+
+def test_cited_factual_not_numeric():
+    """[S3] bracket digit must NOT produce a numeric token or classify as NUMERIC."""
+    c = classify(mk("X is true [S3]."))
+    assert c.kind == ClaimKind.FACTUAL, f"expected FACTUAL, got {c.kind}"
+    assert c.numeric_tokens == (), f"expected no numeric tokens, got {c.numeric_tokens}"
+
+
+def test_hedged_numeric_no_citation_digit_junk():
+    """Hedged numeric claim: numeric_tokens must contain '$4M' but not '1' from [S1]."""
+    c = classify(mk("It is likely revenue was $4M [S1]."))
+    assert c.kind == ClaimKind.NUMERIC
+    tokens_lower = [t.lower() for t in c.numeric_tokens]
+    assert any("$4m" in t for t in tokens_lower), f"$4M not found in {c.numeric_tokens}"
+    assert "1" not in c.numeric_tokens, f"citation digit '1' leaked into numeric_tokens: {c.numeric_tokens}"
+
+
+# ---------------------------------------------------------------------------
+# Fix 2 — IMPORTANT: capitalized-proper-noun guard consistency between
+#          _has_finite_verb (used in NON_CLAIM gate) and _has_verb_like_token
+# ---------------------------------------------------------------------------
+
+def test_capitalized_fragment_non_claim():
+    """A fragment of only capitalized tokens with no auxiliary should be NON_CLAIM.
+
+    Example: 'Redis Postgres' — two proper nouns, no verb.
+    Both _has_finite_verb and _has_verb_like_token must agree: no finite verb present.
+    """
+    c = classify(mk("Redis Postgres"))
+    assert c.kind == ClaimKind.NON_CLAIM, f"expected NON_CLAIM, got {c.kind}"
+
+
+# ---------------------------------------------------------------------------
+# Fix 3 — IMPORTANT: RELATIONAL beats NUMERIC even with a genuine number
+# ---------------------------------------------------------------------------
+
+def test_relational_with_real_number_beats_numeric():
+    """RELATIONAL must win over NUMERIC when a causal trigger is present."""
+    c = classify(mk("High inflation causes 3% unemployment [S1][S2]."))
+    assert c.kind == ClaimKind.RELATIONAL, f"expected RELATIONAL, got {c.kind}"
+
+
+# ---------------------------------------------------------------------------
+# Fix 4 — MINOR: trailing period must not be captured as part of a numeric token
+# ---------------------------------------------------------------------------
+
+def test_year_trailing_period_stripped():
+    """Numeric token for a year at sentence end must not include trailing '.'."""
+    c = classify(mk("The policy was enacted in 2021."))
+    assert c.kind == ClaimKind.NUMERIC
+    assert "2021" in c.numeric_tokens, f"expected '2021' in {c.numeric_tokens}"
+    assert "2021." not in c.numeric_tokens, f"trailing dot leaked into token: {c.numeric_tokens}"
+
+
+def test_dollar_amount_intact():
+    """$4,000,000 must be captured whole, no trailing dot."""
+    c = classify(mk("Revenue reached $4,000,000."))
+    assert c.kind == ClaimKind.NUMERIC
+    assert "$4,000,000" in c.numeric_tokens, f"expected '$4,000,000' in {c.numeric_tokens}"
+
+
+def test_percentage_intact():
+    """25% token must be captured whole."""
+    c = classify(mk("Accuracy improved by 25%."))
+    assert c.kind == ClaimKind.NUMERIC
+    assert any("25%" in t for t in c.numeric_tokens), f"expected '25%' in {c.numeric_tokens}"

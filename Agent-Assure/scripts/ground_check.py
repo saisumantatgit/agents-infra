@@ -282,16 +282,26 @@ _TRANSITION_PHRASES: frozenset[str] = frozenset({
 
 
 def _has_finite_verb(text: str) -> bool:
-    """Return True if *text* appears to contain a finite verb (rough heuristic)."""
-    words = _re.split(r"\s+", text.lower())
+    """Return True if *text* appears to contain a finite verb (rough heuristic).
+
+    Mirrors _has_verb_like_token: capitalized tokens (likely proper nouns) are
+    excluded from the suffix rule so that both verb-detection paths share
+    identical behaviour.
+    """
+    tokens = _re.split(r"\s+", text)
     auxiliaries = _AUXILIARIES
     suffixes = _VERB_SUFFIXES
     min_len = _VERB_SUFFIX_MIN_LEN
-    for w in words:
-        w_core = w.rstrip(".,;:!?")
+    for t in tokens:
+        t_core = t.rstrip(".,;:!?")
+        w_core = t_core.lower()
         if w_core in auxiliaries:
             return True
-        if len(w_core) >= min_len and any(w_core.endswith(s) for s in suffixes):
+        # Skip capitalized tokens — treat as proper nouns, not verbs.
+        if t_core and t_core[0].isupper():
+            continue
+        w_orig = t.lower()
+        if len(w_orig) >= min_len and any(w_orig.endswith(s) for s in suffixes):
             return True
     return False
 
@@ -325,9 +335,18 @@ def classify(claim: Claim) -> Claim:
     """
     text = _nfkc(claim.text)
 
-    # --- Extract citations and numeric tokens (always, regardless of kind) ---
+    # --- Extract citations (from original normalized text) ---
     citations: tuple[str, ...] = tuple(_CITATION_RE.findall(text))
-    numeric_tokens: tuple[str, ...] = tuple(_NUMERIC_RE.findall(text))
+
+    # --- Extract numeric tokens from citation-stripped scratch copy ---
+    # This prevents bracket digits like [S3] → '3' from leaking into numeric_tokens.
+    _text_for_numeric = _CITATION_RE.sub("", text)
+    _raw_numeric = _NUMERIC_RE.findall(_text_for_numeric)
+    # Strip a single trailing period from each token (sentence-boundary artifact).
+    # Preserves $4M, 25%, $4,000,000 unchanged since they don't end with '.'.
+    numeric_tokens: tuple[str, ...] = tuple(
+        t[:-1] if t.endswith(".") else t for t in _raw_numeric
+    )
 
     # --- Ordered classification cascade ---
     if _is_non_claim(text):
