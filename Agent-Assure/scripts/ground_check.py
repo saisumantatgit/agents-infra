@@ -11,6 +11,7 @@ import json
 import unicodedata
 from dataclasses import dataclass
 from enum import Enum
+from typing import Iterator
 
 
 # ---------------------------------------------------------------------------
@@ -101,6 +102,118 @@ def load_store(path: str) -> dict[str, RetrievedSource]:
             )
             store[source_id] = source
     return store
+
+
+# ---------------------------------------------------------------------------
+# Claim decomposition
+# ---------------------------------------------------------------------------
+
+# Common auxiliary/copula verbs for conjunction-split verb detection.
+_AUXILIARIES: frozenset[str] = frozenset({
+    "is", "are", "was", "were", "has", "have", "had",
+    "do", "does", "did", "can", "could", "will", "would",
+    "should", "may", "might", "must", "shall", "be", "been", "being",
+})
+
+# Verb-ending suffixes used in conservative verb-like detection.
+_VERB_SUFFIXES: tuple[str, ...] = ("s", "ed", "ing", "en")
+_VERB_SUFFIX_MIN_LEN: int = 4
+
+
+def _has_verb_like_token(tokens: list[str]) -> bool:
+    """Return True if any token in *tokens* is verb-like.
+
+    Conservative heuristic: auxiliary/copula membership OR
+    lowercase word of length >= 4 ending in a common verb suffix.
+    """
+    for t in tokens:
+        w = t.lower()
+        if w in _AUXILIARIES:
+            return True
+        if len(w) >= _VERB_SUFFIX_MIN_LEN and any(w.endswith(s) for s in _VERB_SUFFIXES):
+            return True
+    return False
+
+
+def _reconstruct_sentence(sentence_tokens: list) -> str:  # sentence_tokens: list[Token]
+    """Reconstruct a sentence string from syntok Token objects.
+
+    Each Token carries a *spacing* attribute (the whitespace that precedes it)
+    and a *value* attribute (the token text). The first token has no leading
+    space by convention (spacing == '').
+    """
+    parts: list[str] = []
+    for i, tok in enumerate(sentence_tokens):
+        if i == 0:
+            parts.append(tok.value)
+        else:
+            parts.append(tok.spacing + tok.value)
+    return "".join(parts)
+
+
+def _conjunction_split(sentence: str) -> list[str]:
+    """Split *sentence* on '; ' or ' and ' only when both halves carry a verb-like token.
+
+    Conservative: under-split beats over-split (spec §9).
+    Only one level of splitting is attempted per sentence; nested splits are
+    not performed.
+    """
+    for sep in ("; ", " and "):
+        pos = sentence.find(sep)
+        if pos == -1:
+            continue
+        left = sentence[:pos]
+        right = sentence[pos + len(sep):]
+        left_tokens = left.split()
+        right_tokens = right.split()
+        if _has_verb_like_token(left_tokens) and _has_verb_like_token(right_tokens):
+            # Strip trailing punctuation carried into *left* from the separator
+            return [left.rstrip(";").strip(), right.strip()]
+    return [sentence]
+
+
+def _iter_raw_sentences(text: str) -> Iterator[str]:
+    """Yield NFKC-normalized sentence strings from *text* using syntok."""
+    import syntok.segmenter as segmenter  # lazy import — keeps top-level pure
+
+    normalized = _nfkc(text)
+    for paragraph in segmenter.process(normalized):
+        for sentence_tokens in paragraph:
+            yield _reconstruct_sentence(sentence_tokens)
+
+
+def decompose(draft: str) -> list[Claim]:
+    """Decompose *draft* into atomic Claim objects.
+
+    Steps:
+    1. NFKC-normalize (inside _iter_raw_sentences via _nfkc).
+    2. Segment into sentences with syntok.
+    3. Apply conservative conjunction split on '; ' / ' and ' only when
+       both sides carry a verb-like token.
+    4. Emit one Claim per sentence with index, text, kind=FACTUAL (placeholder),
+       citations=(), numeric_tokens=().
+
+    Pure function — no LLM, no network, no random, no wall-clock.
+    """
+    if not draft or not draft.strip():
+        return []
+
+    claims: list[Claim] = []
+    index = 0
+    for raw_sentence in _iter_raw_sentences(draft):
+        for text in _conjunction_split(raw_sentence):
+            text = text.strip()
+            if not text:
+                continue
+            claims.append(Claim(
+                index=index,
+                text=text,
+                kind=ClaimKind.FACTUAL,
+                citations=(),
+                numeric_tokens=(),
+            ))
+            index += 1
+    return claims
 
 
 def resolve(citation: str, store: dict[str, RetrievedSource]) -> RetrievedSource | None:
