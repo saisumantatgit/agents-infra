@@ -123,14 +123,32 @@ _VERB_SUFFIX_MIN_LEN: int = 4
 def _has_verb_like_token(tokens: list[str]) -> bool:
     """Return True if any token in *tokens* is verb-like.
 
-    Conservative heuristic: auxiliary/copula membership OR
-    lowercase word of length >= 4 ending in a common verb suffix.
+    Conservative heuristic:
+    1. Auxiliary/copula membership (case-insensitive): the token with trailing
+       punctuation stripped is checked against _AUXILIARIES so that "is." and
+       "are," still match.
+    2. Lowercase suffix rule (length >= 4, ends in a common verb suffix) — BUT
+       only when the original token does NOT start with an uppercase letter.
+       Capitalized tokens are treated as proper nouns, not verbs, so that a
+       compound subject like "Redis and Postgres are fast." is not over-split.
+       The suffix check uses the original token (no punctuation stripping) to
+       preserve the original conservative behaviour — "oranges." ends in '.'
+       not 's', so it does not falsely fire.
+       Under-split beats over-split (spec §9).
     """
     for t in tokens:
-        w = t.lower()
-        if w in _AUXILIARIES:
+        # Auxiliary check: strip trailing punctuation so "is." → "is" matches.
+        t_core = t.rstrip(".,;:!?")
+        w_core = t_core.lower()
+        if w_core in _AUXILIARIES:
             return True
-        if len(w) >= _VERB_SUFFIX_MIN_LEN and any(w.endswith(s) for s in _VERB_SUFFIXES):
+        # Suffix rule: skip capitalized tokens (likely proper nouns).
+        if t_core and t_core[0].isupper():
+            continue
+        # Use original token (with punctuation) for suffix check — preserves
+        # prior conservative behaviour where "oranges." ≠ ends-in-'s'.
+        w_orig = t.lower()
+        if len(w_orig) >= _VERB_SUFFIX_MIN_LEN and any(w_orig.endswith(s) for s in _VERB_SUFFIXES):
             return True
     return False
 

@@ -115,3 +115,38 @@ def test_determinism():
     first = decompose(text)
     second = decompose(text)
     assert first == second
+
+
+# ---------------------------------------------------------------------------
+# Proper-noun conjunction: compound subject must NOT split (Finding 1)
+# ---------------------------------------------------------------------------
+
+def test_proper_noun_conjunction_not_split():
+    # "Redis and Postgres are fast." has a compound SUBJECT — one predicate.
+    # Conservative spec: compound subject is ONE claim, not two.
+    # Bug: _has_verb_like_token fires on "Redis" (ends in 's') → over-split.
+    claims = decompose("Redis and Postgres are fast.")
+    assert len(claims) == 1
+
+
+# ---------------------------------------------------------------------------
+# Single-level split contract: no recursion (Finding 2)
+# ---------------------------------------------------------------------------
+
+def test_multi_conjunction_single_split():
+    # Three clauses joined by 'and'. Only ONE split is attempted (spec §9:
+    # single-level only). First conjunction splits; the second 'and C is large'
+    # stays in the right half.
+    claims = decompose("A is fast and B is slow and C is large.")
+    assert len(claims) == 2
+    texts = [c.text for c in claims]
+    assert any("A is fast" in t for t in texts)
+    assert any("B is slow and C is large" in t for t in texts)
+
+
+# ---------------------------------------------------------------------------
+# Whitespace-only input (trivial contract)
+# ---------------------------------------------------------------------------
+
+def test_whitespace_only_returns_empty():
+    assert decompose("   ") == []
