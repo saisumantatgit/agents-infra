@@ -244,6 +244,22 @@ import re as _re
 # Citation pattern: [S1], [S12], [source:some-text]
 _CITATION_RE = _re.compile(r"\[(?:S\d+|source:[^\]]+)\]")
 
+# Relational trigger lexicon for argument extraction (ordered longest-first so
+# multi-word triggers match before their shorter prefixes; e.g. "caused by"
+# before "causes").
+_RELATIONAL_TRIGGERS: tuple[str, ...] = (
+    "gives rise to",
+    "is responsible for",
+    "the reason for",
+    "results in",
+    "because of",
+    "caused by",
+    "leads to",
+    "due to",
+    "causes",
+    "drives",
+)
+
 # NumericToken pattern: optional $, digit cluster with optional suffix
 _NUMERIC_RE = _re.compile(
     r"\$?\d[\d,.]*\s?(?:%|million|billion|k|m|bn)?",
@@ -847,3 +863,166 @@ def resolve(citation: str, store: dict[str, RetrievedSource]) -> RetrievedSource
     else:
         key = normalized
     return store.get(key)
+
+
+# ---------------------------------------------------------------------------
+# Relational grounding helpers
+# ---------------------------------------------------------------------------
+
+def extract_arguments(text: str) -> tuple[str, str] | None:
+    """Extract (side_A, side_B) head-noun phrases flanking the relational trigger.
+
+    Strategy:
+    1. NFKC-normalize input.
+    2. Strip citation markers.
+    3. Find the first relational trigger (longest-match-first).
+    4. side_A = last contiguous non-stop-word token before the trigger.
+       side_B = first contiguous non-stop-word token after the trigger.
+    5. Return None when either side cannot be isolated (fail-closed).
+
+    Returns a (side_A, side_B) pair of casefolded strings, or None.
+    Pure function — no LLM, no network, no random, no wall-clock.
+    """
+    normalized = _nfkc(text)
+    stripped = _CITATION_RE.sub("", normalized)
+
+    lower = stripped.lower()
+
+    # Find trigger (longest match first — _RELATIONAL_TRIGGERS is already ordered).
+    trigger_start: int = -1
+    trigger_end: int = -1
+    for trigger in _RELATIONAL_TRIGGERS:
+        idx = lower.find(trigger)
+        if idx != -1:
+            trigger_start = idx
+            trigger_end = idx + len(trigger)
+            break
+
+    if trigger_start == -1:
+        # No relational trigger found — cannot extract arguments.
+        return None
+
+    before_text = stripped[:trigger_start].strip()
+    after_text = stripped[trigger_end:].strip()
+
+    # --- Extract side_A: last content word(s) before trigger ---
+    # Tokenize on whitespace; strip punctuation; filter stop words; take last token.
+    _stop = _HEAD_NOUN_STOPS  # reuse absence-check stop-word set
+
+    def _last_content_token(segment: str) -> str:
+        """Return the last non-stop-word token from segment (casefolded)."""
+        tokens = segment.split()
+        for raw in reversed(tokens):
+            tok = raw.strip(".,;:!?\"'()[]{}")
+            if tok and tok.casefold() not in _stop:
+                return tok.casefold()
+        return ""
+
+    def _first_content_token(segment: str) -> str:
+        """Return the first non-stop-word token from segment (casefolded)."""
+        tokens = segment.split()
+        for raw in tokens:
+            tok = raw.strip(".,;:!?\"'()[]{}")
+            if tok and tok.casefold() not in _stop:
+                return tok.casefold()
+        return ""
+
+    side_a = _last_content_token(before_text)
+    side_b = _first_content_token(after_text)
+
+    if not side_a or not side_b:
+        return None
+
+    return (side_a, side_b)
+
+
+def window_supports(source: RetrievedSource, argument_text: str) -> bool:
+    """Return True iff *argument_text* appears (as content words) in any T2 window
+    of *source*.
+
+    Uses the T1 verbatim path for short arguments (exact token inclusion) or the
+    T2 window scoring machinery for longer phrases. For a single-token argument,
+    NFKC-casefold substring match against each ±2-sentence window suffices.
+
+    Pure function — no mutation, no LLM/network/random/wall-clock.
+    """
+    arg_normalized = _nfkc(argument_text).casefold().strip()
+    if not arg_normalized:
+        return False
+
+    sentences = _split_sentences(source.text)
+    if not sentences:
+        # Single-block source — check the whole text.
+        return arg_normalized in _nfkc(source.text).casefold()
+
+    n = len(sentences)
+    for c in range(n):
+        lo = max(0, c - 2)
+        hi = min(n, c + 3)
+        window_text = _nfkc(" ".join(sentences[lo:hi])).casefold()
+        if arg_normalized in window_text:
+            return True
+
+    return False
+
+
+# ---------------------------------------------------------------------------
+# Relational grounding
+# ---------------------------------------------------------------------------
+
+def ground_relational(claim: Claim, store: dict[str, RetrievedSource]) -> Verdict:
+    """Return GROUNDED or UNVERIFIED_RELATION for a RELATIONAL claim.
+
+    Spec §4.8 — two-distinct-source rule:
+    1. Resolve claim.citations → distinct sources; keep only full_text_source=="verbatim".
+       If fewer than 2 distinct verbatim sources → UNVERIFIED_RELATION.
+    2. extract_arguments(claim.text) → (side_A, side_B).
+       If extraction fails → UNVERIFIED_RELATION (fail-closed).
+    3. side_A supported in at least one verbatim source AND
+       side_B supported in at least one DIFFERENT verbatim source → GROUNDED.
+    4. Otherwise → UNVERIFIED_RELATION.
+
+    NFKC normalization is applied inside extract_arguments and window_supports.
+    Pure function — no mutation, no LLM/network/random/wall-clock.
+    """
+    # Step 1: resolve and filter to distinct verbatim sources.
+    verbatim_sources: dict[str, RetrievedSource] = {}
+    for citation in claim.citations:
+        source = resolve(citation, store)
+        if source is None:
+            continue
+        if source.full_text_source != "verbatim":
+            continue
+        # Deduplicate by source_id (NFKC-normalized in load_store; use as-is).
+        if source.source_id not in verbatim_sources:
+            verbatim_sources[source.source_id] = source
+
+    if len(verbatim_sources) < 2:
+        return Verdict.UNVERIFIED_RELATION
+
+    # Step 2: extract arguments.
+    args = extract_arguments(claim.text)
+    if args is None:
+        return Verdict.UNVERIFIED_RELATION
+
+    side_a, side_b = args
+
+    # Step 3: side_A in some source S_a; side_B in a DIFFERENT source S_b.
+    sources_list = list(verbatim_sources.values())
+
+    # Collect all source IDs where side_A is supported.
+    a_supported_in: set[str] = {
+        s.source_id for s in sources_list if window_supports(s, side_a)
+    }
+    # Collect all source IDs where side_B is supported.
+    b_supported_in: set[str] = {
+        s.source_id for s in sources_list if window_supports(s, side_b)
+    }
+
+    # There must exist at least one (s_a, s_b) pair where s_a != s_b.
+    for s_a_id in a_supported_in:
+        for s_b_id in b_supported_in:
+            if s_a_id != s_b_id:
+                return Verdict.GROUNDED
+
+    return Verdict.UNVERIFIED_RELATION
