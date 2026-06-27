@@ -44,8 +44,12 @@ def src(text: str) -> RetrievedSource:
 
 
 def mk(t: str) -> Claim:
-    """Build a classified Claim from text."""
-    return classify(Claim(0, t, ClaimKind.FACTUAL, (), ()))
+    """Build a classified Claim from text.
+
+    Initial kind is set to NUMERIC per brief — classify() recomputes the kind
+    from text content, so the seed value is overwritten but must honor the spec.
+    """
+    return classify(Claim(0, t, ClaimKind.NUMERIC, (), ()))
 
 
 # ---------------------------------------------------------------------------
@@ -159,10 +163,63 @@ def test_numeric_ok_multiple_tokens_all_present():
     assert numeric_ok(claim, sources) is True
 
 
+def test_percent_not_matched_against_bare_number():
+    """CRITICAL: 25% claim must NOT ground against source containing bare 25.
+
+    A percent token and a bare integer are different unit types.
+    Spurious match: claim says '25%', source says 'a team of 25 people'.
+    This must return False — the percent is a ratio, not a count.
+    """
+    claim = mk("Efficiency improved 25% [S1].")
+    sources = [src("the project had a team of 25 people")]
+    assert numeric_ok(claim, sources) is False
+
+
+def test_percent_matches_percent():
+    """25% claim grounds against source containing '25%' or '25 percent' — True."""
+    claim = mk("Efficiency improved 25% [S1].")
+    sources_pct = [src("showed a 25% gain in throughput")]
+    assert numeric_ok(claim, sources_pct) is True
+    sources_word = [src("showed a 25 percent gain in throughput")]
+    assert numeric_ok(claim, sources_word) is True
+
+
 def test_numeric_ok_nfkc_normalization():
-    """NFKC normalization applied before matching."""
-    # Unicode full-width digits should normalize to ASCII
-    claim = mk("Revenue was $4M last year.")
-    # Regular source — test that the function handles NFKC edge without crashing
+    """NFKC normalization: full-width digits in claim token normalize to ASCII.
+
+    Claim token '４Ｍ' (full-width 4 + full-width M) NFKC-normalizes to '4M'
+    (4_000_000). Source contains '$4,000,000'. Must return True.
+    Without NFKC normalization this would fail because the regex would not
+    match the full-width characters.
+    """
+    # Construct a Claim manually with a full-width numeric token so we bypass
+    # the ASCII _NUMERIC_RE in classify() and exercise _parse_numeric_token directly.
+    claim_with_fw = Claim(
+        index=0,
+        text="Revenue was ４Ｍ last year.",  # ４Ｍ (full-width)
+        kind=ClaimKind.NUMERIC,
+        citations=(),
+        numeric_tokens=("４Ｍ",),  # ４Ｍ — full-width token
+    )
     sources = [src("Revenue totalled $4,000,000 in the period.")]
-    assert numeric_ok(claim, sources) is True
+    assert numeric_ok(claim_with_fw, sources) is True
+
+
+def test_exotic_unit_fail_closed():
+    """Claim with an unparseable exotic unit fails closed to False.
+
+    '15 lightyears' → if the numeric token normalizes to something with an
+    unrecognized suffix, numeric_ok must return False (fail-closed), not True.
+    """
+    # Construct a Claim manually with an exotic token that _parse_numeric_token
+    # cannot resolve (suffix 'lightyears' is not in _UNIT_MULTIPLIERS).
+    claim_exotic = Claim(
+        index=0,
+        text="The star is 15 lightyears away.",
+        kind=ClaimKind.NUMERIC,
+        citations=(),
+        numeric_tokens=("15lightyears",),
+    )
+    # Source contains the same exotic string — must still return False.
+    sources = [src("The star is 15 lightyears away from Earth.")]
+    assert numeric_ok(claim_exotic, sources) is False

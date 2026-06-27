@@ -594,31 +594,40 @@ def t2_lexical(
 
 # Pattern to find numeric expressions in source text.
 # Captures: optional $, digit cluster with commas, optional space + suffix.
+# Word-boundary anchored on suffix to avoid substring matches (e.g. "25%" in
+# source must not also yield a stray "5" or "2" match from inside the token).
 _SOURCE_NUMERIC_RE = _re.compile(
-    r"\$?\d[\d,.]*\s?(?:million|billion|percent|k|m|bn|%)?",
+    r"\$?\d[\d,.]*\s?(?:million|billion|percent|k|m|bn|%)?(?!\d)",
     _re.IGNORECASE,
 )
 
-# Multiplier table for unit suffixes (case-insensitive).
-_UNIT_MULTIPLIERS: dict[str, int] = {
+# Multiplier table for absolute-unit suffixes (case-insensitive).
+# Percent/percent are intentionally ABSENT here — they form the "percent" unit type.
+_ABSOLUTE_MULTIPLIERS: dict[str, int] = {
     "k": 1_000,
     "m": 1_000_000,
     "million": 1_000_000,
     "bn": 1_000_000_000,
     "billion": 1_000_000_000,
-    "%": 1,
-    "percent": 1,
 }
 
+# Suffixes that mark the "percent" unit type.
+_PERCENT_SUFFIXES: frozenset[str] = frozenset({"%", "percent"})
 
-def _parse_numeric_token(token: str) -> float | None:
-    """Parse a numeric token string into a canonical float value.
+
+def _parse_numeric_token(token: str) -> tuple[float, str] | None:
+    """Parse a numeric token string into a canonical (value, unit) pair.
+
+    unit is one of:
+      "percent"  — token ends with '%' or the word 'percent'
+      "absolute" — all other parseable tokens (plain integers, $, k/m/M/million/bn/billion)
 
     Handles:
-      - Currency prefix: $4M → 4_000_000
-      - Comma-separated digits: $4,000,000 → 4_000_000
-      - Suffix multipliers: k / m / M / million / bn / billion / % / percent
-      - Plain integers and decimals: 4000000, 4.5
+      - Currency prefix: $4M → (4_000_000, "absolute")
+      - Comma-separated digits: $4,000,000 → (4_000_000, "absolute")
+      - Magnitude suffixes: k / m / M / million / bn / billion → scale × "absolute"
+      - Percent suffixes: % / percent → (base, "percent")  [no scaling]
+      - Plain integers and decimals: 4000000 → (4000000.0, "absolute")
 
     Returns None when parsing fails (fail-closed for exotic units).
     Pure function — no mutation, no I/O.
@@ -638,40 +647,47 @@ def _parse_numeric_token(token: str) -> float | None:
     except ValueError:
         return None
     if suffix == "":
-        return base
-    multiplier = _UNIT_MULTIPLIERS.get(suffix)
+        return (base, "absolute")
+    if suffix in _PERCENT_SUFFIXES:
+        return (base, "percent")
+    multiplier = _ABSOLUTE_MULTIPLIERS.get(suffix)
     if multiplier is None:
         # Exotic unit — fail-closed
         return None
-    return base * multiplier
+    return (base * multiplier, "absolute")
 
 
-def _extract_source_values(source_text: str) -> list[float]:
-    """Return all parseable numeric values found in *source_text*.
+def _extract_source_pairs(source_text: str) -> list[tuple[float, str]]:
+    """Return all parseable (value, unit) pairs found in *source_text*.
 
     NFKC-normalizes before scanning. Returns a list (may contain duplicates).
+    A claim token matches a source pair ONLY IF both value and unit are equal.
     Pure function.
     """
     normalized = _nfkc(source_text)
-    values: list[float] = []
+    pairs: list[tuple[float, str]] = []
     for m in _SOURCE_NUMERIC_RE.finditer(normalized):
-        val = _parse_numeric_token(m.group(0))
-        if val is not None:
-            values.append(val)
-    return values
+        result = _parse_numeric_token(m.group(0))
+        if result is not None:
+            pairs.append(result)
+    return pairs
 
 
 def numeric_ok(claim: Claim, sources: list[RetrievedSource]) -> bool:
-    """Return True iff every numeric_token in the claim matches a value present
-    in at least one source, after unit normalization.
+    """Return True iff every numeric_token in the claim matches a (value, unit)
+    pair present in at least one source, after unit normalization.
 
     Matching rules:
     - NFKC-normalize all text before any comparison.
-    - Parse claim token and source numeric expressions into canonical float values.
-    - Two values match iff they are equal (exact float equality after normalization).
+    - Parse claim token and source numeric expressions into canonical (value, unit) pairs.
+    - Two tokens match iff BOTH value AND unit are equal.
+    - "percent" and "absolute" are distinct unit types:
+        25% ≠ bare 25  (percent vs absolute — CRITICAL: prevents false grounding)
+        25% == 25%     (same unit)
+        25% == 25 percent (both map to unit="percent")
     - Order-of-magnitude mismatches are always False (e.g. $4M ≠ $4,000).
-    - Unit normalization: $4M ≡ $4,000,000 ≡ 4 million USD ≡ 4000000.
-    - Only k / m / M / million / bn / billion / % / percent suffixes normalized.
+    - Unit normalization: $4M ≡ $4,000,000 ≡ 4 million USD ≡ 4000000 (all "absolute").
+    - Only k / m / M / million / bn / billion suffixes normalized within "absolute".
     - Exotic units → fail-closed (parse returns None → no match).
     - If claim.numeric_tokens is empty, returns True (vacuously grounded).
     - If sources is empty and numeric_tokens non-empty, returns False.
@@ -684,18 +700,22 @@ def numeric_ok(claim: Claim, sources: list[RetrievedSource]) -> bool:
     if not sources:
         return False
 
-    # Pre-compute all source values once (across all sources).
-    all_source_values: list[float] = []
+    # Pre-compute all source (value, unit) pairs once (across all sources).
+    all_source_pairs: list[tuple[float, str]] = []
     for source in sources:
-        all_source_values.extend(_extract_source_values(source.text))
+        all_source_pairs.extend(_extract_source_pairs(source.text))
 
-    # Every claim numeric token must find a matching value.
+    # Every claim numeric token must find a matching (value, unit) pair.
     for token in claim.numeric_tokens:
-        claim_val = _parse_numeric_token(token)
-        if claim_val is None:
+        claim_pair = _parse_numeric_token(token)
+        if claim_pair is None:
             # Cannot parse claim token — fail-closed.
             return False
-        if not any(claim_val == sv for sv in all_source_values):
+        claim_val, claim_unit = claim_pair
+        if not any(
+            claim_val == sv and claim_unit == su
+            for sv, su in all_source_pairs
+        ):
             return False
 
     return True
