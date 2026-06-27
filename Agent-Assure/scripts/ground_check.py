@@ -722,6 +722,116 @@ def numeric_ok(claim: Claim, sources: list[RetrievedSource]) -> bool:
 
 
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Absence check — verdict against query log
+# ---------------------------------------------------------------------------
+
+# Tokens to strip before head-noun extraction.
+_ABSENCE_LEAD: tuple[str, ...] = (
+    "there is no ", "there are no ", "we found no ", "no ", "not ",
+    "does not exist ", "does not ",
+)
+
+# Stop words for head-noun extraction: determiners, prepositions, articles.
+_HEAD_NOUN_STOPS: frozenset[str] = frozenset({
+    "a", "an", "the", "any", "some", "this", "that", "these", "those",
+    "in", "on", "at", "to", "for", "of", "with", "by", "from", "as",
+    "is", "are", "was", "were", "be", "been", "being", "have", "has",
+    "had", "do", "does", "did", "will", "would", "could", "should",
+    "may", "might", "must", "shall", "not", "no", "nor", "and", "or",
+    "but", "so", "if", "then", "than", "about", "more", "also", "it",
+    "its", "we", "you", "he", "she", "they", "there",
+})
+
+
+def _extract_absence_subject(text: str) -> str:
+    """Extract the head noun of the absence subject from *text*.
+
+    Rule-based, deterministic, no LLM.
+
+    Strategy:
+    1. NFKC-normalize.
+    2. Strip leading absence trigger phrase (longest match first).
+    3. Tokenize on whitespace; strip punctuation from each token.
+    4. Skip stop words; return the first remaining content word (lowercased).
+       This is the head noun of the absence subject.
+    5. If nothing survives, return the empty string.
+
+    Pure function.
+    """
+    normalized = _nfkc(text)
+    lower = normalized.lower()
+
+    # Strip the longest matching absence trigger prefix (order matters: longest first).
+    remainder = lower
+    for lead in sorted(_ABSENCE_LEAD, key=len, reverse=True):
+        if lower.startswith(lead):
+            remainder = lower[len(lead):]
+            break
+    else:
+        # No leading trigger — search for inline trigger, strip up to and including it.
+        for lead in sorted(_ABSENCE_LEAD, key=len, reverse=True):
+            idx = lower.find(lead)
+            if idx != -1:
+                remainder = lower[idx + len(lead):]
+                break
+
+    # Tokenize and find first non-stop content word.
+    for raw_tok in remainder.split():
+        tok = raw_tok.strip(".,;:!?\"'()[]{}")
+        if tok and tok not in _HEAD_NOUN_STOPS:
+            return tok
+
+    return ""
+
+
+def check_absence(
+    claim: Claim,
+    queries: list[str],
+    min_absence_searches: int = 2,
+) -> Verdict:
+    """Return ABSENCE_SUPPORTED or UNVERIFIED_ABSENCE for an absence claim.
+
+    ABSENCE_SUPPORTED iff:
+    - At least `min_absence_searches` DISTINCT queries (after NFKC normalization)
+      mention the head noun of the absence subject extracted from claim.text.
+
+    Otherwise returns UNVERIFIED_ABSENCE.
+
+    The `queries` list is the session's distinct search/fetch queries
+    (query_provenance values from the EvidenceStore).  The dispatcher (Task 8)
+    is responsible for supplying this list; this function does not access any
+    store or network.
+
+    Matching is case-insensitive, NFKC-normalized, substring-based.
+
+    Pure function — no LLM, no network, no random, no wall-clock.
+    """
+    subject = _extract_absence_subject(_nfkc(claim.text))
+
+    if not subject:
+        return Verdict.UNVERIFIED_ABSENCE
+
+    subject_cf = subject.casefold()
+
+    # Deduplicate queries (NFKC + casefold) and count those mentioning subject.
+    seen: set[str] = set()
+    match_count = 0
+
+    for q in queries:
+        q_norm = _nfkc(q).casefold().strip()
+        if q_norm in seen:
+            continue
+        seen.add(q_norm)
+        if subject_cf in q_norm:
+            match_count += 1
+
+    if match_count >= min_absence_searches:
+        return Verdict.ABSENCE_SUPPORTED
+    return Verdict.UNVERIFIED_ABSENCE
+
+
+# ---------------------------------------------------------------------------
 # Citation resolution
 # ---------------------------------------------------------------------------
 
