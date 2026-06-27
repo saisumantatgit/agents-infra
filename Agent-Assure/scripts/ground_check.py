@@ -1124,3 +1124,120 @@ def ground(claim: Claim, store: dict[str, RetrievedSource]) -> Verdict:
         return Verdict.GROUNDED
 
     return Verdict.UNGROUNDED
+
+
+# ---------------------------------------------------------------------------
+# Grounding SCORE + threshold + hard override (spec §4.5)
+# ---------------------------------------------------------------------------
+
+# Verdicts that count toward the numerator (a claim is "grounded enough").
+_NUMERATOR_VERDICTS: frozenset[Verdict] = frozenset({
+    Verdict.GROUNDED,
+    Verdict.ABSENCE_SUPPORTED,
+})
+
+# Score floor below which the gate is always FAIL.
+_FAIL_FLOOR: float = 60.0
+
+
+def score_report(
+    claims: list[Claim],
+    store: dict[str, RetrievedSource],
+    threshold: float = 90.0,
+) -> dict:
+    """Compute the grounding SCORE, gate, and retained-violation appendix (spec §4.5).
+
+    Denominator S = claims whose kind != NON_CLAIM. EVERY scored verdict stays in
+    S — violations (UNGROUNDED, UNCITED, UNVERIFIED_*, UNGROUNDABLE) are NEVER
+    removed from the denominator. That non-removal is the anti-gaming invariant:
+    a fabricated-citation draft cannot shrink its own denominator to post a passing
+    score.
+
+    Numerator = claims in S whose verdict is GROUNDED or ABSENCE_SUPPORTED.
+
+    grounding_score = 100.0 * numerator / |S|, rounded to 1 decimal for reporting
+    (so 2/3 → 66.7).
+
+    Gate:
+      FAIL       if score < 60.0
+      NEEDS_WORK if score < threshold OR any claim's verdict == UNVERIFIED_CITATION
+      PASS       otherwise
+    The UNVERIFIED_CITATION hard override caps the gate at NEEDS_WORK regardless of
+    score — it never overrides a FAIL upward (FAIL is checked first).
+
+    Empty-denominator edge (|S| == 0, i.e. all NON_CLAIM / no scored claims):
+    documented choice — score 100.0 and gate PASS (nothing to ground is not a
+    failure), with scored_claims == 0 so callers can distinguish a vacuous pass
+    from a genuine 100%.
+
+    Returns:
+        {
+          "grounding_score": float,           # rounded to 1 decimal
+          "gate": str,                         # "FAIL" | "NEEDS_WORK" | "PASS"
+          "scored_claims": int,                # |S|
+          "per_claim": [                       # ALL claims, in input order
+              {"index": int, "text": str, "kind": str, "verdict": str}, ...
+          ],
+          "retained_appendix": [               # non-grounded SCORED claims only
+              {"index": int, "text": str, "verdict": str}, ...
+          ],
+        }
+
+    Verdict and kind are reported as their string values (Verdict/ClaimKind are
+    str-enums; .value yields the plain string).
+
+    Pure function — no LLM, no network, no random, no wall-clock; does not mutate
+    *claims* or *store*.
+    """
+    per_claim: list[dict] = []
+    retained_appendix: list[dict] = []
+    scored_count = 0
+    numerator = 0
+    has_unverified_citation = False
+
+    for claim in claims:
+        verdict = ground(claim, store)
+        per_claim.append({
+            "index": claim.index,
+            "text": claim.text,
+            "kind": claim.kind.value,
+            "verdict": verdict.value,
+        })
+
+        if verdict == Verdict.UNVERIFIED_CITATION:
+            has_unverified_citation = True
+
+        # NON_CLAIM is excluded from the denominator (and thus from scoring and
+        # the retained appendix), but still appears in per_claim for transparency.
+        if claim.kind == ClaimKind.NON_CLAIM:
+            continue
+
+        scored_count += 1
+        if verdict in _NUMERATOR_VERDICTS:
+            numerator += 1
+        else:
+            retained_appendix.append({
+                "index": claim.index,
+                "text": claim.text,
+                "verdict": verdict.value,
+            })
+
+    if scored_count == 0:
+        grounding_score = 100.0
+    else:
+        grounding_score = round(100.0 * numerator / scored_count, 1)
+
+    if grounding_score < _FAIL_FLOOR:
+        gate = "FAIL"
+    elif grounding_score < threshold or has_unverified_citation:
+        gate = "NEEDS_WORK"
+    else:
+        gate = "PASS"
+
+    return {
+        "grounding_score": grounding_score,
+        "gate": gate,
+        "scored_claims": scored_count,
+        "per_claim": per_claim,
+        "retained_appendix": retained_appendix,
+    }
