@@ -21,6 +21,7 @@ from scripts.ground_check import (
     ClaimKind,
     RetrievedSource,
     Verdict,
+    extract_arguments,
     ground_relational,
 )
 
@@ -118,8 +119,11 @@ def test_two_sided_relation_grounded():
 def test_both_arguments_single_source_unverified():
     """Both arguments present in text but only one distinct source → UNVERIFIED_RELATION.
 
-    Even when side_A is in S1 and the claim text mentions both sides, a single
-    source cannot satisfy the two-distinct-source requirement.
+    The failure fires at Step 1 (≥2-distinct-source gate): only one citation
+    resolves to a verbatim source, so ground_relational returns
+    UNVERIFIED_RELATION before it ever reaches the cross-source argument check
+    in Steps 3–4.  Both sides being extractable from the claim text is
+    irrelevant when the source count requirement is not met.
     """
     s1 = _src(
         "S1",
@@ -209,28 +213,44 @@ def test_same_source_cited_twice_counts_once():
 
 
 def test_nfkc_normalization_in_matching():
-    """NFKC normalization applies before matching; homoglyph variants still match."""
-    # Side A text uses a Cyrillic 'а' (а) which NFKC maps — verify it doesn't
-    # break the extraction and that matching remains deterministic.
-    s1 = _src(
-        "S1",
-        "Insulin resistance is a well-documented condition.",
+    """NFKC normalization is the sole reason side_A matches when its source text
+    uses full-width Latin characters.
+
+    S1's text contains 'Ｉｎｓｕｌｉｎ ｒｅｓｉｓｔａｎｃｅ' (U+FF29…U+FF4E,
+    full-width Latin compatibility block).  NFKC maps each full-width code point
+    to its ASCII equivalent, so 'Ｉｎｓｕｌｉｎ' → 'Insulin'.  Without NFKC,
+    casefold('Ｉｎｓｕｌｉｎ ｒｅｓｉｓｔａｎｃｅ') does NOT contain the ASCII
+    substring 'insulin resistance', so window_supports would return False and
+    the verdict would be UNVERIFIED_RELATION.  With NFKC the match succeeds and
+    the verdict is GROUNDED.
+
+    Note: NFKC does NOT fold Cyrillic homoglyphs (e.g. Cyrillic 'а' U+0430
+    stays distinct from Latin 'a' U+0061 under NFKC).  Full-width/compatibility
+    characters are the correct vehicle for this test.
+    """
+    # S1 contains side_A ('insulin resistance') encoded as full-width Latin.
+    # A plain casefold (without NFKC) would not match ASCII 'insulin resistance'.
+    fw_s1_text = (
+        "Ｉｎｓｕｌｉｎ"  # Ｉｎｓｕｌｉｎ
+        " "
+        "ｒｅｓｉｓｔａｎｃｅ"  # ｒｅｓｉｓｔａｎｃｅ
+        " is a metabolic condition."
     )
-    s2 = _src(
-        "S2",
-        "Type 2 diabetes is a chronic disease with metabolic origins.",
-    )
-    # Claim text uses all-Latin characters — NFKC is a no-op; result is deterministic.
+    s1 = _src("S1", fw_s1_text)
+    # S2 uses normal ASCII for side_B ('type 2 diabetes').
+    s2 = _src("S2", "Type 2 diabetes is a chronic metabolic disease.")
+
     claim = _claim(
         "Insulin resistance causes type 2 diabetes [S1][S2].",
         "[S1]",
         "[S2]",
     )
-    r1 = ground_relational(claim, _store(s1, s2))
-    r2 = ground_relational(claim, _store(s1, s2))
-    assert r1 == r2, "ground_relational must be deterministic"
-    # With both sides covered across two verbatim sources → GROUNDED
-    assert r1 == Verdict.GROUNDED
+    result = ground_relational(claim, _store(s1, s2))
+    # GROUNDED only because NFKC normalizes S1's full-width text to ASCII before
+    # window_supports checks for 'insulin resistance'.
+    assert result == Verdict.GROUNDED, (
+        f"Expected GROUNDED (NFKC normalizes full-width Latin to ASCII), got {result}"
+    )
 
 
 def test_side_b_on_different_source_required():
@@ -261,3 +281,30 @@ def test_side_b_on_different_source_required():
     result = ground_relational(claim, _store(s1, s2))
     # S2 does not support type 2 diabetes; side_B is unsupported in a different source
     assert result == Verdict.UNVERIFIED_RELATION
+
+
+# ---------------------------------------------------------------------------
+# Numeric-head guard (§4.8 extract_arguments residual — Fix 2)
+# ---------------------------------------------------------------------------
+
+def test_extract_arguments_skips_numeric_head():
+    """extract_arguments skips bare-numeric tokens when selecting the side_B head.
+
+    'Insulin resistance causes type 2 diabetes [S1][S2].' — the argument phrase
+    after the trigger is 'type 2 diabetes'.  Without the numeric-head guard the
+    function could return '2' as side_B (a bare digit, not a meaningful noun).
+    With the guard, bare-numeric tokens are skipped and the rightmost
+    non-numeric content token 'diabetes' is selected as the head noun.
+
+    This test exercises the fix directly via extract_arguments; it would produce
+    a wrong side_B ('2' or an equivalent numeric) with the un-patched code.
+    """
+    args = extract_arguments("Insulin resistance causes type 2 diabetes [S1][S2].")
+    assert args is not None, "extract_arguments must not return None for a valid claim"
+    side_a, side_b = args
+    assert side_b == "diabetes", (
+        f"Expected side_B='diabetes' (numeric-head guard skips '2'), got {side_b!r}"
+    )
+    assert side_a == "resistance", (
+        f"Expected side_A='resistance', got {side_a!r}"
+    )

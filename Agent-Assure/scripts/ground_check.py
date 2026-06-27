@@ -919,13 +919,33 @@ def extract_arguments(text: str) -> tuple[str, str] | None:
         return ""
 
     def _first_content_token(segment: str) -> str:
-        """Return the first non-stop-word token from segment (casefolded)."""
+        """Return the head content token for side_B (casefolded).
+
+        Strategy: collect all non-stop-word tokens; skip bare-numeric tokens
+        (tokens whose stripped form is entirely digits, e.g. '2' in 'type 2
+        diabetes'); return the last surviving token.  The last position is used
+        because English noun-phrase heads sit rightmost: 'type 2 diabetes' →
+        'diabetes', 'elevated cortisol' → 'cortisol'.
+
+        If filtering leaves no tokens, fall back to the first non-stop-word
+        token regardless of numeric status (fail-closed: return something rather
+        than empty, letting the downstream window_supports decide).
+        """
         tokens = segment.split()
+        content_tokens: list[str] = []
+        fallback: str = ""
         for raw in tokens:
             tok = raw.strip(".,;:!?\"'()[]{}")
             if tok and tok.casefold() not in _stop:
-                return tok.casefold()
-        return ""
+                if not fallback:
+                    fallback = tok.casefold()
+                # Skip bare-numeric tokens (pure digit strings, e.g. '2', '10').
+                if tok.isdigit():
+                    continue
+                content_tokens.append(tok.casefold())
+        if content_tokens:
+            return content_tokens[-1]
+        return fallback
 
     side_a = _last_content_token(before_text)
     side_b = _first_content_token(after_text)
