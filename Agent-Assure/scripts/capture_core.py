@@ -141,14 +141,19 @@ def _is_overflow_payload(tool_response: object) -> bool:
         {"preview": "<partial text>", "file_path": "<abs path to full content>"}
 
     Both keys must be present and file_path must be a non-empty string.
-    A dict with "text" or "content" keys is treated as a normal inline response
-    even if it also happens to have a "file_path" key — the "preview" key is the
-    discriminator that marks a truncated response.
+
+    A dict that also contains a non-empty "text" or "content" key is treated as
+    a normal inline response — the presence of full inline content is a definitive
+    inline signal that takes precedence over the overflow discriminators.
     """
     if not isinstance(tool_response, dict):
         return False
     file_path = tool_response.get("file_path")
     if not file_path or not isinstance(file_path, str):
+        return False
+    # Inline-content keys are definitive: if present and non-empty, the caller
+    # already has the full text and must NOT be routed to read an external file.
+    if tool_response.get("text") or tool_response.get("content"):
         return False
     # "preview" is the canonical discriminator for a truncation payload.
     return "preview" in tool_response
@@ -173,9 +178,10 @@ def reconstruct_text(tool_response: object) -> tuple[str, str]:
                              unrecognized inline shape (propagated from _extract_text).
     """
     if _is_overflow_payload(tool_response):
-        # tool_response is a dict here (guaranteed by _is_overflow_payload).
-        assert isinstance(tool_response, dict)
-        file_path_str: str = tool_response["file_path"]
+        # tool_response is a dict here — _is_overflow_payload returns False for
+        # any non-dict, so the cast below is type-safe without a runtime assert.
+        tool_response_dict: dict = tool_response  # type: ignore[assignment]
+        file_path_str: str = tool_response_dict["file_path"]
         overflow_path = Path(file_path_str)
         # Fail loud — no silent fallback to preview.
         if not overflow_path.exists():

@@ -237,3 +237,28 @@ class TestMakeRecordOverflow:
         assert result.captured_via == "overflow_file"
         assert len(result.text) > 10_000
         assert result.text == _LARGE_CONTENT
+
+    def test_text_plus_preview_plus_filepath_is_inline(self):
+        """A payload with 'text' + 'preview' + 'file_path' must be treated as inline.
+
+        The 'text' key carries the full inline content — it is a definitive inline
+        signal.  The nonexistent file_path must NOT be read (FileNotFoundError would
+        surface if the overflow path were taken).
+        """
+        inline_content = "the real full content here"
+        result = make_record(
+            tool_name="mcp__exa__web_fetch_exa",
+            tool_input={"url": "https://example.com/page"},
+            tool_response={
+                "text": inline_content,
+                "preview": "short...",
+                "file_path": "/tmp/does-not-exist-xyz",
+            },
+            source_id=FIXED_ID,
+            query_provenance=FIXED_QP,
+            fetched_at=FIXED_AT,
+        )
+
+        assert result is not None
+        assert result.captured_via == "inline"
+        assert result.text == inline_content
