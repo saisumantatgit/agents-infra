@@ -1046,3 +1046,81 @@ def ground_relational(claim: Claim, store: dict[str, RetrievedSource]) -> Verdic
                 return Verdict.GROUNDED
 
     return Verdict.UNVERIFIED_RELATION
+
+
+# ---------------------------------------------------------------------------
+# Per-claim verdict dispatcher (spec §4.4)
+# ---------------------------------------------------------------------------
+
+def _session_queries(store: dict[str, RetrievedSource]) -> list[str]:
+    """Return the DISTINCT query_provenance values across the store.
+
+    Order-insensitive content (the caller — check_absence — counts distinct
+    matches). A list is returned to satisfy check_absence's signature.
+    Pure function — no mutation, no LLM/network/random/wall-clock.
+    """
+    seen: set[str] = set()
+    out: list[str] = []
+    for source in store.values():
+        q = source.query_provenance
+        if q not in seen:
+            seen.add(q)
+            out.append(q)
+    return out
+
+
+def ground(claim: Claim, store: dict[str, RetrievedSource]) -> Verdict:
+    """Return the grounding Verdict for a single ALREADY-CLASSIFIED claim.
+
+    Implements spec §4.4 decision logic in exact order. The input `claim` is
+    assumed to carry a resolved `kind`, `citations`, and `numeric_tokens`
+    (i.e. it has passed through classify()).
+
+    Branch order (first match wins):
+      1. NON_CLAIM                     → GROUNDED (excluded from denominator
+                                         upstream in Task 9).
+      2. RELATIONAL                    → delegate to ground_relational.
+      3. ABSENCE                       → delegate to check_absence with the
+                                         session's distinct queries.
+      4. no citations                  → UNCITED.
+      5. any citation unresolved       → UNVERIFIED_CITATION.
+      6. any resolved source has falsy text → UNGROUNDABLE (snippet-only / no
+                                         full text).
+      7. no verbatim source among cited → UNGROUNDABLE (all haiku_summary).
+      8. NUMERIC and numeric_ok(verbatim) is False → UNVERIFIED_NUMBER.
+      9. T1 or T2 supports on verbatim → GROUNDED.
+     10. otherwise                     → UNGROUNDED.
+
+    ATTRIBUTION and FACTUAL fall through to the citation/verbatim/tier path
+    (the default). Tiers (t1_verbatim, t2_lexical) and numeric_ok run ONLY on
+    the verbatim-filtered sources.
+
+    Pure function — no mutation, no LLM/network/random/wall-clock.
+    """
+    if claim.kind == ClaimKind.NON_CLAIM:
+        return Verdict.GROUNDED
+    if claim.kind == ClaimKind.RELATIONAL:
+        return ground_relational(claim, store)
+    if claim.kind == ClaimKind.ABSENCE:
+        return check_absence(claim, _session_queries(store))
+
+    if not claim.citations:
+        return Verdict.UNCITED
+
+    sources = [resolve(c, store) for c in claim.citations]
+    if any(s is None for s in sources):
+        return Verdict.UNVERIFIED_CITATION
+    if any(not s.text for s in sources):
+        return Verdict.UNGROUNDABLE
+
+    verbatim = [s for s in sources if s.full_text_source == "verbatim"]
+    if not verbatim:
+        return Verdict.UNGROUNDABLE
+
+    if claim.kind == ClaimKind.NUMERIC and not numeric_ok(claim, verbatim):
+        return Verdict.UNVERIFIED_NUMBER
+
+    if t1_verbatim(claim, verbatim) or t2_lexical(claim, verbatim):
+        return Verdict.GROUNDED
+
+    return Verdict.UNGROUNDED
