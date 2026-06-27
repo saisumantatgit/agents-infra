@@ -1,0 +1,1 @@
+{"source_id":"S1","url":"http://example.com","file_path":null,"fetched_at":"2026-06-20T00:00:00Z","tool":"exa.web_fetch_exa","content_sha256":"abc123","text":"Redis handles 100K ops per second","full_text_source":"verbatim","captured_via":"inline","query_provenance":"redis performance"}
