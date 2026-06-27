@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import unicodedata
+from collections import Counter
 from dataclasses import dataclass
 from enum import Enum
 from typing import Iterator
@@ -396,7 +397,7 @@ def _strip_citations(text: str) -> str:
 def t1_verbatim(
     claim: Claim,
     sources: list[RetrievedSource],
-    min_quote_len: int = 6,
+    min_quote_len: int = 8,
 ) -> bool:
     """Return True iff a contiguous span of ≥ min_quote_len tokens from the
     claim appears verbatim in at least one source's text.
@@ -406,12 +407,10 @@ def t1_verbatim(
     strings).  Citation markers (e.g. [S1]) are stripped from the claim
     before tokenizing so they do not inflate the token list.
 
-    Default min_quote_len=6: the canonical spec example claim ("Redis handles
-    100K operations per second [S1].") yields exactly 6 content tokens after
-    citation stripping; the function signature in the brief lists min_quote_len=8
-    but the mandatory test asserts True with the default on a 6-token claim,
-    making 8 inconsistent.  6 is the largest default that satisfies all
-    required test assertions.
+    Default min_quote_len=8 per spec/design contract.  The canonical hit-test
+    claim ("Redis handles 100K operations per second on commodity hardware
+    [S1].") yields exactly 8 content tokens after citation stripping, matching
+    the default threshold.
 
     Caller is responsible for filtering sources to verbatim-only before
     calling this function — do NOT filter by full_text_source here.
@@ -473,17 +472,15 @@ def _content_words(tokens: list[str]) -> list[str]:
 
 
 def _f1(claim_words: list[str], window_words: list[str]) -> float:
-    """Compute claim-coverage score between claim_words and window_words.
+    """Compute content-word F1 between claim_words and window_words.
 
-    This is the recall of claim_words with respect to window_words:
-        score = |multiset_intersection| / |claim_words|
+    Spec metric = content-word F1; claim-recall (no precision penalty) may
+    suit verbose sources better — deferred to the calibration phase
+    (spec §12.5), not silently substituted.
 
-    Rationale: for grounding, the critical question is "does the window cover
-    the claim's content?" not "is the window exclusively about this claim?".
-    Standard symmetric F1 penalises long, information-rich windows even when
-    they fully contain the claim — the opposite of what grounding needs.
-    Claim-recall (matches/claim_size) avoids that penalty while still failing
-    when the claim's tokens are absent from the window.
+        P = |intersection| / |window_words|
+        R = |intersection| / |claim_words|
+        F1 = 0 if P+R==0 else 2*P*R / (P+R)
 
     Uses multiset intersection (each token matched at most once).
     Returns 0.0 when either list is empty.
@@ -491,7 +488,6 @@ def _f1(claim_words: list[str], window_words: list[str]) -> float:
     if not claim_words or not window_words:
         return 0.0
 
-    from collections import Counter
     claim_counter = Counter(claim_words)
     window_counter = Counter(window_words)
 
@@ -500,7 +496,11 @@ def _f1(claim_words: list[str], window_words: list[str]) -> float:
         min(claim_counter[t], window_counter[t]) for t in claim_counter
     )
 
-    return intersection / len(claim_words)
+    precision = intersection / len(window_words)
+    recall = intersection / len(claim_words)
+    if precision + recall == 0:
+        return 0.0
+    return 2 * precision * recall / (precision + recall)
 
 
 def _split_sentences(text: str) -> list[str]:

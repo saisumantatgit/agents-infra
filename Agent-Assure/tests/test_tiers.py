@@ -49,9 +49,14 @@ def mk(t: str) -> Claim:
 # ---------------------------------------------------------------------------
 
 def test_t1_hits_on_contiguous_span():
-    """A ≥8-token contiguous span from the claim must appear in a source."""
+    """A ≥8-token contiguous span from the claim must appear in a source.
+
+    Claim content tokens after citation strip: redis handles 100k operations
+    per second on commodity hardware — exactly 8 tokens, matching min_quote_len=8.
+    The source contains all 8 tokens as a contiguous verbatim span.
+    """
     assert t1_verbatim(
-        mk("Redis handles 100K operations per second [S1]."),
+        mk("Redis handles 100K operations per second on commodity hardware [S1]."),
         [src("benchmarks show Redis handles 100K operations per second on commodity hardware")],
     )
 
@@ -59,39 +64,50 @@ def test_t1_hits_on_contiguous_span():
 def test_t1_misses_when_no_span_in_source():
     """Returns False when the source has no matching span of ≥8 tokens."""
     assert not t1_verbatim(
-        mk("Redis handles 100K operations per second [S1]."),
+        mk("Redis handles 100K operations per second on commodity hardware [S1]."),
         [src("databases are fast and efficient for many workloads in production")],
     )
 
 
 def test_t1_case_insensitive():
-    """Match is case-insensitive (NFKC + casefolded)."""
+    """Match is case-insensitive (NFKC + casefolded).
+
+    Claim content tokens (8): redis handles 100k operations per second on
+    commodity (trailing 'hardware' skipped — only 8 needed for the span match).
+    Source contains matching tokens in lowercase form.
+    """
     assert t1_verbatim(
-        mk("Redis Handles 100K Operations Per Second [S1]."),
-        [src("benchmarks show redis handles 100k operations per second on hardware")],
+        mk("Redis Handles 100K Operations Per Second on commodity hardware [S1]."),
+        [src("benchmarks show redis handles 100k operations per second on commodity hardware")],
     )
 
 
 def test_t1_min_quote_len_boundary():
-    """Exactly min_quote_len tokens → hit; one fewer → miss."""
-    # 8-token phrase
+    """Exactly min_quote_len=8 tokens → hit; min_quote_len=9 → miss.
+
+    Claim content tokens: the system processes requests at high speed always done
+    (9 tokens total). The source contains the 8-token prefix
+    'the system processes requests at high speed always' verbatim, but NOT all 9
+    since 'done' is absent. So min_quote_len=8 hits (8-token window present),
+    and min_quote_len=9 misses (no 9-token contiguous span is shared).
+    """
+    # 9 content tokens total; source shares the first 8 contiguous ones
     claim_text = "the system processes requests at high speed always done [S1]."
-    # source has exactly those 8 tokens (the/system/processes/requests/at/high/speed/always)
     source_text = "the system processes requests at high speed always in production"
     assert t1_verbatim(mk(claim_text), [src(source_text)], min_quote_len=8)
-    # With min_quote_len=9 a shorter claim won't have 9 common contiguous tokens
+    # min_quote_len=9: no 9-token contiguous span is shared between claim and source
     assert not t1_verbatim(mk(claim_text), [src(source_text)], min_quote_len=9)
 
 
 def test_t1_empty_sources():
     """Returns False when source list is empty."""
-    assert not t1_verbatim(mk("Redis handles 100K operations per second [S1]."), [])
+    assert not t1_verbatim(mk("Redis handles 100K operations per second on commodity hardware [S1]."), [])
 
 
 def test_t1_multiple_sources_any_hit():
     """Returns True if ANY source contains the span."""
     assert t1_verbatim(
-        mk("Redis handles 100K operations per second [S1]."),
+        mk("Redis handles 100K operations per second on commodity hardware [S1]."),
         [
             src("completely unrelated text about nothing in particular here"),
             src("benchmarks show Redis handles 100K operations per second on commodity hardware"),
@@ -102,7 +118,7 @@ def test_t1_multiple_sources_any_hit():
 def test_t1_whitespace_collapse():
     """Extra whitespace in claim or source is collapsed before matching."""
     assert t1_verbatim(
-        mk("Redis  handles  100K  operations  per  second [S1]."),
+        mk("Redis  handles  100K  operations  per  second  on  commodity  hardware [S1]."),
         [src("benchmarks show Redis handles 100K operations per second on commodity hardware")],
     )
 
@@ -118,11 +134,21 @@ def test_t2_requires_numbers_present():
 
 
 def test_t2_hits_when_words_and_numbers_match():
-    """T2 succeeds when content-word F1 ≥ tau AND numeric token is present."""
+    """T2 succeeds when content-word F1 ≥ tau AND numeric token is present.
+
+    True F1 penalises long, information-rich windows even when they fully cover
+    the claim (precision pulls F1 below recall-only).  The default tau=0.65 is
+    a calibration placeholder (spec §12.5) — this test passes an explicit
+    lex_tau=0.50 to demonstrate the pass-case.  Claim content words:
+    [throughput, rose, 25] (3).  Source content words: [throughput, rose, 25,
+    system, processed, requests, efficiently] (7).  F1 = 2*(3/7)*(3/3) /
+    ((3/7)+(3/3)) = 0.60.  The default is intentionally NOT lowered;
+    calibration will tune it to a representative corpus.
+    """
     source_text = (
         "throughput rose 25% as the system processed more requests efficiently"
     )
-    assert t2_lexical(mk("throughput rose 25% [S1]."), [src(source_text)])
+    assert t2_lexical(mk("throughput rose 25% [S1]."), [src(source_text)], lex_tau=0.50)
 
 
 def test_t2_fails_when_f1_below_tau():
@@ -155,12 +181,20 @@ def test_t2_no_numeric_tokens_only_f1_gate():
 
 
 def test_t2_multiple_sources_best_window():
-    """T2 uses the best window across all sources."""
+    """T2 uses the best window across all sources.
+
+    Uses explicit lex_tau=0.40 to demonstrate multi-source selection (bad_source
+    scores 0; good_source wins).  Good source content words: [throughput, rose,
+    25, system, processed, many, requests, efficiently] (8).  Claim content
+    words: [throughput, rose, 25] (3).  F1 = 2*(3/8)*(3/3)/((3/8)+(3/3)) ≈
+    0.545.  Default tau=0.65 is intentionally NOT changed; this test isolates
+    multi-source selection behaviour from the calibration threshold.
+    """
     bad_source = src("nothing useful here at all about any topic whatsoever")
     good_source = src(
         "throughput rose 25% as the system processed many more requests efficiently"
     )
-    assert t2_lexical(mk("throughput rose 25% [S1]."), [bad_source, good_source])
+    assert t2_lexical(mk("throughput rose 25% [S1]."), [bad_source, good_source], lex_tau=0.40)
 
 
 def test_t2_window_is_local():
