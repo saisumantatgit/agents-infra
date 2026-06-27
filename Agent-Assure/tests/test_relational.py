@@ -14,8 +14,6 @@ Spec §4.8 contract being tested:
   - Any other case → UNVERIFIED_RELATION (fail-closed).
 """
 
-import pytest
-
 from scripts.ground_check import (
     Claim,
     ClaimKind,

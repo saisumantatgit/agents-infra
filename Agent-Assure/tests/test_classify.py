@@ -3,7 +3,7 @@
 TDD protocol: tests written first, run to confirm FAIL, then classify implemented.
 """
 
-from scripts.ground_check import classify, Claim, ClaimKind
+from scripts.ground_check import classify, decompose, Claim, ClaimKind
 
 
 def mk(t: str) -> Claim:
@@ -165,3 +165,30 @@ def test_percentage_intact():
     c = classify(mk("Accuracy improved by 25%."))
     assert c.kind == ClaimKind.NUMERIC
     assert any("25%" in t for t in c.numeric_tokens), f"expected '25%' in {c.numeric_tokens}"
+
+
+# ---------------------------------------------------------------------------
+# MOAT FIX A — a verbless sentence carrying claim content (numeric/citation)
+#              is a REAL claim, not a NON_CLAIM. Moat-safe: over-score, never
+#              silently exclude a fabricated claim from the denominator.
+# ---------------------------------------------------------------------------
+
+def test_verbless_numeric_claim_is_scored():
+    """'A 99% market share for our product [S9].' has no finite verb but carries a
+    numeric token AND a citation — it is verifiable content, so it must be scored
+    (NUMERIC), never NON_CLAIM. Excluding it would let a fabricated draft pass."""
+    c = classify(decompose("A 99% market share for our product [S9].")[0])
+    assert c.kind != ClaimKind.NON_CLAIM, f"verbless numeric claim wrongly excluded: {c.kind}"
+    assert c.kind == ClaimKind.NUMERIC, f"expected NUMERIC, got {c.kind}"
+
+
+def test_verbless_citation_only_claim_is_scored():
+    """A verbless fragment carrying only a citation marker (no number) is still
+    verifiable content → must not be NON_CLAIM."""
+    c = classify(mk("The fastest database on the market [S9]."))
+    assert c.kind != ClaimKind.NON_CLAIM, f"verbless cited claim wrongly excluded: {c.kind}"
+
+
+def test_verbless_no_content_stays_non_claim():
+    """A verbless fragment with NO numeric/citation content stays NON_CLAIM."""
+    assert classify(mk("Redis Postgres MongoDB")).kind == ClaimKind.NON_CLAIM

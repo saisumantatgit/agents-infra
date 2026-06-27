@@ -324,7 +324,18 @@ def _has_finite_verb(text: str) -> bool:
 
 
 def _is_non_claim(text: str) -> bool:
-    """Return True if *text* is a header, pure transition, or lacks a finite verb."""
+    """Return True if *text* is a header, pure transition, or a verbless fragment
+    carrying NO verifiable content.
+
+    MOAT-SAFE rule (anti-gaming): a verbless sentence that carries a numeric token
+    or a citation marker is real, verifiable claim content — it MUST NOT be
+    excluded as NON_CLAIM, or a draft of purely verbless fabricated claims (e.g.
+    "A 99% market share for our product [S9].") would shrink the denominator to
+    zero and post a vacuous PASS. NON_CLAIM stays reserved for headers, pure
+    transitions, and verbless fragments with no numeric/citation content. When
+    unsure, classify as a real claim — over-scoring is safe; silently excluding a
+    fabricated claim is the failure.
+    """
     # Header: starts with one or more '#' characters
     if _NO_FINITE_VERB_RE.match(text):
         return True
@@ -332,8 +343,15 @@ def _is_non_claim(text: str) -> bool:
     stripped = _CITATION_RE.sub("", text).strip().rstrip(".,;:!?").lower()
     if stripped in _TRANSITION_PHRASES:
         return True
-    # No finite verb
+    # Verbless fragment: NON_CLAIM only if it carries no verifiable content.
+    # A numeric token or a citation marker is verifiable content → real claim.
     if not _has_finite_verb(text):
+        has_citation = bool(_CITATION_RE.search(text))
+        # Numeric content is detected on the citation-stripped text so that bracket
+        # digits (e.g. [S9] → '9') do not count as numeric content.
+        has_numeric = bool(_NUMERIC_RE.search(_CITATION_RE.sub("", text)))
+        if has_citation or has_numeric:
+            return False
         return True
     return False
 
@@ -1166,15 +1184,19 @@ def score_report(
     score — it never overrides a FAIL upward (FAIL is checked first).
 
     Empty-denominator edge (|S| == 0, i.e. all NON_CLAIM / no scored claims):
-    documented choice — score 100.0 and gate PASS (nothing to ground is not a
-    failure), with scored_claims == 0 so callers can distinguish a vacuous pass
-    from a genuine 100%.
+    MOAT-SAFE defense in depth — a report with zero verifiable claims CANNOT be
+    certified trustworthy, so the gate is NEEDS_WORK (never PASS). grounding_score
+    is reported as 100.0 (there are no failed claims), but the GATE — the
+    certification signal — is NEEDS_WORK and the report carries "vacuous": true so
+    callers can distinguish "nothing to verify" from a genuine low score. The CLI
+    exits non-zero for any non-PASS gate, so a vacuous report never exits 0.
 
     Returns:
         {
           "grounding_score": float,           # rounded to 1 decimal
           "gate": str,                         # "FAIL" | "NEEDS_WORK" | "PASS"
           "scored_claims": int,                # |S|
+          "vacuous": bool,                     # True iff scored_claims == 0
           "per_claim": [                       # ALL claims, in input order
               {"index": int, "text": str, "kind": str, "verdict": str}, ...
           ],
@@ -1222,22 +1244,27 @@ def score_report(
                 "verdict": verdict.value,
             })
 
-    if scored_count == 0:
-        grounding_score = 100.0
-    else:
-        grounding_score = round(100.0 * numerator / scored_count, 1)
+    vacuous = scored_count == 0
 
-    if grounding_score < _FAIL_FLOOR:
-        gate = "FAIL"
-    elif grounding_score < threshold or has_unverified_citation:
+    if vacuous:
+        # No verifiable claims. Defense in depth: a zero-denominator report cannot
+        # be certified — gate NEEDS_WORK (never PASS), independent of score.
+        grounding_score = 100.0
         gate = "NEEDS_WORK"
     else:
-        gate = "PASS"
+        grounding_score = round(100.0 * numerator / scored_count, 1)
+        if grounding_score < _FAIL_FLOOR:
+            gate = "FAIL"
+        elif grounding_score < threshold or has_unverified_citation:
+            gate = "NEEDS_WORK"
+        else:
+            gate = "PASS"
 
     return {
         "grounding_score": grounding_score,
         "gate": gate,
         "scored_claims": scored_count,
+        "vacuous": vacuous,
         "per_claim": per_claim,
         "retained_appendix": retained_appendix,
     }

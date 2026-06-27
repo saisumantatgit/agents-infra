@@ -19,6 +19,7 @@ from scripts.ground_check import (
     RetrievedSource,
     Verdict,
     classify,
+    decompose,
     ground,
     score_report,
 )
@@ -207,13 +208,12 @@ def test_non_claim_excluded_from_denominator():
 # Empty denominator edge case (|S| == 0)
 # ---------------------------------------------------------------------------
 
-def test_empty_denominator_passes():
-    """All NON_CLAIM (no scored claims) → score 100.0, PASS, scored_claims == 0.
-
-    Documented choice (spec §4.5 edge case): nothing to ground is not a failure.
-    The scored_claims flag lets callers distinguish 'vacuously perfect' from
-    'genuinely 100%'.
-    """
+def test_empty_denominator_not_pass():
+    """MOAT FIX B (defense in depth): all NON_CLAIM (no scored claims) → gate
+    NEEDS_WORK, NOT PASS. A report with zero verifiable claims cannot be certified
+    trustworthy. The ``vacuous`` flag lets callers distinguish 'nothing to verify'
+    from a genuine low score. Previously this asserted PASS — that assertion
+    encoded the moat-integrity hole and is corrected here."""
     h0 = _classified(0, "## Section one")
     h1 = _classified(1, "## Section two")
     assert h0.kind == ClaimKind.NON_CLAIM
@@ -221,20 +221,61 @@ def test_empty_denominator_passes():
 
     rep = score_report([h0, h1], {})
     assert rep["scored_claims"] == 0
-    assert rep["grounding_score"] == 100.0
-    assert rep["gate"] == "PASS"
+    assert rep["gate"] == "NEEDS_WORK"
+    assert rep["gate"] != "PASS"
+    assert rep["vacuous"] is True
     assert rep["retained_appendix"] == []
     assert len(rep["per_claim"]) == 2
 
 
-def test_empty_claims_list_passes():
-    """Zero claims at all → vacuous PASS with scored_claims == 0."""
+def test_empty_claims_list_not_pass():
+    """Zero claims at all → vacuous, gate NEEDS_WORK (not PASS), scored_claims == 0."""
     rep = score_report([], {})
     assert rep["scored_claims"] == 0
-    assert rep["grounding_score"] == 100.0
-    assert rep["gate"] == "PASS"
+    assert rep["gate"] == "NEEDS_WORK"
+    assert rep["gate"] != "PASS"
+    assert rep["vacuous"] is True
     assert rep["per_claim"] == []
     assert rep["retained_appendix"] == []
+
+
+def test_non_vacuous_report_flag_false():
+    """A report with at least one scored claim is NOT vacuous."""
+    s1 = _src("S1", _GROUNDED_TEXT)
+    store = _store(s1)
+    rep = score_report([_grounded_claim(0, "S1")], store)
+    assert rep["vacuous"] is False
+    assert rep["scored_claims"] == 1
+
+
+# ---------------------------------------------------------------------------
+# HEADLINE REGRESSION — the verbless fabricated draft must NOT report PASS.
+# This is the exact moat-integrity hole: 3 verbless fabricated claims citing an
+# absent source S9. Before the fix every line classified NON_CLAIM → denominator
+# 0 → vacuous PASS. After Fix A each line is a NUMERIC claim citing the missing
+# S9 → UNVERIFIED_CITATION → not PASS; Fix B backstops the all-excluded case.
+# ---------------------------------------------------------------------------
+
+_VERBLESS_FABRICATED_DRAFT = (
+    "A 99% market share for our product [S9]. "
+    "Industry-leading uptime of 99.999% [S9]. "
+    "The fastest database on the market [S9]."
+)
+
+
+def test_verbless_fabricated_draft_does_not_pass():
+    """Full pipeline (decompose → classify → score_report) on a purely verbless
+    fabricated draft citing an absent source must NOT certify PASS."""
+    claims = [classify(c) for c in decompose(_VERBLESS_FABRICATED_DRAFT)]
+    # Empty store: S9 does not exist.
+    rep = score_report(claims, {})
+    assert rep["gate"] != "PASS", (
+        f"fabricated verbless draft was certified PASS — moat breached: {rep}"
+    )
+    # The lines must be scored (not silently excluded as NON_CLAIM).
+    assert rep["scored_claims"] >= 1, (
+        f"verbless fabricated claims were excluded from the denominator: {rep}"
+    )
 
 
 # ---------------------------------------------------------------------------

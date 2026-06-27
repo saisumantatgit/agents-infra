@@ -12,8 +12,6 @@ Required test cases (per brief):
   3. "$4M" vs "$4,000" → False  (order-of-magnitude mismatch)
 """
 
-import pytest
-
 from scripts.ground_check import (
     Claim,
     ClaimKind,

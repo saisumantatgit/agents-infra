@@ -12,8 +12,6 @@ Required cases per brief:
   - UNVERIFIED_ABSENCE when 0 queries mention the subject.
 """
 
-import pytest
-
 from scripts.ground_check import (
     Claim,
     ClaimKind,

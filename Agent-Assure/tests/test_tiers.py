@@ -7,8 +7,6 @@ TDD sequence:
   Step 4: Run → PASS.
 """
 
-import pytest
-
 from scripts.ground_check import (
     Claim,
     ClaimKind,
