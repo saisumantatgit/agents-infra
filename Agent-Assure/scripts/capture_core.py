@@ -58,6 +58,7 @@ inside the tool_response dict IS permitted (that is the whole point of Task 2).
 from __future__ import annotations
 
 import hashlib
+import json
 import unicodedata
 from pathlib import Path
 
@@ -260,3 +261,89 @@ def make_record(
         captured_via=captured_via,
         query_provenance=query_provenance,
     )
+
+
+# ---------------------------------------------------------------------------
+# Task 3: EvidenceStore — source_id assignment + append-only store writer
+# ---------------------------------------------------------------------------
+
+def next_source_id(store_path: str) -> str:
+    """Return the next monotonic source ID for the given JSONL store.
+
+    Reads the existing store (if present and non-empty), finds the highest
+    ``S<n>`` source_id, and returns ``S<n+1>``.  An empty or absent store
+    returns ``"S1"``.
+
+    Pure with respect to outputs: does not write to disk; deterministic; no
+    wall-clock or random.
+
+    Args:
+        store_path: Path to the JSONL evidence store (may not exist yet).
+
+    Returns:
+        ``"S1"`` when the store is absent or empty, ``"S<n+1>"`` otherwise.
+    """
+    path = Path(store_path)
+    if not path.exists():
+        return "S1"
+
+    max_n: int = 0
+    with path.open(encoding="utf-8") as fh:
+        for raw_line in fh:
+            line = raw_line.strip()
+            if not line:
+                continue
+            try:
+                obj = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            sid = obj.get("source_id", "")
+            if isinstance(sid, str) and sid.startswith("S"):
+                try:
+                    n = int(sid[1:])
+                    if n > max_n:
+                        max_n = n
+                except ValueError:
+                    pass
+
+    return f"S{max_n + 1}"
+
+
+def append_record(record: RetrievedSource, store_path: str) -> None:
+    """Append ONE JSONL line for *record* to the store at *store_path*.
+
+    Creates the parent directory if it does not exist.  Opens the file in
+    append mode so existing lines are never rewritten or truncated.
+
+    Serializes all 10 ``RetrievedSource`` fields as a JSON object with keys
+    in the exact order that ``load_store`` expects:
+        source_id, url, file_path, fetched_at, tool, content_sha256, text,
+        full_text_source, captured_via, query_provenance.
+
+    ``None`` field values are serialized as JSON ``null`` and round-trip
+    correctly through ``load_store`` (which uses ``dict.get()``).
+
+    Unicode is preserved verbatim (``ensure_ascii=False``).
+
+    Args:
+        record: The ``RetrievedSource`` to append.
+        store_path: Absolute or relative path to the JSONL evidence store.
+    """
+    path = Path(store_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    obj = {
+        "source_id": record.source_id,
+        "url": record.url,
+        "file_path": record.file_path,
+        "fetched_at": record.fetched_at,
+        "tool": record.tool,
+        "content_sha256": record.content_sha256,
+        "text": record.text,
+        "full_text_source": record.full_text_source,
+        "captured_via": record.captured_via,
+        "query_provenance": record.query_provenance,
+    }
+    line = json.dumps(obj, ensure_ascii=False)
+    with path.open(mode="a", encoding="utf-8") as fh:
+        fh.write(line + "\n")
