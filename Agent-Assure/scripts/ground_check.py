@@ -1241,3 +1241,66 @@ def score_report(
         "per_claim": per_claim,
         "retained_appendix": retained_appendix,
     }
+
+
+# ---------------------------------------------------------------------------
+# CLI entry point (Task 10)
+# ---------------------------------------------------------------------------
+
+def main() -> None:
+    """CLI entry point for Agent-Assure ground_check.
+
+    argparse interface:
+      --draft PATH      Path to the draft text file (required).
+      --store PATH      Path to the evidence JSONL store (required).
+      --threshold FLOAT Grounding score threshold (default 90.0).
+      --json            Print JSON report to stdout; skip writing YAML file.
+
+    Exit codes:
+      0  gate == "PASS"
+      1  gate == "NEEDS_WORK" or "FAIL"
+    """
+    import argparse
+    import sys as _sys
+    import json as _json
+    import yaml as _yaml
+
+    parser = argparse.ArgumentParser(
+        prog="ground_check",
+        description="Agent-Assure: ground a draft against an evidence store.",
+    )
+    parser.add_argument("--draft", required=True, metavar="PATH",
+                        help="Path to the draft text file.")
+    parser.add_argument("--store", required=True, metavar="PATH",
+                        help="Path to the evidence JSONL store.")
+    parser.add_argument("--threshold", type=float, default=90.0, metavar="FLOAT",
+                        help="Grounding score threshold (default 90.0).")
+    parser.add_argument("--json", dest="json_mode", action="store_true",
+                        help="Print JSON report to stdout; skip writing YAML file.")
+    args = parser.parse_args()
+
+    # Pipeline: read → decompose → classify → score_report
+    with open(args.draft, encoding="utf-8") as fh:
+        draft_text = fh.read()
+
+    store = load_store(args.store)
+    claims = [classify(c) for c in decompose(draft_text)]
+    report = score_report(claims, store, threshold=args.threshold)
+
+    gate: str = report["gate"]
+
+    if args.json_mode:
+        # Print JSON to stdout; sort_keys for determinism.
+        print(_json.dumps(report, sort_keys=True))
+    else:
+        # Write grounding-report.yaml to CWD.
+        with open("grounding-report.yaml", "w", encoding="utf-8") as fh:
+            _yaml.safe_dump(report, fh, sort_keys=True, allow_unicode=True)
+        # One-line human summary to stdout.
+        print(f"gate={gate} grounding_score={report['grounding_score']}")
+
+    _sys.exit(0 if gate == "PASS" else 1)
+
+
+if __name__ == "__main__":
+    main()
