@@ -589,6 +589,119 @@ def t2_lexical(
 
 
 # ---------------------------------------------------------------------------
+# T3 — Numeric grounding check
+# ---------------------------------------------------------------------------
+
+# Pattern to find numeric expressions in source text.
+# Captures: optional $, digit cluster with commas, optional space + suffix.
+_SOURCE_NUMERIC_RE = _re.compile(
+    r"\$?\d[\d,.]*\s?(?:million|billion|percent|k|m|bn|%)?",
+    _re.IGNORECASE,
+)
+
+# Multiplier table for unit suffixes (case-insensitive).
+_UNIT_MULTIPLIERS: dict[str, int] = {
+    "k": 1_000,
+    "m": 1_000_000,
+    "million": 1_000_000,
+    "bn": 1_000_000_000,
+    "billion": 1_000_000_000,
+    "%": 1,
+    "percent": 1,
+}
+
+
+def _parse_numeric_token(token: str) -> float | None:
+    """Parse a numeric token string into a canonical float value.
+
+    Handles:
+      - Currency prefix: $4M → 4_000_000
+      - Comma-separated digits: $4,000,000 → 4_000_000
+      - Suffix multipliers: k / m / M / million / bn / billion / % / percent
+      - Plain integers and decimals: 4000000, 4.5
+
+    Returns None when parsing fails (fail-closed for exotic units).
+    Pure function — no mutation, no I/O.
+    """
+    raw = _nfkc(token).strip()
+    # Strip currency prefix
+    raw = raw.lstrip("$")
+    # Remove commas (thousands separators)
+    raw = raw.replace(",", "")
+    # Extract trailing suffix (letters/%) and numeric body
+    match = _re.match(r"^([\d.]+)\s*([a-zA-Z%]*)$", raw.strip())
+    if not match:
+        return None
+    num_str, suffix = match.group(1), match.group(2).lower()
+    try:
+        base = float(num_str)
+    except ValueError:
+        return None
+    if suffix == "":
+        return base
+    multiplier = _UNIT_MULTIPLIERS.get(suffix)
+    if multiplier is None:
+        # Exotic unit — fail-closed
+        return None
+    return base * multiplier
+
+
+def _extract_source_values(source_text: str) -> list[float]:
+    """Return all parseable numeric values found in *source_text*.
+
+    NFKC-normalizes before scanning. Returns a list (may contain duplicates).
+    Pure function.
+    """
+    normalized = _nfkc(source_text)
+    values: list[float] = []
+    for m in _SOURCE_NUMERIC_RE.finditer(normalized):
+        val = _parse_numeric_token(m.group(0))
+        if val is not None:
+            values.append(val)
+    return values
+
+
+def numeric_ok(claim: Claim, sources: list[RetrievedSource]) -> bool:
+    """Return True iff every numeric_token in the claim matches a value present
+    in at least one source, after unit normalization.
+
+    Matching rules:
+    - NFKC-normalize all text before any comparison.
+    - Parse claim token and source numeric expressions into canonical float values.
+    - Two values match iff they are equal (exact float equality after normalization).
+    - Order-of-magnitude mismatches are always False (e.g. $4M ≠ $4,000).
+    - Unit normalization: $4M ≡ $4,000,000 ≡ 4 million USD ≡ 4000000.
+    - Only k / m / M / million / bn / billion / % / percent suffixes normalized.
+    - Exotic units → fail-closed (parse returns None → no match).
+    - If claim.numeric_tokens is empty, returns True (vacuously grounded).
+    - If sources is empty and numeric_tokens non-empty, returns False.
+
+    Pure function — no LLM, no network, no random, no wall-clock.
+    """
+    if not claim.numeric_tokens:
+        return True
+
+    if not sources:
+        return False
+
+    # Pre-compute all source values once (across all sources).
+    all_source_values: list[float] = []
+    for source in sources:
+        all_source_values.extend(_extract_source_values(source.text))
+
+    # Every claim numeric token must find a matching value.
+    for token in claim.numeric_tokens:
+        claim_val = _parse_numeric_token(token)
+        if claim_val is None:
+            # Cannot parse claim token — fail-closed.
+            return False
+        if not any(claim_val == sv for sv in all_source_values):
+            return False
+
+    return True
+
+
+# ---------------------------------------------------------------------------
 # Citation resolution
 # ---------------------------------------------------------------------------
 
