@@ -59,10 +59,19 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import unicodedata
 from pathlib import Path
 
 from scripts.ground_check import RetrievedSource
+
+
+# Claude Code's Read tool emits content in `cat -n` style: a right-justified
+# line number followed by a single tab, then the line content
+# (e.g. "     1\tParis is the capital."). Stripping this prefix is mandatory
+# before storing a Read source, otherwise T1 verbatim grounding can never match
+# the line-number noise against clean claim prose.
+_CAT_N_PREFIX_RE = re.compile(r"^\s*\d+\t")
 
 
 # ---------------------------------------------------------------------------
@@ -113,6 +122,26 @@ def _extract_text(tool_response: object) -> str:
         "Expected str or dict with 'text'/'content' key. "
         "Flag as TASK-4-VALIDATION — live response shape must be verified."
     )
+
+
+def strip_cat_n_prefix(text: str) -> str:
+    """Remove the ``cat -n`` line-number prefix from every line of *text*.
+
+    Claude Code's Read tool prepends each line with a right-justified line
+    number and a tab (e.g. ``"     1\\tcontent"``).  Only this leading
+    ``<spaces><digits>\\t`` prefix is removed; tabs *within* a line's content
+    are preserved.  Lines without the prefix are returned unchanged.
+
+    Pure function: no I/O, deterministic, no wall-clock or random.
+
+    Args:
+        text: Raw Read-tool text, possibly with per-line number prefixes.
+
+    Returns:
+        The text with leading line-number prefixes stripped, line ordering and
+        line content otherwise byte-identical.
+    """
+    return "\n".join(_CAT_N_PREFIX_RE.sub("", line) for line in text.split("\n"))
 
 
 def _sha256_nfkc(text: str) -> str:
@@ -236,6 +265,10 @@ def make_record(
 
     # Determine source classification and coordinate fields by tool type.
     if tool_name == "Read":
+        # Read content arrives in `cat -n` style; strip the line-number prefix
+        # so the stored text is clean prose that T1 verbatim grounding can match.
+        # Both the stored text AND the content hash reflect the stripped form.
+        text = strip_cat_n_prefix(text)
         full_text_source = "verbatim"
         url: str | None = None
         file_path: str | None = _file_path_from_input(tool_input)
@@ -347,3 +380,62 @@ def append_record(record: RetrievedSource, store_path: str) -> None:
     line = json.dumps(obj, ensure_ascii=False)
     with path.open(mode="a", encoding="utf-8") as fh:
         fh.write(line + "\n")
+
+
+# ---------------------------------------------------------------------------
+# Task 4: atomic source_id assignment + append under an OS file lock
+# ---------------------------------------------------------------------------
+
+import fcntl  # noqa: E402  (kept beside its only user)
+
+
+def _record_with_source_id(record: RetrievedSource, source_id: str) -> RetrievedSource:
+    """Return a copy of *record* with its source_id replaced (pure)."""
+    return RetrievedSource(
+        source_id=source_id,
+        url=record.url,
+        file_path=record.file_path,
+        fetched_at=record.fetched_at,
+        tool=record.tool,
+        content_sha256=record.content_sha256,
+        text=record.text,
+        full_text_source=record.full_text_source,
+        captured_via=record.captured_via,
+        query_provenance=record.query_provenance,
+    )
+
+
+def assign_and_append(record: RetrievedSource, store_path: str) -> str:
+    """Atomically assign the next source_id to *record* and append it.
+
+    The ``next_source_id`` read and the append are guarded together by an
+    exclusive OS file lock (``fcntl.flock``) on a sidecar ``.lock`` file, so two
+    concurrent hook fires (parallel tool calls) can never read the same
+    high-water mark and therefore never collide on a source_id, and their lines
+    never interleave.  The incoming ``record.source_id`` is ignored and
+    overwritten with the freshly assigned id.
+
+    Args:
+        record: The ``RetrievedSource`` to persist (its source_id is replaced).
+        store_path: Path to the JSONL evidence store.
+
+    Returns:
+        The assigned source_id (e.g. ``"S1"``).
+    """
+    path = Path(store_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    lock_path = path.with_name(path.name + ".lock")
+
+    # The lock file is a stable, independent handle; holding it serialises the
+    # read-modify-write across processes/threads. It is opened in append mode so
+    # concurrent openers never truncate each other.
+    with lock_path.open(mode="a", encoding="utf-8") as lock_fh:
+        fcntl.flock(lock_fh.fileno(), fcntl.LOCK_EX)
+        try:
+            source_id = next_source_id(store_path)
+            stamped = _record_with_source_id(record, source_id)
+            append_record(stamped, store_path)
+        finally:
+            fcntl.flock(lock_fh.fileno(), fcntl.LOCK_UN)
+
+    return source_id
