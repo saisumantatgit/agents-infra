@@ -46,6 +46,18 @@ class ClaimFeatureRow:
     t2_f1: float
     numeric_ok: bool
     predicted_verdict: str
+    # True iff predicted_verdict can change under a different lex_tau, i.e.
+    # (predicted_verdict == "UNGROUNDED") or (predicted_verdict == "GROUNDED"
+    # and not t1_verbatim). Only these two states are lex_tau-sensitive:
+    # GROUNDED-via-T2 (t1_verbatim False) can become UNGROUNDED at a higher
+    # lex_tau, and UNGROUNDED can become GROUNDED at a lower one. Every other
+    # verdict is FIXED regardless of lex_tau — including GROUNDED-via-T1
+    # (t1_verbatim never consults lex_tau) and UNGROUNDABLE (ground() never
+    # reaches the tier check at all for that claim; see _resolve_verbatim_
+    # sources docstring). A calibration sweep re-thresholding lex_tau over
+    # t2_f1 MUST skip rows where tier_sensitive is False, or it will miscount
+    # verdicts that cannot possibly flip.
+    tier_sensitive: bool
 
 
 def _bare_source_id(citation: str) -> str:
@@ -70,8 +82,21 @@ def _resolve_verbatim_sources(
     resolved_sources parallels claim.citations positionally (None where a
     citation does not resolve against *store*). verbatim_sources is the
     subset that resolved AND carries full_text_source == "verbatim" with
-    non-empty text — the same population ground() restricts its own T1/T2/
-    numeric_ok checks to (spec §4.4).
+    non-empty text.
+
+    NOT parity with ground()'s internal filtering: ground() (spec §4.4) runs
+    its "any resolved source has falsy text" and "no verbatim source among
+    cited" checks over ALL resolved citations (verbatim + non-verbatim)
+    BEFORE narrowing to verbatim, and short-circuits to UNVERIFIED_CITATION /
+    UNGROUNDABLE / UNVERIFIED_NUMBER without ever reaching the T1/T2 tier
+    check for many claims. This helper narrows to verbatim FIRST, so it can
+    report t1_verbatim/t2_f1 even for claims where ground() never computed
+    them. A claim can score t1_verbatim=True, t2_f1=1.0 here while
+    ground()'s predicted_verdict is UNGROUNDABLE (e.g. a co-cited
+    non-verbatim source with empty text trips ground()'s earlier check).
+    predicted_verdict is always authoritative; raw t1_verbatim/t2_f1 are only
+    meaningfully re-thresholdable for rows where ClaimFeatureRow.tier_sensitive
+    is True.
     """
     resolved_sources = [resolve(c, store) for c in claim.citations]
     verbatim_sources = [
@@ -93,7 +118,17 @@ def emit_claim_features(
     verbatim-filtered cited sources (t2_f1 is the MAX t2_lexical_score across
     them, 0.0 when none exist), independent of the predicted_verdict — so the
     raw features survive even when the verdict short-circuits before running
-    the tiers (e.g. UNVERIFIED_CITATION).
+    the tiers (e.g. UNVERIFIED_CITATION, UNGROUNDABLE).
+
+    These raw t1_verbatim/t2_f1 values are NOT guaranteed to be the features
+    ground() actually consulted to reach predicted_verdict — ground() may
+    short-circuit (on an unresolved citation, a falsy-text source anywhere in
+    the citation list, no verbatim source, or a NUMERIC/numeric_ok failure)
+    before ever reaching the T1/T2 tier check. predicted_verdict is always
+    authoritative. tier_sensitive marks the rows where a re-thresholded
+    lex_tau could plausibly change predicted_verdict; a calibration sweep
+    over t2_f1 must restrict itself to tier_sensitive rows, or it will
+    miscount claims whose verdict cannot flip.
 
     Pure function — no I/O, no mutation of *store* or *draft_text*.
     """
@@ -114,6 +149,16 @@ def emit_claim_features(
 
         verdict = ground(claim, store)
 
+        # Only these two verdict states flip under a different lex_tau:
+        # GROUNDED-via-T2 (t1 False; a higher lex_tau can drop it to
+        # UNGROUNDED) and UNGROUNDED (a lower lex_tau can raise it to
+        # GROUNDED). Every other verdict — including GROUNDED-via-T1
+        # (lex_tau-invariant) and UNGROUNDABLE (ground() never reached the
+        # tier check) — is fixed regardless of lex_tau.
+        tier_sensitive = (verdict.value == "UNGROUNDED") or (
+            verdict.value == "GROUNDED" and not t1
+        )
+
         rows.append(ClaimFeatureRow(
             claim_id=f"{query_id}#{claim.index}",
             query_id=query_id,
@@ -125,5 +170,6 @@ def emit_claim_features(
             t2_f1=t2,
             numeric_ok=num_ok,
             predicted_verdict=verdict.value,
+            tier_sensitive=tier_sensitive,
         ))
     return rows
