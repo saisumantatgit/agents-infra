@@ -7,71 +7,54 @@ Returns a RetrievedSource for retrieval tools; None for non-retrieval tools.
 No network, no wall-clock, no random.  Reading an overflow file referenced
 inside the tool_response dict IS permitted (that is the whole point of Task 2).
 
-# TASK-4-VALIDATION: tool_response shape assumptions
-# These must be verified against live Claude tool events in Task 4.
+# LIVE-VALIDATED tool_response shapes (2026-07-03, real headless Claude Code
+# session; raw PostToolUse stdin payloads captured via a tap hook — regression
+# fixtures in tests/test_live_shapes.py):
 #
-# --- Overflow / truncation shape (Task 2) ---
-# Claude Code truncates large tool results before delivering them to the
-# PostToolUse hook.  The assumed truncation shape is:
+# Read (native):
+#   {"type": "text", "file": {"filePath": str, "content": str, "numLines": int,
+#    "startLine": int, "totalLines": int[, "truncatedByTokenCap": true]}}
+#   - content is RAW file text — NO cat-n line-number prefixes (the prefixes
+#     exist only in the model-rendered view, never in the hook payload).
+#   - Large results truncate INLINE: content is cut at the token cap and
+#     truncatedByTokenCap=true with numLines < totalLines. No temp-file
+#     offload shape was observed. The store holds exactly what was delivered
+#     (= what the model saw this session), which is the correct grounding set.
+#   - file_path is read from tool_input["file_path"].
 #
-#   {
-#       "preview":   "<first N chars of full content>",   # str
-#       "file_path": "/tmp/claude_output_<hash>.txt"      # str — absolute path
-#   }
-#
-# Detection predicate (_is_overflow_payload):
-#   isinstance(r, dict) AND "file_path" in r AND "preview" in r
-#
-# TASK-4-VALIDATION — if the live Claude Code harness uses different field
-# names (e.g. "truncated_content" / "output_file"), ONLY the predicate in
-# _is_overflow_payload needs updating.  All downstream logic is field-name
-# agnostic once the path is extracted.
-#
-# --- Inline shapes ---
-# mcp__exa__web_fetch_exa / web_fetch_exa:
-#   - Primary assumption: dict with key "text" containing page content.
-#   - Fallback: plain str (the full page content).
-#   - If neither, _extract_text raises TypeError — flagged in Task 4.
-#
-# WebFetch (native Claude tool):
-#   - Primary assumption: plain str containing Haiku-summarized page content.
-#   - Fallback: dict with key "text".
+# WebFetch (native):
+#   {"bytes": int, "code": int, "codeText": str, "result": str,
+#    "durationMs": int, "url": str}
 #   - HARD SPEC: full_text_source must be "haiku_summary" regardless of shape.
 #     The native WebFetch tool always returns a Haiku-summarized form, never verbatim.
 #
-# Read (native Claude tool):
-#   - Primary assumption: plain str containing raw file content.
-#   - Fallback: dict with key "content" (some tool APIs use this key for file content).
-#   - Fallback: dict with key "text".
-#   - file_path is read from tool_input["file_path"].
+# mcp__exa__web_fetch_exa / web_fetch_exa:
+#   TOP-LEVEL MCP content-block list: [{"type": "text", "text": str, "_meta": {...}}]
+#   (Exa caps page content server-side; no harness-level truncation observed.)
 #
 # mcp__ddg-search__fetch_content:
-#   - Primary assumption: dict with key "text" containing fetched page content.
-#   - Fallback: plain str.
+#   plain str (verbatim fetched page content).
 #
 # mcp__ddg-search__search:
 #   - Returns snippets (not full page content) → None (not a retrieval tool).
 #
 # Any other tool (Bash, Edit, Write, Grep, WebSearch, etc.) → None.
+#
+# Pre-validation fallback shapes (str / dict-"text" / dict-"content") are kept:
+# they are harmless, cover older payload variants, and keep the extractor
+# permissive across harness versions. The assumed overflow shape
+# {"preview", "file_path"} was NOT observed live; its fail-loud path is kept
+# as a defensive guard (see _is_overflow_payload).
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
-import re
 import unicodedata
 from pathlib import Path
 
 from scripts.ground_check import RetrievedSource
-
-
-# Claude Code's Read tool emits content in `cat -n` style: a right-justified
-# line number followed by a single tab, then the line content
-# (e.g. "     1\tParis is the capital."). Stripping this prefix is mandatory
-# before storing a Read source, otherwise T1 verbatim grounding can never match
-# the line-number noise against clean claim prose.
-_CAT_N_PREFIX_RE = re.compile(r"^\s*\d+\t")
 
 
 # ---------------------------------------------------------------------------
@@ -150,47 +133,43 @@ def _coerce_text_value(value: object) -> str:
 def _extract_text(tool_response: object) -> str:
     """Extract the text content from a tool response.
 
-    Handles:
-      - plain str: returned as-is.
-      - dict with "text" key: returns the coerced value (str or content-block list).
-      - dict with "content" key: returns the coerced value (Read/MCP alternate shape).
+    Handles every LIVE-VALIDATED shape (2026-07-03; see module docstring) plus
+    the pre-validation fallbacks, in this order:
 
-    TASK-4-VALIDATION: if neither shape matches — or a recognized key holds a
-    non-string, non-content-block value — raises TypeError to surface the shape
-    mismatch rather than silently repr-coercing it into the store.
+      - plain str: returned as-is (LIVE: mcp__ddg-search__fetch_content).
+      - top-level MCP content-block list: blocks concatenated
+        (LIVE: mcp__exa__web_fetch_exa).
+      - dict with "text" key: coerced value (str or nested content-block list).
+      - dict with "content" key: coerced value (MCP alternate shape).
+      - dict with "result" key: coerced value (LIVE: native WebFetch envelope).
+      - dict with a "file" dict carrying "content": coerced value (LIVE: native
+        Read envelope; content is raw file text, truncated inline when large).
+
+    If no shape matches — or a recognized key holds a non-string,
+    non-content-block value — raises TypeError to surface the shape mismatch
+    rather than silently repr-coercing it into the store.
     """
     if isinstance(tool_response, str):
         return tool_response
+    if isinstance(tool_response, list):
+        return _coerce_text_value(tool_response)
     if isinstance(tool_response, dict):
         if "text" in tool_response:
             return _coerce_text_value(tool_response["text"])
         if "content" in tool_response:
             return _coerce_text_value(tool_response["content"])
+        if "result" in tool_response:
+            return _coerce_text_value(tool_response["result"])
+        file_obj = tool_response.get("file")
+        if isinstance(file_obj, dict) and "content" in file_obj:
+            return _coerce_text_value(file_obj["content"])
     raise TypeError(
         f"Unrecognized tool_response shape: {type(tool_response).__name__!r}. "
-        "Expected str or dict with 'text'/'content' key. "
-        "Flag as TASK-4-VALIDATION — live response shape must be verified."
+        "Expected str, a content-block list, or a dict with a "
+        "'text'/'content'/'result'/'file.content' key. Live shapes were "
+        "validated 2026-07-03 — a NEW shape means the harness changed; "
+        "extend _extract_text."
     )
-
-
-def strip_cat_n_prefix(text: str) -> str:
-    """Remove the ``cat -n`` line-number prefix from every line of *text*.
-
-    Claude Code's Read tool prepends each line with a right-justified line
-    number and a tab (e.g. ``"     1\\tcontent"``).  Only this leading
-    ``<spaces><digits>\\t`` prefix is removed; tabs *within* a line's content
-    are preserved.  Lines without the prefix are returned unchanged.
-
-    Pure function: no I/O, deterministic, no wall-clock or random.
-
-    Args:
-        text: Raw Read-tool text, possibly with per-line number prefixes.
-
-    Returns:
-        The text with leading line-number prefixes stripped, line ordering and
-        line content otherwise byte-identical.
-    """
-    return "\n".join(_CAT_N_PREFIX_RE.sub("", line) for line in text.split("\n"))
 
 
 def _sha256_nfkc(text: str) -> str:
@@ -200,8 +179,19 @@ def _sha256_nfkc(text: str) -> str:
 
 
 def _url_from_input(tool_input: dict) -> str | None:
-    """Extract URL from tool_input; returns None if absent."""
-    return tool_input.get("url") or None
+    """Extract URL from tool_input; returns None if absent.
+
+    LIVE-VALIDATED (2026-07-03): mcp__exa__web_fetch_exa carries a PLURAL
+    ``{"urls": [<url>, ...]}`` list — the first element is used. Native tools
+    (WebFetch) carry a singular ``{"url": <url>}``.
+    """
+    url = tool_input.get("url")
+    if isinstance(url, str) and url:
+        return url
+    urls = tool_input.get("urls")
+    if isinstance(urls, list) and urls and isinstance(urls[0], str) and urls[0]:
+        return urls[0]
+    return None
 
 
 def _file_path_from_input(tool_input: dict) -> str | None:
@@ -314,10 +304,10 @@ def make_record(
 
     # Determine source classification and coordinate fields by tool type.
     if tool_name == "Read":
-        # Read content arrives in `cat -n` style; strip the line-number prefix
-        # so the stored text is clean prose that T1 verbatim grounding can match.
-        # Both the stored text AND the content hash reflect the stripped form.
-        text = strip_cat_n_prefix(text)
+        # LIVE-VALIDATED (2026-07-03): the hook payload carries RAW file text —
+        # the cat-n line-number prefixes exist only in the model-rendered view.
+        # Store byte-identical content; stripping would corrupt files whose
+        # lines genuinely start with <digits><TAB> (e.g. TSV).
         full_text_source = "verbatim"
         url: str | None = None
         file_path: str | None = _file_path_from_input(tool_input)

@@ -8,7 +8,7 @@ Verification-first grounding gate for AI-generated drafts. Checks every factual 
 
 ## How it works — two halves
 
-1. **Capture (automatic).** A `PostToolUse` hook (`.claude-plugin/hooks.json` → `scripts/capture_hook.py`) fires after every retrieval tool call — Exa fetch, `Read`, native `WebFetch`, DDG fetch — and appends a verbatim-tagged record to `.assure/evidence-store.jsonl`. You do nothing; the store is built as you research. Large results truncated by Claude Code to a preview + file path are reconstructed to full text; `Read` output is stripped of its `cat -n` line-number prefix; native `WebFetch` (Haiku-summarized) is tagged `haiku_summary` so the gate refuses to certify against it.
+1. **Capture (automatic).** A `PostToolUse` hook (`hooks/hooks.json` → `scripts/capture_hook.py`) fires after every retrieval tool call — Exa fetch, `Read`, native `WebFetch`, DDG fetch — and appends a verbatim-tagged record to `.assure/evidence-store.jsonl`. You do nothing; the store is built as you research. All payload shapes are live-validated against a real Claude Code session (2026-07-03): large `Read` results truncate inline (the store holds exactly what the model saw); native `WebFetch` (Haiku-summarized) is tagged `haiku_summary` so the gate refuses to certify against it.
 2. **Verify (on demand).** `/assure-verify <draft>` runs `scripts/ground_check.py` against that store and returns a `PASS` / `NEEDS_WORK` / `FAIL` gate with per-claim verdicts. **No LLM judges grounding** — the verdict is a mechanical fact about the store, which is exactly why a fabricated `[S9]` citation cannot talk its way to a pass.
 
 ---
@@ -25,7 +25,7 @@ Then register the directory as a Claude Code plugin. Once active:
 - the capture hook runs automatically during research;
 - after drafting, run `/assure-verify path/to/draft.md` (uses `.assure/evidence-store.jsonl` by default).
 
-The plugin ships one command (`/assure-verify`), one skill (`verify-grounding`), and the capture hook. See [.claude/skills/verify-grounding/SKILL.md](.claude/skills/verify-grounding/SKILL.md) and [references/grounding-failure-types.md](references/grounding-failure-types.md).
+The plugin ships one command (`/assure-verify`), one skill (`verify-grounding`), and the capture hook. See [skills/verify-grounding/SKILL.md](skills/verify-grounding/SKILL.md) and [references/grounding-failure-types.md](references/grounding-failure-types.md).
 
 ---
 

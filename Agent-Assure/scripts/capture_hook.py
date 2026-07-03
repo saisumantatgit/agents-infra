@@ -74,12 +74,20 @@ def _resolve_store_path() -> str:
 def _derive_query_provenance(tool_input: dict, event: dict) -> str:
     """Derive query_provenance from the tool input or session.
 
-    First non-empty of: query, url, file_path, session_id; else "".
+    First non-empty of: query, url, urls[0], file_path, session_id; else "".
+    LIVE-VALIDATED (2026-07-03): mcp__exa__web_fetch_exa carries a PLURAL
+    ``{"urls": [<url>, ...]}`` list, not a singular ``url``.
     """
-    for key in ("query", "url", "file_path"):
+    for key in ("query", "url"):
         value = tool_input.get(key)
         if isinstance(value, str) and value:
             return value
+    urls = tool_input.get("urls")
+    if isinstance(urls, list) and urls and isinstance(urls[0], str) and urls[0]:
+        return urls[0]
+    file_path = tool_input.get("file_path")
+    if isinstance(file_path, str) and file_path:
+        return file_path
     session_id = event.get("session_id")
     if isinstance(session_id, str) and session_id:
         return session_id

@@ -159,8 +159,8 @@ def _assert_no_contract_mismatch(store_path: str) -> dict:
     )
     assert store["S3"].text == _S3_TEXT, (
         f"CONTRACT MISMATCH: S3 text did not round-trip cleanly.  "
-        f"Note: Read tool applies strip_cat_n_prefix — if _S3_TEXT contains "
-        f"cat-n prefixes the stored text will differ.  _S3_TEXT must be plain prose."
+        f"Note: Read text is stored byte-identical (LIVE-VALIDATED 2026-07-03: "
+        f"hook payloads carry raw file text — nothing is stripped)."
     )
 
     # --- full_text_source: all three must be 'verbatim' ---

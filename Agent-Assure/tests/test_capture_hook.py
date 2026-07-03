@@ -3,7 +3,8 @@
 Covers:
   (a) stdin -> evidence-store path via subprocess (synthetic exa + Bash events);
   (b) ATOMIC concurrent appends (unique source_ids, intact lines);
-  (c) cat-n line-number prefix stripping for Read sources;
+  (c) Read sources stored byte-identical (LIVE-VALIDATED 2026-07-03: hook
+      payloads carry raw file text — no cat-n prefixes to strip);
   (d) ALWAYS exit 0.
 
 Tests are written BEFORE implementation; they must be red initially.
@@ -20,7 +21,7 @@ from pathlib import Path
 
 import pytest
 
-from scripts.capture_core import strip_cat_n_prefix, make_record
+from scripts.capture_core import make_record
 from scripts.ground_check import load_store
 
 
@@ -30,45 +31,28 @@ STORE_ENV = "ASSURE_EVIDENCE_STORE"
 
 
 # ---------------------------------------------------------------------------
-# (c) cat-n prefix stripping — unit level
+# (c) Read text stored byte-identical — LIVE-VALIDATED 2026-07-03
 # ---------------------------------------------------------------------------
 
-def test_strip_cat_n_prefix_basic() -> None:
-    """Right-justified line numbers + tab are removed; content preserved verbatim."""
-    raw = "     1\tfirst line\n     2\tsecond line\n    10\ttenth line"
-    expected = "first line\nsecond line\ntenth line"
-    assert strip_cat_n_prefix(raw) == expected
+def test_read_record_text_is_byte_identical() -> None:
+    """make_record on a Read event stores the delivered text unmodified.
 
-
-def test_strip_cat_n_prefix_preserves_inner_tabs() -> None:
-    """Only the leading number+tab prefix is stripped; tabs WITHIN content survive."""
-    raw = "     1\tcol_a\tcol_b\n     2\tval_1\tval_2"
-    expected = "col_a\tcol_b\nval_1\tval_2"
-    assert strip_cat_n_prefix(raw) == expected
-
-
-def test_strip_cat_n_prefix_noop_when_no_prefix() -> None:
-    """Plain prose without line-number prefixes is returned unchanged."""
-    raw = "The capital of France is Paris.\nIt has a population of 2 million."
-    assert strip_cat_n_prefix(raw) == raw
-
-
-def test_read_record_text_is_stripped() -> None:
-    """make_record on a Read event stores cat-n-stripped text (so T1 can match)."""
-    tool_input = {"file_path": "/tmp/doc.txt"}
-    tool_response = "     1\tParis is the capital of France.\n     2\tIt is large."
+    LIVE-VALIDATED (2026-07-03): the hook payload carries RAW file text — the
+    cat-n line-number prefixes exist only in the model-rendered view. Content
+    whose lines genuinely start with <digits><TAB> (e.g. TSV) must survive.
+    """
+    tool_input = {"file_path": "/tmp/data.tsv"}
+    tool_response = "123\tParis is the capital of France.\n456\tIt is large."
     rec = make_record(
         tool_name="Read",
         tool_input=tool_input,
         tool_response=tool_response,
         source_id="S1",
-        query_provenance="/tmp/doc.txt",
+        query_provenance="/tmp/data.tsv",
         fetched_at="2026-06-27T00:00:00Z",
     )
     assert rec is not None
-    assert rec.text == "Paris is the capital of France.\nIt is large."
-    assert "\t" not in rec.text
-    assert "1\t" not in rec.text
+    assert rec.text == tool_response
 
 
 # ---------------------------------------------------------------------------
@@ -120,20 +104,35 @@ def test_bash_event_leaves_store_unchanged(tmp_path: Path) -> None:
     assert not store.exists(), "Non-retrieval tool must not create the store"
 
 
-def test_read_event_via_subprocess_strips_prefix(tmp_path: Path) -> None:
-    """A Read event stores cat-n-stripped text end-to-end through the hook."""
+def test_read_event_via_subprocess_live_envelope(tmp_path: Path) -> None:
+    """A LIVE-shaped Read event stores its file content end-to-end through the hook.
+
+    The event mirrors the exact PostToolUse payload captured from a real
+    Claude Code session (2026-07-03): content nested at tool_response.file.content,
+    raw text, no cat-n prefixes.
+    """
     store = tmp_path / ".assure" / "evidence-store.jsonl"
+    content = "Paris is the capital.\nFrance is in Europe.\n"
     event = {
         "tool_name": "Read",
         "tool_input": {"file_path": "/tmp/doc.txt"},
-        "tool_response": "     1\tParis is the capital.\n     2\tFrance is in Europe.",
+        "tool_response": {
+            "type": "text",
+            "file": {
+                "filePath": "/tmp/doc.txt",
+                "content": content,
+                "numLines": 3,
+                "startLine": 1,
+                "totalLines": 3,
+            },
+        },
     }
     result = _run_hook(event, store)
     assert result.returncode == 0, result.stderr
 
     loaded = load_store(str(store))
     (rec,) = loaded.values()
-    assert rec.text == "Paris is the capital.\nFrance is in Europe."
+    assert rec.text == content
     assert rec.file_path == "/tmp/doc.txt"
 
 
