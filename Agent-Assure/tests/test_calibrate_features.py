@@ -31,6 +31,7 @@ from scripts.calibrate import (
     export_labeling_csv,
     join_labels,
     load_labels,
+    predicted_is_violation,
 )
 
 
@@ -271,6 +272,80 @@ def test_ungrounded_row_is_tier_sensitive():
 
 
 # ---------------------------------------------------------------------------
+# WHOLE-BRANCH MERGE-BLOCKER regression (final review, Task 2).
+#
+# tier_sensitive may be True ONLY for the lex_tau-governed kinds
+# {FACTUAL, ATTRIBUTION, NUMERIC} whose grounded/ungrounded outcome is decided
+# by the T1/T2 tier check in ground(). RELATIONAL (ground_relational's
+# two-source window rule), ABSENCE (check_absence), and NON_CLAIM (GROUNDED
+# short-circuit) NEVER consult lex_tau, so their verdicts are fixed regardless
+# of tau and must never be flagged tier_sensitive.
+#
+# The bug: `tier_sensitive = GROUNDED and not t1_verbatim` was computed for ALL
+# kinds. A RELATIONAL GROUNDED claim has its two sides in DIFFERENT sources, so
+# t1_verbatim is False -> it was wrongly marked tier_sensitive=True, and
+# predicted_is_violation then re-thresholded its (irrelevant) t2_f1 against
+# lex_tau, corrupting the sweep, the operating point, and the CR's held-out
+# Error-B. Proven RED against the pre-fix code before acceptance.
+# ---------------------------------------------------------------------------
+
+def test_relational_grounded_row_is_not_tier_sensitive():
+    """insulin->diabetes shape (mirrors tests/test_relational.py): side A in S1,
+    side B in S2, both verbatim -> ground_relational returns GROUNDED with
+    t1_verbatim False (a 6-token relational claim, too short for T1, and its two
+    sides live in different sources). The verdict is FIXED regardless of lex_tau,
+    so tier_sensitive MUST be False, and predicted_is_violation MUST return the
+    fixed verdict-based result (NOT a violation) at EVERY lex_tau -- never the
+    t2_f1<lex_tau re-threshold. This is the merge-blocker: production grounds this
+    claim at every lex_tau, but the buggy tier_sensitive=True flipped it to a
+    violation at lex_tau >= t2_f1, silently corrupting held-out Error-B."""
+    s1 = _src(
+        "S1",
+        "Insulin resistance occurs when cells in your body do not respond "
+        "well to insulin and cannot use glucose from your blood for energy.",
+    )
+    s2 = _src(
+        "S2",
+        "Type 2 diabetes is a chronic metabolic condition where blood sugar "
+        "levels remain elevated due to impaired insulin action.",
+    )
+    store = {"S1": s1, "S2": s2}
+    draft = "Insulin resistance causes type 2 diabetes [S1][S2]."
+
+    rows = emit_claim_features("q1", draft, store)
+    assert len(rows) == 1
+    row = rows[0]
+
+    assert row.kind == "RELATIONAL"
+    assert row.predicted_verdict == "GROUNDED"
+    assert row.t1_verbatim is False           # two sides live in different sources
+    # t2_f1 is below 0.65: if the row were (wrongly) tier_sensitive, it would be
+    # a violation at lex_tau 0.65 and 0.90 -- the exact corruption being guarded.
+    assert row.t2_f1 < 0.65
+    assert row.tier_sensitive is False        # RELATIONAL never consults lex_tau
+
+    for lex_tau in (0.10, 0.65, 0.90):
+        assert predicted_is_violation(row, lex_tau) is False
+
+
+def test_non_claim_row_is_not_tier_sensitive():
+    """A NON_CLAIM claim short-circuits to GROUNDED in ground() before the tier
+    check; with no citations its t1_verbatim is False, which the buggy rule
+    mis-read as tier_sensitive=True. NON_CLAIM is not a lex_tau-governed kind, so
+    tier_sensitive MUST be False and predicted_is_violation is verdict-fixed."""
+    rows = emit_claim_features("q1", "In conclusion.", {})
+    assert len(rows) == 1
+    row = rows[0]
+
+    assert row.kind == "NON_CLAIM"
+    assert row.predicted_verdict == "GROUNDED"
+    assert row.t1_verbatim is False
+    assert row.tier_sensitive is False
+    for lex_tau in (0.10, 0.65, 0.90):
+        assert predicted_is_violation(row, lex_tau) is False
+
+
+# ---------------------------------------------------------------------------
 # Task 3: labeling-CSV export + fail-loud label ingestion.
 #
 # export_labeling_csv turns ClaimFeatureRow rows into a CSV a human fills in
@@ -482,3 +557,41 @@ def test_labeled_claim_is_frozen():
     )
     with pytest.raises(dataclasses.FrozenInstanceError):
         lc.label = "violation"  # type: ignore[misc]
+
+
+# ---------------------------------------------------------------------------
+# Defense-in-depth __post_init__ label guards (fail-loud doctrine): no
+# HumanLabel or LabeledClaim may carry an off-menu label. load_labels /
+# join_labels already gate at their I/O boundary, but the dataclass itself
+# refuses a bad label from ANY construction path — the label is the ground-truth
+# crux metric error_rates keys on, so a silent bad value corrupts every derived
+# rate.
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("bad_label", ["", "maybe", "GROUNDED", "grnd"])
+def test_human_label_rejects_off_menu_label(bad_label):
+    """HumanLabel.__post_init__ raises ValueError on any label outside
+    {"grounded", "violation"}, including blank."""
+    with pytest.raises(ValueError):
+        HumanLabel(claim_id="q1#0", label=bad_label, violation_kind=None)
+
+
+@pytest.mark.parametrize("bad_label", ["", "maybe", "VIOLATION", "ground"])
+def test_labeled_claim_rejects_off_menu_label(bad_label):
+    """LabeledClaim.__post_init__ raises ValueError on any label outside
+    {"grounded", "violation"}, including blank."""
+    with pytest.raises(ValueError):
+        LabeledClaim(
+            claim_id="q1#0",
+            query_id="q1",
+            claim_text="x",
+            kind="FACTUAL",
+            cited_source_ids=(),
+            citations_resolved=True,
+            t1_verbatim=False,
+            t2_f1=0.0,
+            numeric_ok=True,
+            predicted_verdict="UNCITED",
+            tier_sensitive=False,
+            label=bad_label,
+        )

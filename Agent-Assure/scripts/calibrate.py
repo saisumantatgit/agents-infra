@@ -27,6 +27,7 @@ from dataclasses import dataclass
 
 from scripts.ground_check import (
     Claim,
+    ClaimKind,
     RetrievedSource,
     classify,
     decompose,
@@ -36,6 +37,24 @@ from scripts.ground_check import (
     t1_verbatim,
     t2_lexical_score,
 )
+
+
+# Claim kinds whose grounded/ungrounded outcome is decided by the T1/T2 lex_tau
+# tier check inside ground() — the ONLY kinds a lex_tau sweep can legitimately
+# re-threshold. Verified against ground()'s dispatch (spec §4.4): NON_CLAIM
+# short-circuits to GROUNDED, RELATIONAL delegates to ground_relational (a
+# two-distinct-source window rule that never consults lex_tau/t2_lexical), and
+# ABSENCE delegates to check_absence (a query-count rule) — all three reach a
+# verdict BEFORE the `t1_verbatim or t2_lexical` check, so their verdicts are
+# fixed regardless of lex_tau and must never be marked tier_sensitive. Only
+# FACTUAL, ATTRIBUTION, and NUMERIC fall through to that check (NUMERIC after an
+# extra numeric_ok gate; ATTRIBUTION and FACTUAL directly), so only they can be
+# tier_sensitive.
+_LEX_TAU_GOVERNED_KINDS: frozenset[ClaimKind] = frozenset({
+    ClaimKind.FACTUAL,
+    ClaimKind.ATTRIBUTION,
+    ClaimKind.NUMERIC,
+})
 
 
 @dataclass(frozen=True)
@@ -57,17 +76,23 @@ class ClaimFeatureRow:
     t2_f1: float
     numeric_ok: bool
     predicted_verdict: str
-    # True iff predicted_verdict can change under a different lex_tau, i.e.
-    # (predicted_verdict == "UNGROUNDED") or (predicted_verdict == "GROUNDED"
-    # and not t1_verbatim). Only these two states are lex_tau-sensitive:
-    # GROUNDED-via-T2 (t1_verbatim False) can become UNGROUNDED at a higher
-    # lex_tau, and UNGROUNDED can become GROUNDED at a lower one. Every other
-    # verdict is FIXED regardless of lex_tau — including GROUNDED-via-T1
-    # (t1_verbatim never consults lex_tau) and UNGROUNDABLE (ground() never
-    # reaches the tier check at all for that claim; see _resolve_verbatim_
-    # sources docstring). A calibration sweep re-thresholding lex_tau over
-    # t2_f1 MUST skip rows where tier_sensitive is False, or it will miscount
-    # verdicts that cannot possibly flip.
+    # True iff predicted_verdict can change under a different lex_tau. Gated on
+    # kind FIRST: only the lex_tau-governed kinds (FACTUAL, ATTRIBUTION, NUMERIC
+    # — see _LEX_TAU_GOVERNED_KINDS) reach ground()'s T1/T2 tier check and can be
+    # tier_sensitive at all. RELATIONAL (ground_relational's two-source window
+    # rule), ABSENCE (check_absence's query-count rule), and NON_CLAIM (GROUNDED
+    # short-circuit) NEVER consult lex_tau, so their verdicts are FIXED and
+    # tier_sensitive is always False for them — even when they are GROUNDED with
+    # t1_verbatim False (a relational claim's two sides simply live in different
+    # sources; that is not a T2 grounding). Among the governed kinds, exactly two
+    # states are lex_tau-sensitive: GROUNDED-via-T2 (t1_verbatim False) can become
+    # UNGROUNDED at a higher lex_tau, and UNGROUNDED can become GROUNDED at a lower
+    # one. Every other governed verdict is FIXED — GROUNDED-via-T1 (t1_verbatim
+    # never consults lex_tau) and UNCITED / UNVERIFIED_CITATION /
+    # UNVERIFIED_NUMBER / UNGROUNDABLE (ground() short-circuits before the tier
+    # check; see _resolve_verbatim_sources docstring). A calibration sweep
+    # re-thresholding lex_tau over t2_f1 MUST skip rows where tier_sensitive is
+    # False, or it will miscount verdicts that cannot possibly flip.
     tier_sensitive: bool
 
 
@@ -160,14 +185,22 @@ def emit_claim_features(
 
         verdict = ground(claim, store)
 
-        # Only these two verdict states flip under a different lex_tau:
-        # GROUNDED-via-T2 (t1 False; a higher lex_tau can drop it to
-        # UNGROUNDED) and UNGROUNDED (a lower lex_tau can raise it to
-        # GROUNDED). Every other verdict — including GROUNDED-via-T1
-        # (lex_tau-invariant) and UNGROUNDABLE (ground() never reached the
-        # tier check) — is fixed regardless of lex_tau.
-        tier_sensitive = (verdict.value == "UNGROUNDED") or (
-            verdict.value == "GROUNDED" and not t1
+        # tier_sensitive is gated on kind FIRST: only FACTUAL/ATTRIBUTION/NUMERIC
+        # reach ground()'s T1/T2 lex_tau check (see _LEX_TAU_GOVERNED_KINDS).
+        # RELATIONAL, ABSENCE, and NON_CLAIM are decided by lex_tau-independent
+        # rules (ground_relational / check_absence / the NON_CLAIM short-circuit),
+        # so their verdicts CANNOT flip under a different lex_tau — a relational
+        # GROUNDED claim has t1 False only because its two sides live in
+        # different sources, NOT because T2 grounded it, and re-thresholding its
+        # t2_f1 would corrupt the sweep. Among the governed kinds, only two
+        # verdict states flip: GROUNDED-via-T2 (t1 False; a higher lex_tau can
+        # drop it to UNGROUNDED) and UNGROUNDED (a lower lex_tau can raise it to
+        # GROUNDED). Every other governed verdict — GROUNDED-via-T1
+        # (lex_tau-invariant), UNCITED / UNVERIFIED_CITATION / UNVERIFIED_NUMBER /
+        # UNGROUNDABLE (ground() short-circuited before the tier check) — is fixed.
+        tier_sensitive = claim.kind in _LEX_TAU_GOVERNED_KINDS and (
+            (verdict.value == "UNGROUNDED")
+            or (verdict.value == "GROUNDED" and not t1)
         )
 
         rows.append(ClaimFeatureRow(
@@ -216,6 +249,19 @@ class HumanLabel:
     label: str
     violation_kind: str | None
 
+    def __post_init__(self) -> None:
+        # Defense in depth (fail-loud doctrine): load_labels already gates the
+        # label, but any other construction path must not smuggle an off-menu
+        # label into the calibration — a bad label silently mislabels a claim
+        # and corrupts every threshold derived downstream.
+        if self.label not in _ALLOWED_HUMAN_LABELS:
+            raise ValueError(
+                f"HumanLabel: label {self.label!r} (claim_id="
+                f"{self.claim_id!r}) is not one of "
+                f"{sorted(_ALLOWED_HUMAN_LABELS)}. A HumanLabel is never "
+                "constructed with an unvalidated or defaulted label."
+            )
+
 
 @dataclass(frozen=True)
 class LabeledClaim:
@@ -238,6 +284,21 @@ class LabeledClaim:
     predicted_verdict: str
     tier_sensitive: bool
     label: str
+
+    def __post_init__(self) -> None:
+        # Defense in depth (fail-loud doctrine): the label is THE ground-truth
+        # crux metric — error_rates keys "truth = (label == 'violation')" on it,
+        # so anything other than "grounded"/"violation" silently flips a claim's
+        # truth cell and corrupts every derived rate. join_labels feeds a
+        # validated HumanLabel.label here, but no other construction path may
+        # bypass the gate.
+        if self.label not in _ALLOWED_HUMAN_LABELS:
+            raise ValueError(
+                f"LabeledClaim: label {self.label!r} (claim_id="
+                f"{self.claim_id!r}) is not one of "
+                f"{sorted(_ALLOWED_HUMAN_LABELS)}. A LabeledClaim is never "
+                "constructed with an unvalidated or defaulted label."
+            )
 
 
 def export_labeling_csv(rows: list[ClaimFeatureRow], path: str) -> None:
