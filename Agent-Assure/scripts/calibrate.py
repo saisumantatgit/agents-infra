@@ -340,3 +340,120 @@ def join_labels(
             label=human_label.label,
         ))
     return joined
+
+
+# ---------------------------------------------------------------------------
+# Task 4: Error-A / Error-B at a threshold — THE CRUX.
+#
+# The positive class is pinned to "claim is a grounding VIOLATION": the gate is
+# a violation detector. The two error types are asymmetric, and every threshold
+# the calibration sweep later derives depends on keeping them distinct:
+#
+#   * Error A (false positive, fp) — a truly-GROUNDED claim FLAGGED as a
+#     violation. RECOVERABLE: it lands in an appendix a human sees.
+#   * Error B (false negative, fn) — a truly-VIOLATION claim PASSED as grounded.
+#     UNRECOVERABLE: a fabrication ships inside a "verified" report. This is THE
+#     error the whole tool exists to prevent.
+# ---------------------------------------------------------------------------
+
+# Verdicts that count as "grounded" (not a violation) for a FIXED, non-tier
+# row — the numerator set of ground_check.score_report (spec §4.5). Every other
+# verdict (UNGROUNDED, UNVERIFIED_*, UNGROUNDABLE, ...) is a violation.
+_GROUNDED_VERDICTS: frozenset[str] = frozenset({"GROUNDED", "ABSENCE_SUPPORTED"})
+
+
+def predicted_is_violation(
+    row: ClaimFeatureRow | LabeledClaim, lex_tau: float
+) -> bool:
+    """Recompute the gate's violation call for *row* at a candidate *lex_tau*.
+
+    Keys on row.tier_sensitive (added in Task 2), because only tier_sensitive
+    rows can flip under a different lex_tau:
+
+    * tier_sensitive: the verdict is GROUNDED-via-T2 or UNGROUNDED, both decided
+      purely by whether t2_f1 clears the T2 threshold. The claim is a violation
+      iff ``row.t2_f1 < lex_tau`` (strictly below → UNGROUNDED). The stored
+      predicted_verdict is IGNORED — it reflects the ORIGINAL lex_tau and is
+      recomputed here from the raw t2_f1 score.
+
+    * NOT tier_sensitive: the verdict is FIXED regardless of lex_tau (the
+      ground() dispatcher never reached the tier check, or reached it via
+      lex_tau-invariant T1). The claim is a violation iff its verdict is not in
+      _GROUNDED_VERDICTS. A row with high t1_verbatim/t2_f1 but verdict
+      UNGROUNDABLE stays a violation at EVERY lex_tau — lowering lex_tau must
+      never spuriously re-ground it (the Task-2 review's correctness case).
+
+    Pure function — reads *row*, mutates nothing.
+    """
+    if row.tier_sensitive:
+        return row.t2_f1 < lex_tau
+    return row.predicted_verdict not in _GROUNDED_VERDICTS
+
+
+@dataclass(frozen=True)
+class ErrorRates:
+    """Confusion-matrix counts and the two asymmetric error rates at one lex_tau.
+
+    Positive class = violation. n is the total labeled claims; tp/fp/tn/fn are
+    the four confusion cells; error_a and error_b are the two rates the whole
+    calibration exists to trade off.
+
+    * tp — violation-labeled, predicted violation (caught fabrication).
+    * fp — grounded-labeled, predicted violation (**Error A**, recoverable false
+      alarm).
+    * tn — grounded-labeled, predicted grounded (correct pass).
+    * fn — violation-labeled, predicted grounded (**Error B**, UNRECOVERABLE —
+      a fabrication shipped inside a "verified" report).
+    * error_a = fp / (fp + tn) — false-alarm rate over truly-grounded claims.
+    * error_b = fn / (fn + tp) — miss rate over truly-violation claims.
+
+    A zero denominator yields the corresponding rate as 0.0 while the counts stay
+    exposed, so an empty class is never a silent NaN or a crash.
+    """
+
+    n: int
+    tp: int
+    fp: int
+    tn: int
+    fn: int
+    error_a: float
+    error_b: float
+
+
+def error_rates(labeled: list[LabeledClaim], lex_tau: float) -> ErrorRates:
+    """Aggregate *labeled* into an ErrorRates at *lex_tau* (positive = violation).
+
+    For each claim: truth = (label == "violation"); prediction =
+    predicted_is_violation(claim, lex_tau). The four cells follow directly, and
+    error_a / error_b are computed over the truly-grounded and truly-violation
+    denominators respectively (0.0 on a zero denominator, counts still exposed).
+
+    Pure function — reads *labeled*, mutates nothing.
+    """
+    tp = fp = tn = fn = 0
+    for claim in labeled:
+        truth_violation = claim.label == "violation"
+        pred_violation = predicted_is_violation(claim, lex_tau)
+        if truth_violation and pred_violation:
+            tp += 1
+        elif truth_violation and not pred_violation:
+            fn += 1
+        elif not truth_violation and pred_violation:
+            fp += 1
+        else:
+            tn += 1
+
+    grounded_total = fp + tn      # truly-grounded denominator for Error A
+    violation_total = fn + tp     # truly-violation denominator for Error B
+    error_a = fp / grounded_total if grounded_total else 0.0
+    error_b = fn / violation_total if violation_total else 0.0
+
+    return ErrorRates(
+        n=len(labeled),
+        tp=tp,
+        fp=fp,
+        tn=tn,
+        fn=fn,
+        error_a=error_a,
+        error_b=error_b,
+    )
