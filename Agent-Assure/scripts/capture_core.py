@@ -95,6 +95,16 @@ _HAIKU_SUMMARY_TOOLS: frozenset[str] = frozenset({
 _RETRIEVAL_TOOLS: frozenset[str] = _VERBATIM_TOOLS | _HAIKU_SUMMARY_TOOLS
 
 
+def is_retrieval_tool(tool_name: str) -> bool:
+    """Return True iff *tool_name* is a recognized retrieval tool.
+
+    Public predicate so the hook entry can distinguish "a retrieval tool fired
+    but carried no usable response" (worth a distinct diagnostic) from a
+    non-retrieval tool (silently ignored) without importing the private registry.
+    """
+    return tool_name in _RETRIEVAL_TOOLS
+
+
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
@@ -386,7 +396,13 @@ def append_record(record: RetrievedSource, store_path: str) -> None:
 # Task 4: atomic source_id assignment + append under an OS file lock
 # ---------------------------------------------------------------------------
 
-import fcntl  # noqa: E402  (kept beside its only user)
+try:
+    import fcntl  # noqa: E402  (kept beside its only user)
+except ImportError:  # pragma: no cover - POSIX-only; absent on Windows
+    # capture_core must still IMPORT on non-POSIX platforms so the pure
+    # functions (make_record, append_record, next_source_id) remain usable;
+    # only assign_and_append needs the lock, and it fails loud below.
+    fcntl = None  # type: ignore[assignment]
 
 
 def _record_with_source_id(record: RetrievedSource, source_id: str) -> RetrievedSource:
@@ -422,13 +438,24 @@ def assign_and_append(record: RetrievedSource, store_path: str) -> str:
     Returns:
         The assigned source_id (e.g. ``"S1"``).
     """
+    if fcntl is None:  # exercised via monkeypatch in tests; real on Windows
+        raise RuntimeError(
+            "assign_and_append requires POSIX fcntl for atomic source_id "
+            "assignment, which is unavailable on this platform (e.g. Windows). "
+            "Cross-platform locking is a Phase-2 item; until then the hook fails "
+            "CLOSED (no capture) here rather than risk duplicate source_ids — the "
+            "gate then reports an under-populated store, never a false PASS."
+        )
+
     path = Path(store_path)
     path.parent.mkdir(parents=True, exist_ok=True)
     lock_path = path.with_name(path.name + ".lock")
 
     # The lock file is a stable, independent handle; holding it serialises the
     # read-modify-write across processes/threads. It is opened in append mode so
-    # concurrent openers never truncate each other.
+    # concurrent openers never truncate each other. It is intentionally NOT
+    # removed on exit: deleting it would race a concurrent holder and defeat the
+    # lock — a 0-byte sidecar is the correct, standard cost of file locking.
     with lock_path.open(mode="a", encoding="utf-8") as lock_fh:
         fcntl.flock(lock_fh.fileno(), fcntl.LOCK_EX)
         try:

@@ -5,15 +5,17 @@ Tests are written BEFORE implementation; they must be red initially.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import tempfile
+import unicodedata
 from pathlib import Path
 
 import pytest
 
 from scripts.ground_check import RetrievedSource, load_store
-from scripts.capture_core import append_record, next_source_id
+from scripts.capture_core import append_record, make_record, next_source_id
 
 
 # ---------------------------------------------------------------------------
@@ -146,3 +148,44 @@ def test_append_only(tmp_store: Path) -> None:
     # First line must be byte-identical after the second append.
     new_first_line_bytes = tmp_store.read_bytes().split(b"\n")[0]
     assert new_first_line_bytes == first_line_bytes
+
+
+def test_round_trip_non_nfkc_text(tmp_store: Path) -> None:
+    """Non-NFKC source text (ligatures U+FB03/U+FB01) round-trips byte-for-byte,
+    while content_sha256 is over the NFKC-normalized form (the safety-gate
+    invariant). Closes the Task-3 second-opinion gap: prior round-trip coverage
+    used NFKC-stable unicode only, so it never exercised the normalize/store split.
+    """
+    store_str = str(tmp_store)
+    raw = "The eﬃcient ﬁle"  # 'ffi' + 'fi' ligatures — genuinely non-NFKC
+    assert unicodedata.normalize("NFKC", raw) != raw, "precondition: raw is non-NFKC"
+
+    rec = make_record(
+        tool_name="mcp__exa__web_fetch_exa",
+        tool_input={"url": "https://example.com"},
+        tool_response={"text": raw},
+        source_id="S1",
+        query_provenance="q",
+        fetched_at="2026-06-27T00:00:00Z",
+    )
+    assert rec is not None
+    # Text is stored VERBATIM (not normalized)...
+    assert rec.text == raw
+    # ...but the content hash is over the NFKC form (grounding-safety invariant).
+    expected_sha = hashlib.sha256(
+        unicodedata.normalize("NFKC", raw).encode()
+    ).hexdigest()
+    assert rec.content_sha256 == expected_sha
+
+    append_record(rec, store_str)
+
+    # The ON-DISK store preserves the raw (non-NFKC) bytes verbatim...
+    on_disk = tmp_store.read_text(encoding="utf-8")
+    assert raw in on_disk, "the JSONL store must hold the verbatim (non-NFKC) text"
+
+    # ...but load_store NFKC-normalizes text on read, so the loaded form — the
+    # one the gate compares against NFKC-normalized claims — is normalized. This
+    # verbatim-store / normalized-load split is what keeps T1 grounding comparing
+    # normalized source against normalized claim (both on the same footing).
+    loaded = load_store(store_str)
+    assert loaded["S1"].text == unicodedata.normalize("NFKC", raw)

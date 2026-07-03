@@ -45,7 +45,11 @@ _REPO_ROOT = _THIS.parents[1]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from scripts.capture_core import assign_and_append, make_record  # noqa: E402
+from scripts.capture_core import (  # noqa: E402
+    assign_and_append,
+    is_retrieval_tool,
+    make_record,
+)
 
 
 # Deterministic placeholder timestamp. PostToolUse events do not carry a
@@ -111,6 +115,21 @@ def process_event(event: dict, store_path: str) -> str | None:
         tool_input = {}
 
     tool_response = event.get("tool_response")
+
+    # A retrieval tool that fired with no response carries no text to ground.
+    # Dropping it is correct, but it MUST be diagnostically DISTINCT from a
+    # genuine payload-shape mismatch (which raises TypeError below and is logged
+    # as "capture skipped"), so live validation can tell "benign empty response"
+    # from "the extractor is broken because the live field name differs".
+    if is_retrieval_tool(tool_name) and tool_response is None:
+        print(
+            f"[assure-hook] TASK-4-VALIDATION: retrieval tool {tool_name!r} fired "
+            "with no tool_response (None/absent) — nothing to capture. If a real "
+            "response was expected, the live payload field name may differ.",
+            file=sys.stderr,
+        )
+        return None
+
     query_provenance = _derive_query_provenance(tool_input, event)
 
     record = make_record(

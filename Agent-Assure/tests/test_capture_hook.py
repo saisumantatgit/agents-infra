@@ -171,11 +171,63 @@ def test_empty_stdin_exits_zero(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# (b) ATOMIC concurrent appends
+# Diagnostic distinctness: missing vs unrecognized tool_response
+# (Phase 1b Task-4 parked findings 1 & 2)
+# ---------------------------------------------------------------------------
+
+def test_missing_tool_response_is_distinct_diagnostic(tmp_path: Path) -> None:
+    """A retrieval tool firing with tool_response ABSENT must get a DISTINCT
+    diagnostic — not the generic shape-mismatch TypeError path — so live
+    validation can tell 'benign empty response' from 'the extractor is broken'.
+    The drop itself is correct (no text to ground); exit 0; store not created.
+    """
+    store = tmp_path / ".assure" / "evidence-store.jsonl"
+    event = {
+        "tool_name": "mcp__exa__web_fetch_exa",
+        "tool_input": {"url": "https://example.com/x"},
+        # tool_response INTENTIONALLY ABSENT
+    }
+    result = _run_hook(event, store)
+    assert result.returncode == 0, result.stderr
+    assert not store.exists(), "no-response retrieval must not create the store"
+    # Distinct, greppable diagnostic — NOT the generic TypeError shape-mismatch path.
+    assert "no tool_response" in result.stderr
+    assert "retrieval tool" in result.stderr
+    assert "TypeError" not in result.stderr
+
+
+def test_unrecognized_shape_is_observably_logged(tmp_path: Path) -> None:
+    """A retrieval tool with a valid-JSON but unrecognized tool_response shape
+    (an int) is dropped with an OBSERVABLE 'capture skipped' stderr line — this
+    IS a payload-shape mismatch worth investigating during live validation.
+    Locks the observability the completion-workflow flagged as untested.
+    """
+    store = tmp_path / ".assure" / "evidence-store.jsonl"
+    event = {
+        "tool_name": "mcp__exa__web_fetch_exa",
+        "tool_input": {"url": "https://example.com/x"},
+        "tool_response": 42,  # neither str nor dict-with-text/content
+    }
+    result = _run_hook(event, store)
+    assert result.returncode == 0, result.stderr
+    assert not store.exists()
+    assert "capture skipped" in result.stderr
+
+
+# ---------------------------------------------------------------------------
+# (b) Cross-process append smoke (see test_capture_concurrency.py for the
+#     deterministic in-process contention proof of the fcntl lock)
 # ---------------------------------------------------------------------------
 
 def test_concurrent_appends_unique_ids_and_intact(tmp_path: Path) -> None:
-    """N concurrent hook fires each yield a distinct source_id; every line valid JSON."""
+    """Cross-process SMOKE: N separate process invocations of the hook each
+    append one intact JSON line and exit 0, and load_store dedups to N records.
+
+    NOTE: subprocess startup staggers (~tens of ms), so this does NOT reliably
+    force lock contention — it validates the real deployment topology (separate
+    processes, no crashes, intact lines). The lock's atomicity is proven
+    deterministically in test_capture_concurrency.py.
+    """
     store = tmp_path / ".assure" / "evidence-store.jsonl"
     n = 12
 
