@@ -805,3 +805,136 @@ def derive_report_gate(reports: list[ReportLabel]) -> float:
     # multi-modal raise above.
     lower, upper = best_intervals[0]
     return (lower + upper) / 2
+
+
+# ---------------------------------------------------------------------------
+# Task 8: Calibration Record (CR) emission — ADR-025, calibration-plan.md §6.
+#
+# emit_cr is the CLOSING step of the harness. It does NOT re-run decompose,
+# classify, ground, sweep_thresholds, select_operating_point, or
+# loo_operating_point — the caller has already run those (Tasks 4-7) and
+# hands emit_cr their already-computed outputs: projection (the provisional
+# defaults shipped in v1: lex_tau=0.65, gate=0.90, nli_tau=0.80), actual
+# (the derived values), and held_out (Task 6's loo_operating_point result —
+# GENUINELY held-out, never in-sample).
+#
+# Two hard requirements straight from calibration-plan.md §6:
+#   1. The CR must state, in substance, that n≈{n_queries} queries is
+#      calibration and not proof — provisional until production data
+#      widens it. No claiming a "validated" bar from a small bootstrap set.
+#   2. The CR must name the split method and state the reported rates are
+#      HELD-OUT, not in-sample — so a reader can never mistake an
+#      optimistic in-sample number for the honest one.
+#
+# ADR-025 caps a CR at 80 lines. emit_cr enforces that ceiling on itself:
+# it builds the full content, counts lines, and RAISES (ValueError) —
+# writing NOTHING — rather than silently emitting an over-long CR. The
+# projection-vs-actual table is driven by the metric KEYS present in
+# *projection*/*actual* (not a hardcoded 3-row table), so a caller who
+# hands emit_cr enough metrics can genuinely blow the budget.
+# ---------------------------------------------------------------------------
+
+_CR_LINE_CEILING = 80
+
+
+def emit_cr(
+    projection: dict,
+    actual: dict,
+    held_out: ErrorRates,
+    n_claims: int,
+    n_queries: int,
+    split_method: str,
+    path: str,
+) -> None:
+    """Write the ADR-025 Calibration Record for one calibration run to *path*.
+
+    *projection* and *actual* are parallel dicts keyed by metric name (the
+    plan's three: "lex_tau", "gate", "nli_tau" — extensible to more). Every
+    key in *projection* must also be in *actual* and vice versa (ValueError
+    otherwise — a metric present in one but not the other would silently
+    drop a row from the table). An *actual* value of ``None`` renders that
+    metric's row as "deferred" (the brief's nli_tau-off case); any other
+    value renders a computed percent delta against the projection.
+
+    *held_out* must satisfy ``held_out.n == n_claims`` (ValueError
+    otherwise) — the held-out ErrorRates must be the LOO aggregate over
+    exactly the claims being reported, or the stated sample size and the
+    rendered rates would silently disagree.
+
+    Deterministic: no wall-clock or other non-parameter state is consulted;
+    *path* is written only when the fully-rendered content is at most
+    ``_CR_LINE_CEILING`` (80) lines. Over the ceiling, emit_cr raises
+    ValueError and writes nothing — never a truncated or over-long CR.
+
+    I/O boundary — the file write is the only side effect; *projection*,
+    *actual*, and *held_out* are not mutated.
+    """
+    if set(projection) != set(actual):
+        raise ValueError(
+            "emit_cr: projection and actual must cover the exact same "
+            f"metric keys; projection has {sorted(projection)}, actual has "
+            f"{sorted(actual)}. A metric present in one but not the other "
+            "would silently drop a row from the projection-vs-actual table."
+        )
+    if held_out.n != n_claims:
+        raise ValueError(
+            f"emit_cr: held_out.n ({held_out.n}) != n_claims ({n_claims}) "
+            "— the held-out ErrorRates must be the leave-one-out aggregate "
+            "over exactly n_claims labeled claims, or the reported rates "
+            "and the stated sample size would silently disagree."
+        )
+
+    lines: list[str] = []
+    lines.append("# Calibration Record — Agent-Assure Gate (ADR-025)")
+    lines.append("")
+    lines.append("## Projection vs Actual")
+    lines.append("")
+    lines.append("| Metric | Projection | Actual | Delta |")
+    lines.append("|---|---|---|---|")
+    for key in projection:
+        proj_val = projection[key]
+        act_val = actual[key]
+        if act_val is None:
+            lines.append(f"| {key} | {proj_val} | deferred | deferred |")
+        elif proj_val == 0:
+            lines.append(f"| {key} | {proj_val} | {act_val} | n/a |")
+        else:
+            delta_pct = (act_val - proj_val) / proj_val * 100
+            lines.append(
+                f"| {key} | {proj_val} | {act_val} | {delta_pct:+.1f}% |"
+            )
+    lines.append("")
+    lines.append("## Held-Out Error Rates (chosen operating point, leave-one-out)")
+    lines.append("")
+    lines.append(f"- n = {n_claims} claims across {n_queries} queries")
+    lines.append(f"- Error-A (false alarm, recoverable): {held_out.error_a}")
+    lines.append(
+        f"- Error-B (false negative, UNRECOVERABLE): {held_out.error_b}"
+    )
+    lines.append(
+        f"- Confusion: tp={held_out.tp} fp={held_out.fp} "
+        f"tn={held_out.tn} fn={held_out.fn}"
+    )
+    lines.append("")
+    lines.append("## Honesty (calibration-plan.md §6)")
+    lines.append("")
+    lines.append(
+        f"- n≈{n_queries} queries is calibration, not proof — provisional "
+        "until production data widens it."
+    )
+    lines.append(
+        f"- Split method: {split_method}. The Error-A/Error-B rates above "
+        "are HELD-OUT (not in-sample)."
+    )
+
+    if len(lines) > _CR_LINE_CEILING:
+        raise ValueError(
+            f"emit_cr: rendered content is {len(lines)} lines, exceeding "
+            f"the ADR-025 ceiling of {_CR_LINE_CEILING}. {path!r} was NOT "
+            "written — trim the projection/actual metrics or extract "
+            "narrative to a CN/INS; a CR is never silently emitted over "
+            "the line ceiling."
+        )
+
+    with open(path, "w", encoding="utf-8") as fh:
+        fh.write("\n".join(lines) + "\n")
