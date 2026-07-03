@@ -1,0 +1,4 @@
+claim_id,query_id,claim_text,cited_source_ids,predicted_verdict,t2_f1,human_label,violation_kind
+q1#0,q1,"Redis handles 100K operations per second on commodity hardware [S1].",S1,GROUNDED,1.0,grounded,
+q1#1,q1,"Revenue grew 12% year over year [S2].",S2,GROUNDED,0.6666666666666666,grounded,
+q1#2,q1,"Solar panels reduce carbon emissions significantly [S9].",S9,UNVERIFIED_CITATION,0.0,violation,unverifiable_citation

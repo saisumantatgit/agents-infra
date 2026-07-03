@@ -565,7 +565,6 @@ def _best_window_score(
     claim_content: list[str],
     claim_numeric: tuple[str, ...],
     sentences: list[str],
-    lex_tau: float,
 ) -> float:
     """Return the best F1 over all ±2-sentence windows across *sentences*.
 
@@ -598,6 +597,54 @@ def _best_window_score(
     return best
 
 
+def _numeric_tokens_from_text(text: str) -> tuple[str, ...]:
+    """Return numeric tokens extracted from *text*.
+
+    Mirrors the numeric-token extraction embedded in classify(): NFKC-
+    normalize, strip citation markers (so bracket digits like '[S3]' cannot
+    leak in), find numeric expressions via _NUMERIC_RE, then strip a single
+    trailing period from each token (sentence-boundary artifact).
+
+    For any Claim produced by classify(), this always yields the same tuple
+    as claim.numeric_tokens — kept as a standalone helper (rather than
+    reusing classify()) so t2_lexical_score can work from raw claim text
+    alone, per its (str, str) -> float interface.
+    """
+    normalized = _nfkc(text)
+    text_for_numeric = _CITATION_RE.sub("", normalized)
+    raw_numeric = _NUMERIC_RE.findall(text_for_numeric)
+    return tuple(t[:-1] if t.endswith(".") else t for t in raw_numeric)
+
+
+def t2_lexical_score(claim_text: str, source_text: str) -> float:
+    """Return the max content-word F1 between *claim_text* and the best
+    ±2-sentence window of *source_text*, subject to the numeric-presence gate
+    (every numeric token extracted from claim_text must appear in the
+    window) — i.e. the raw score t2_lexical thresholds against lex_tau.
+
+    Extracted from t2_lexical so a calibration sweep can re-threshold
+    lex_tau post-hoc over a stored score, without re-running the gate.
+
+    Returns 0.0 when claim_text has no content words, source_text has no
+    sentences, or (for claims with numeric tokens) no window contains a
+    verbatim match for every one of them.
+
+    Pure function — no mutation, no LLM/network/random/wall-clock.
+    """
+    claim_tokens = _tokenize(_strip_citations(claim_text))
+    claim_content = _content_words(claim_tokens)
+    if not claim_content:
+        return 0.0
+
+    claim_numeric = _numeric_tokens_from_text(claim_text)
+
+    sentences = _split_sentences(source_text)
+    if not sentences:
+        return 0.0
+
+    return _best_window_score(claim_content, claim_numeric, sentences)
+
+
 def t2_lexical(
     claim: Claim,
     sources: list[RetrievedSource],
@@ -623,14 +670,8 @@ def t2_lexical(
     if not claim_content:
         return False
 
-    claim_numeric = claim.numeric_tokens  # tuple[str, ...] from classify()
-
     for source in sources:
-        sentences = _split_sentences(source.text)
-        if not sentences:
-            continue
-        score = _best_window_score(claim_content, claim_numeric, sentences, lex_tau)
-        if score >= lex_tau:
+        if t2_lexical_score(claim.text, source.text) >= lex_tau:
             return True
 
     return False
