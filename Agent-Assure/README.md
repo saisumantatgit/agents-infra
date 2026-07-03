@@ -2,11 +2,34 @@
 
 Verification-first grounding gate for AI-generated drafts. Checks every factual claim against a captured evidence store before the draft reaches a human reader. No LLM calls during grounding — the engine is pure Python, deterministic, and audit-defensible.
 
-**Phase 1a scope:** decomposition, classification, two-tier lexical grounding (T1 verbatim + T2 lexical-F1), numeric verification, absence checking, relational two-source rule, score gate, and CLI. Phases 1b/1c add the PostToolUse capture hook and plugin packaging.
+**Phase 1 scope (built):** a `PostToolUse` capture hook that records retrieved sources verbatim (1b), the deterministic grounding engine — decomposition, classification, two-tier lexical grounding (T1 verbatim + T2 lexical-F1), numeric verification, absence checking, relational two-source rule, score gate, and CLI (1a) — and Claude Code plugin packaging (1c). Phase 2 (research front-end, NLI paraphrase tier, calibration, cross-platform) is future work.
 
 ---
 
-## Quick Start
+## How it works — two halves
+
+1. **Capture (automatic).** A `PostToolUse` hook (`hooks/hooks.json` → `scripts/capture_hook.py`) fires after every retrieval tool call — Exa fetch, `Read`, native `WebFetch`, DDG fetch — and appends a verbatim-tagged record to `.assure/evidence-store.jsonl`. You do nothing; the store is built as you research. All payload shapes are live-validated against a real Claude Code session (2026-07-03): large `Read` results truncate inline (the store holds exactly what the model saw); native `WebFetch` (Haiku-summarized) is tagged `haiku_summary` so the gate refuses to certify against it.
+2. **Verify (on demand).** `/assure-verify <draft>` runs `scripts/ground_check.py` against that store and returns a `PASS` / `NEEDS_WORK` / `FAIL` gate with per-claim verdicts. **No LLM judges grounding** — the verdict is a mechanical fact about the store, which is exactly why a fabricated `[S9]` citation cannot talk its way to a pass.
+
+---
+
+## Install & Plugin Usage
+
+```bash
+# From the Agent-Assure directory — provisions .venv (Python >=3.11 + deps)
+bash install.sh
+```
+
+Then register the directory as a Claude Code plugin. Once active:
+
+- the capture hook runs automatically during research;
+- after drafting, run `/assure-verify path/to/draft.md` (uses `.assure/evidence-store.jsonl` by default).
+
+The plugin ships one command (`/assure-verify`), one skill (`verify-grounding`), and the capture hook. See [skills/verify-grounding/SKILL.md](skills/verify-grounding/SKILL.md) and [references/grounding-failure-types.md](references/grounding-failure-types.md).
+
+---
+
+## Quick Start (manual CLI)
 
 ```bash
 uv run python scripts/ground_check.py \
@@ -73,8 +96,8 @@ All text fields are NFKC-normalized before matching.
 | Gate | Condition |
 |---|---|
 | `PASS` | score ≥ threshold AND no `UNVERIFIED_CITATION` |
-| `NEEDS_WORK` | score ≥ 60 but below threshold, OR any `UNVERIFIED_CITATION` |
-| `FAIL` | score < 60 |
+| `NEEDS_WORK` | score ≥ 60 AND (below threshold OR any `UNVERIFIED_CITATION`) |
+| `FAIL` | score < 60 — **checked first**, so a sub-60 score is `FAIL` even when an `UNVERIFIED_CITATION` is present |
 
 Default threshold = 90.0. NON_CLAIM verdicts are excluded from the scored denominator.
 
@@ -94,6 +117,7 @@ Tiers run **only** on sources with `full_text_source == "verbatim"`. NUMERIC cla
 
 ```bash
 cd Agent-Assure
+uv sync --extra dev   # one-time: adds pytest (install.sh installs runtime deps only)
 uv run pytest
 ```
 
@@ -102,3 +126,20 @@ The test suite includes:
 - Parametrized golden verdict matrix (`tests/test_golden_matrix.py`) — one row per verdict path, each asserting the exact verdict with the exact fixture conditions that cause it
 - Determinism assertions — same draft → identical claim set across calls
 - CLI smoke tests (end-to-end, YAML + JSON modes, exit codes)
+- Capture-hook tests: verbatim tagging, overflow-file reconstruction, `cat -n` stripping, atomic source_id assignment under thread contention (with a red-proof that the same scenario collides when the lock is neutered), and a closed-loop hook→store→engine integration proof
+
+---
+
+## Part of the Agent suite
+
+Agent-Assure is the verification-first research member of the `agents-infra`
+suite (PROVE, Cite, Trace, Scribe, Drift, Litmus). Its closest sibling is
+**Agent-Cite**, and the boundary is deliberate: Cite does LLM-based citation
+*discovery* (does a claim have *a* source somewhere on the web?); Assure does
+*mechanical* grounding (does every claim trace to a source *actually retrieved
+this session*, proven without a model?). Cite asks a model; Assure asks the
+evidence store.
+
+## License
+
+[MIT](LICENSE)

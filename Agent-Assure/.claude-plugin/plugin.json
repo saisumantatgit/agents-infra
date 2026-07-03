@@ -1,0 +1,18 @@
+{
+  "name": "agent-assure",
+  "description": "Agent-Assure — Verification-first grounding gate for AI research. A PostToolUse hook captures every retrieved source verbatim into an evidence store; a deterministic, no-LLM engine then proves every factual claim in a draft is grounded in a source actually retrieved this session. Fabricated citations are caught mechanically, not by asking a model. Research you can be sure of.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Sai Sumanth Battepati"
+  },
+  "homepage": "https://github.com/saisumantatgit/agents-infra/tree/main/Agent-Assure",
+  "license": "MIT",
+  "keywords": [
+    "claude-code-plugin",
+    "verification-first",
+    "grounding-gate",
+    "hallucination-prevention",
+    "citation-verification",
+    "deep-research"
+  ]
+}

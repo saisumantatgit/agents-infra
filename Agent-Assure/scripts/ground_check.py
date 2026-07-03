@@ -336,8 +336,22 @@ def _is_non_claim(text: str) -> bool:
     unsure, classify as a real claim — over-scoring is safe; silently excluding a
     fabricated claim is the failure.
     """
-    # Header: starts with one or more '#' characters
-    if _NO_FINITE_VERB_RE.match(text):
+    # Header ('#'-prefixed): a heading that carries a citation marker or a numeric
+    # token is real, verifiable claim content and MUST NOT be excluded — otherwise
+    # a fabricated claim hides behind '# ...' and vanishes from the denominator
+    # (a false PASS). This is the IDENTICAL moat-safe rule the verbless-fragment
+    # guard below applies; the Phase-1a fix installed it there but not here, so
+    # header-wrapped fabrications reached PASS. A heading with no such content is a
+    # genuine heading → NON_CLAIM.
+    header_match = _NO_FINITE_VERB_RE.match(text)
+    if header_match:
+        header_body = text[header_match.end():]
+        has_citation = bool(_CITATION_RE.search(header_body))
+        # Numeric content on the citation-stripped body so bracket digits (e.g.
+        # [S9] → '9') do not count as numeric content.
+        has_numeric = bool(_NUMERIC_RE.search(_CITATION_RE.sub("", header_body)))
+        if has_citation or has_numeric:
+            return False
         return True
     # Pure transition: strip citations, lowercase, and check against transition set
     stripped = _CITATION_RE.sub("", text).strip().rstrip(".,;:!?").lower()
