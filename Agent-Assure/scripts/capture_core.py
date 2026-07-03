@@ -109,24 +109,63 @@ def is_retrieval_tool(tool_name: str) -> bool:
 # Internal helpers
 # ---------------------------------------------------------------------------
 
+def _coerce_text_value(value: object) -> str:
+    """Coerce a 'text'/'content' value to a string, FAIL-LOUD on shape drift.
+
+    - a plain ``str`` is returned as-is;
+    - the standard MCP content-block list — ``[{"type": "text", "text": "..."}, …]``,
+      the most common live tool-result envelope — is normalized by concatenating
+      the ``text`` fields of its blocks (the genuine retrieved content);
+    - anything else (an int, a list of non-text blocks, an empty list) raises
+      ``TypeError`` so the mismatch trips the hook's distinct 'capture skipped'
+      diagnostic rather than being silently ``str()``-coerced (repr) into the
+      verbatim store. (CLAUDE.md: raise errors explicitly — no silent fallbacks.)
+    """
+    if isinstance(value, str):
+        return value
+    if isinstance(value, list):
+        parts: list[str] = []
+        for block in value:
+            if isinstance(block, dict) and isinstance(block.get("text"), str):
+                parts.append(block["text"])
+            else:
+                raise TypeError(
+                    "Unrecognized content-block in text/content list: "
+                    f"{type(block).__name__!r}. Expected {{'type':'text','text':str}}. "
+                    "Flag as TASK-4-VALIDATION — live response shape must be verified."
+                )
+        if not parts:
+            raise TypeError(
+                "Empty content-block list — no text blocks to store. "
+                "Flag as TASK-4-VALIDATION."
+            )
+        return "\n".join(parts)
+    raise TypeError(
+        f"Non-string text/content value: {type(value).__name__!r}. "
+        "Expected str or an MCP content-block list. "
+        "Flag as TASK-4-VALIDATION — live response shape must be verified."
+    )
+
+
 def _extract_text(tool_response: object) -> str:
     """Extract the text content from a tool response.
 
     Handles:
       - plain str: returned as-is.
-      - dict with "text" key: returns the value.
-      - dict with "content" key: returns the value (Read tool alternate shape).
+      - dict with "text" key: returns the coerced value (str or content-block list).
+      - dict with "content" key: returns the coerced value (Read/MCP alternate shape).
 
-    TASK-4-VALIDATION: if neither shape matches, raises TypeError to surface
-    the shape mismatch rather than silently returning empty string.
+    TASK-4-VALIDATION: if neither shape matches — or a recognized key holds a
+    non-string, non-content-block value — raises TypeError to surface the shape
+    mismatch rather than silently repr-coercing it into the store.
     """
     if isinstance(tool_response, str):
         return tool_response
     if isinstance(tool_response, dict):
         if "text" in tool_response:
-            return str(tool_response["text"])
+            return _coerce_text_value(tool_response["text"])
         if "content" in tool_response:
-            return str(tool_response["content"])
+            return _coerce_text_value(tool_response["content"])
     raise TypeError(
         f"Unrecognized tool_response shape: {type(tool_response).__name__!r}. "
         "Expected str or dict with 'text'/'content' key. "

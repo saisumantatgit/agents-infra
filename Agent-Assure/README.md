@@ -96,8 +96,8 @@ All text fields are NFKC-normalized before matching.
 | Gate | Condition |
 |---|---|
 | `PASS` | score ≥ threshold AND no `UNVERIFIED_CITATION` |
-| `NEEDS_WORK` | score ≥ 60 but below threshold, OR any `UNVERIFIED_CITATION` |
-| `FAIL` | score < 60 |
+| `NEEDS_WORK` | score ≥ 60 AND (below threshold OR any `UNVERIFIED_CITATION`) |
+| `FAIL` | score < 60 — **checked first**, so a sub-60 score is `FAIL` even when an `UNVERIFIED_CITATION` is present |
 
 Default threshold = 90.0. NON_CLAIM verdicts are excluded from the scored denominator.
 

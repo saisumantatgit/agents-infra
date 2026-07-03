@@ -129,3 +129,60 @@ def test_assign_and_append_fails_loud_without_fcntl(
     store = str(tmp_path / ".assure" / "store.jsonl")
     with pytest.raises(RuntimeError, match="POSIX fcntl"):
         assign_and_append(_rec(), store)
+
+
+# ---------------------------------------------------------------------------
+# Cross-PROCESS serialization (review finding: thread tests only approximate the
+# real deployment topology — separate `python capture_hook.py` subprocesses).
+# ---------------------------------------------------------------------------
+
+_CROSS_PROC_WORKER = r'''
+import sys, time
+sys.path.insert(0, sys.argv[1])
+from scripts.capture_core import assign_and_append
+from scripts.ground_check import RetrievedSource
+store, target = sys.argv[2], float(sys.argv[3])
+rec = RetrievedSource(source_id="UNASSIGNED", url="u", file_path=None,
+    fetched_at="2026-01-01T00:00:00Z", tool="mcp__exa__web_fetch_exa",
+    content_sha256="a"*64, text="t", full_text_source="verbatim",
+    captured_via="inline", query_provenance="q")
+while time.time() < target:  # busy-wait to a shared start instant to force contention
+    pass
+assign_and_append(rec, store)
+'''
+
+
+def test_cross_process_serialization(tmp_path: Path) -> None:
+    """Cross-PROCESS proof: N separate subprocesses, synchronized to a common
+    start instant, each get a UNIQUE source_id. This exercises the production
+    topology (parallel PostToolUse fires are separate processes) that the
+    in-process thread tests only approximate — a refactor to a per-process lock
+    (e.g. threading.Lock or fcntl.lockf) would keep the thread tests green but
+    collide here. The uniqueness assertion is robust (fcntl.flock guarantees it
+    regardless of timing); the synchronized start only raises the odds of
+    exercising real contention.
+    """
+    import subprocess
+    import sys
+    import time
+
+    repo = str(Path(__file__).resolve().parents[1])
+    store = str(tmp_path / ".assure" / "store.jsonl")
+    Path(store).parent.mkdir(parents=True, exist_ok=True)
+    n = 8
+    target = time.time() + 1.0
+    procs = [
+        subprocess.Popen([sys.executable, "-c", _CROSS_PROC_WORKER, repo, store, str(target)])
+        for _ in range(n)
+    ]
+    for p in procs:
+        p.wait()
+    assert all(p.returncode == 0 for p in procs), [p.returncode for p in procs]
+
+    ids = [
+        json.loads(ln)["source_id"]
+        for ln in Path(store).read_text(encoding="utf-8").splitlines()
+        if ln.strip()
+    ]
+    assert len(ids) == n, f"expected {n} lines, got {len(ids)}"
+    assert len(set(ids)) == n, f"cross-process source_id collision: {sorted(ids)}"

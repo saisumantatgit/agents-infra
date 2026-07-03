@@ -135,8 +135,8 @@ under-flags), but note it when a draft's claims come back UNCITED unexpectedly.
 | Gate | Condition |
 |---|---|
 | PASS | score ≥ threshold AND zero `UNVERIFIED_CITATION` |
-| NEEDS_WORK | 60 ≤ score < threshold, OR any `UNVERIFIED_CITATION`, OR vacuous (no scored claims) |
-| FAIL | score < 60 |
+| NEEDS_WORK | score ≥ 60 AND (below threshold OR any `UNVERIFIED_CITATION` OR vacuous) |
+| FAIL | score < 60 — checked FIRST, so a sub-60 score is FAIL even with an `UNVERIFIED_CITATION` |
 
 NON_CLAIM statements (headers, questions, pure opinion) are excluded from the
 scored denominator.

@@ -8,13 +8,17 @@ fabricated citation mechanically**, with no LLM judging grounding.
 ```bash
 # from the Agent-Assure directory, after `bash install.sh`
 .venv/bin/python demo/build_store.py            # simulate the capture hook
-.venv/bin/python scripts/ground_check.py --draft demo/draft-grounded.md   --store demo/evidence-store.jsonl
-.venv/bin/python scripts/ground_check.py --draft demo/draft-fabricated.md --store demo/evidence-store.jsonl
+.venv/bin/python scripts/ground_check.py --draft demo/draft-grounded.md   --store demo/evidence-store.jsonl --json | .venv/bin/python demo/show_report.py
+.venv/bin/python scripts/ground_check.py --draft demo/draft-fabricated.md --store demo/evidence-store.jsonl --json | .venv/bin/python demo/show_report.py
 ```
 
 `build_store.py` runs two simulated retrieval tool calls through the real
 capture core — exactly what the `PostToolUse` hook does automatically during a
 live research session — producing `demo/evidence-store.jsonl` (sources S1, S2).
+`ground_check.py --json` emits the full JSON report; `demo/show_report.py` renders
+the per-claim verdicts shown below and mirrors the exit code (0 = PASS, 1 = else).
+(Without `--json` the engine prints a one-line `gate=… grounding_score=…` summary
+and writes the per-claim breakdown to `grounding-report.yaml`.)
 
 ## What you'll see
 
@@ -22,10 +26,12 @@ live research session — producing `demo/evidence-store.jsonl` (sources S1, S2)
 
 ```
 gate: PASS | score: 100.0
-  GROUNDED  <- In our controlled benchmark on a single node, Redis sustained approximately 128000 operations per second [S1].
-  GROUNDED  <- Under the same benchmark load and hardware, PostgreSQL sustained approximately 11000 write operations per second [S2].
+  GROUNDED             <- # Datastore Throughput — Benchmark Summary
+  GROUNDED             <- In our controlled benchmark on a single node, Redis sustained approxim
+  GROUNDED             <- Under the same benchmark load and hardware, PostgreSQL sustained appro
 ```
-Exit code `0`.
+Exit code `0`. (The first line is a markdown header — a `NON_CLAIM`, reported for
+transparency but excluded from the score; per-claim text is truncated to 70 chars.)
 
 ### `draft-fabricated.md` — two planted fabrications, both caught
 
@@ -36,13 +42,16 @@ Same two real claims, plus:
 
 ```
 gate: FAIL | score: 50.0
-  GROUNDED             <- ...Redis sustained approximately 128000 operations per second [S1].
-  GROUNDED             <- ...PostgreSQL sustained approximately 11000 write operations per second [S2].
-  UNVERIFIED_CITATION  <- MongoDB sustained approximately 45000 operations per second in the same test [S3].
-  UNVERIFIED_NUMBER    <- Redis delivered about 100 times the throughput of the disk-backed alternative [S1].
+  GROUNDED             <- # Datastore Throughput — Benchmark Summary
+  GROUNDED             <- In our controlled benchmark on a single node, Redis sustained approxim
+  GROUNDED             <- Under the same benchmark load and hardware, PostgreSQL sustained appro
+  UNVERIFIED_CITATION  <- MongoDB sustained approximately 45000 operations per second in the sam
+  UNVERIFIED_NUMBER    <- Redis delivered about 100 times the throughput of the disk-backed alte
 ```
 Exit code `1`. `[S3]` is not in the store → `UNVERIFIED_CITATION` (the
 fabricated-citation catch). `100` matches no source number → `UNVERIFIED_NUMBER`.
+(Score 50 < 60 → the gate is `FAIL`; the `UNVERIFIED_CITATION` alone would cap it
+at `NEEDS_WORK`, but `FAIL` is checked first — see the gate table in the README.)
 
 Neither verdict came from a model reading the text. They are facts about the
 evidence store, computed deterministically — which is why the fabricated draft

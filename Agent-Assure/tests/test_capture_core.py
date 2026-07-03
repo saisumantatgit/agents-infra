@@ -478,3 +478,62 @@ class TestReturnType:
         )
         with pytest.raises((AttributeError, TypeError)):
             result.text = "mutated"  # type: ignore[misc]
+
+
+# ---------------------------------------------------------------------------
+# MCP content-block-list shape (review finding: str()-coercion of a list value)
+# ---------------------------------------------------------------------------
+
+class TestContentBlockList:
+    """The standard MCP tool-result envelope delivers text as a list of content
+    blocks: {"text": [{"type": "text", "text": "..."}]} (or under "content").
+    make_record must NORMALIZE that to the joined block text — never repr-coerce
+    the list into the verbatim store, and never silently accept a non-text shape.
+    """
+
+    def test_single_content_block_normalized(self):
+        rec = make_record(
+            tool_name="mcp__exa__web_fetch_exa",
+            tool_input={"url": "https://example.com"},
+            tool_response={"text": [{"type": "text", "text": "Redis did 128000 ops"}]},
+            source_id=FIXED_ID, query_provenance=FIXED_QP, fetched_at=FIXED_AT,
+        )
+        assert rec is not None
+        assert rec.text == "Redis did 128000 ops"          # NOT the python repr
+        assert "{" not in rec.text and "type" not in rec.text
+        assert rec.full_text_source == "verbatim"
+        assert rec.content_sha256 == _sha("Redis did 128000 ops")
+
+    def test_multiple_content_blocks_joined(self):
+        rec = make_record(
+            tool_name="mcp__ddg-search__fetch_content",
+            tool_input={"url": "https://example.com"},
+            tool_response={"content": [{"type": "text", "text": "Alpha"},
+                                        {"type": "text", "text": "Beta"}]},
+            source_id=FIXED_ID, query_provenance=FIXED_QP, fetched_at=FIXED_AT,
+        )
+        assert rec is not None
+        assert rec.text == "Alpha\nBeta"
+
+    def test_non_string_non_list_value_fails_loud(self):
+        """A 'text' value that is neither str nor a content-block list must raise
+        TypeError (the hook then logs a distinct 'capture skipped'), not be
+        silently str()-coerced into the store."""
+        with pytest.raises(TypeError):
+            make_record(
+                tool_name="mcp__exa__web_fetch_exa",
+                tool_input={"url": "https://example.com"},
+                tool_response={"text": 42},
+                source_id=FIXED_ID, query_provenance=FIXED_QP, fetched_at=FIXED_AT,
+            )
+
+    def test_malformed_content_block_fails_loud(self):
+        """A list whose entries are not {'type':'text','text':str} blocks must
+        raise, not repr-coerce."""
+        with pytest.raises(TypeError):
+            make_record(
+                tool_name="mcp__exa__web_fetch_exa",
+                tool_input={"url": "https://example.com"},
+                tool_response={"text": [{"type": "image", "data": "..."}]},
+                source_id=FIXED_ID, query_provenance=FIXED_QP, fetched_at=FIXED_AT,
+            )

@@ -36,7 +36,9 @@ actually run. Two distinct targeted queries is the mechanical floor for that.
 
 ### UNVERIFIED_CITATION  — the fabricated-citation catch
 
-**Gate effect:** HARD override — caps the gate at NEEDS_WORK regardless of score.
+**Gate effect:** HARD override — caps the gate at NEEDS_WORK, *unless* the score is
+already below the 60 FAIL floor, in which case FAIL stands (FAIL is checked first).
+Either way the draft can never reach PASS with an `UNVERIFIED_CITATION` present.
 **Meaning:** the claim carries a citation marker (e.g. `[S9]`) whose `source_id`
 is **absent from the evidence store**. The source was never retrieved this
 session — the citation is fabricated (or points outside the session).
