@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import csv
 import unicodedata
+from collections import Counter
 from dataclasses import dataclass
 
 from scripts.ground_check import (
@@ -534,3 +535,110 @@ def select_operating_point(
     # larger tau sort first among equal error_a).
     best_tau, _ = min(compliant, key=lambda pair: (pair[1].error_a, -pair[0]))
     return best_tau
+
+
+# ---------------------------------------------------------------------------
+# Task 6: overfit guard — leave-one-out genuinely-HELD-OUT error rates.
+#
+# THE HONESTY GUARANTEE of the whole harness. select_operating_point (Task 5)
+# tunes tau to the data it is handed; scoring that same data at that tau reports
+# an IN-SAMPLE optimism — the detector graded on the exam it was tuned on. To
+# report the error the caller will actually face on unseen claims, each claim
+# must be scored at a tau chosen WITHOUT seeing it:
+#
+#   for each held-out claim i:
+#     tau_i = select_operating_point over the OTHER n-1 claims   (i is NOT in it)
+#     accumulate the single held-out prediction of claim i at tau_i
+#
+# The held-out claim is NEVER in the set its own tau was selected on — that
+# leakage is the exact bug this function exists to prevent. Leakage would collapse
+# the held-out rates back onto the in-sample rates, hiding overfitting.
+# ---------------------------------------------------------------------------
+
+
+def loo_operating_point(
+    labeled: list[LabeledClaim],
+    taus: list[float],
+    error_b_bound: float,
+) -> tuple[float, ErrorRates]:
+    """Leave-one-out held-out operating point over *labeled*.
+
+    For EACH claim, select the moat-integrity operating point on the OTHER n-1
+    claims (``select_operating_point`` over a sweep of *taus* computed from just
+    those n-1), predict the single held-out claim at that tau, and accumulate the
+    held-out confusion cell. Returns ``(modal selected tau, held-out ErrorRates)``
+    where the ErrorRates are aggregated over all n held-out predictions — GENUINELY
+    held-out, because no claim ever influenced the tau it was scored at.
+
+    Fold-selection failure — DOCUMENTED DECISION: PROPAGATE, never skip. When a
+    fold's n-1 training set cannot meet *error_b_bound*, ``select_operating_point``
+    raises ``ValueError``; this function re-raises it enriched with the failing
+    fold's ``claim_id`` (``from`` the original). Skipping such a fold would drop
+    exactly the hardest claims from the held-out estimate, biasing it
+    OPTIMISTICALLY — the precise dishonesty this function exists to prevent. A
+    hard floor the detector cannot clear is a real result the caller must see, not
+    paper over (mirrors select_operating_point's own no-silent-fallback stance).
+
+    Modal-tau tie-break: when two taus are selected equally often across folds,
+    the HIGHER tau wins — consistent with select_operating_point's stricter-
+    grounding tie-break. The returned tau is a representative operating point; the
+    load-bearing output is the held-out ErrorRates.
+
+    Raises ``ValueError`` on an empty *labeled* (no folds, no held-out prediction,
+    no modal tau to report).
+
+    Pure/deterministic — reads *labeled* and *taus*, mutates neither.
+    """
+    if not labeled:
+        raise ValueError(
+            "loo_operating_point: empty labeled set — no folds to leave one out "
+            "of, so no held-out rates and no operating point to report."
+        )
+
+    selected_taus: list[float] = []
+    tp = fp = tn = fn = 0
+    for i, held_out in enumerate(labeled):
+        others = labeled[:i] + labeled[i + 1:]
+        sweep = sweep_thresholds(others, taus)
+        try:
+            tau = select_operating_point(sweep, error_b_bound)
+        except ValueError as exc:
+            raise ValueError(
+                f"loo_operating_point: fold holding out claim_id "
+                f"{held_out.claim_id!r} could not select an operating point on "
+                f"its n-1 training claims. Propagating rather than skipping — a "
+                f"dropped fold would optimistically bias the held-out estimate. "
+                f"Underlying: {exc}"
+            ) from exc
+
+        selected_taus.append(tau)
+        # Score the single held-out claim at its own fold's tau, reusing the
+        # tested confusion logic (predicted_is_violation + truth). Exactly one
+        # cell of this single-claim ErrorRates is 1; accumulate it.
+        fold = error_rates([held_out], tau)
+        tp += fold.tp
+        fp += fold.fp
+        tn += fold.tn
+        fn += fold.fn
+
+    grounded_total = fp + tn      # truly-grounded denominator for Error A
+    violation_total = fn + tp     # truly-violation denominator for Error B
+    error_a = fp / grounded_total if grounded_total else 0.0
+    error_b = fn / violation_total if violation_total else 0.0
+
+    held_out_rates = ErrorRates(
+        n=len(labeled),
+        tp=tp,
+        fp=fp,
+        tn=tn,
+        fn=fn,
+        error_a=error_a,
+        error_b=error_b,
+    )
+
+    # Modal selected tau; ties broken toward the HIGHER tau (stricter grounding).
+    counts = Counter(selected_taus)
+    max_count = max(counts.values())
+    modal_tau = max(tau for tau, count in counts.items() if count == max_count)
+
+    return modal_tau, held_out_rates
