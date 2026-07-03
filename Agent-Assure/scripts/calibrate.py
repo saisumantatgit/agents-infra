@@ -671,11 +671,22 @@ def loo_operating_point(
 #
 # Multi-modal tie (two or more DISJOINT winning intervals achieve the exact
 # same max count — not rare with genuine overlap): the brief does not
-# specify this case, so this task documents its own secondary rule — prefer
-# the WIDER bounding interval (a larger margin is a more robustly separated
-# candidate), and if still tied on width, prefer the HIGHER interval,
-# mirroring select_operating_point's existing stricter-grounding tie-break
-# (Task 5) elsewhere in this file.
+# specify this case, and this module's own fail-loud doctrine settles it —
+# every other genuine ambiguity here (empty input, single-class input,
+# select_operating_point's no-feasible-tau) RAISES to force human resolution
+# rather than silently guessing, and the repo's global rule forbids silent
+# fallbacks. ADJUDICATED: a "prefer widest margin" heuristic is
+# outlier-sensitive (a single extreme score can swing the pick to a
+# materially different, worse operating point while claiming equal sample
+# accuracy) and undocumented in the brief. derive_report_gate RAISES
+# ValueError naming every tied candidate gate (interval + shared
+# correct-count) so a human resolves the ambiguity — by adding report labels
+# to disambiguate, or choosing the gate by domain judgment — instead of the
+# tool silently guessing.
+#
+# The brief-specified WITHIN-gap tie-break (a SINGLE winning interval ->
+# midpoint of its two bounding scores) is UNCHANGED — it is unambiguous and
+# correct, and applies whenever best_intervals has exactly one entry.
 # ---------------------------------------------------------------------------
 
 
@@ -710,6 +721,14 @@ def derive_report_gate(reports: list[ReportLabel]) -> float:
       * every report shares one identical grounding_score across both
         classes — no threshold value places any two reports on different
         sides, so there is no breakpoint to derive a gate from.
+      * two or more DISJOINT score intervals tie for the same maximum
+        correct-count (a "multi-modal" tie) — the report labels do not
+        cleanly separate at any single threshold, and no tie-break among
+        disjoint candidates (e.g. widest margin) is safe to guess silently;
+        the raised ValueError names every tied candidate gate so a human
+        resolves the ambiguity. The brief-specified WITHIN-gap tie-break (a
+        single winning interval -> midpoint of its two bounding scores) is
+        unaffected — it applies whenever exactly one interval wins.
 
     Pure function — reads *reports*, mutates nothing.
     """
@@ -765,11 +784,24 @@ def derive_report_gate(reports: list[ReportLabel]) -> float:
             best_intervals.append((lower, upper))
 
     if len(best_intervals) > 1:
-        # Multi-modal tie: prefer the widest margin, then the higher interval.
-        lower, upper = max(
-            best_intervals, key=lambda pair: (pair[1] - pair[0], pair[0])
+        tied_gates = ", ".join(
+            f"({lower!r}, {upper!r}) -> gate {round((lower + upper) / 2, 6)!r}"
+            for lower, upper in best_intervals
         )
-    else:
-        lower, upper = best_intervals[0]
+        raise ValueError(
+            "derive_report_gate: multi-modal tie — "
+            f"{len(best_intervals)} disjoint score intervals all achieve "
+            f"the same maximum correct-count ({best_count}/{len(reports)}): "
+            f"{tied_gates}. The report labels do not cleanly separate at a "
+            "single threshold, so no tie-break among disjoint candidates is "
+            "safe to guess silently (a widest-margin pick is "
+            "outlier-sensitive and undocumented in the brief) — resolve by "
+            "adding more report labels to disambiguate, or choose the gate "
+            "by domain judgment."
+        )
 
+    # Single winning interval: the brief-specified WITHIN-gap tie-break —
+    # midpoint of its two bounding scores. Unambiguous; unaffected by the
+    # multi-modal raise above.
+    lower, upper = best_intervals[0]
     return (lower + upper) / 2

@@ -147,13 +147,25 @@ def test_overlapping_distributions_achieves_five_of_seven():
 
 
 # ---------------------------------------------------------------------------
-# Multi-modal tie: TWO disjoint breakpoints achieve the identical max count.
-# Documented secondary tie-break (this task's own design decision, since the
-# brief's "highest untrustworthy / lowest trustworthy" phrasing only
-# disambiguates a SINGLE winning interval): prefer the WIDER bounding
-# interval (larger margin = more robustly separated); a further tie on width
-# breaks toward the HIGHER interval, mirroring select_operating_point's
-# existing stricter-grounding convention (Task 5) elsewhere in this file.
+# Multi-modal tie: TWO OR MORE disjoint breakpoints achieve the identical max
+# count. ADJUDICATED (controller decision, overriding the original
+# implementer's undocumented "prefer widest margin" extension): this case
+# now RAISES ValueError naming every tied candidate gate, rather than
+# silently picking one. Rationale: a widest-margin heuristic is
+# outlier-sensitive (one extreme score can swing the pick to a materially
+# different, worse operating point while claiming equal sample accuracy), it
+# is undocumented in the brief, and it diverges from every other genuine
+# ambiguity in this module (empty input, single-class input,
+# select_operating_point's no-feasible-tau), all of which RAISE rather than
+# silently guess. A multi-modal tie means the report labels don't cleanly
+# separate at any single threshold; the human calibrator must decide, not
+# have the tool silently guess.
+#
+# NOTE: the brief-specified WITHIN-gap tie-break (a SINGLE winning interval
+# -> midpoint of its two bounding scores) is UNCHANGED and unaffected by
+# this -- see test_clean_separation_gate_is_exact_midpoint and
+# test_overlapping_distributions_max_separation_point above, both of which
+# still resolve to their single winning interval's midpoint.
 #
 #   trustworthy: 0.60, 0.62, 0.90, 0.92
 #   untrustworthy: 0.55, 0.65, 0.70, 0.95
@@ -168,8 +180,9 @@ def test_overlapping_distributions_achieves_five_of_seven():
 #   (0.90,0.92)->0.910: T>=t=1, U<t={0.55,0.65,0.70}=3      -> 4
 #   (0.92,0.95)->0.935: T>=t=0, U<t={0.55,0.65,0.70}=3      -> 3
 #
-# Tied at (0.55,0.60) [width 0.05] and (0.70,0.90) [width 0.20]. The wider
-# interval wins -> gate = midpoint(0.70, 0.90) = 0.80.
+# Tied at (0.55,0.60) [width 0.05] and (0.70,0.90) [width 0.20] -- two
+# disjoint intervals, same max count (5/8). The removed heuristic used to
+# pick the wider one (0.80); derive_report_gate now RAISES instead.
 # ---------------------------------------------------------------------------
 
 def _multimodal_tie_fixture() -> list[ReportLabel]:
@@ -185,13 +198,66 @@ def _multimodal_tie_fixture() -> list[ReportLabel]:
     ]
 
 
-def test_multimodal_tie_breaks_to_wider_interval():
+def test_multimodal_tie_raises_valueerror():
     """Two disjoint breakpoints ((0.55,0.60) width 0.05 and (0.70,0.90) width
-    0.20) both score 5/8. The documented secondary rule picks the wider one
-    -> 0.80. A narrower-first or first-encountered tie-break would return
-    0.575 instead and fail here."""
-    gate = derive_report_gate(_multimodal_tie_fixture())
-    assert gate == pytest.approx(0.80)
+    0.20) both score 5/8. ADJUDICATED: the removed 'prefer widest margin'
+    heuristic used to silently return 0.80 here; it now raises ValueError
+    naming both tied candidate gates, so a human resolves the ambiguity
+    rather than the tool silently guessing."""
+    with pytest.raises(ValueError, match="multi-modal") as exc_info:
+        derive_report_gate(_multimodal_tie_fixture())
+    message = str(exc_info.value)
+    assert "0.55" in message and "0.6" in message
+    assert "0.7" in message and "0.9" in message
+
+
+# ---------------------------------------------------------------------------
+# Second, independent multi-modal-tie fixture -- proves the raise is general
+# (not an artifact of one dataset shape) and demonstrates the exact
+# outlier-sensitivity the adjudication flagged: a single outlier (0.02) makes
+# the (0.02, 0.50) interval 0.07 WIDER than (0.58, 0.99), so the removed
+# widest-margin heuristic would have picked the worse-looking end of the
+# score range purely because of that one point.
+#
+#   untrustworthy: 0.02, 0.55, 0.58
+#   trustworthy:   0.50, 0.53, 0.99
+#
+# Sorted: 0.02(U) 0.50(T) 0.53(T) 0.55(U) 0.58(U) 0.99(T)
+#
+#   (0.02,0.50)->0.26 : T>=t={0.50,0.53,0.99}=3, U<t={0.02}=1           -> 4  <- tied
+#   (0.50,0.53)->0.515: T>=t={0.53,0.99}=2,      U<t={0.02}=1           -> 3
+#   (0.53,0.55)->0.54 : T>=t={0.99}=1,           U<t={0.02}=1           -> 2
+#   (0.55,0.58)->0.565: T>=t={0.99}=1,           U<t={0.02,0.55}=2      -> 3
+#   (0.58,0.99)->0.785: T>=t={0.99}=1,           U<t={0.02,0.55,0.58}=3 -> 4  <- tied
+#
+# Tied at (0.02,0.50) [width 0.48] and (0.58,0.99) [width 0.41]. Before this
+# fix, derive_report_gate silently returned ~0.26 here (the widest-margin
+# pick) -- proven RED against the pre-fix implementation before this test
+# was accepted as coverage.
+# ---------------------------------------------------------------------------
+
+def _multimodal_tie_fixture_outlier() -> list[ReportLabel]:
+    return [
+        _label("u1", 0.02, False),
+        _label("u2", 0.55, False),
+        _label("u3", 0.58, False),
+        _label("t1", 0.50, True),
+        _label("t2", 0.53, True),
+        _label("t3", 0.99, True),
+    ]
+
+
+def test_multimodal_tie_raises_valueerror_names_tied_gates():
+    """Before the fix, derive_report_gate silently returned ~0.26 for this
+    fixture -- an outlier-sensitive pick driven entirely by the single 0.02
+    score. ADJUDICATED: it must instead raise ValueError naming both tied
+    candidate intervals (0.02/0.50 and 0.58/0.99), so a human resolves the
+    ambiguity rather than the tool silently guessing."""
+    with pytest.raises(ValueError, match="multi-modal") as exc_info:
+        derive_report_gate(_multimodal_tie_fixture_outlier())
+    message = str(exc_info.value)
+    assert "0.02" in message and "0.5" in message
+    assert "0.58" in message and "0.99" in message
 
 
 # ---------------------------------------------------------------------------
