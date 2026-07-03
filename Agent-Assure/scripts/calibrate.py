@@ -642,3 +642,134 @@ def loo_operating_point(
     modal_tau = max(tau for tau, count in counts.items() if count == max_count)
 
     return modal_tau, held_out_rates
+
+
+# ---------------------------------------------------------------------------
+# Task 7: report-gate derivation — separation-point (spec §5.4).
+#
+# Replaces the provisional 0.90 report-gate placeholder
+# (ground_check.score_report's `threshold` default) with the EMPIRICAL score
+# that best separates human-approved (trustworthy) reports from
+# human-rejected (untrustworthy) ones, over a whole-report grounding_score
+# rather than a per-claim one. Does NOT touch the UNVERIFIED_CITATION hard
+# override — that stays categorical regardless of this derived gate (spec
+# §5.4); wiring the derived value back into score_report's default is a
+# separate later step, out of scope here.
+#
+# THE RULE: a candidate threshold t predicts "trustworthy" iff
+# grounding_score >= t. Correctness only changes AT an observed score value
+# — never strictly between two adjacent ones — so every achievable distinct
+# accuracy corresponds to a whole OPEN INTERVAL of tied t values, bounded by
+# two adjacent distinct observed scores. derive_report_gate finds the
+# interval(s) whose t maximizes total correct classifications, then resolves
+# the interval to a single float via the documented tie-break: the MIDPOINT
+# of its two bounding scores. In the perfectly-separable case those two
+# bounding scores are exactly the highest untrustworthy score and the lowest
+# trustworthy score (the brief's own phrasing); under overlap they are
+# simply the two scores immediately straddling the winning interval — the
+# same rule, generalized.
+#
+# Multi-modal tie (two or more DISJOINT winning intervals achieve the exact
+# same max count — not rare with genuine overlap): the brief does not
+# specify this case, so this task documents its own secondary rule — prefer
+# the WIDER bounding interval (a larger margin is a more robustly separated
+# candidate), and if still tied on width, prefer the HIGHER interval,
+# mirroring select_operating_point's existing stricter-grounding tie-break
+# (Task 5) elsewhere in this file.
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class ReportLabel:
+    """One human holistic judgment of a whole report's trustworthiness,
+    paired with the report's grounding_score, for report-gate calibration.
+
+    Distinct from ClaimFeatureRow/LabeledClaim (Tasks 2–3), which label
+    individual CLAIMS for the per-claim lex_tau gate; ReportLabel labels one
+    entire REPORT (one grounding_score, one human verdict) for the report-
+    level gate derived by derive_report_gate.
+    """
+
+    query_id: str
+    grounding_score: float
+    trustworthy: bool
+
+
+def derive_report_gate(reports: list[ReportLabel]) -> float:
+    """Return the report-gate threshold that best separates *reports* into
+    trustworthy (human-approved) vs untrustworthy (human-rejected), per the
+    module-level rule documented above.
+
+    Degenerate inputs raise ValueError rather than return a silently-wrong
+    sentinel — none of the following has a real empirical threshold to
+    report:
+      * *reports* is empty — nothing to separate.
+      * every report is trustworthy, or every report is untrustworthy — no
+        example of the missing class exists to anchor a separation boundary
+        from the other side.
+      * every report shares one identical grounding_score across both
+        classes — no threshold value places any two reports on different
+        sides, so there is no breakpoint to derive a gate from.
+
+    Pure function — reads *reports*, mutates nothing.
+    """
+    if not reports:
+        raise ValueError(
+            "derive_report_gate: empty reports — no reports to separate, so "
+            "no gate to derive."
+        )
+
+    trustworthy_scores = [r.grounding_score for r in reports if r.trustworthy]
+    untrustworthy_scores = [
+        r.grounding_score for r in reports if not r.trustworthy
+    ]
+    if not trustworthy_scores:
+        raise ValueError(
+            "derive_report_gate: no trustworthy reports in the input — "
+            "there is no example of the approved class to anchor a "
+            "separation boundary from above. Returning a sentinel gate "
+            "(e.g. 0.0, letting everything pass) would be a silently "
+            "fabricated threshold with zero empirical support."
+        )
+    if not untrustworthy_scores:
+        raise ValueError(
+            "derive_report_gate: no untrustworthy reports in the input — "
+            "there is no example of the rejected class to anchor a "
+            "separation boundary from below. Returning a sentinel gate "
+            "(e.g. 1.0, failing everything) would be a silently fabricated "
+            "threshold with zero empirical support."
+        )
+
+    distinct_scores = sorted({r.grounding_score for r in reports})
+    if len(distinct_scores) < 2:
+        raise ValueError(
+            "derive_report_gate: every report shares one identical "
+            f"grounding_score ({distinct_scores[0]!r}) across both classes "
+            "— no threshold value places any two reports on different "
+            "sides, so there is no breakpoint to derive a gate from."
+        )
+
+    best_count = -1
+    best_intervals: list[tuple[float, float]] = []
+    for lower, upper in zip(distinct_scores, distinct_scores[1:]):
+        candidate = (lower + upper) / 2
+        correct = sum(
+            1
+            for r in reports
+            if (r.grounding_score >= candidate) == r.trustworthy
+        )
+        if correct > best_count:
+            best_count = correct
+            best_intervals = [(lower, upper)]
+        elif correct == best_count:
+            best_intervals.append((lower, upper))
+
+    if len(best_intervals) > 1:
+        # Multi-modal tie: prefer the widest margin, then the higher interval.
+        lower, upper = max(
+            best_intervals, key=lambda pair: (pair[1] - pair[0], pair[0])
+        )
+    else:
+        lower, upper = best_intervals[0]
+
+    return (lower + upper) / 2
