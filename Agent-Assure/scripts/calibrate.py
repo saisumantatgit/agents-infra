@@ -7,11 +7,21 @@ so a later calibration sweep (Tasks 3+) can re-threshold lex_tau /
 min_quote_len post-hoc over stored scores, without re-running decompose,
 classify, or ground.
 
-Pure functions only — no I/O, no LLM, no network, no random, no wall-clock.
+Phase 2a, Task 3 adds the human-labeling round trip: export_labeling_csv
+turns ClaimFeatureRow rows into a CSV a human fills in with a
+"grounded"/"violation" verdict per claim; load_labels reads that filled CSV
+back, failing loud on any unlabeled or mislabeled row; join_labels
+inner-joins emitted rows against those labels by claim_id, failing loud if
+any emitted claim has no label.
+
+Pure functions only, except export_labeling_csv and load_labels, which are
+the explicit file I/O boundary — neither mutates its inputs.
 """
 
 from __future__ import annotations
 
+import csv
+import unicodedata
 from dataclasses import dataclass
 
 from scripts.ground_check import (
@@ -173,3 +183,160 @@ def emit_claim_features(
             tier_sensitive=tier_sensitive,
         ))
     return rows
+
+
+# ---------------------------------------------------------------------------
+# Task 3: labeling-CSV export + fail-loud label ingestion.
+# ---------------------------------------------------------------------------
+
+_ALLOWED_HUMAN_LABELS = frozenset({"grounded", "violation"})
+
+_EXPORT_FIELDNAMES = [
+    "claim_id",
+    "query_id",
+    "claim_text",
+    "cited_source_ids",
+    "predicted_verdict",
+    "t2_f1",
+    "human_label",
+]
+
+
+@dataclass(frozen=True)
+class HumanLabel:
+    """One human-provided ground-truth label for a claim, read back from a
+    hand-filled labeling CSV.
+
+    label is NFKC-normalized and guaranteed (by load_labels) to be exactly
+    "grounded" or "violation" — never blank, never anything else.
+    """
+
+    claim_id: str
+    label: str
+    violation_kind: str | None
+
+
+@dataclass(frozen=True)
+class LabeledClaim:
+    """A ClaimFeatureRow joined with its human label.
+
+    Carries every ClaimFeatureRow field plus the human-assigned label, so a
+    calibration sweep can compare predicted_verdict against ground truth at
+    every candidate threshold without re-joining on claim_id each time.
+    """
+
+    claim_id: str
+    query_id: str
+    claim_text: str
+    kind: str
+    cited_source_ids: tuple[str, ...]
+    citations_resolved: bool
+    t1_verbatim: bool
+    t2_f1: float
+    numeric_ok: bool
+    predicted_verdict: str
+    tier_sensitive: bool
+    label: str
+
+
+def export_labeling_csv(rows: list[ClaimFeatureRow], path: str) -> None:
+    """Write *rows* to *path* as a CSV for a human to label.
+
+    Columns, in this exact order: claim_id, query_id, claim_text,
+    cited_source_ids, predicted_verdict, t2_f1, human_label. human_label is
+    left blank — a human fills it in with "grounded" or "violation" before
+    the file is fed to load_labels(). cited_source_ids (a tuple) is
+    serialized "|"-joined so multi-citation claims stay in one cell.
+
+    I/O boundary — the file write is the only side effect; *rows* is not
+    mutated.
+    """
+    with open(path, "w", encoding="utf-8", newline="") as fh:
+        writer = csv.writer(fh, quoting=csv.QUOTE_MINIMAL)
+        writer.writerow(_EXPORT_FIELDNAMES)
+        for row in rows:
+            writer.writerow([
+                row.claim_id,
+                row.query_id,
+                row.claim_text,
+                "|".join(row.cited_source_ids),
+                row.predicted_verdict,
+                row.t2_f1,
+                "",
+            ])
+
+
+def load_labels(path: str) -> dict[str, HumanLabel]:
+    """Read a hand-filled labeling CSV at *path* and return
+    {claim_id: HumanLabel}.
+
+    Fails loud (ValueError) the moment any row's human_label — after
+    unicodedata.normalize("NFKC", ...), per the repo's NFKC-before-
+    validation safety-gate convention — is not exactly "grounded" or
+    "violation", including a blank cell. An unlabeled or mislabeled row
+    must never silently default to a verdict; that would corrupt every
+    threshold a calibration sweep later derives from this file.
+
+    violation_kind is read from an optional "violation_kind" column — not
+    written by export_labeling_csv, but a human may add it by hand when
+    labeling a violation. A missing column or blank cell resolves to None;
+    it is not part of the fail-loud gate.
+    """
+    labels: dict[str, HumanLabel] = {}
+    with open(path, encoding="utf-8", newline="") as fh:
+        reader = csv.DictReader(fh)
+        for line_no, record in enumerate(reader, start=2):
+            claim_id = record["claim_id"]
+            raw_label = record.get("human_label") or ""
+            label = unicodedata.normalize("NFKC", raw_label)
+            if label not in _ALLOWED_HUMAN_LABELS:
+                raise ValueError(
+                    f"load_labels: {path!r} line {line_no} "
+                    f"(claim_id={claim_id!r}) has human_label "
+                    f"{raw_label!r}, which is not one of "
+                    f"{sorted(_ALLOWED_HUMAN_LABELS)}. Every row must be "
+                    "labeled by hand before calibration — an unlabeled or "
+                    "mislabeled row is never silently defaulted."
+                )
+            raw_kind = (record.get("violation_kind") or "").strip()
+            violation_kind = raw_kind or None
+            labels[claim_id] = HumanLabel(
+                claim_id=claim_id, label=label, violation_kind=violation_kind
+            )
+    return labels
+
+
+def join_labels(
+    rows: list[ClaimFeatureRow], labels: dict[str, HumanLabel]
+) -> list[LabeledClaim]:
+    """Inner-join *rows* against *labels* by claim_id, preserving row order.
+
+    Fails loud (ValueError) the moment any row's claim_id has no entry in
+    *labels* — a claim silently dropped from the labeled set would bias
+    every threshold the calibration sweep derives from it, with no signal
+    that data went missing.
+    """
+    joined: list[LabeledClaim] = []
+    for row in rows:
+        human_label = labels.get(row.claim_id)
+        if human_label is None:
+            raise ValueError(
+                f"join_labels: claim_id {row.claim_id!r} has no human "
+                "label in labels. Every emitted claim must be labeled "
+                "before calibration — no claim is silently dropped."
+            )
+        joined.append(LabeledClaim(
+            claim_id=row.claim_id,
+            query_id=row.query_id,
+            claim_text=row.claim_text,
+            kind=row.kind,
+            cited_source_ids=row.cited_source_ids,
+            citations_resolved=row.citations_resolved,
+            t1_verbatim=row.t1_verbatim,
+            t2_f1=row.t2_f1,
+            numeric_ok=row.numeric_ok,
+            predicted_verdict=row.predicted_verdict,
+            tier_sensitive=row.tier_sensitive,
+            label=human_label.label,
+        ))
+    return joined

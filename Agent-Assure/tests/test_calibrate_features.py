@@ -16,12 +16,22 @@ TDD sequence:
   Step 4: Run -> PASS (new + all existing).
 """
 
+import csv
 import dataclasses
+from pathlib import Path
 
 import pytest
 
 from scripts.ground_check import RetrievedSource
-from scripts.calibrate import ClaimFeatureRow, emit_claim_features
+from scripts.calibrate import (
+    ClaimFeatureRow,
+    HumanLabel,
+    LabeledClaim,
+    emit_claim_features,
+    export_labeling_csv,
+    join_labels,
+    load_labels,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -258,3 +268,217 @@ def test_ungrounded_row_is_tier_sensitive():
 
     assert row.predicted_verdict == "UNGROUNDED"
     assert row.tier_sensitive is True
+
+
+# ---------------------------------------------------------------------------
+# Task 3: labeling-CSV export + fail-loud label ingestion.
+#
+# export_labeling_csv turns ClaimFeatureRow rows into a CSV a human fills in
+# with a "grounded"/"violation" verdict per claim. load_labels reads that
+# filled CSV back and MUST fail loud (ValueError) on any human_label that is
+# not exactly "grounded" or "violation" -- including blank -- because an
+# unlabeled row silently defaulting would corrupt every threshold the
+# calibration sweep later derives from it. join_labels then inner-joins
+# ClaimFeatureRow rows against those labels by claim_id and MUST fail loud
+# if any emitted claim has no label (no silent drop).
+# ---------------------------------------------------------------------------
+
+FIXTURES = Path(__file__).parent / "fixtures"
+SYNTHETIC_LABELED_CSV = FIXTURES / "calibration" / "synthetic_labeled.csv"
+
+
+def test_export_labeling_csv_writes_expected_columns(tmp_path):
+    """export_labeling_csv writes the exact deterministic column order, with
+    human_label left blank for the human to fill in."""
+    rows = emit_claim_features("q1", _DRAFT, _store())
+    out_path = tmp_path / "export.csv"
+
+    export_labeling_csv(rows, str(out_path))
+
+    with open(out_path, newline="", encoding="utf-8") as fh:
+        reader = csv.reader(fh)
+        header = next(reader)
+        data_rows = list(reader)
+
+    assert header == [
+        "claim_id",
+        "query_id",
+        "claim_text",
+        "cited_source_ids",
+        "predicted_verdict",
+        "t2_f1",
+        "human_label",
+    ]
+    assert len(data_rows) == 3
+    assert data_rows[0][0] == "q1#0"
+    assert data_rows[0][3] == "S1"
+    assert data_rows[0][4] == "GROUNDED"
+    assert data_rows[0][6] == ""  # human_label: blank, for the human to fill
+    assert data_rows[2][0] == "q1#2"
+    assert data_rows[2][3] == "S9"
+    assert data_rows[2][4] == "UNVERIFIED_CITATION"
+
+
+def test_export_labeling_csv_quotes_embedded_commas(tmp_path):
+    """QUOTE_MINIMAL must quote fields containing commas so they round-trip
+    through a real CSV reader without corrupting column boundaries."""
+    row = ClaimFeatureRow(
+        claim_id="q9#0",
+        query_id="q9",
+        claim_text="Revenue grew, on a like-for-like basis, by 12%.",
+        kind="NUMERIC",
+        cited_source_ids=("S1", "S2"),
+        citations_resolved=True,
+        t1_verbatim=True,
+        t2_f1=1.0,
+        numeric_ok=True,
+        predicted_verdict="GROUNDED",
+        tier_sensitive=False,
+    )
+    out_path = tmp_path / "commas.csv"
+
+    export_labeling_csv([row], str(out_path))
+
+    with open(out_path, newline="", encoding="utf-8") as fh:
+        record = next(csv.DictReader(fh))
+
+    assert record["claim_text"] == "Revenue grew, on a like-for-like basis, by 12%."
+    assert record["cited_source_ids"] == "S1|S2"
+
+
+def test_export_labeling_csv_does_not_mutate_rows(tmp_path):
+    """Pure-except-I/O contract: rows list/contents are unchanged after export."""
+    rows = emit_claim_features("q1", _DRAFT, _store())
+    rows_before = list(rows)
+
+    export_labeling_csv(rows, str(tmp_path / "out.csv"))
+
+    assert rows == rows_before
+
+
+def test_load_labels_round_trip_from_synthetic_fixture():
+    """load_labels reads a hand-filled CSV (3 rows, matching the emitted
+    claim_ids from _DRAFT/_store()) back into 3 HumanLabel entries."""
+    labels = load_labels(str(SYNTHETIC_LABELED_CSV))
+
+    assert set(labels.keys()) == {"q1#0", "q1#1", "q1#2"}
+    assert labels["q1#0"] == HumanLabel(
+        claim_id="q1#0", label="grounded", violation_kind=None
+    )
+    assert labels["q1#1"] == HumanLabel(
+        claim_id="q1#1", label="grounded", violation_kind=None
+    )
+    assert labels["q1#2"] == HumanLabel(
+        claim_id="q1#2", label="violation", violation_kind="unverifiable_citation"
+    )
+
+
+def test_load_labels_raises_on_empty_human_label(tmp_path):
+    """A blank human_label cell must raise ValueError, never silently pass
+    through as an unlabeled row."""
+    csv_text = (
+        "claim_id,query_id,claim_text,cited_source_ids,predicted_verdict,"
+        "t2_f1,human_label\n"
+        "q1#0,q1,claim text,S1,GROUNDED,1.0,\n"
+    )
+    p = tmp_path / "blank_label.csv"
+    p.write_text(csv_text, encoding="utf-8")
+
+    with pytest.raises(ValueError):
+        load_labels(str(p))
+
+
+def test_load_labels_raises_on_invalid_human_label(tmp_path):
+    """A human_label outside {"grounded", "violation"} must raise ValueError,
+    never silently default."""
+    csv_text = (
+        "claim_id,query_id,claim_text,cited_source_ids,predicted_verdict,"
+        "t2_f1,human_label\n"
+        "q1#0,q1,claim text,S1,GROUNDED,1.0,maybe\n"
+    )
+    p = tmp_path / "invalid_label.csv"
+    p.write_text(csv_text, encoding="utf-8")
+
+    with pytest.raises(ValueError):
+        load_labels(str(p))
+
+
+def test_load_labels_normalizes_nfkc_before_validating(tmp_path):
+    """A fullwidth-Unicode rendering of "grounded" must NFKC-normalize to the
+    ASCII form and be accepted -- per the repo's NFKC-before-validation
+    safety-gate convention, applied here to defeat homoglyph-style bypass of
+    the allowed-label set."""
+    fullwidth_grounded = "ｇｒｏｕｎｄｅｄ"
+    csv_text = (
+        "claim_id,query_id,claim_text,cited_source_ids,predicted_verdict,"
+        "t2_f1,human_label\n"
+        f"q1#0,q1,claim text,S1,GROUNDED,1.0,{fullwidth_grounded}\n"
+    )
+    p = tmp_path / "nfkc_label.csv"
+    p.write_text(csv_text, encoding="utf-8")
+
+    labels = load_labels(str(p))
+
+    assert labels["q1#0"].label == "grounded"
+
+
+def test_join_labels_round_trip_with_emitted_rows():
+    """join_labels inner-joins real emitted rows against the hand-filled
+    fixture's labels, in row order, carrying every ClaimFeatureRow field
+    plus the human label."""
+    rows = emit_claim_features("q1", _DRAFT, _store())
+    labels = load_labels(str(SYNTHETIC_LABELED_CSV))
+
+    joined = join_labels(rows, labels)
+
+    assert len(joined) == 3
+    assert [lc.claim_id for lc in joined] == ["q1#0", "q1#1", "q1#2"]
+
+    assert joined[0].label == "grounded"
+    assert joined[0].predicted_verdict == "GROUNDED"
+    assert joined[0].t1_verbatim is True
+    assert joined[0].tier_sensitive is False
+
+    assert joined[2].label == "violation"
+    assert joined[2].predicted_verdict == "UNVERIFIED_CITATION"
+    assert joined[2].citations_resolved is False
+
+
+def test_join_labels_raises_on_missing_label():
+    """A claim_id emitted by emit_claim_features but absent from *labels*
+    must raise ValueError -- no silent drop of unlabeled claims."""
+    rows = emit_claim_features("q1", _DRAFT, _store())
+    labels = {
+        "q1#0": HumanLabel(claim_id="q1#0", label="grounded", violation_kind=None),
+        # q1#1 and q1#2 deliberately missing.
+    }
+
+    with pytest.raises(ValueError):
+        join_labels(rows, labels)
+
+
+def test_human_label_is_frozen():
+    """HumanLabel instances must be immutable (frozen dataclass contract)."""
+    hl = HumanLabel(claim_id="q1#0", label="grounded", violation_kind=None)
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        hl.label = "violation"  # type: ignore[misc]
+
+
+def test_labeled_claim_is_frozen():
+    """LabeledClaim instances must be immutable (frozen dataclass contract)."""
+    lc = LabeledClaim(
+        claim_id="q1#0",
+        query_id="q1",
+        claim_text="x",
+        kind="FACTUAL",
+        cited_source_ids=(),
+        citations_resolved=True,
+        t1_verbatim=False,
+        t2_f1=0.0,
+        numeric_ok=True,
+        predicted_verdict="UNCITED",
+        tier_sensitive=False,
+        label="grounded",
+    )
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        lc.label = "violation"  # type: ignore[misc]
