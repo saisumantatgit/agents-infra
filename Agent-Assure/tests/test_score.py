@@ -279,6 +279,60 @@ def test_verbless_fabricated_draft_does_not_pass():
 
 
 # ---------------------------------------------------------------------------
+# HEADLINE REGRESSION 2 — a fabrication hidden inside a markdown header must NOT
+# report PASS. Same moat hole as the verbless case, different disguise: the
+# header short-circuit in _is_non_claim ran BEFORE the numeric/citation guard,
+# so '# ... [S9]' was dropped as NON_CLAIM and the fabricated citation vanished
+# from the denominator → false PASS. The guard now applies to headers too.
+# ---------------------------------------------------------------------------
+
+_HEADER_WRAPPED_FABRICATED_DRAFT = (
+    "Redis handles 100K operations per second on commodity hardware [S1].\n\n"
+    "# MongoDB sustained 250000 operations per second in the same test [S9]"
+)
+
+
+def test_header_wrapped_fabrication_does_not_pass():
+    """Full pipeline: one genuinely grounded claim + one fabricated claim wrapped
+    in a markdown header citing an absent source S9. The header-wrapped claim must
+    be SCORED (not excluded as NON_CLAIM), so the gate cannot post PASS."""
+    s1 = _src("S1", _GROUNDED_TEXT)
+    store = _store(s1)  # S9 absent
+    claims = [classify(c) for c in decompose(_HEADER_WRAPPED_FABRICATED_DRAFT)]
+
+    header_claims = [c for c in claims if c.text.lstrip().startswith("#")]
+    assert header_claims, "decompose dropped the header line"
+    assert all(c.kind != ClaimKind.NON_CLAIM for c in header_claims), (
+        f"header-wrapped fabrication classified NON_CLAIM (hidden from the gate): "
+        f"{[(c.text, c.kind) for c in header_claims]}"
+    )
+
+    rep = score_report(claims, store)
+    assert rep["gate"] != "PASS", (
+        f"header-wrapped fabrication certified PASS — moat breached: {rep}"
+    )
+
+
+def test_pure_header_still_excluded():
+    """The fix must NOT over-flag a genuine heading (no citation/number) — a
+    legitimate section header stays NON_CLAIM and off the denominator."""
+    h = _classified(0, "# Datastore Throughput Benchmark Summary")
+    assert h.kind == ClaimKind.NON_CLAIM
+
+
+def test_header_with_citation_is_real_claim():
+    """A heading carrying a citation marker is verifiable content → real claim."""
+    h = _classified(0, "# Redis is an in-memory data store [S9]")
+    assert h.kind != ClaimKind.NON_CLAIM
+
+
+def test_header_with_number_is_real_claim():
+    """A heading carrying a numeric token is verifiable content → real claim."""
+    h = _classified(0, "# 99% market share achieved this quarter")
+    assert h.kind != ClaimKind.NON_CLAIM
+
+
+# ---------------------------------------------------------------------------
 # threshold parameter — NEEDS_WORK when score < threshold (no override)
 # ---------------------------------------------------------------------------
 
