@@ -1,29 +1,27 @@
-# Agent-Assure Phase 1b/1c — Resumption State (paused on budget, 2026-06-28)
+# Agent-Assure Phase 1 — Status & Live-Validation Gate
 
-**Branch:** `agent-assure-phase1b` (pushed to origin). Base: `agents-infra` main (Phase 1a merged). Env: uv (`uv run pytest` from `Agent-Assure/`).
+**Branch:** `agent-assure-phase1b` (pushed). **PR:** [#2](https://github.com/saisumantatgit/agents-infra/pull/2) — OPEN, **HELD** (do not merge before live-validation). Base: `agents-infra` main (Phase 1a merged). Env: uv (`uv sync --extra dev`, then `uv run pytest`).
 
-## DONE + committed + pushed (201 tests green)
-- **Tasks 1–5 of the capture hook**: `scripts/capture_core.py` (make_record, overflow reconstruct, next_source_id, append_record, atomic source_id, cat-n strip), `scripts/capture_hook.py` (stdin PostToolUse entry), `.claude-plugin/hooks.json`, closed-loop integration test (`tests/test_capture_integration.py`). All per-task reviewed; foundation re-verified "sound".
+## Status: Phase 1 COMPLETE, held at the live-validation gate. **216 tests pass.**
 
-## NOT done (paused on budget)
-- **1c packaging** (none of it): `.claude-plugin/plugin.json`, `.claude/skills/verify-grounding/SKILL.md`, `.claude/commands/assure-verify.md`, `references/grounding-failure-types.md`, `install.sh`, `README.md`. Match the sibling `agents-infra/Agent-Cite` conventions.
-- **Phase-1 final adversarial review** (workflow died here).
+### DONE + committed + pushed
+- **1b capture hook** (Tasks 1–5): `capture_core.py`, `capture_hook.py`, `.claude-plugin/hooks.json`, closed-loop integration test.
+- **1b parked findings** (from the completion-workflow panel) — all fixed (`aba7c7c`): distinct missing-`tool_response` diagnostic, deterministic thread-contention proof **with a red-proof**, fcntl fail-closed guard, non-NFKC round-trip coverage.
+- **1c packaging** (`2dc08b2`): `plugin.json`, `/assure-verify` command, `verify-grounding` skill, `references/`, `install.sh`, LICENSE, README; plugin-root layout (verified vs the shipped superpowers plugin).
+- **Demo** (`2dc08b2` + `2e07f94`): `demo/` — `build_store.py` + `draft-grounded`(PASS) + `draft-fabricated`(FAIL) + `show_report.py`; proven end-to-end through the installed `.venv` python.
+- **Final adversarial review** (whole-branch, 5 lenses, each finding independently verified — 5 confirmed, ALL FIXED):
+  - 🔴 **CRITICAL** (`e01c58e`): a fabricated claim wrapped in a markdown header (`# … [S9]`) was classified `NON_CLAIM` → dropped from the denominator → **gate=PASS**. Pre-existing bug in merged `ground_check.py` (same class as the Phase-1a verbless hole). Closed systemically, proven-red regression. **Hook-independent — can be fast-tracked to `main` ahead of hook validation.**
+  - Fixed (`2e07f94`): MCP content-block shape fail-loud; cross-process lock test; demo-output accuracy; score-gate doc precedence.
 
-## PARKED Task-4 findings — adjudicate + fix before the PR (from the completion-workflow verifier panel)
-1. **IMPORTANT — silent drop on missing `tool_response`.** `capture_hook.py` `event.get("tool_response")` → None when the key is absent → `make_record`→`_extract_text` raises `TypeError` → caught in `main()`, logged to stderr, exit 0. The retrieval event is LOST with only a stderr line. Fix: explicit guard — if `tool_response` absent, emit a distinct `TASK-4-VALIDATION` message and return early; do not conflate with unknown-shape. (high confidence)
-2. **IMPORTANT — silent-drop observability untested.** No test asserts stderr contains `[assure-hook] capture skipped` on an unrecognized-shape valid-JSON event. Add: fire `tool_name=mcp__exa__web_fetch_exa, tool_response=42` → assert exit 0 AND `capture skipped` in stderr. (high)
-3. **IMPORTANT — concurrency test is a tautology (TDD gap).** `test_concurrent_appends_unique_ids` passes EVEN WITH `fcntl.flock` removed — 12 subprocesses stagger (~50ms startup) and never contend, so the test never proves the lock is needed. Fix: a real contention test — `threading.Thread` (not subprocess) with `next_source_id` patched to `sleep(0.05)` inside the critical section; assert IDs unique WITH lock, and (as red proof) duplicates WITHOUT it. (high)
-4. **MINOR — `hooks.json` uses bare `python3`** which may resolve outside the uv venv (system python3 < 3.11 breaks it). Fix: `"${CLAUDE_PLUGIN_ROOT}/.venv/bin/python"`. (medium)
-5. **MINOR — `fcntl` module-level import** is POSIX-only → ImportError on Windows blocks all of `capture_core`. Move import inside the lock function or platform-guard. (high)
-6. **MINOR — lock file `<store>.lock` never cleaned up** (harmless 0-byte, but clutters `.assure/`). Document as intentional or clean up. (medium)
-- Scope held; cat-n prefix strip correct + tested at 3 levels. Full verifier output: workflow run `wf_b6f460e1-b7a`.
+### The ONLY remaining gate: LIVE-VALIDATION (user — needs a real Claude Code session)
+Claude cannot self-certify that Claude Code actually FIRES the `PostToolUse` hook, nor the exact live payload shapes. Confirm against reality:
+- (a) Exa `web_fetch_exa` response — assumed `str` OR `{"text": str | [content-blocks]}` (content-block list now normalized).
+- (b) large-result truncation form — assumed `{preview, file_path}` for overflow reconstruction.
+- (c) `Read` cat-n line-number prefix format.
+- (d) DDG `fetch_content` = verbatim.
 
-## ALSO parked (from Task-3 second-opinion)
-- (Important, low real-world risk) round-trip test uses only NFKC-stable unicode — add a non-NFKC `text` round-trip test (or confirm `make_record` always normalizes upstream — it does via the `_sha256_nfkc` path).
-- (Minor) `load_store` NFKCs only `text`, not the other string fields.
+Then: run the hook live, confirm `.assure/evidence-store.jsonl` populates, and that `ground_check.py` grounds against it. If a shape differs, **only** the extractor predicate changes (see the `TASK-4-VALIDATION` notes in `capture_core.py` / `capture_hook.py`). **Do NOT merge PR #2 before this.**
 
-## LIVE-VALIDATION (user, needs a real Claude Code session — Claude cannot self-certify)
-The hook's assumed `PostToolUse` payload shapes must be confirmed against reality: (a) Exa `web_fetch_exa` response shape (assumed `dict["text"]`/str); (b) the large-result truncation form (assumed `{preview, file_path}`) for overflow reconstruction; (c) `Read` cat-n prefix format; (d) DDG `fetch_content` = verbatim. If a real shape differs, only the detection predicate / extractor changes — the rest is shape-agnostic. Then: run the hook live, confirm `.assure/evidence-store.jsonl` populates, and that `ground_check.py` grounds against it.
-
-## NEXT (resume order, when budget returns)
-1. Fix parked Importants 1–3 (TDD) on this branch. 2. Build 1c packaging. 3. Final Phase-1 adversarial review. 4. Open the held PR. 5. User live-validation → merge. **Do NOT merge before live-validation** (packaging wraps the unvalidated hook).
+### NEXT (once live-validation passes)
+1. Merge PR #2. *(Optional now: cherry-pick the CRITICAL gate fix `e01c58e` to `main` sooner — it is hook-independent.)*
+2. **Phase 2**: decide sequencing (`docs/PHASE2-SEQUENCING.md` — recommends calibration-harness first, inverting a front-end-first order) + provide/ratify gold labels. Then build the chosen slice via subagent-driven TDD.
