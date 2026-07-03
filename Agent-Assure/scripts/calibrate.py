@@ -457,3 +457,80 @@ def error_rates(labeled: list[LabeledClaim], lex_tau: float) -> ErrorRates:
         error_a=error_a,
         error_b=error_b,
     )
+
+
+# ---------------------------------------------------------------------------
+# Task 5: threshold sweep + moat-integrity operating-point selection.
+#
+# select_operating_point encodes THE differentiated bias of the whole tool. It is
+# deliberately NOT an F1/accuracy-maximizing selection: F1 weights the two errors
+# EQUALLY, which contradicts the asymmetry the gate is built around. Because
+# Error B (a fabrication passing as grounded) is UNRECOVERABLE and Error A (a real
+# claim flagged) is recoverable, the rule drives Error B under a hard bound FIRST,
+# then minimizes the recoverable Error A among the taus that clear the bound. If
+# no tau can meet the bound it RAISES — never silently degrading to a least-bad or
+# F1-max point. The moat bias must not be bypassable.
+# ---------------------------------------------------------------------------
+
+
+def sweep_thresholds(
+    labeled: list[LabeledClaim], taus: list[float]
+) -> list[tuple[float, ErrorRates]]:
+    """Evaluate error_rates(labeled, tau) at every tau in *taus*.
+
+    Returns a list of (tau, ErrorRates) pairs sorted by ascending tau, so a
+    downstream selector sees the sweep in monotone-threshold order. Pure
+    function — reads *labeled* and *taus*, mutates neither (sorted() copies).
+    """
+    return [(tau, error_rates(labeled, tau)) for tau in sorted(taus)]
+
+
+def select_operating_point(
+    sweep: list[tuple[float, ErrorRates]], error_b_bound: float
+) -> float:
+    """Return the moat-integrity operating-point tau from a *sweep*.
+
+    THE differentiated rule (NOT F1/accuracy maximization):
+
+    * Among the taus whose ``error_b <= error_b_bound``, return the one with the
+      LOWEST ``error_a``. Ties are broken toward the HIGHER tau (stricter
+      grounding) — stricter grounding can only help Error B without costing the
+      already-minimal Error A.
+    * If NO tau meets the bound, raise ``ValueError`` naming the best achievable
+      Error-B. Never silently fall back to an F1-max or least-bad point: Error B
+      (a fabrication passing as grounded) is unrecoverable, and the bound is a
+      hard floor the selection is not permitted to bypass.
+
+    Rationale: F1 weights Error A and Error B equally, which contradicts the
+    asymmetry the whole gate exists to encode. Driving Error B under a hard bound
+    first, then minimizing the recoverable Error A, is the bias that makes the
+    tool trustworthy — keeping it here keeps it out of a caller's discretion.
+
+    Pure function — reads *sweep*, mutates nothing.
+    """
+    if not sweep:
+        raise ValueError(
+            "select_operating_point: empty sweep — no operating point to "
+            "select. Run sweep_thresholds over a non-empty tau list first."
+        )
+
+    compliant = [
+        (tau, rates) for tau, rates in sweep if rates.error_b <= error_b_bound
+    ]
+    if not compliant:
+        best_tau, best_rates = min(
+            sweep, key=lambda pair: (pair[1].error_b, -pair[0])
+        )
+        raise ValueError(
+            f"select_operating_point: no tau meets error_b_bound="
+            f"{error_b_bound}; best achievable error_b is {best_rates.error_b} "
+            f"at tau={best_tau}. Error B (a fabrication passing as grounded) is "
+            "unrecoverable — the moat-integrity bias forbids silently falling "
+            "back to an F1-max or least-bad operating point. Raise the bound or "
+            "improve the detector; do not bypass it."
+        )
+
+    # Lowest error_a wins; ties broken toward the higher tau (-pair[0] makes the
+    # larger tau sort first among equal error_a).
+    best_tau, _ = min(compliant, key=lambda pair: (pair[1].error_a, -pair[0]))
+    return best_tau

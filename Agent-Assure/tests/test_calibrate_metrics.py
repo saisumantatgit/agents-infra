@@ -44,6 +44,8 @@ from scripts.calibrate import (
     LabeledClaim,
     error_rates,
     predicted_is_violation,
+    select_operating_point,
+    sweep_thresholds,
 )
 
 
@@ -434,3 +436,193 @@ def test_counts_sum_to_n():
     """Invariant: tp + fp + tn + fn == n for any labeled set."""
     rates = error_rates(_crux_fixture(), 0.65)
     assert rates.tp + rates.fp + rates.tn + rates.fn == rates.n
+
+
+# ===========================================================================
+# Task 5: threshold sweep + moat-integrity operating-point selection.
+#
+# sweep_thresholds(labeled, taus) -> [(tau, ErrorRates), ...] sorted by tau.
+# select_operating_point(sweep, error_b_bound) -> tau, encoding THE bias:
+#   among taus with error_b <= bound, return the one with the LOWEST error_a;
+#   ties broken toward the HIGHER tau (stricter grounding). If NO tau meets the
+#   bound, raise ValueError naming the best achievable Error-B — NEVER silently
+#   fall back to an F1-max or least-bad point. F1 weights the two errors equally,
+#   which contradicts the Error-A-recoverable / Error-B-unrecoverable asymmetry.
+# ===========================================================================
+
+
+def _f1(rates: ErrorRates) -> float:
+    """F1 of the violation-detector at one operating point: 2tp / (2tp+fp+fn).
+
+    Present ONLY so the tests can locate the F1-maximizing tau and prove the
+    moat rule diverges from it — it is deliberately NOT what the tool selects on.
+    """
+    denom = 2 * rates.tp + rates.fp + rates.fn
+    return (2 * rates.tp) / denom if denom else 0.0
+
+
+# ---------------------------------------------------------------------------
+# THE non-tautology fixture: F1-max tau breaches the Error-B bound, a stricter
+# tau meets it. All rows tier_sensitive, so predicted-violation iff t2_f1 < tau.
+#
+#   4 violations : t2_f1 = 0.15, 0.25, 0.68, 0.78   (violation_total = 4)
+#   7 grounded   : t2_f1 = 0.35, 0.40, 0.45, 0.50, 0.55, 0.75, 0.90 (grounded=7)
+#
+#  tau   tp fp tn fn  error_a   error_b   F1
+#  0.20   1  0  7  3   0.000     0.75     0.400
+#  0.30   2  0  7  2   0.000     0.50     0.667  <- F1-MAX, error_b 0.50 > bound
+#  0.70   3  5  2  1   5/7≈.714  0.25     0.500  <- moat pick @ bound=0.25
+#  0.80   4  6  1  0   6/7≈.857  0.00     0.571
+#
+#  At bound=0.25 the compliant set is {0.70, 0.80}; the lowest-error_a member is
+#  0.70 (5/7 < 6/7). The F1-maximizing tau is 0.30 — but its error_b (0.50) is
+#  ABOVE the bound, so the moat rule must REFUSE it. An argmax-F1 selector would
+#  return 0.30; the moat rule returns 0.70. That gap is the whole test.
+# ---------------------------------------------------------------------------
+
+def _f1_vs_moat_fixture() -> list[LabeledClaim]:
+    violations = [0.15, 0.25, 0.68, 0.78]
+    grounded = [0.35, 0.40, 0.45, 0.50, 0.55, 0.75, 0.90]
+    rows: list[LabeledClaim] = []
+    for i, t in enumerate(violations):
+        rows.append(_labeled(f"q1#v{i}", label="violation", tier_sensitive=True,
+                             t2_f1=t, predicted_verdict="UNGROUNDED"))
+    for i, t in enumerate(grounded):
+        rows.append(_labeled(f"q1#g{i}", label="grounded", tier_sensitive=True,
+                             t2_f1=t, predicted_verdict="GROUNDED"))
+    return rows
+
+
+def test_select_returns_error_b_compliant_tau_not_f1_max():
+    """THE moat-bias test. The F1-maximizing tau (0.30) has error_b=0.50 ABOVE the
+    bound; a stricter tau (0.70) meets it. select_operating_point must return the
+    Error-B-compliant 0.70, NOT the F1-max 0.30. This assertion FAILS the instant
+    someone swaps in argmax-F1 (which would return 0.30)."""
+    labeled = _f1_vs_moat_fixture()
+    sweep = sweep_thresholds(labeled, [0.20, 0.30, 0.70, 0.80])
+
+    # The F1-maximizing tau really is 0.30, and its error_b really breaches 0.25.
+    f1_by_tau = {tau: _f1(rates) for tau, rates in sweep}
+    f1_argmax = max(f1_by_tau, key=f1_by_tau.__getitem__)
+    eb_by_tau = {tau: rates.error_b for tau, rates in sweep}
+    assert f1_argmax == 0.30
+    assert eb_by_tau[0.30] == pytest.approx(0.50)
+    assert eb_by_tau[0.30] > 0.25          # F1-max tau is NOT bound-compliant
+
+    chosen = select_operating_point(sweep, 0.25)
+    assert chosen == 0.70                  # lowest-error_a among {0.70, 0.80}
+    assert chosen != f1_argmax             # the moat rule diverges from argmax-F1
+
+
+def test_select_picks_lowest_error_a_among_compliant():
+    """Among the bound-compliant taus, the pick minimizes the RECOVERABLE Error A.
+    Compliant set is {0.70 (error_a 5/7), 0.80 (error_a 6/7)}; 0.70 wins on lower
+    error_a. Returning the strictest compliant tau (0.80) would be wrong here."""
+    sweep = sweep_thresholds(_f1_vs_moat_fixture(), [0.20, 0.30, 0.70, 0.80])
+    chosen = select_operating_point(sweep, 0.25)
+    assert chosen == 0.70
+    chosen_rates = dict(sweep)[chosen]
+    assert chosen_rates.error_a == pytest.approx(5 / 7)
+
+
+# ---------------------------------------------------------------------------
+# ValueError when the bound is unreachable — the moat bias must not be bypassed.
+# A sneaky violation with t2_f1=0.95 is never flagged for any swept tau <= 0.90
+# (violation iff t2_f1 < tau), so error_b floors at 0.5 across the whole sweep.
+# ---------------------------------------------------------------------------
+
+def _unreachable_bound_fixture() -> list[LabeledClaim]:
+    return [
+        _labeled("q1#0", label="violation", tier_sensitive=True, t2_f1=0.20,
+                 predicted_verdict="UNGROUNDED"),
+        _labeled("q1#1", label="violation", tier_sensitive=True, t2_f1=0.95,
+                 predicted_verdict="GROUNDED"),   # never caught for tau <= 0.90
+        _labeled("q1#2", label="grounded", tier_sensitive=True, t2_f1=0.90,
+                 predicted_verdict="GROUNDED"),
+    ]
+
+
+def test_select_raises_when_no_tau_meets_bound():
+    """No tau can drive error_b to <= 0.10 (best achievable is 0.5), so the rule
+    RAISES rather than silently returning a least-bad or F1-max point. The message
+    names the best achievable Error-B so the caller knows how far off the bound is."""
+    sweep = sweep_thresholds(_unreachable_bound_fixture(), [0.30, 0.60, 0.90])
+    with pytest.raises(ValueError, match=r"best achievable error_b is 0\.5"):
+        select_operating_point(sweep, 0.10)
+
+
+def test_select_does_not_fall_back_to_f1_max_when_bound_unreachable():
+    """Belt-and-braces: even though an F1-maximizing tau exists in the sweep, an
+    unreachable bound produces a ValueError, never that F1-max tau — the moat bias
+    is not silently bypassable when the detector cannot meet the bound."""
+    sweep = sweep_thresholds(_unreachable_bound_fixture(), [0.30, 0.60, 0.90])
+    with pytest.raises(ValueError):
+        select_operating_point(sweep, 0.0)
+
+
+# ---------------------------------------------------------------------------
+# Tie-break: when the lowest error_a is shared by multiple compliant taus, the
+# rule prefers the HIGHER tau (stricter grounding). error_b == 0 at all three
+# swept taus; the grounded claim (t2_f1=0.90) is a false alarm only at tau=0.95,
+# so error_a is 0.0 at BOTH 0.50 and 0.60 (the min) and 1.0 at 0.95.
+# ---------------------------------------------------------------------------
+
+def _tie_break_fixture() -> list[LabeledClaim]:
+    return [
+        _labeled("q1#0", label="violation", tier_sensitive=True, t2_f1=0.10,
+                 predicted_verdict="UNGROUNDED"),
+        _labeled("q1#1", label="violation", tier_sensitive=True, t2_f1=0.20,
+                 predicted_verdict="UNGROUNDED"),
+        _labeled("q1#2", label="grounded", tier_sensitive=True, t2_f1=0.90,
+                 predicted_verdict="GROUNDED"),
+    ]
+
+
+def test_select_tie_break_prefers_higher_tau():
+    """Lowest-error_a ties between 0.50 and 0.60 (both error_a=0.0); the rule
+    breaks the tie toward the HIGHER tau -> 0.60. NOT the highest compliant tau
+    overall (0.95, which has error_a=1.0) — proving the pick is error_a-first,
+    tau-second — and NOT the lower tie member (0.50)."""
+    sweep = sweep_thresholds(_tie_break_fixture(), [0.50, 0.60, 0.95])
+    assert select_operating_point(sweep, 0.10) == 0.60
+
+
+# ---------------------------------------------------------------------------
+# sweep_thresholds contract: sorted output, error_rates parity, purity.
+# ---------------------------------------------------------------------------
+
+def test_sweep_thresholds_returns_sorted_by_tau():
+    """Output is sorted by ascending tau regardless of input order."""
+    sweep = sweep_thresholds(_f1_vs_moat_fixture(), [0.70, 0.20, 0.80, 0.30])
+    assert [tau for tau, _ in sweep] == [0.20, 0.30, 0.70, 0.80]
+
+
+def test_sweep_thresholds_matches_error_rates_at_each_tau():
+    """Each pair's ErrorRates equals a direct error_rates(labeled, tau) call."""
+    labeled = _f1_vs_moat_fixture()
+    sweep = sweep_thresholds(labeled, [0.20, 0.30, 0.70, 0.80])
+    for tau, rates in sweep:
+        assert rates == error_rates(labeled, tau)
+
+
+def test_sweep_thresholds_does_not_mutate_inputs():
+    """Pure function: neither the labeled list nor the taus list is mutated."""
+    labeled = _f1_vs_moat_fixture()
+    labeled_before = list(labeled)
+    taus = [0.70, 0.20, 0.30]
+    taus_before = list(taus)
+    sweep_thresholds(labeled, taus)
+    assert labeled == labeled_before
+    assert taus == taus_before
+
+
+def test_select_operating_point_raises_on_empty_sweep():
+    """An empty sweep has no operating point — ValueError, not an index crash."""
+    with pytest.raises(ValueError):
+        select_operating_point([], 0.25)
+
+
+def test_select_operating_point_is_deterministic():
+    """Same sweep + bound -> identical tau (pure/deterministic)."""
+    sweep = sweep_thresholds(_f1_vs_moat_fixture(), [0.20, 0.30, 0.70, 0.80])
+    assert select_operating_point(sweep, 0.25) == select_operating_point(sweep, 0.25)
