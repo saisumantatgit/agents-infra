@@ -478,6 +478,24 @@ def test_load_labels_raises_on_invalid_human_label(tmp_path):
         load_labels(str(p))
 
 
+def test_load_labels_raises_on_duplicate_claim_id(tmp_path):
+    """Two rows sharing one claim_id must raise ValueError, never silently
+    let the later row overwrite the earlier one in the returned dict -- a
+    duplicate key discards a human label with no signal that data was
+    lost."""
+    csv_text = (
+        "claim_id,query_id,claim_text,cited_source_ids,predicted_verdict,"
+        "t2_f1,human_label\n"
+        "q1#0,q1,claim text,S1,GROUNDED,1.0,grounded\n"
+        "q1#0,q1,claim text,S1,GROUNDED,1.0,violation\n"
+    )
+    p = tmp_path / "duplicate_claim_id.csv"
+    p.write_text(csv_text, encoding="utf-8")
+
+    with pytest.raises(ValueError):
+        load_labels(str(p))
+
+
 def test_load_labels_normalizes_nfkc_before_validating(tmp_path):
     """A fullwidth-Unicode rendering of "grounded" must NFKC-normalize to the
     ASCII form and be accepted -- per the repo's NFKC-before-validation

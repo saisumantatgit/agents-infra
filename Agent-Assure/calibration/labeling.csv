@@ -1,0 +1,13 @@
+claim_id,query_id,claim_text,evidence,human_label
+q01#0,q01,"Meridian Robotics shipped 4,200 units in the third quarter [S1].","S1: In the third quarter, Meridian Robotics shipped 4,200 units to distributors across North America and Europe.",grounded
+q02#0,q02,"Meridian Robotics shipped 9,800 units in the third quarter [S1].","S1: In the third quarter, Meridian Robotics shipped 4,200 units to distributors across North America and Europe.",violation
+q03#0,q03,We found no evidence of a safety recall affecting the X200 drone.,"Session search queries: ""recall evidence search X200 drone"" ||| ""regulatory database evidence query X200""",grounded
+q04#0,q04,There is no mention of battery defects in the X200 drone manual.,"Session search queries: ""X200 drone product specifications"" ||| ""X200 drone pricing information""",violation
+q05#0,q05,Increased marketing spend drives higher customer signups [S3][S4].,S3: Marketing spend increased twenty percent quarter over quarter according to the finance team. ||| S4: Customer signups rose sharply in the weeks following the campaign launch.,violation
+q06#0,q06,Faster onboarding leads to higher retention [S5].,S5: The new onboarding flow reduced time-to-first-value for new accounts.,violation
+q07#0,q07,Meridian Robotics achieved carbon-neutral manufacturing across all its facilities [S6].,S6: [NOT IN STORE],violation
+q08#0,q08,The aluminum chassis reduces overall unit weight by twelve percent compared to steel [S7].,S7: The aluminum chassis reduces overall unit weight by twelve percent compared to steel used in the legacy design.,grounded
+q09#0,q09,The upgraded rotor motor gives the drone much longer flight time than last year's model [S8].,S8: Bench testing showed the upgraded rotor motor giving this drone a much longer flight time than the prior year's motor model.,grounded
+q10#0,q10,The rotor motor upgrade gives the drone longer flight time than last year [S10].,S10: Engineers found the motor gives noticeably longer flight time on this drone platform overall.,violation
+q11#0,q11,"According to the engineering team, the new battery pack lasts through extended field tests without failure [S9].","S9: According to the engineering team, the new battery pack lasts through extended field tests without failure under a range of temperature conditions.",grounded
+q12#0,q12,The drone's carbon-fiber frame is lighter than earlier aluminum designs.,,violation

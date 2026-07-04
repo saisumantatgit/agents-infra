@@ -339,6 +339,10 @@ def load_labels(path: str) -> dict[str, HumanLabel]:
     must never silently default to a verdict; that would corrupt every
     threshold a calibration sweep later derives from this file.
 
+    Also fails loud the moment two rows share a claim_id — a duplicate key
+    would otherwise silently overwrite the dict entry, discarding one
+    human's label with no signal that data went missing.
+
     violation_kind is read from an optional "violation_kind" column — not
     written by export_labeling_csv, but a human may add it by hand when
     labeling a violation. A missing column or blank cell resolves to None;
@@ -349,6 +353,15 @@ def load_labels(path: str) -> dict[str, HumanLabel]:
         reader = csv.DictReader(fh)
         for line_no, record in enumerate(reader, start=2):
             claim_id = record["claim_id"]
+            if claim_id in labels:
+                raise ValueError(
+                    f"load_labels: {path!r} line {line_no} "
+                    f"(claim_id={claim_id!r}) duplicates a claim_id already "
+                    "seen earlier in this file. Every claim_id must be "
+                    "unique — a duplicate silently overwrites the earlier "
+                    "row's label, discarding it with no signal that data "
+                    "was lost."
+                )
             raw_label = record.get("human_label") or ""
             label = unicodedata.normalize("NFKC", raw_label)
             if label not in _ALLOWED_HUMAN_LABELS:
