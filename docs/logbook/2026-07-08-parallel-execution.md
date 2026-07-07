@@ -30,6 +30,17 @@ Two-stage session across the Fable-5 access deadline (2026-07-07 → 08):
 - `calibration-plan.md` and the design-spec path are cited in docstrings/docs but absent from this worktree — documented as Gotcha; live sources are CR-001 + `scripts/calibrate.py`.
 - This workspace is a git worktree of agents-infra, not a standalone repo (Lane B evidence table).
 
+## Agents (telemetry)
+
+| Agent | Model | Tokens | Tool calls | Duration | Outcome |
+|---|---|---|---|---|---|
+| Demo readiness (D1–D4) | Sonnet 5 | 109,471 | 43 | 10.6 min | Clean first pass |
+| Lane A CLAUDE.md + 3 skills | Opus 4.8 | 135,330 | 71 | 21.1 min | Clean; 2 fail-loud catches |
+| α1 ratification package | Opus 4.8 | 189,280 | 42 | 20.6 min | Clean; 1 systemic finding (citation regex) |
+| Lane B portfolio audit | Sonnet 5 | 87,508 | 8 | 6.0 min | Clean; scope fence held |
+
+Total: 4 agents, ~521.6K subagent tokens, 164 tool calls, all parallel. Routing per the global model table (judgment→Opus, assembly/sweep→Sonnet); zero re-dispatches, zero refutations — routing hypothesis supported (rule 3: logged as measurement data).
+
 **Reflection:** The Fable window forced an unusually clean separation of judgment from assembly — the spec files carried the decisions, and all four executor agents (two of them a tier down) produced verifiable, discipline-conformant work on the first pass. The measurable signal: both red-first tests were actually proven red, and both fail-loud catches (missing calibration-plan.md, gitignored skills) were surfaced rather than papered over. Evidence that the "judgment in the spec, execution anywhere" pattern holds at tier boundaries.
 
 **Next action:** Sai ratifies labels (inbox P1) → run `assure-calibrate` for CR-002 → Phase α3 (NLI tier) via `assure-slice`.
