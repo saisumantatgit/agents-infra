@@ -1,83 +1,140 @@
 @SOUL.md
 
-# Agents Infra
+# Agent-Assure — Calibration Working Repo
 
-Six-product CLI plugin suite providing full-lifecycle governance for AI agent workflows.
+The **calibration workspace** for Agent-Assure: a verification-first grounding
+gate that certifies every factual claim in an AI draft against evidence actually
+retrieved this session. Phase 1 (capture hook + deterministic gate) is complete
+and live-validated; current work is Phase 2 calibration on branch
+`agent-assure-calibration-run`. This file overrides the inherited suite CLAUDE.md
+for `Agent-Assure/`.
 
-## Architecture
+## Architecture — two halves, one moat
 
-Six independent plugins that compose but never couple:
+1. **Capture (automatic).**  A `PostToolUse` hook (`hooks/hooks.json` →
+   `scripts/capture_hook.py` → `capture_core.py`) fires after each retrieval tool
+   (Exa fetch, `Read`, native `WebFetch`, DDG fetch) and appends a verbatim-tagged
+   record to `.assure/evidence-store.jsonl` — audit evidence holding exactly what
+   the model saw. Native `WebFetch` is Haiku-summarized, so it is tagged
+   `haiku_summary` and the gate refuses to certify against it.
+2. **Verify (deterministic gate).** `scripts/ground_check.py` decomposes a draft
+   into atomic claims, classifies each, and grounds each via two lexical tiers
+   (T1 verbatim ≥8-token span; T2 lexical-F1 ≥ lex_tau window with numerics
+   present), numeric value+unit matching, absence 2-query and relational
+   2-source rules. It returns a gate verdict.
 
-```
-Before execution:  Agent-PROVE   — Thinking validation (14 frameworks, evidence protocol)
-                   Agent-Cite    — Evidence enforcement and citation auditing
-During execution:  Agent-Trace   — Dependency-aware blast-radius mapping before edits
-                   Agent-Drift   — Intent drift detection and correction
-After execution:   Agent-Scribe  — Governance docs (logbook, AAR, PIR, ADR)
-                   Agent-Litmus  — Test quality validation and mutation analysis
-```
+**The moat: pure Python, deterministic, ZERO LLM calls during grounding.** A
+verdict is a mechanical fact about the store — which is exactly why a fabricated
+`[S9]` cannot talk its way to a pass. Nothing under `ground_check.py`'s call tree
+may call a model. This is the product, not a style choice.
 
-Each plugin follows a layered structure:
-- **Prompts** (`prompts/`) — LLM-agnostic core logic, single source of truth
-- **Adapters** (`adapters/`) — Platform-specific wrappers (Claude Code, Codex, Cursor, Aider, Generic)
-- **Commands** — User-facing slash commands that invoke skills/prompts
-
-PROVE adds: `agents/` (14 framework agents + 2 orchestrators), `skills/` (workflow logic)
-Trace adds: `scripts/` (Python scripts for graph ops), `templates/` (curated overlay examples), `specs/` (locked schemas)
-Scribe adds: `templates/` (AAR, PIR, ADR, Logbook), `hooks/` (load-context.sh session-start hook)
-Cite adds: `evidence-protocol.yaml` (configurable rules), reference docs
-Drift adds: `references/` (design references), `templates/` (drift-spec template)
-Litmus adds: `references/` (violation taxonomy, mutation patterns), `templates/` (report template)
+**Verdict taxonomy (closed — a new state requires an ADR first):**
+- Gate: `PASS` / `NEEDS_WORK` / `FAIL`.
+- Claim: `GROUNDED`, `ABSENCE_SUPPORTED`, `UNGROUNDED`, `UNCITED`,
+  `UNVERIFIED_CITATION`, `UNVERIFIED_NUMBER`, `UNVERIFIED_ABSENCE`,
+  `UNVERIFIED_RELATION`, `UNGROUNDABLE`, `NON_CLAIM`.
+- Evidence `full_text_source` ∈ {`verbatim`, `haiku_summary`}: tiers run only on
+  `verbatim`; a claim citing only `haiku_summary` → `UNGROUNDABLE`.
 
 ## Commands
 
-**PROVE** (7): `/brainstorm`, `/validate`, `/consider`, `/think`, `/audit`, `/review`, `/frameworks`
-**Scribe** (4 + hook): `/logbook`, `/draft-aar`, `/draft-pir`, `/draft-adr`, `load-context` (session-start)
-**Trace** (4): `/trace`, `/map`, `/query`, `/validate-universe`
-**Cite** (3): `/cite-audit`, `/cite-fix`, `/cite-report`
-**Drift** (5): `/drift-lock`, `/drift-check`, `/drift-fence`, `/drift-status`, `/drift-report`
-**Litmus** (5): `/litmus-scan`, `/litmus-edge`, `/litmus-strength`, `/litmus-fix`, `/litmus-report`
+Run from `Agent-Assure/` (env is `uv`; `install.sh` provisions runtime `.venv`).
+
+```bash
+bash install.sh                      # provision .venv (Python >=3.11 + runtime deps)
+uv sync --extra dev                  # one-time: add pytest (dev deps)
+uv run pytest                        # full suite — 327 tests pass on this branch
+uv run python scripts/ground_check.py \
+    --draft DRAFT.md --store STORE.jsonl [--threshold 90] [--json]   # manual gate
+uv run python -m calibration.run_calibration   # sweep + LOO + emit CR (module form)
+```
+
+- `ground_check.py` exit codes: `0` = PASS, `1` = NEEDS_WORK or FAIL. Without
+  `--json` it writes `grounding-report.yaml` to CWD; with `--json` it prints JSON.
+- Plugin command `/assure-verify path/to/draft.md` wraps `verify-grounding`
+  (defaults `--store .assure/evidence-store.jsonl`).
+- The calibration runner MUST run as a module (`-m calibration.run_calibration`) so
+  `scripts.calibrate` resolves; `python calibration/run_calibration.py` breaks it.
 
 ## Conventions
 
-- **Independent installability** — Each product has its own `install.sh` or manual setup. Never assume all six are present in a target repo.
-- **Prompts are canonical** — Adapter files wrap `prompts/`; never put logic in adapters. Edit prompts first, then update adapters.
-- **Each product has its own repo** — This monorepo is the development workspace. Each sub-directory mirrors its standalone GitHub repo exactly.
-- **Evidence protocol (PROVE/Cite)** — Every claim cites a source, every number has a derivation, zero uncited inference. Format: `[source: path:line]`, `[derived: computation]`, `[searched: paths]`.
-- **Hybrid model (Trace)** — Machine-generated graph + human-curated overlays. Generated vs curated facts always distinguishable via `source` field.
-- **Verdict taxonomy is fixed** — PROVE: VALIDATED/REJECTED, CYCLE_APPROVED/CYCLE_FAILED, PASS/FAIL. Cite: COMPLIANT/NON_COMPLIANT. Litmus: EFFECTIVE/WEAK/HOLLOW, STRONG/MODERATE/THEATER, PROTECTED/AT_RISK/EXPOSED. Drift: ON_TARGET/DRIFTING/OFF_COURSE. Do not invent new verdicts.
-- **Platform adapters** — All six support Claude Code, Codex, Cursor. PROVE adds OpenCode, Gemini CLI. Scribe, Trace, Cite, Drift, Litmus add Aider.
-- **MIT licensed** — All six products.
+- **Fail loud, never fallback.** Malformed JSONL, missing field, blank/unknown
+  label, duplicate key → raise with the offending line/key. The store is audit
+  evidence; silent repair destroys defensibility. (`e839891`, `ccddf3e`, `86a7f46`)
+- **Moat-integrity is an asymmetric INVARIANT, not a preference.** Error-B (false
+  negative on the violation class = a fabrication certified as PASS) is
+  UNRECOVERABLE; Error-A (false alarm on a real claim) is recoverable. No change
+  may reduce Error-A by raising Error-B. Positive class is pinned to VIOLATION
+  (`dcce427`) — never flip it.
+- **Thresholds are data, not code.** `lex_tau = 0.71` is an n=12 calibration
+  output (CR-001), not a constant to inline-edit. Changing it = new calibration
+  run + new CR. Score gate default = 90.
+- **Held-out numbers only** (leave-one-out, per-claim); in-sample is not a result.
+- **`tier_sensitive` / lex_tau-invariant tagging** (`f11f8d4`, `ff24a82`):
+  verdicts not governed by lex_tau must be tagged invariant or calibration
+  miscounts. Any new verdict path must declare its tag.
+- **NFKC-normalize before ANY text match** at every text path's ingestion boundary.
+- **`haiku_summary` can never ground a claim** — tiers must not run on it;
+  claim → `UNGROUNDABLE`. Preserve on every new evidence path.
+- **ADR-025 CRs are mandatory** after every calibration run: ≤80 lines, projection-vs-actual table with a delta column.
+- **Assure installs alone.** Zero cross-plugin imports (no `Agent-PROVE`, etc.).
 
 ## Key Files
 
 | Path | Purpose |
 |------|---------|
-| `SOUL.md` | Persona and domain principles for this repo |
-| `Agent-PROVE/CLAUDE.md` | PROVE-specific architecture and protocols |
-| `Agent-Trace/CLAUDE.md` | Trace-specific architecture and design decisions |
-| `Agent-Cite/CLAUDE.md` | Cite-specific evidence protocol rules |
-| `Agent-Drift/CLAUDE.md` | Drift-specific detection methodology |
-| `Agent-Litmus/CLAUDE.md` | Litmus-specific test quality criteria |
-| `Agent-PROVE/package.json` | PROVE npm metadata (no build scripts) |
-| `Agent-Trace/package.json` | Trace npm metadata (no build scripts) |
-| `Agent-Cite/package.json` | Cite npm metadata (no build scripts) |
-| `Agent-Drift/package.json` | Drift npm metadata (no build scripts) |
-| `Agent-Litmus/package.json` | Litmus npm metadata (no build scripts) |
-| `Agent-Scribe/install.sh` | Scribe installer (detects CLI, copies adapters) |
-| `Agent-Trace/install.sh` | Trace installer (detects CLI, copies scripts + adapters) |
-| `Agent-Cite/install.sh` | Cite installer (detects CLI, copies adapters) |
-| `Agent-Drift/install.sh` | Drift installer (detects CLI, copies adapters) |
-| `Agent-Litmus/install.sh` | Litmus installer (detects CLI, copies adapters) |
-| `Agent-PROVE/scripts/validate-structure.sh` | Validates PROVE directory structure |
-| `Agent-Trace/scripts/*.py` | Python scripts: build_manifest, query_impact, validate_universe, check_query_schema, common |
+| `Agent-Assure/scripts/ground_check.py` | Deterministic gate CLI — the moat |
+| `Agent-Assure/scripts/capture_hook.py`, `capture_core.py` | PostToolUse capture into the store |
+| `Agent-Assure/scripts/calibrate.py` | Pure calibration functions (metrics, sweep, LOO, emit_cr) |
+| `Agent-Assure/calibration/run_calibration.py` | Bootstrap sweep entry; `labeling.csv` holds labels |
+| `Agent-Assure/calibration/CR-001-bootstrap-lex-tau.md` | Current CR: lex_tau=0.71, n=12 |
+| `Agent-Assure/references/grounding-failure-types.md` | Every verdict, what it catches, how to fix |
+| `Agent-Assure/docs/PHASE2-SEQUENCING.md` | Phase 2 slice order (2c-harness → 2b → 2a → 2d) |
+| `Agent-Assure/demo/` | Offline moat demo: fabricated `[S3]` → FAIL, frozen fixtures |
 
 ## Gotchas
 
-- **No build step** — These are prompt-based plugins, not compiled software. The `package.json` files contain metadata only (no `scripts` block). There are no `npm install`, `npm build`, or `npm test` commands.
-- **Trace requires Python** — The `scripts/` directory contains Python files that get copied into target repos by `install.sh`. They must remain valid standalone Python.
-- **Scribe has no CLAUDE.md** — Scribe is the simplest product (prompts + templates + adapters). Its README is the primary reference.
-- **Sub-project CLAUDEs override this file** — When working inside a sub-project directory, its own CLAUDE.md takes precedence for product-specific rules.
-- **Lineage matters for design decisions** — PROVE originated from ProSure Mission 1086. Trace originated from iVal 2.0's `agent-safe-remediation` research. Scribe was built from first principles (US Army AAR, Google SRE PIR, MADR v4.0.0). Cite was extracted from PROVE's evidence protocol. Drift and Litmus are novel designs.
-- **install.sh is destructive** — Installers copy files into the target repo's working directory. They will overwrite existing files in `prompts/`, `.claude/commands/`, etc.
-- **Shield renamed to Trace** — The original Agent-Shield was renamed to Agent-Trace. If you encounter "Shield" in older docs or lineage references, it refers to what is now Trace.
+- **No build step** — prompt/skill/hook based; `uv` manages the env, no compile.
+- **Store is per-session.** Grounding runs against sources captured THIS session; a
+  draft citing prior-session sources fails, correctly.
+- **Citation placement matters.** Markers go inside the sentence before the final
+  period; a marker after the period detaches and reads `UNCITED` (fail-safe).
+- **`gate` / `nli_tau` are `deferred` in CR-001**, not derived: single-claim
+  reports give degenerate scores, and the T3 NLI tier is Phase 2b (unbuilt).
+- **`calibration-plan.md` is not in the repo** — it is named in code docstrings;
+  CR-001 and `scripts/calibrate.py` are the live sources of the calibration rules.
+
+## Failure Modes (Mistake → Rule)
+
+1. **LLM inside the grounding path** ("just have a model check paraphrase"). →
+   Nothing under `ground_check.py` may call an LLM. Paraphrase is the T3 NLI tier
+   (local DeBERTa, fail-closed, Phase 2b) — and even that never *creates* a PASS.
+2. **Silent fallback on malformed input** (skip a bad JSONL line, default a field).
+   → Raise with the offending line/key; the store is audit evidence.
+3. **Trading Error-B for Error-A** while tuning. → Minimize Error-A subject to
+   Error-B ≤ the current held-out value; violations rejected regardless of F1.
+4. **Quoting n=12 numbers as validated.** → Every error rate carries
+   "(n=12, provisional, CR-001)" until a ≥n=50 ratified-label run supersedes it.
+5. **Self-labeling calibration data.** → Claude-generated labels are `candidate`;
+   only Sai-ratified labels are `gold`; calibrate on gold only.
+6. **Inventing verdicts** (`PARTIAL_PASS`, …). → Taxonomy is closed; ADR first.
+7. **Green tests as proof for a bug fix** without seeing them red. → INS-005: run
+   the regression against pre-fix code, paste the red output in the PR/logbook.
+8. **Skipping NFKC on a new text path** (new capture tool, extractor). → Normalize
+   at the ingestion boundary; grep `unicodedata.normalize` parity in text PRs.
+9. **Editing thresholds / feature logic without re-running calibration + CR.** →
+   `calibration/` outputs go stale the moment `classify`/`tiers`/`score` change:
+   change → rerun → CR.
+10. **Assuming suite repos are present/coupled** (importing from Agent-PROVE). →
+    Assure installs alone; zero cross-plugin imports.
+
+## Escalation — STOP and ask Sai (do not "reasonably assume")
+
+1. Any change that alters the Error-A/Error-B trade-off or the gate score bar.
+2. Gold-label ratification or correction is needed (standing gate).
+3. Two authoritative sources conflict (spec vs calibration-plan vs CR) — adjudicate
+   by direct evidence trace; if still conflicting, it is Sai's spec-source call.
+4. `SOUL.md`, `install.sh`, or hook registration changes (installers write into user repos).
+5. Anything that would publish externally (GitHub release, marketplace listing).
+
+Otherwise: proceed, log the decision, mark Case vs Systemic per the global rules.

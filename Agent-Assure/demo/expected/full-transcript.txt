@@ -1,0 +1,36 @@
+Agent-Assure demo — golden transcript (frozen D1 happy path)
+Captured: 2026-07-08, from a clean Agent-Assure checkout, Wi-Fi off.
+Interpreter: uv run (uv-managed .venv, Python >=3.11 per pyproject.toml).
+
+This is the break-glass fallback artifact (D3): if live execution fails during
+a demo, walk this transcript verbatim instead of debugging live.
+
+$ uv run python demo/build_store.py
+wrote /Users/saisumanthbattepati/vibe-coding/Agents/agent-assure-calibration/Agent-Assure/demo/evidence-store.jsonl (2 sources)
+
+$ uv run python scripts/ground_check.py --draft demo/draft-grounded.md --store demo/evidence-store.jsonl --json | uv run python demo/show_report.py
+gate: PASS | score: 100.0
+  GROUNDED             <- # Datastore Throughput — Benchmark Summary
+  GROUNDED             <- In our controlled benchmark on a single node, Redis sustained approxim
+  GROUNDED             <- Under the same benchmark load and hardware, PostgreSQL sustained appro
+(exit code 0)
+
+$ uv run python scripts/ground_check.py --draft demo/draft-fabricated.md --store demo/evidence-store.jsonl --json | uv run python demo/show_report.py
+gate: FAIL | score: 50.0
+  GROUNDED             <- # Datastore Throughput — Benchmark Summary
+  GROUNDED             <- In our controlled benchmark on a single node, Redis sustained approxim
+  GROUNDED             <- Under the same benchmark load and hardware, PostgreSQL sustained appro
+  UNVERIFIED_CITATION  <- MongoDB sustained approximately 45000 operations per second in the sam
+  UNVERIFIED_NUMBER    <- Redis delivered about 100 times the throughput of the disk-backed alte
+(exit code 1)
+
+Fabricated source caught: [S3] (MongoDB claim) — never retrieved, never in
+evidence-store.jsonl → UNVERIFIED_CITATION. This is the moat: the verdict is
+a mechanical fact about the store, not an LLM's opinion of the text.
+
+Raw JSON reports (byte-for-byte, for programmatic comparison) are saved
+alongside this file:
+  demo/expected/grounded-report.json
+  demo/expected/grounded-rendered.txt
+  demo/expected/fabricated-report.json
+  demo/expected/fabricated-rendered.txt

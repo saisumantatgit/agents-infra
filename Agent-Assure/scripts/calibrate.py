@@ -347,12 +347,34 @@ def load_labels(path: str) -> dict[str, HumanLabel]:
     written by export_labeling_csv, but a human may add it by hand when
     labeling a violation. A missing column or blank cell resolves to None;
     it is not part of the fail-loud gate.
+
+    label_status gate — calibration runs on GOLD labels only. When the CSV
+    carries a "label_status" column (the α1 candidate-ratification package
+    does; the legacy bootstrap labeling.csv does not), EVERY row's value must
+    be exactly "gold" after NFKC normalization, or load_labels raises
+    ValueError. A candidate (un-ratified) label must never tune a threshold.
+    A file with NO label_status column is unaffected — backward-compatible
+    with every pre-α1 labeling file.
     """
     labels: dict[str, HumanLabel] = {}
     with open(path, encoding="utf-8", newline="") as fh:
         reader = csv.DictReader(fh)
+        has_label_status = "label_status" in (reader.fieldnames or [])
         for line_no, record in enumerate(reader, start=2):
             claim_id = record["claim_id"]
+            if has_label_status:
+                raw_status = record.get("label_status") or ""
+                status = unicodedata.normalize("NFKC", raw_status).strip()
+                if status != "gold":
+                    raise ValueError(
+                        f"load_labels: {path!r} line {line_no} "
+                        f"(claim_id={claim_id!r}) has label_status "
+                        f"{raw_status!r}, but calibration runs on gold labels "
+                        "only. Every row must carry label_status='gold' before "
+                        "ingestion — a candidate (un-ratified) label must never "
+                        "tune a threshold. Ratify the labels and flip "
+                        "label_status to 'gold'."
+                    )
             if claim_id in labels:
                 raise ValueError(
                     f"load_labels: {path!r} line {line_no} "
