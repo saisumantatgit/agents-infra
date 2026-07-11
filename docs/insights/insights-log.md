@@ -34,6 +34,39 @@ When the spec carries the decisions (failure-mode taxonomy, invariants, escalati
 **Graduation target:**
 - [ ] Root `CLAUDE.md` Conventions or Gotchas — if it is a cross-cutting rule (candidate for the global model-routing table's operating rules after a second validating session)
 
+### [2026-07-12] A verification gate's own test suite cannot measure its moat
+
+**Category:** principle
+**Source:** session observation (26-agent red-team sweep + hand reproduction)
+**Products affected:** Assure (generalizes to any verification/safety gate)
+
+**Insight:**
+A gate's test suite encodes its authors' threat model, so it structurally cannot
+find the attack the authors never imagined — it verifies that intended mechanisms
+behave as intended, which is the authors agreeing with themselves. The moat's
+*actual* boundary (as opposed to its advertised one) is found only by an outside
+process with no stake in the gate being right: an adversary generating
+unanticipated inputs, scored by the gate's own mechanical verdict. Corollary
+("audit the article"): "**a** fabricated citation cannot pass" and "**no**
+fabrication can pass" are different guarantees; products drift from the first to
+the second in the pitch, never in the code. Write down the property the code
+actually earns, in its exact words. Fix: the adversary belongs *in* the suite, as
+a permanent strict-xfail-to-green tripwire, not as a one-off audit.
+
+**Evidence:**
+2026-07-12: 334 tests green throughout while a 12-class adversarial sweep found —
+and hand-reproduction confirmed — 6 Error-B moat violations (`gate=PASS` on
+unsupported claims). Two independent roots (score-bar dilution; per-claim
+over-grounding), where the sweep's synthesis had claimed one — the contradiction
+"it's all dilution" vs "two scored a clean 100 with empty appendix" located the
+second root. Recorded as `tests/red_team_moat/` (6 strict xfail), AA-MOAT-001..006
+in `docs/open-issues/`, ADR-005, CN-ADR005. Sibling to the load-bearing-assumption
+rule and INS-098 (adversarial review finds the adjacent hole).
+
+**Graduation target:**
+- [ ] Root `CLAUDE.md` Conventions — candidate cross-cutting rule ("ship the
+      adversary as a regression tripwire") after a second validating instance.
+
 <!-- Graduated insights log:
      (record destination when an insight is promoted)
 -->
