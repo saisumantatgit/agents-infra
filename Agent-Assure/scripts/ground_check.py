@@ -703,6 +703,66 @@ _ABSOLUTE_MULTIPLIERS: dict[str, int] = {
 # Suffixes that mark the "percent" unit type.
 _PERCENT_SUFFIXES: frozenset[str] = frozenset({"%", "percent"})
 
+# --- Rate-qualifier extraction (AA-MOAT-001 fix) -----------------------------
+# A numeric mention may carry a rate denominator ("128000 operations per
+# second", "40 requests/sec"). The magnitude alone cannot distinguish
+# "per second" from "per minute" — the qualifier must be captured and compared.
+
+# Anchored at the text immediately following a numeric match: up to two
+# intervening words (the measured quantity, e.g. "write operations"), then
+# "per <word>" or "/<word>". The qualifier word must start with a letter so a
+# "/" between two numbers is never misread as a rate.
+_RATE_QUALIFIER_RE = _re.compile(
+    r"^(?:\s+[a-zA-Z]\w*){0,2}?(?:\s+per\s+|\s*/\s*)([a-zA-Z]\w*)",
+    _re.IGNORECASE,
+)
+
+# Canonical names for common time denominators; an unknown qualifier word is
+# kept as its casefolded self (still deterministically comparable).
+_RATE_UNIT_CANON: dict[str, str] = {
+    "s": "second", "sec": "second", "secs": "second",
+    "second": "second", "seconds": "second",
+    "min": "minute", "mins": "minute", "minute": "minute", "minutes": "minute",
+    "h": "hour", "hr": "hour", "hrs": "hour", "hour": "hour", "hours": "hour",
+    "day": "day", "days": "day",
+    "week": "week", "weeks": "week",
+    "month": "month", "months": "month",
+    "year": "year", "years": "year", "annum": "year",
+    "ms": "millisecond", "millisecond": "millisecond",
+    "milliseconds": "millisecond",
+}
+
+# Words that follow "per" without naming a rate denominator — "per the report"
+# is attribution, not a rate. A capture in this set means NO qualifier.
+_RATE_NON_UNITS: frozenset[str] = frozenset({
+    "the", "a", "an", "this", "that", "these", "those", "our", "their",
+    "its", "his", "her", "your", "my",
+})
+
+# A qualifier window never crosses a clause/sentence boundary.
+_RATE_WINDOW_STOP_RE = _re.compile(r"[.,;:!?\n]")
+
+
+def _rate_qualifier(following_text: str) -> str | None:
+    """Return the canonical rate qualifier at the start of *following_text*
+    (the text immediately after a numeric mention), or None.
+
+    The window is cut at the first clause boundary so a qualifier is never
+    read across a comma or sentence end. A single leading space is prepended
+    because the numeric regexes' optional ``\\s?`` may have consumed the
+    boundary space into the numeric match itself. Pure function.
+    """
+    following_text = " " + following_text
+    stop = _RATE_WINDOW_STOP_RE.search(following_text)
+    window = following_text[: stop.start()] if stop else following_text
+    match = _RATE_QUALIFIER_RE.match(window)
+    if not match:
+        return None
+    word = match.group(1).casefold()
+    if word in _RATE_NON_UNITS:
+        return None
+    return _RATE_UNIT_CANON.get(word, word)
+
 
 def _parse_numeric_token(token: str) -> tuple[float, str] | None:
     """Parse a numeric token string into a canonical (value, unit) pair.
@@ -746,20 +806,22 @@ def _parse_numeric_token(token: str) -> tuple[float, str] | None:
     return (base * multiplier, "absolute")
 
 
-def _extract_source_pairs(source_text: str) -> list[tuple[float, str]]:
-    """Return all parseable (value, unit) pairs found in *source_text*.
+def _extract_numeric_mentions(text: str) -> list[tuple[float, str, str | None]]:
+    """Return all parseable (value, unit, rate_qualifier) triples in *text*.
 
-    NFKC-normalizes before scanning. Returns a list (may contain duplicates).
-    A claim token matches a source pair ONLY IF both value and unit are equal.
-    Pure function.
+    NFKC-normalizes before scanning. The rate qualifier is extracted from the
+    text immediately following each numeric mention ("128000 operations per
+    second" → (128000.0, "absolute", "second")); None when the mention carries
+    no rate. May contain duplicates. Pure function.
     """
-    normalized = _nfkc(source_text)
-    pairs: list[tuple[float, str]] = []
+    normalized = _nfkc(text)
+    triples: list[tuple[float, str, str | None]] = []
     for m in _SOURCE_NUMERIC_RE.finditer(normalized):
         result = _parse_numeric_token(m.group(0))
         if result is not None:
-            pairs.append(result)
-    return pairs
+            value, unit = result
+            triples.append((value, unit, _rate_qualifier(normalized[m.end():])))
+    return triples
 
 
 def numeric_ok(claim: Claim, sources: list[RetrievedSource]) -> bool:
@@ -778,6 +840,12 @@ def numeric_ok(claim: Claim, sources: list[RetrievedSource]) -> bool:
     - Unit normalization: $4M ≡ $4,000,000 ≡ 4 million USD ≡ 4000000 (all "absolute").
     - Only k / m / M / million / bn / billion suffixes normalized within "absolute".
     - Exotic units → fail-closed (parse returns None → no match).
+    - Rate qualifiers (AA-MOAT-001 fix): when the claim states a rate
+      denominator adjacent to the number ("128000 operations per MINUTE"),
+      a source mention matches ONLY IF it carries the SAME canonical
+      qualifier — a bare or differently-qualified source occurrence does not
+      match (fail-closed). When the claim states no qualifier, matching is by
+      value+unit as before (status quo; a bare claim number asserts no rate).
     - If claim.numeric_tokens is empty, returns True (vacuously grounded).
     - If sources is empty and numeric_tokens non-empty, returns False.
 
@@ -789,22 +857,44 @@ def numeric_ok(claim: Claim, sources: list[RetrievedSource]) -> bool:
     if not sources:
         return False
 
-    # Pre-compute all source (value, unit) pairs once (across all sources).
-    all_source_pairs: list[tuple[float, str]] = []
+    # Pre-compute all source (value, unit, qualifier) triples once.
+    all_source_triples: list[tuple[float, str, str | None]] = []
     for source in sources:
-        all_source_pairs.extend(_extract_source_pairs(source.text))
+        all_source_triples.extend(_extract_numeric_mentions(source.text))
 
-    # Every claim numeric token must find a matching (value, unit) pair.
+    # Locate each claim token's rate qualifier from the claim text. Tokens are
+    # consumed left-to-right so a repeated value takes successive occurrences.
+    # A token not locatable in the text (e.g. a manually-built Claim) carries
+    # no qualifier — status-quo semantics, never a new false PASS.
+    claim_text_normalized = _CITATION_RE.sub("", _nfkc(claim.text))
+    search_from = 0
     for token in claim.numeric_tokens:
         claim_pair = _parse_numeric_token(token)
         if claim_pair is None:
             # Cannot parse claim token — fail-closed.
             return False
         claim_val, claim_unit = claim_pair
-        if not any(
-            claim_val == sv and claim_unit == su
-            for sv, su in all_source_pairs
-        ):
+
+        claim_qualifier: str | None = None
+        pos = claim_text_normalized.find(token, search_from)
+        if pos == -1:
+            pos = claim_text_normalized.find(token)
+        if pos != -1:
+            token_end = pos + len(token)
+            claim_qualifier = _rate_qualifier(claim_text_normalized[token_end:])
+            search_from = token_end
+
+        if claim_qualifier is None:
+            matched = any(
+                claim_val == sv and claim_unit == su
+                for sv, su, _sq in all_source_triples
+            )
+        else:
+            matched = any(
+                claim_val == sv and claim_unit == su and claim_qualifier == sq
+                for sv, su, sq in all_source_triples
+            )
+        if not matched:
             return False
 
     return True
@@ -833,45 +923,49 @@ _HEAD_NOUN_STOPS: frozenset[str] = frozenset({
 })
 
 
-def _extract_absence_subject(text: str) -> str:
-    """Extract the head noun of the absence subject from *text*.
+# Absence trigger phrases as one regex (longest alternative first so
+# "there is no " wins over the embedded "no " at the same position).
+_ABSENCE_LEAD_RE = _re.compile(
+    "|".join(_re.escape(lead) for lead in sorted(_ABSENCE_LEAD, key=len, reverse=True)),
+    _re.IGNORECASE,
+)
 
-    Rule-based, deterministic, no LLM.
+_ANCHOR_PUNCT = ".,;:!?\"'()[]{}"
 
-    Strategy:
-    1. NFKC-normalize.
-    2. Strip leading absence trigger phrase (longest match first).
-    3. Tokenize on whitespace; strip punctuation from each token.
-    4. Skip stop words; return the first remaining content word (lowercased).
-       This is the head noun of the absence subject.
-    5. If nothing survives, return the empty string.
+
+def _extract_absence_anchors(text: str) -> tuple[frozenset[str], str]:
+    """Extract (strong_anchors, head_noun) for the absence subject of *text*.
+
+    *text* must already be NFKC-normalized and keep its ORIGINAL case —
+    capitalization is the entity signal (AA-MOAT-004 fix).
+
+    strong_anchors: casefolded discriminating tokens of the negated subject —
+    named entities (capitalized after the trigger) and numeric tokens (any
+    token containing a digit), stop words excluded.
+
+    head_noun: the first non-stop content word (casefolded) — the legacy
+    anchor, used only as the fallback when no strong anchor exists.
 
     Pure function.
     """
-    normalized = _nfkc(text)
-    lower = normalized.lower()
+    match = _ABSENCE_LEAD_RE.search(text)
+    remainder = text[match.end():] if match else text
 
-    # Strip the longest matching absence trigger prefix (order matters: longest first).
-    remainder = lower
-    for lead in sorted(_ABSENCE_LEAD, key=len, reverse=True):
-        if lower.startswith(lead):
-            remainder = lower[len(lead):]
-            break
-    else:
-        # No leading trigger — search for inline trigger, strip up to and including it.
-        for lead in sorted(_ABSENCE_LEAD, key=len, reverse=True):
-            idx = lower.find(lead)
-            if idx != -1:
-                remainder = lower[idx + len(lead):]
-                break
-
-    # Tokenize and find first non-stop content word.
+    strong: set[str] = set()
+    head_noun = ""
     for raw_tok in remainder.split():
-        tok = raw_tok.strip(".,;:!?\"'()[]{}")
-        if tok and tok not in _HEAD_NOUN_STOPS:
-            return tok
+        tok = raw_tok.strip(_ANCHOR_PUNCT)
+        if not tok:
+            continue
+        tok_cf = tok.casefold()
+        if tok_cf in _HEAD_NOUN_STOPS:
+            continue
+        if not head_noun:
+            head_noun = tok_cf
+        if tok[0].isupper() or any(ch.isdigit() for ch in tok):
+            strong.add(tok_cf)
 
-    return ""
+    return frozenset(strong), head_noun
 
 
 def check_absence(
@@ -881,39 +975,61 @@ def check_absence(
 ) -> Verdict:
     """Return ABSENCE_SUPPORTED or UNVERIFIED_ABSENCE for an absence claim.
 
-    ABSENCE_SUPPORTED iff:
-    - At least `min_absence_searches` DISTINCT queries (after NFKC normalization)
-      mention the head noun of the absence subject extracted from claim.text.
+    Anchoring (AA-MOAT-004 fix — discriminating tokens, not the bare head noun):
 
-    Otherwise returns UNVERIFIED_ABSENCE.
+    - **Strong anchors present** (named entities / numerics in the negated
+      subject): a query supports the absence ONLY IF it mentions EVERY strong
+      anchor AND the subject's head noun. "We found no benchmark comparing
+      MongoDB against Redis" is supported only by queries that went looking
+      for a MongoDB-and-Redis *benchmark* — not by any two queries that
+      happen to contain "benchmark", and not by queries that merely mention
+      the entities while searching something else ("X200 pricing" cannot
+      support "no mention of battery defects in the X200 manual"; the
+      head-noun requirement is what blocks the generic-entity collision).
+    - **No strong anchors** (entity-free subject): fall back to the head noun,
+      but ONLY IF it is discriminating — a head noun present in a strict
+      majority (>50%) of the session's distinct queries is a blanket corpus
+      word and cannot evidence a targeted absence search (fail-closed:
+      UNVERIFIED_ABSENCE).
+
+    ABSENCE_SUPPORTED iff at least `min_absence_searches` DISTINCT non-empty
+    queries (NFKC + casefold) support the absence under the applicable rule.
 
     The `queries` list is the session's distinct search/fetch queries
-    (query_provenance values from the EvidenceStore).  The dispatcher (Task 8)
-    is responsible for supplying this list; this function does not access any
-    store or network.
-
-    Matching is case-insensitive, NFKC-normalized, substring-based.
+    (query_provenance values from the EvidenceStore). Matching is
+    case-insensitive, NFKC-normalized, substring-based.
 
     Pure function — no LLM, no network, no random, no wall-clock.
     """
-    subject = _extract_absence_subject(_nfkc(claim.text))
+    strong, head_noun = _extract_absence_anchors(_nfkc(claim.text))
 
-    if not subject:
-        return Verdict.UNVERIFIED_ABSENCE
-
-    subject_cf = subject.casefold()
-
-    # Deduplicate queries (NFKC + casefold) and count those mentioning subject.
+    # Distinct, non-empty, normalized queries.
     seen: set[str] = set()
-    match_count = 0
-
+    distinct: list[str] = []
     for q in queries:
         q_norm = _nfkc(q).casefold().strip()
-        if q_norm in seen:
-            continue
-        seen.add(q_norm)
-        if subject_cf in q_norm:
-            match_count += 1
+        if q_norm and q_norm not in seen:
+            seen.add(q_norm)
+            distinct.append(q_norm)
+
+    if strong:
+        match_count = sum(
+            1
+            for q in distinct
+            if head_noun in q and all(a in q for a in strong)
+        )
+    else:
+        if not head_noun:
+            return Verdict.UNVERIFIED_ABSENCE
+        containing = [q for q in distinct if head_noun in q]
+        # Majority-present head noun = non-discriminating corpus word. Applied
+        # only when the session has >=3 distinct queries: in a 2-query session
+        # a genuinely-targeted subject is necessarily "majority-present", so
+        # the filter would erase the legitimate focused-research pattern
+        # (pure Error-A) without evidence of collision.
+        if len(distinct) >= 3 and 2 * len(containing) > len(distinct):
+            return Verdict.UNVERIFIED_ABSENCE
+        match_count = len(containing)
 
     if match_count >= min_absence_searches:
         return Verdict.ABSENCE_SUPPORTED
@@ -1231,12 +1347,19 @@ def score_report(
     grounding_score = 100.0 * numerator / |S|, rounded to 1 decimal for reporting
     (so 2/3 → 66.7).
 
-    Gate:
+    Gate (ADR-005 semantics — empty-appendix hard-cap):
       FAIL       if score < 60.0
-      NEEDS_WORK if score < threshold OR any claim's verdict == UNVERIFIED_CITATION
+      NEEDS_WORK if score < threshold OR retained_appendix is non-empty
+                 OR any claim's verdict == UNVERIFIED_CITATION
       PASS       otherwise
-    The UNVERIFIED_CITATION hard override caps the gate at NEEDS_WORK regardless of
-    score — it never overrides a FAIL upward (FAIL is checked first).
+    PASS therefore means "every scored claim is grounded", not "at least
+    threshold% are". The score threshold is retained as a secondary bar; it is
+    no longer sufficient on its own — a single retained violation-class verdict
+    caps the gate at NEEDS_WORK regardless of score (ADR-005, accepted
+    2026-07-12; closes the threshold-dilution vector, AA-MOAT-002/-006). The
+    pre-existing UNVERIFIED_CITATION hard override is kept as defense in depth
+    (it is subsumed by the appendix cap for scored claims). Neither override
+    ever lifts a FAIL upward (FAIL is checked first).
 
     Empty-denominator edge (|S| == 0, i.e. all NON_CLAIM / no scored claims):
     MOAT-SAFE defense in depth — a report with zero verifiable claims CANNOT be
@@ -1310,7 +1433,11 @@ def score_report(
         grounding_score = round(100.0 * numerator / scored_count, 1)
         if grounding_score < _FAIL_FLOOR:
             gate = "FAIL"
-        elif grounding_score < threshold or has_unverified_citation:
+        elif (
+            grounding_score < threshold
+            or retained_appendix  # ADR-005: any retained violation blocks PASS
+            or has_unverified_citation
+        ):
             gate = "NEEDS_WORK"
         else:
             gate = "PASS"

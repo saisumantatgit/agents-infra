@@ -1,7 +1,6 @@
 # ADR-005: PASS Requires an Empty Retained Appendix (Gate Score-Bar Semantics)
 
-**Status:** Proposed — blocked on Sai (Escalation rule #1: alters the gate score
-bar and the Error-A/Error-B trade-off).
+**Status:** Accepted (Sai, 2026-07-12 — "Accept as proposed").
 **Date:** 2026-07-12
 **Author:** Claude (autonomous, on delegated authority). Decision is Sai's.
 **Context:** The 2026-07-12 red-team sweep proved the gate certifies drafts
@@ -101,3 +100,17 @@ flip to green guards), implement the appendix hard-cap in `score_report`, re-run
 the full suite + the red-team harness (every diluted-fabrication draft must gate
 != PASS), re-run calibration, emit the CR. Then open follow-up ADRs for the Root
 B tier fixes.
+
+## Amendments
+
+**2026-07-12 — Accepted and implemented.** Sai ruled "Accept as proposed":
+hard-cap adopted, ≥90 retained as a secondary/informational bar (blocking
+question 2), no soft-gate flag (question 3). Implemented same day in
+`score_report` (`scripts/ground_check.py`); AA-MOAT-002/-006 xfails flipped
+XPASS and were converted to permanent green guards
+(`tests/red_team_moat/test_moat_red_team.py::test_fixed_fabrication_stays_blocked`).
+Calibration impact: corpus v2 feature rows and candidate labels are
+byte-identical post-change (verified by regeneration diff) — the lex_tau
+inputs are unaffected; `gate` remains `deferred` pending the gold-label run
+(CR-002), which will calibrate the secondary score bar under the new
+semantics.

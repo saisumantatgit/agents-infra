@@ -91,15 +91,19 @@ All text fields are NFKC-normalized before matching.
 | `UNVERIFIED_RELATION` | Relational claim ("A causes B") without 2 distinct verbatim sources (one per side) |
 | `UNGROUNDABLE` | All cited sources have `full_text_source != "verbatim"` (e.g. haiku_summary), or source text is empty |
 
-**Score gate:**
+**Score gate (ADR-005 semantics — accepted 2026-07-12):**
 
 | Gate | Condition |
 |---|---|
-| `PASS` | score ≥ threshold AND no `UNVERIFIED_CITATION` |
-| `NEEDS_WORK` | score ≥ 60 AND (below threshold OR any `UNVERIFIED_CITATION`) |
-| `FAIL` | score < 60 — **checked first**, so a sub-60 score is `FAIL` even when an `UNVERIFIED_CITATION` is present |
+| `PASS` | **empty retained appendix** (zero violation-class verdicts) AND score ≥ threshold |
+| `NEEDS_WORK` | score ≥ 60 AND (any retained violation OR below threshold) |
+| `FAIL` | score < 60 — **checked first**, so a sub-60 score is `FAIL` even when other overrides apply |
 
-Default threshold = 90.0. NON_CLAIM verdicts are excluded from the scored denominator.
+`PASS` means **every scored claim is grounded**, not "at least 90% are" — one
+retained violation caps the gate regardless of score (this closed the
+threshold-dilution vector, AA-MOAT-002/-006). The score threshold
+(default 90.0) is retained as a secondary bar. NON_CLAIM verdicts are excluded
+from the scored denominator.
 
 ---
 

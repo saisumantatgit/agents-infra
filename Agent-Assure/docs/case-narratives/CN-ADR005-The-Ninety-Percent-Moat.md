@@ -174,3 +174,20 @@ was thin in five places nobody had thought to touch. The gate is not weaker than
 we thought; it is *younger* — it catches the attack it was born to catch, and we
 have just met, for the first time honestly, the attacks it has not yet learned.
 The honest number was never 100%. It was ninety — and now we can see the ten.
+
+## Epilogue (2026-07-12, the morning after)
+
+Sai woke, read the six, and ruled: ADR-005 accepted as proposed; the numeric
+unit fix and the absence anchoring fix greenlit; the T1 overreach and the
+relational predicate deferred to their own decisions. By the same evening four
+of the six xfails had flipped XPASS and become permanent green guards, and the
+suite stood at 351 passed + 2 xfailed — the two that wait, still visible,
+still red where it is honest for them to be red.
+
+One more lesson insisted on being learned during the fixing: the first draft
+of the absence fix anchored on named entities alone, and the calibration
+corpus immediately produced a counterexample — q22, a labeled violation, flipped
+to supported because every query in its session happened to mention the
+product name. The regeneration diff caught it before any commit. Even the fix
+for a moat hole needs its own adversary; ours turned out to be fifty-two rows
+of labeled clay.

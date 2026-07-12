@@ -19,10 +19,12 @@ Why ``strict xfail`` and not a plain failing test:
   * Marking them xfail (not fail) keeps the main suite green while the fixes
     remain blocked on Sai — the findings are recorded, not papered over.
 
-This file RECORDS. It does not fix. Every fix alters the Error-A/Error-B
-trade-off or the gate score bar => Escalation rule #1 => Sai adjudication
-(see docs/adr/ADR-005-gate-retained-appendix-hard-cap.md). Do NOT remove an
-xfail marker without the corresponding fix + calibration re-run + new CR.
+2026-07-12 update (Sai's ruling): ADR-005 (empty-appendix hard-cap) ACCEPTED;
+numeric-unit and absence-anchoring fixes GREENLIT and landed. Their four tests
+flipped XPASS and are now permanent green guards (MOAT_GUARDS). AA-MOAT-003
+(T1 overreach) and AA-MOAT-005 (relational predicate) remain OPEN by the same
+ruling — still strict xfail. Do NOT remove a remaining xfail marker without
+the corresponding fix + calibration re-run + new CR (Escalation rule #1).
 """
 
 from __future__ import annotations
@@ -55,22 +57,46 @@ def _gate(draft: str) -> dict:
     return json.loads(result.stdout)
 
 
-# fixture stem -> (open-issue id, root cause, one-line mechanism)
-MOAT_VIOLATIONS = [
+# --- CLOSED violations: permanent green guards -------------------------------
+# Each was proven red pre-fix (strict xfail, seen failing on this branch —
+# INS-005 satisfied) and flipped to XPASS when its fix landed on 2026-07-12
+# under Sai's ruling (ADR-005 accepted; numeric-unit + absence-anchoring
+# fixes greenlit). Markers removed per the harness protocol.
+# fixture stem -> (open-issue id, fix, one-line original mechanism)
+MOAT_GUARDS = [
     pytest.param(
         "numeric-drift-unit_1",
         "AA-MOAT-001",
-        "Root B: numeric token compares magnitude, not the dimensional unit; "
-        "'operations per minute' grounds against 'per second'.",
+        "FIXED (rate-qualifier comparison in numeric_ok): 'operations per "
+        "minute' no longer grounds against 'per second'.",
         id="AA-MOAT-001-numeric-drift-unit",
     ),
     pytest.param(
         "numeric-drift-decimal_4",
         "AA-MOAT-002",
-        "Root A: 9 grounded + 1 drifted-number claim = score 90.0 >= 90; the "
-        "retained UNVERIFIED_NUMBER rides inside a PASS (threshold-dilution).",
+        "FIXED (ADR-005 empty-appendix hard-cap): a retained "
+        "UNVERIFIED_NUMBER can no longer ride inside a >=90% PASS.",
         id="AA-MOAT-002-numeric-drift-decimal-dilution",
     ),
+    pytest.param(
+        "unsubstantiated-absence_1",
+        "AA-MOAT-004",
+        "FIXED (discriminating-anchor absence check): entity/numeric anchors "
+        "of the negated subject must all appear in the supporting queries.",
+        id="AA-MOAT-004-unsubstantiated-absence",
+    ),
+    pytest.param(
+        "letter-suffixed-source-id_5",
+        "AA-MOAT-006",
+        "FIXED (ADR-005 empty-appendix hard-cap): the retained UNCITED [S1a] "
+        "claim blocks PASS regardless of the 90.0 score.",
+        id="AA-MOAT-006-letter-suffixed-dilution",
+    ),
+]
+
+# --- OPEN violations: still xfail, deferred by Sai's 2026-07-12 ruling --------
+# fixture stem -> (open-issue id, root cause, one-line mechanism)
+MOAT_VIOLATIONS = [
     pytest.param(
         "paraphrase-overreach_1",
         "AA-MOAT-003",
@@ -80,40 +106,16 @@ MOAT_VIOLATIONS = [
         id="AA-MOAT-003-paraphrase-overreach",
     ),
     pytest.param(
-        "unsubstantiated-absence_1",
-        "AA-MOAT-004",
-        "Root B: absence grounding anchors on the head noun / generic corpus "
-        "words present in query_provenance, not the negated proposition's "
-        "discriminating tokens.",
-        id="AA-MOAT-004-unsubstantiated-absence",
-    ),
-    pytest.param(
         "unsupported-relation_3",
         "AA-MOAT-005",
         "Root B: the two-source relational rule checks endpoint-noun presence, "
         "not support for the relation/predicate ('decisively outperforming').",
         id="AA-MOAT-005-unsupported-relation",
     ),
-    pytest.param(
-        "letter-suffixed-source-id_5",
-        "AA-MOAT-006",
-        "Root A: 9 grounded + 1 fabricated [S1a] claim = score exactly 90.0; "
-        "correctly classified as a violation, still cleared the score bar.",
-        id="AA-MOAT-006-letter-suffixed-dilution",
-    ),
 ]
 
 
-@pytest.mark.parametrize("stem, issue_id, mechanism", MOAT_VIOLATIONS)
-@pytest.mark.xfail(
-    strict=True,
-    reason="OPEN moat violation (Error-B), blocked on Sai gate-bar decision "
-    "(ADR-005). When this XPASSes, a fix has landed: remove the marker and "
-    "make it a permanent green guard.",
-)
-def test_fabrication_must_not_pass(stem: str, issue_id: str, mechanism: str) -> None:
-    """The gate MUST NOT certify a draft containing a fabricated/unsupported
-    claim as PASS. Reproduced by hand 2026-07-12; see ``mechanism``."""
+def _assert_not_pass(stem: str, issue_id: str, mechanism: str) -> None:
     draft = str(FIXTURES / f"{stem}.md")
     report = _gate(draft)
     assert report["gate"] != "PASS", (
@@ -122,3 +124,24 @@ def test_fabrication_must_not_pass(stem: str, issue_id: str, mechanism: str) -> 
         f"retained_appendix={len(report.get('retained_appendix', []))}). "
         f"{mechanism}"
     )
+
+
+@pytest.mark.parametrize("stem, issue_id, mechanism", MOAT_GUARDS)
+def test_fixed_fabrication_stays_blocked(stem: str, issue_id: str, mechanism: str) -> None:
+    """Permanent green guard: a CLOSED moat violation must stay closed.
+    A failure here is a regression of a fixed Error-B hole — release blocker."""
+    _assert_not_pass(stem, issue_id, mechanism)
+
+
+@pytest.mark.parametrize("stem, issue_id, mechanism", MOAT_VIOLATIONS)
+@pytest.mark.xfail(
+    strict=True,
+    reason="OPEN moat violation (Error-B), deferred by Sai's 2026-07-12 "
+    "ruling (T1 residual-coverage interacts with Phase-2b NLI design; "
+    "relational predicate check needs its own decision). When this XPASSes, "
+    "a fix has landed: remove the marker and move the param to MOAT_GUARDS.",
+)
+def test_fabrication_must_not_pass(stem: str, issue_id: str, mechanism: str) -> None:
+    """The gate MUST NOT certify a draft containing a fabricated/unsupported
+    claim as PASS. Reproduced by hand 2026-07-12; see ``mechanism``."""
+    _assert_not_pass(stem, issue_id, mechanism)

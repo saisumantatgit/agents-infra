@@ -43,7 +43,7 @@ Run from `Agent-Assure/` (env is `uv`; `install.sh` provisions runtime `.venv`).
 ```bash
 bash install.sh                      # provision .venv (Python >=3.11 + runtime deps)
 uv sync --extra dev                  # one-time: add pytest (dev deps)
-uv run pytest                        # full suite — 327 tests pass on this branch
+uv run pytest                        # full suite — 351 pass + 2 xfail (open moat items) on this branch
 uv run python scripts/ground_check.py \
     --draft DRAFT.md --store STORE.jsonl [--threshold 90] [--json]   # manual gate
 uv run python -m calibration.run_calibration   # sweep + LOO + emit CR (module form)
@@ -68,7 +68,10 @@ uv run python -m calibration.run_calibration   # sweep + LOO + emit CR (module f
   (`dcce427`) — never flip it.
 - **Thresholds are data, not code.** `lex_tau = 0.71` is an n=12 calibration
   output (CR-001), not a constant to inline-edit. Changing it = new calibration
-  run + new CR. Score gate default = 90.
+  run + new CR. Score gate default = 90 — but per ADR-005 (accepted
+  2026-07-12) the score is a SECONDARY bar: PASS additionally requires an
+  EMPTY retained appendix (zero violation-class verdicts); a ratio can never
+  buy a PASS past a retained violation.
 - **Held-out numbers only** (leave-one-out, per-claim); in-sample is not a result.
 - **`tier_sensitive` / lex_tau-invariant tagging** (`f11f8d4`, `ff24a82`):
   verdicts not governed by lex_tau must be tagged invariant or calibration

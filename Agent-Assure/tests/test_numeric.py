@@ -221,3 +221,54 @@ def test_exotic_unit_fail_closed():
     # Source contains the same exotic string — must still return False.
     sources = [src("The star is 15 lightyears away from Earth.")]
     assert numeric_ok(claim_exotic, sources) is False
+
+
+# ---------------------------------------------------------------------------
+# Rate-qualifier comparison (AA-MOAT-001 fix, 2026-07-12)
+# Proven-red at the bug level via tests/red_team_moat (xfail → XPASS flip);
+# these pin the mechanism directly.
+# ---------------------------------------------------------------------------
+
+def test_rate_qualifier_mismatch_fails():
+    """'128000 operations per MINUTE' must NOT match a source stating
+    '128000 operations per SECOND' — the AA-MOAT-001 vector."""
+    claim = mk("Redis sustained approximately 128000 operations per minute [S1].")
+    source = src("Redis sustained approximately 128000 operations per second.")
+    assert numeric_ok(claim, [source]) is False
+
+
+def test_rate_qualifier_match_succeeds():
+    """Identical value, unit, and rate qualifier grounds normally."""
+    claim = mk("Redis sustained approximately 128000 operations per second [S1].")
+    source = src("Redis sustained approximately 128000 operations per second.")
+    assert numeric_ok(claim, [source]) is True
+
+
+def test_bare_claim_number_matches_qualified_source():
+    """A claim number with NO stated rate asserts no rate — status quo:
+    it matches a qualified source occurrence (no new Error-A)."""
+    claim = mk("The benchmark recorded 128000 [S1].")
+    source = src("Redis sustained 128000 operations per second.")
+    assert numeric_ok(claim, [source]) is True
+
+
+def test_rate_qualifier_abbreviation_canonicalized():
+    """'/sec' and 'per second' canonicalize to the same qualifier."""
+    claim = mk("Throughput reached 4000 requests/sec [S1].")
+    source = src("The service sustained 4000 requests per second.")
+    assert numeric_ok(claim, [source]) is True
+
+
+def test_per_the_report_is_attribution_not_rate():
+    """'per the report' is attribution — must not be read as a rate
+    qualifier (and must not block a legitimate match)."""
+    claim = mk("Revenue grew to 4000, per the report [S1].")
+    source = src("Revenue grew to 4000 in the final quarter.")
+    assert numeric_ok(claim, [source]) is True
+
+
+def test_rate_qualifier_not_read_across_clause_boundary():
+    """A qualifier is never read across a comma/sentence boundary."""
+    claim = mk("The cluster held 4000 nodes, per region estimates vary [S1].")
+    source = src("The cluster held 4000 nodes in total.")
+    assert numeric_ok(claim, [source]) is True

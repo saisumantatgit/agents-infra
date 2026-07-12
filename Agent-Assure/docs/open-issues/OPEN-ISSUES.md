@@ -40,12 +40,32 @@ patched. The score-bar decision is drafted as **ADR-005** (Status: Proposed).
 
 | ID | Class | Root | Severity | Status |
 |----|-------|------|----------|--------|
-| AA-MOAT-001 | numeric-drift-unit | B | Error-B | OPEN — blocked on Sai |
-| AA-MOAT-002 | numeric-drift-decimal (dilution) | A | Error-B | OPEN — ADR-005 |
-| AA-MOAT-003 | paraphrase-overreach | B | Error-B | OPEN — blocked on Sai |
-| AA-MOAT-004 | unsubstantiated-absence | B | Error-B | OPEN — blocked on Sai |
-| AA-MOAT-005 | unsupported-relation | B | Error-B | OPEN — blocked on Sai |
-| AA-MOAT-006 | letter-suffixed-id (dilution) | A | Error-B | OPEN — ADR-005 |
+| AA-MOAT-001 | numeric-drift-unit | B | Error-B | **FIXED 2026-07-12** (rate-qualifier comparison; Sai greenlight) |
+| AA-MOAT-002 | numeric-drift-decimal (dilution) | A | Error-B | **FIXED 2026-07-12** (ADR-005 accepted + implemented) |
+| AA-MOAT-003 | paraphrase-overreach | B | Error-B | OPEN — deferred by Sai ruling 2026-07-12 (interacts with Phase-2b NLI design; decide last) |
+| AA-MOAT-004 | unsubstantiated-absence | B | Error-B | **FIXED 2026-07-12** (discriminating-anchor check; Sai greenlight) |
+| AA-MOAT-005 | unsupported-relation | B | Error-B | OPEN — deferred by Sai ruling 2026-07-12 (needs its own decision; softest fixture — probe first) |
+| AA-MOAT-006 | letter-suffixed-id (dilution) | A | Error-B | **FIXED 2026-07-12** (ADR-005 accepted + implemented) |
+
+**Closure evidence (2026-07-12):** each FIXED item's strict-xfail flipped XPASS
+when its fix landed and was converted to a permanent green guard
+(`test_moat_red_team.py::test_fixed_fabrication_stays_blocked`). Suite:
+351 passed + 2 xfailed (the two OPEN items). All three fixes are structurally
+one-directional (a violation can only move away from PASS): ADR-005 only
+removes PASSes; a qualifier-less numeric claim is bit-identical to old
+behavior; the new absence rule matches a strict subset of the old rule's
+queries. Corpus-v2 regeneration is byte-identical post-fix — lex_tau inputs
+unaffected; CR-001 stands; the gate bar calibrates at CR-002 (gold labels).
+**Design note (Error-B monotonicity in action):** the first absence-fix
+draft keyed only on entity anchors and flipped corpus case q22 (a labeled
+violation) to ABSENCE_SUPPORTED — caught by regeneration diff, fixed by
+additionally requiring the subject head noun in supporting queries, pinned by
+`test_absence.py::test_entity_mention_without_subject_not_support`.
+**Residual (recorded, not Error-B-proven):** absence anchors do not stem
+tokens ("docs" ≠ "documentation"); numeric quantity-nouns ("operations" vs
+"gigabytes") are still not compared — both live in the same
+fail-closed-vs-Error-A trade space as AA-MOAT-003 and should ride with the
+Phase-2b decision.
 
 ---
 

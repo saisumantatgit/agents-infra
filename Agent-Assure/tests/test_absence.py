@@ -178,3 +178,90 @@ def test_empty_string_queries_not_matched():
     claim = absence_claim("There is no Redis documentation.")
     queries = ["", "   ", "Python tutorial"]
     assert check_absence(claim, queries) == Verdict.UNVERIFIED_ABSENCE
+
+
+# ---------------------------------------------------------------------------
+# Discriminating-anchor semantics (AA-MOAT-004 fix, 2026-07-12)
+# Proven-red at the bug level via tests/red_team_moat (xfail → XPASS flip);
+# these pin the mechanism directly.
+# ---------------------------------------------------------------------------
+
+def test_strong_anchors_all_required():
+    """Every entity anchor of the negated subject must appear in a supporting
+    query: 'no benchmark comparing MongoDB against Redis' is NOT supported by
+    generic benchmark queries that never mention MongoDB (AA-MOAT-004)."""
+    claim = absence_claim(
+        "We found no benchmark comparing MongoDB against either Redis or "
+        "PostgreSQL on this hardware."
+    )
+    queries = [
+        "redis benchmark throughput",
+        "postgresql write throughput benchmark",
+    ]
+    assert check_absence(claim, queries) == Verdict.UNVERIFIED_ABSENCE
+
+
+def test_numeric_anchor_required():
+    """A numeric in the negated subject is a discriminating anchor: queries
+    that never targeted the 500000 threshold cannot support its absence."""
+    claim = absence_claim(
+        "There is no benchmark that shows Redis handling more than 500000 "
+        "operations per second."
+    )
+    queries = [
+        "redis benchmark throughput",
+        "redis performance numbers",
+    ]
+    assert check_absence(claim, queries) == Verdict.UNVERIFIED_ABSENCE
+
+
+def test_strong_anchors_supported_when_actually_queried():
+    """When the discriminating anchors AND the subject head noun WERE queried
+    >=2 times, the absence is supported — the fix must not break genuine
+    absence research."""
+    claim = absence_claim(
+        "We found no benchmark comparing MongoDB against Redis."
+    )
+    queries = [
+        "MongoDB vs Redis benchmark",
+        "MongoDB Redis benchmark comparison",
+    ]
+    assert check_absence(claim, queries) == Verdict.ABSENCE_SUPPORTED
+
+
+def test_entity_mention_without_subject_not_support():
+    """Queries that mention the entity while searching something ELSE cannot
+    support an absence about that entity (the q22 generic-entity collision:
+    'X200 pricing' does not support 'no mention of battery defects in the
+    X200 manual')."""
+    claim = absence_claim(
+        "There is no mention of battery defects in the X200 manual."
+    )
+    queries = [
+        "X200 drone product specifications",
+        "X200 drone pricing information",
+    ]
+    assert check_absence(claim, queries) == Verdict.UNVERIFIED_ABSENCE
+
+
+def test_entity_free_head_noun_majority_filtered():
+    """Entity-free subject: a head noun present in >50% of a >=3-query session
+    is a blanket corpus word — cannot evidence targeted absence research."""
+    claim = absence_claim("There is no benchmark data available.")
+    queries = [
+        "database benchmark methodology",
+        "benchmark hardware specification",
+        "cloud pricing comparison",  # 2 of 3 contain 'benchmark' → majority
+    ]
+    assert check_absence(claim, queries) == Verdict.UNVERIFIED_ABSENCE
+
+
+def test_entity_free_two_query_session_status_quo():
+    """Entity-free subject in a 2-query focused session keeps the legacy
+    behavior (the majority filter needs >=3 distinct queries)."""
+    claim = absence_claim("There is no changelog available.")
+    queries = [
+        "project changelog location",
+        "changelog release notes",
+    ]
+    assert check_absence(claim, queries) == Verdict.ABSENCE_SUPPORTED
