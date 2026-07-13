@@ -328,6 +328,38 @@ def export_labeling_csv(rows: list[ClaimFeatureRow], path: str) -> None:
             ])
 
 
+def assert_labels_not_clobbered(path: str) -> None:
+    """Raise if the labeling CSV at *path* already carries ANY human label.
+
+    Human labels are AUDIT EVIDENCE and cannot be regenerated: a corpus
+    rebuild that overwrites them destroys the only record of what a human
+    actually ratified (OI-CAL-02). Every labeling-CSV writer calls this
+    FIRST. A missing file is fine — that is a legitimate first write.
+
+    Hit live on 2026-07-14: a routine `build_corpus` run blanked the n=12
+    bootstrap labels that CR-001 was calibrated on (restored from git; the
+    fail-loud LOADER is what surfaced it). Post-ratification the same
+    keystroke would destroy the n=52 gold labels.
+
+    Fail loud, never fallback — no silent repair, no backup-and-overwrite.
+    """
+    try:
+        with open(path, encoding="utf-8", newline="") as fh:
+            rows = list(csv.DictReader(fh))
+    except FileNotFoundError:
+        return
+
+    labeled = [r for r in rows if (r.get("human_label") or "").strip()]
+    if labeled:
+        raise ValueError(
+            f"assert_labels_not_clobbered: refusing to overwrite {path!r} — it "
+            f"already carries {len(labeled)} human label(s), which are audit "
+            f"evidence and cannot be regenerated (first: claim_id="
+            f"{labeled[0].get('claim_id')!r} -> {labeled[0].get('human_label')!r}). "
+            f"Move or delete the file deliberately if you truly mean to discard them."
+        )
+
+
 def load_labels(path: str) -> dict[str, HumanLabel]:
     """Read a hand-filled labeling CSV at *path* and return
     {claim_id: HumanLabel}.

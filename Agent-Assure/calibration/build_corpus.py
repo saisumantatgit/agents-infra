@@ -44,7 +44,7 @@ import json
 import unicodedata
 from dataclasses import asdict, dataclass
 
-from scripts.calibrate import ClaimFeatureRow, emit_claim_features
+from scripts.calibrate import ClaimFeatureRow, emit_claim_features, assert_labels_not_clobbered
 from scripts.ground_check import RetrievedSource
 
 _FEATURE_ROWS_PATH = "calibration/feature_rows.jsonl"
@@ -442,6 +442,7 @@ def write_enriched_labeling_csv(
 
     I/O boundary — the file write is the only side effect.
     """
+    assert_labels_not_clobbered(path)  # OI-CAL-02: never destroy human labels
     import csv
 
     with open(path, "w", encoding="utf-8", newline="") as fh:

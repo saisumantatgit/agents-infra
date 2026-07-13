@@ -272,3 +272,62 @@ def test_rate_qualifier_not_read_across_clause_boundary():
     claim = mk("The cluster held 4000 nodes, per region estimates vary [S1].")
     source = src("The cluster held 4000 nodes in total.")
     assert numeric_ok(claim, [source]) is True
+
+
+# ---------------------------------------------------------------------------
+# Dimensional-unit completion (round 2, 2026-07-14) — quantity + robust rate.
+# Bug-level red proof lives in tests/red_team_moat/test_moat_red_team_r2.py;
+# these pin the mechanisms and, critically, the Error-A guards.
+# ---------------------------------------------------------------------------
+
+def test_quantity_noun_mismatch_fails():
+    """128000 GIGABYTES/sec is not grounded by 128000 OPERATIONS/sec."""
+    claim = mk("Redis sustained 128000 gigabytes per second [S1].")
+    source = src("Redis sustained approximately 128000 operations per second.")
+    assert numeric_ok(claim, [source]) is False
+
+
+def test_quantity_noun_abbreviation_still_grounds():
+    """Error-A guard: 'ops' and 'operations' are the same quantity."""
+    claim = mk("Redis sustained 128000 ops per second [S1].")
+    source = src("Redis sustained approximately 128000 operations per second.")
+    assert numeric_ok(claim, [source]) is True
+
+
+def test_non_quantity_word_after_number_is_not_a_quantity():
+    """Error-A guard (the regression that corpus q37's sibling caught): a bare
+    adjective after a number is not a measured quantity — '$4M last year' must
+    still ground against '$4,000,000 in the period'."""
+    claim = mk("The company revenue was $4M last year.")
+    source = src("According to the filing, revenue reached $4,000,000 in the period.")
+    assert numeric_ok(claim, [source]) is True
+
+
+def test_weak_rate_trigger_requires_known_time_unit():
+    """Error-A guard: 'a' only introduces a rate when a real time unit
+    follows. '$4M in a filing' asserts no rate."""
+    claim = mk("Revenue of $4M appeared in a filing [S1].")
+    source = src("According to the filing, revenue reached $4,000,000.")
+    assert numeric_ok(claim, [source]) is True
+
+
+def test_each_minute_is_a_rate():
+    """'each minute' is the same assertion as 'per minute'."""
+    claim = mk("Redis sustained 128000 operations each minute [S1].")
+    source = src("Redis sustained approximately 128000 operations per second.")
+    assert numeric_ok(claim, [source]) is False
+
+
+def test_homoglyph_per_is_folded():
+    """A Cyrillic 'р' in 'рer' must not hide the rate (NFKC does not fold it;
+    the confusables map does)."""
+    claim = mk("Redis sustained 128000 operations рer minute [S1].")
+    source = src("Redis sustained approximately 128000 operations per second.")
+    assert numeric_ok(claim, [source]) is False
+
+
+def test_adverbial_rate_is_read():
+    """'hourly' is a rate denominator."""
+    claim = mk("The job processed 4000 records hourly [S1].")
+    source = src("The job processed 4000 records per second in the trial.")
+    assert numeric_ok(claim, [source]) is False

@@ -26,13 +26,29 @@ we can point to where it came from, retrieved this session."
 
 **Gate effect:** counts toward the numerator (supported).
 **Meaning:** an absence claim ("no X exists", "there is no evidence of Y") backed
-by ≥2 distinct queries in the store's `query_provenance` that target the subject.
+by ≥2 distinct queries in the store's `query_provenance` that support it under the
+discriminating-anchor rule (AA-MOAT-004 fix, 2026-07-12): if the negated subject
+has strong anchors (capitalized entities / numeric tokens), a query counts only if
+it contains EVERY strong anchor AND the subject's head noun — a query that merely
+shares one entity or the bare head noun does not count. For an entity-free
+subject, the head noun alone is the anchor, but only if it is discriminating (see
+UNVERIFIED_ABSENCE below).
 **Why it matters:** "not found" is only trustworthy if you know the search was
-actually run. Two distinct targeted queries is the mechanical floor for that.
+actually run *for that specific subject*, not just a search that happens to share
+one word with it. Two distinct, correctly-anchored queries is the mechanical
+floor for that.
 
 ---
 
 ## Failing verdicts
+
+**Gate effect (ADR-005, accepted 2026-07-12):** every verdict below is a
+*retained violation*. Each one still fails to count toward the score numerator,
+but its mere presence in the report now also caps the overall gate at
+`NEEDS_WORK` regardless of score — unless score < 60, which is `FAIL` (checked
+first). `PASS` requires an EMPTY retained-violation list, not merely a score
+≥ threshold; this closed the threshold-dilution vector (AA-MOAT-002/-006). See
+the README's Score gate table for the full gate table.
 
 ### UNVERIFIED_CITATION  — the fabricated-citation catch
 
@@ -74,10 +90,14 @@ points at.
 ### UNVERIFIED_NUMBER
 
 **Gate effect:** violation.
-**Meaning:** a NUMERIC claim whose number does not match any source. Both value
-**and** unit are checked — `25%` ≠ bare `25`; `$4M` ≡ `$4,000,000`.
-**Fix:** correct the number to the source value, or cite the source that
-actually carries it.
+**Meaning:** a NUMERIC claim whose number does not match any source. Value,
+unit, **and** — when the claim states one — the rate qualifier are all checked:
+`25%` ≠ bare `25`; `$4M` ≡ `$4,000,000`; a claim stating "128000 operations per
+MINUTE" is not grounded by a source that only says "128000 operations per
+SECOND" — the qualifier must match too (AA-MOAT-001 fix, 2026-07-12). A claim
+with no stated rate qualifier matches by value+unit as before.
+**Fix:** correct the number (and qualifier, if stated) to the source value, or
+cite the source that actually carries it.
 **Why it matters:** invented statistics are the most common and most
 confident-sounding form of AI fabrication. Value-and-unit matching stops a claim
 from borrowing a source's digits while changing their meaning.
@@ -85,12 +105,22 @@ from borrowing a source's digits while changing their meaning.
 ### UNVERIFIED_ABSENCE
 
 **Gate effect:** violation.
-**Meaning:** an absence claim backed by fewer than 2 distinct queries mentioning
-the subject.
-**Fix:** run (and let the hook capture) the searches that would substantiate the
-absence, or soften the claim.
-**Why it matters:** "no X exists" after a single glance is not evidence of
-absence — it is absence of evidence. The two-query floor forces the difference.
+**Meaning:** an absence claim backed by fewer than 2 distinct queries that meet
+the discriminating-anchor rule (AA-MOAT-004 fix, 2026-07-12): for a subject with
+strong anchors (named entities / numerics), a query must contain ALL of them
+plus the subject's head noun — a query about "MongoDB pricing" does not support
+"no benchmark comparing MongoDB against Redis" just because it mentions MongoDB.
+For an entity-free subject, the head noun is the fallback anchor, but it is
+rejected (fail-closed, this verdict) when the session has ≥3 distinct queries
+and the head noun appears in a strict majority of them — a blanket corpus word
+cannot evidence a targeted absence search.
+**Fix:** run (and let the hook capture) the searches that actually target the
+full subject — every strong anchor and the head noun together, not just one of
+them — or soften the claim.
+**Why it matters:** "no X exists" after a single glance, or after searches that
+only brush past one entity in the subject, is not evidence of absence — it is
+absence of evidence. The anchor rule plus the two-query floor forces the
+difference.
 
 ### UNVERIFIED_RELATION
 

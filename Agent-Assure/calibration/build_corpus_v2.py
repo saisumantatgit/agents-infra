@@ -52,6 +52,7 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import sys as _sys
 import unicodedata
 from dataclasses import dataclass
 
@@ -62,7 +63,7 @@ from calibration.build_corpus import (
     emit_rows_for_cases,
     write_feature_rows_jsonl,
 )
-from scripts.calibrate import ClaimFeatureRow
+from scripts.calibrate import ClaimFeatureRow, assert_labels_not_clobbered
 from scripts.ground_check import RetrievedSource
 
 _FEATURE_ROWS_PATH = "calibration/feature_rows-v2.jsonl"
@@ -973,6 +974,7 @@ def write_labeling_v2_csv(
 
     I/O boundary — the file write is the only side effect.
     """
+    assert_labels_not_clobbered(path)  # OI-CAL-02: never destroy human labels
     with open(path, "w", encoding="utf-8", newline="") as fh:
         writer = csv.writer(fh, quoting=csv.QUOTE_MINIMAL)
         writer.writerow([
@@ -1036,6 +1038,20 @@ def main() -> None:
     cases_by_query = {cc.case.query_id: cc for cc in cases}
 
     write_feature_rows_jsonl(rows, _FEATURE_ROWS_PATH)
+
+    # --features-only: regenerate the gate's predictions for a post-change
+    # DRIFT CHECK (the standing discipline after any classify/tiers/score
+    # edit) without going near the labeling CSV. Without this mode the only
+    # way to drift-check a labeled corpus is to trip the OI-CAL-02 guard —
+    # friction that eventually gets "solved" by deleting the labels.
+    if "--features-only" in _sys.argv[1:]:
+        _print_summary(cases, rows_by_query)
+        print(
+            f"\n{len(rows)} claims written to {_FEATURE_ROWS_PATH} "
+            f"(--features-only: {_LABELING_CSV_PATH} left untouched)"
+        )
+        return
+
     write_labeling_v2_csv(rows, cases_by_query, _LABELING_CSV_PATH)
 
     _print_summary(cases, rows_by_query)

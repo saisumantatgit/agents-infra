@@ -242,7 +242,12 @@ def decompose(draft: str) -> list[Claim]:
 import re as _re
 
 # Citation pattern: [S1], [S12], [source:some-text]
-_CITATION_RE = _re.compile(r"\[(?:S\d+|source:[^\]]+)\]")
+# S\d+ plus optional letter suffix (OI-CITE-01): `[S1a]` is a citation MARKER
+# even though capture never emits letter-suffixed ids — leaving it unmatched
+# made the marker invisible (claim read UNCITED and the bracket digit leaked
+# into numeric_tokens). Matched, it resolves like any key: absent from the
+# store -> the precise UNVERIFIED_CITATION verdict.
+_CITATION_RE = _re.compile(r"\[(?:S\d+[a-zA-Z]*|source:[^\]]+)\]")
 
 # Relational trigger lexicon for argument extraction (ordered longest-first so
 # multi-word triggers match before their shorter prefixes; e.g. "caused by"
@@ -703,22 +708,63 @@ _ABSOLUTE_MULTIPLIERS: dict[str, int] = {
 # Suffixes that mark the "percent" unit type.
 _PERCENT_SUFFIXES: frozenset[str] = frozenset({"%", "percent"})
 
-# --- Rate-qualifier extraction (AA-MOAT-001 fix) -----------------------------
-# A numeric mention may carry a rate denominator ("128000 operations per
-# second", "40 requests/sec"). The magnitude alone cannot distinguish
-# "per second" from "per minute" — the qualifier must be captured and compared.
+# --- Numeric CONTEXT extraction: quantity + rate (AA-MOAT-001, round 2) ------
+# A numeric mention carries a DIMENSIONAL UNIT beyond its magnitude:
+#   "128000 operations per second" -> quantity "operation", rate "second".
+# Round 1 (2026-07-12) compared only the rate, and only in `per <word>` /
+# `/<word>` form within two words of the number. Round 2 (2026-07-14) found
+# nine evasions of that narrow reading (each/every/a/one <unit>, hyphenated
+# per-minute, adverbial hourly, qualifier before the number or further from it,
+# and a Cyrillic homoglyph in "per"). This extractor is the completion of the
+# ruled fix: "compare value AND dimensional unit; fail-closed on any
+# unit/quantity mismatch."
 
-# Anchored at the text immediately following a numeric match: up to two
-# intervening words (the measured quantity, e.g. "write operations"), then
-# "per <word>" or "/<word>". The qualifier word must start with a letter so a
-# "/" between two numbers is never misread as a rate.
-_RATE_QUALIFIER_RE = _re.compile(
-    r"^(?:\s+[a-zA-Z]\w*){0,2}?(?:\s+per\s+|\s*/\s*)([a-zA-Z]\w*)",
+# Homoglyph fold for the numeric-context window. NFKC does NOT map Cyrillic
+# 'р' (U+0440) to Latin 'p', so "рer minute" evaded the rate reader entirely
+# and collapsed to "no rate asserted" — a bare number that matched the
+# per-second source. Applying the global homoglyph rule at THIS gate's
+# boundary (scoped: the numeric window only, so tokenization elsewhere and
+# therefore the calibration corpus are untouched).
+_CONFUSABLES: dict[int, str] = str.maketrans({
+    "а": "a", "е": "e", "о": "o", "р": "p", "с": "c",
+    "х": "x", "у": "y", "і": "i", "ј": "j", "һ": "h",
+    "ο": "o", "α": "a", "ρ": "p", "υ": "u", "ɡ": "g",
+})
+
+# Rate triggers AFTER the number: "per second", "per-second", "/sec",
+# "each minute", "every minute", "a minute", "one minute". Up to three
+# intervening words (the quantity phrase, e.g. "write operations for the
+# cluster") may sit between the number and the trigger.
+_RATE_AFTER_RE = _re.compile(
+    r"^(?:\s+[a-z-]+){0,6}?"
+    r"(?:\s*(?P<strong>/)\s*|\s+(?P<strong2>per)[\s-]+"
+    r"|\s+(?P<weak>each|every|a|one)\s+)"
+    r"([a-z]+)",
     _re.IGNORECASE,
 )
 
+# Adverbial rate AFTER the number: "128000 operations hourly".
+_RATE_ADVERB_RE = _re.compile(
+    r"^(?:\s+[a-z-]+){0,4}?\s+(hourly|daily|weekly|monthly|yearly|annually|"
+    r"secondly)\b",
+    _re.IGNORECASE,
+)
+
+# Rate stated BEFORE the number: "at a per-minute rate of 128000",
+# "the hourly figure of 128000". Searched in the tail of the preceding text.
+_RATE_BEFORE_RE = _re.compile(
+    r"(?:per[\s-]+([a-z]+)|(hourly|daily|weekly|monthly|yearly|annually))"
+    r"(?:[\s-]+[a-z]+){0,3}\s*$",
+    _re.IGNORECASE,
+)
+
+_ADVERB_TO_UNIT: dict[str, str] = {
+    "secondly": "second", "hourly": "hour", "daily": "day", "weekly": "week",
+    "monthly": "month", "yearly": "year", "annually": "year",
+}
+
 # Canonical names for common time denominators; an unknown qualifier word is
-# kept as its casefolded self (still deterministically comparable).
+# kept as its casefolded, singularized self (still deterministically compared).
 _RATE_UNIT_CANON: dict[str, str] = {
     "s": "second", "sec": "second", "secs": "second",
     "second": "second", "seconds": "second",
@@ -732,36 +778,143 @@ _RATE_UNIT_CANON: dict[str, str] = {
     "milliseconds": "millisecond",
 }
 
-# Words that follow "per" without naming a rate denominator — "per the report"
-# is attribution, not a rate. A capture in this set means NO qualifier.
+# Words that follow a rate trigger without naming a denominator — "per the
+# report" is attribution, not a rate. A capture here means NO qualifier.
 _RATE_NON_UNITS: frozenset[str] = frozenset({
     "the", "a", "an", "this", "that", "these", "those", "our", "their",
-    "its", "his", "her", "your", "my",
+    "its", "his", "her", "your", "my", "of", "in", "on", "at", "and", "or",
 })
 
-# A qualifier window never crosses a clause/sentence boundary.
+# Quantity-noun abbreviations folded to a common form so that a legitimate
+# paraphrase ("128000 ops/sec" vs "128000 operations per second") still
+# grounds — Error-A control on the quantity comparison.
+_QUANTITY_CANON: dict[str, str] = {
+    "op": "operation", "ops": "operation", "operation": "operation",
+    "operations": "operation",
+    "req": "request", "reqs": "request", "request": "request",
+    "requests": "request",
+    "txn": "transaction", "txns": "transaction",
+    "transaction": "transaction", "transactions": "transaction",
+    "qry": "query", "queries": "query", "query": "query",
+    "msg": "message", "msgs": "message",
+    "message": "message", "messages": "message",
+}
+
+# Modifier words that may sit between the number and its quantity noun
+# ("128000 write operations", "11000 sustained write ops").
+_QUANTITY_SKIP: frozenset[str] = frozenset({
+    "approximately", "about", "around", "roughly", "nearly", "almost",
+    "over", "under", "up", "to", "more", "than", "least", "most", "some",
+    "total", "of", "the", "a", "an", "its", "our", "their",
+    "read", "write", "reads", "writes", "sustained", "peak", "average",
+    "mean", "median", "raw", "net", "gross", "full", "additional", "extra",
+})
+
+# A numeric-context window never crosses a clause/sentence boundary.
 _RATE_WINDOW_STOP_RE = _re.compile(r"[.,;:!?\n]")
 
 
-def _rate_qualifier(following_text: str) -> str | None:
-    """Return the canonical rate qualifier at the start of *following_text*
-    (the text immediately after a numeric mention), or None.
+def _fold(text: str) -> str:
+    """NFKC-normalize, fold homoglyphs, casefold. Used only inside the
+    numeric-context window (see _CONFUSABLES). Pure function."""
+    return _nfkc(text).translate(_CONFUSABLES).casefold()
 
-    The window is cut at the first clause boundary so a qualifier is never
-    read across a comma or sentence end. A single leading space is prepended
-    because the numeric regexes' optional ``\\s?`` may have consumed the
-    boundary space into the numeric match itself. Pure function.
+
+def _canon_rate(word: str) -> str | None:
+    """Canonicalize a rate-denominator word, or None when it names no unit."""
+    w = word.casefold()
+    if w in _RATE_NON_UNITS:
+        return None
+    return _RATE_UNIT_CANON.get(w, w)
+
+
+def _canon_quantity(word: str) -> str:
+    """Canonicalize a quantity noun (abbreviation fold, then naive
+    singularization). Pure function."""
+    w = word.casefold()
+    if w in _QUANTITY_CANON:
+        return _QUANTITY_CANON[w]
+    if len(w) > 3 and w.endswith("s") and not w.endswith("ss"):
+        w = w[:-1]
+    return w
+
+
+def _numeric_context(before_text: str, after_text: str) -> tuple[str | None, str | None]:
+    """Return (quantity, rate) for a numeric mention sitting between
+    *before_text* and *after_text*.
+
+    quantity — the canonicalized measured noun ("operation", "gigabyte"), or
+               None when the number names no quantity.
+    rate     — the canonicalized rate denominator ("second", "minute"), or
+               None when the mention asserts no rate.
+
+    Both windows are homoglyph-folded and cut at the nearest clause boundary,
+    so context is never read across a comma or sentence end. The rate is looked
+    for after the number first, then (adverbially) after, then before it.
+
+    Pure function — no mutation, no LLM/network/random/wall-clock.
     """
-    following_text = " " + following_text
-    stop = _RATE_WINDOW_STOP_RE.search(following_text)
-    window = following_text[: stop.start()] if stop else following_text
-    match = _RATE_QUALIFIER_RE.match(window)
-    if not match:
-        return None
-    word = match.group(1).casefold()
-    if word in _RATE_NON_UNITS:
-        return None
-    return _RATE_UNIT_CANON.get(word, word)
+    # A leading space is prepended because the numeric regexes' optional `\s?`
+    # may have consumed the boundary space into the numeric match itself.
+    after = " " + _fold(after_text)
+    stop = _RATE_WINDOW_STOP_RE.search(after)
+    after_window = after[: stop.start()] if stop else after
+
+    before = _fold(before_text)
+    before_parts = _RATE_WINDOW_STOP_RE.split(before)
+    before_window = before_parts[-1] if before_parts else before
+
+    # --- rate ---
+    rate: str | None = None
+    m = _RATE_AFTER_RE.match(after_window)
+    if m:
+        word = m.group(m.lastindex)
+        # A STRONG trigger ("per", "/") names a rate whatever follows, so an
+        # exotic denominator ("per fortnight") is still compared. A WEAK
+        # trigger ("a", "each", "one") is only a rate when it names a KNOWN
+        # time unit — otherwise "$4M in a filing" would read as a rate
+        # (Error-A). Fail-open here is safe: an unread weak rate leaves the
+        # claim compared by value+unit, exactly as before this fix.
+        is_strong = bool(m.group("strong") or m.group("strong2"))
+        if is_strong or word.casefold() in _RATE_UNIT_CANON:
+            rate = _canon_rate(word)
+    if rate is None:
+        m = _RATE_ADVERB_RE.match(after_window)
+        if m:
+            rate = _ADVERB_TO_UNIT[m.group(1).casefold()]
+    if rate is None:
+        m = _RATE_BEFORE_RE.search(before_window)
+        if m:
+            if m.group(1):
+                rate = _canon_rate(m.group(1))
+            elif m.group(2):
+                rate = _ADVERB_TO_UNIT[m.group(2).casefold()]
+
+    # --- quantity: the measured noun after the number, before any rate
+    # trigger. "128000 write operations per second" -> "operation".
+    #
+    # Only a QUANTITY-SHAPED token counts: a plural noun ("operations",
+    # "gigabytes", "users") or a known abbreviation ("ops", "req"). Anything
+    # else is skipped rather than guessed — reading the first bare word as the
+    # quantity made "$4M last year" assert a quantity of "last" and broke
+    # legitimate grounding (Error-A). An unread quantity imposes no
+    # constraint, so this fail-open is safe: it can only preserve prior
+    # behavior, never create a new PASS.
+    quantity: str | None = None
+    for raw in after_window.split():
+        tok = raw.strip("-/").strip()
+        if not tok or not tok.isalpha():
+            continue
+        if tok in {"per", "each", "every", "one"} or tok in _ADVERB_TO_UNIT:
+            break
+        if tok in _QUANTITY_SKIP:
+            continue
+        is_plural = len(tok) > 3 and tok.endswith("s") and not tok.endswith("ss")
+        if is_plural or tok in _QUANTITY_CANON:
+            quantity = _canon_quantity(tok)
+        break
+
+    return quantity, rate
 
 
 def _parse_numeric_token(token: str) -> tuple[float, str] | None:
@@ -806,22 +959,28 @@ def _parse_numeric_token(token: str) -> tuple[float, str] | None:
     return (base * multiplier, "absolute")
 
 
-def _extract_numeric_mentions(text: str) -> list[tuple[float, str, str | None]]:
-    """Return all parseable (value, unit, rate_qualifier) triples in *text*.
+def _extract_numeric_mentions(
+    text: str,
+) -> list[tuple[float, str, str | None, str | None]]:
+    """Return all parseable (value, unit, rate, quantity) tuples in *text*.
 
-    NFKC-normalizes before scanning. The rate qualifier is extracted from the
-    text immediately following each numeric mention ("128000 operations per
-    second" → (128000.0, "absolute", "second")); None when the mention carries
-    no rate. May contain duplicates. Pure function.
+    NFKC-normalizes before scanning; the dimensional context (measured quantity
+    + rate denominator) is read from the windows around each numeric mention:
+    "128000 operations per second" → (128000.0, "absolute", "second",
+    "operation"). `rate`/`quantity` are None when the mention asserts none.
+    May contain duplicates. Pure function.
     """
     normalized = _nfkc(text)
-    triples: list[tuple[float, str, str | None]] = []
+    out: list[tuple[float, str, str | None, str | None]] = []
     for m in _SOURCE_NUMERIC_RE.finditer(normalized):
         result = _parse_numeric_token(m.group(0))
         if result is not None:
             value, unit = result
-            triples.append((value, unit, _rate_qualifier(normalized[m.end():])))
-    return triples
+            quantity, rate = _numeric_context(
+                normalized[: m.start()], normalized[m.end():]
+            )
+            out.append((value, unit, rate, quantity))
+    return out
 
 
 def numeric_ok(claim: Claim, sources: list[RetrievedSource]) -> bool:
@@ -840,12 +999,16 @@ def numeric_ok(claim: Claim, sources: list[RetrievedSource]) -> bool:
     - Unit normalization: $4M ≡ $4,000,000 ≡ 4 million USD ≡ 4000000 (all "absolute").
     - Only k / m / M / million / bn / billion suffixes normalized within "absolute".
     - Exotic units → fail-closed (parse returns None → no match).
-    - Rate qualifiers (AA-MOAT-001 fix): when the claim states a rate
-      denominator adjacent to the number ("128000 operations per MINUTE"),
-      a source mention matches ONLY IF it carries the SAME canonical
-      qualifier — a bare or differently-qualified source occurrence does not
-      match (fail-closed). When the claim states no qualifier, matching is by
-      value+unit as before (status quo; a bare claim number asserts no rate).
+    - Dimensional unit (AA-MOAT-001, completed round 2): a numeric mention
+      carries a measured QUANTITY ("operations", "gigabytes") and a RATE
+      denominator ("per second") beyond its magnitude. Whenever the CLAIM
+      states one of these, the matching source mention must carry the SAME
+      canonical value — a differently-qualified or differently-measured source
+      occurrence does not match (fail-closed). Surface form is irrelevant:
+      "each minute", "per-minute", "a minute", "hourly", a qualifier before
+      the number, and homoglyph spellings ("рer") all read as the rate they
+      assert. When the claim states no rate/quantity, matching is by
+      value+unit as before (a bare claim number asserts no dimension).
     - If claim.numeric_tokens is empty, returns True (vacuously grounded).
     - If sources is empty and numeric_tokens non-empty, returns False.
 
@@ -857,15 +1020,15 @@ def numeric_ok(claim: Claim, sources: list[RetrievedSource]) -> bool:
     if not sources:
         return False
 
-    # Pre-compute all source (value, unit, qualifier) triples once.
-    all_source_triples: list[tuple[float, str, str | None]] = []
+    # Pre-compute all source (value, unit, rate, quantity) mentions once.
+    source_mentions: list[tuple[float, str, str | None, str | None]] = []
     for source in sources:
-        all_source_triples.extend(_extract_numeric_mentions(source.text))
+        source_mentions.extend(_extract_numeric_mentions(source.text))
 
-    # Locate each claim token's rate qualifier from the claim text. Tokens are
-    # consumed left-to-right so a repeated value takes successive occurrences.
-    # A token not locatable in the text (e.g. a manually-built Claim) carries
-    # no qualifier — status-quo semantics, never a new false PASS.
+    # Read each claim token's dimensional context from the claim text. Tokens
+    # are consumed left-to-right so a repeated value takes successive
+    # occurrences. A token not locatable in the text (e.g. a hand-built Claim)
+    # carries no context — status-quo semantics, never a new false PASS.
     claim_text_normalized = _CITATION_RE.sub("", _nfkc(claim.text))
     search_from = 0
     for token in claim.numeric_tokens:
@@ -875,25 +1038,30 @@ def numeric_ok(claim: Claim, sources: list[RetrievedSource]) -> bool:
             return False
         claim_val, claim_unit = claim_pair
 
-        claim_qualifier: str | None = None
+        claim_rate: str | None = None
+        claim_quantity: str | None = None
         pos = claim_text_normalized.find(token, search_from)
         if pos == -1:
             pos = claim_text_normalized.find(token)
         if pos != -1:
             token_end = pos + len(token)
-            claim_qualifier = _rate_qualifier(claim_text_normalized[token_end:])
+            claim_quantity, claim_rate = _numeric_context(
+                claim_text_normalized[:pos], claim_text_normalized[token_end:]
+            )
             search_from = token_end
 
-        if claim_qualifier is None:
-            matched = any(
-                claim_val == sv and claim_unit == su
-                for sv, su, _sq in all_source_triples
-            )
-        else:
-            matched = any(
-                claim_val == sv and claim_unit == su and claim_qualifier == sq
-                for sv, su, sq in all_source_triples
-            )
+        matched = False
+        for s_val, s_unit, s_rate, s_quantity in source_mentions:
+            if claim_val != s_val or claim_unit != s_unit:
+                continue
+            # An asserted rate/quantity must be matched by the source mention;
+            # an unasserted one imposes no constraint.
+            if claim_rate is not None and claim_rate != s_rate:
+                continue
+            if claim_quantity is not None and claim_quantity != s_quantity:
+                continue
+            matched = True
+            break
         if not matched:
             return False
 
@@ -933,18 +1101,26 @@ _ABSENCE_LEAD_RE = _re.compile(
 _ANCHOR_PUNCT = ".,;:!?\"'()[]{}"
 
 
-def _extract_absence_anchors(text: str) -> tuple[frozenset[str], str]:
-    """Extract (strong_anchors, head_noun) for the absence subject of *text*.
+def _extract_absence_anchors(
+    text: str,
+) -> tuple[frozenset[str], str, frozenset[str]]:
+    """Extract (strong_anchors, head_noun, subject_content) for the absence
+    subject of *text*.
 
     *text* must already be NFKC-normalized and keep its ORIGINAL case —
     capitalization is the entity signal (AA-MOAT-004 fix).
 
-    strong_anchors: casefolded discriminating tokens of the negated subject —
-    named entities (capitalized after the trigger) and numeric tokens (any
-    token containing a digit), stop words excluded.
-
-    head_noun: the first non-stop content word (casefolded) — the legacy
-    anchor, used only as the fallback when no strong anchor exists.
+    strong_anchors:  casefolded discriminating tokens of the negated subject —
+                     named entities (capitalized after the trigger) and numeric
+                     tokens (any token containing a digit), stop words excluded.
+    head_noun:       the first non-stop content word (casefolded).
+    subject_content: ALL non-stop content words of the negated subject. Round 2
+                     (2026-07-14) showed head-noun-only anchoring still leaks:
+                     "no benchmark for the streaming ingest workload" was
+                     ABSENCE_SUPPORTED by two queries that merely said
+                     "benchmark" and never touched a streaming ingest workload.
+                     Coverage of the subject's content is what makes an
+                     entity-free absence discriminating.
 
     Pure function.
     """
@@ -952,6 +1128,7 @@ def _extract_absence_anchors(text: str) -> tuple[frozenset[str], str]:
     remainder = text[match.end():] if match else text
 
     strong: set[str] = set()
+    content: set[str] = set()
     head_noun = ""
     for raw_tok in remainder.split():
         tok = raw_tok.strip(_ANCHOR_PUNCT)
@@ -962,10 +1139,35 @@ def _extract_absence_anchors(text: str) -> tuple[frozenset[str], str]:
             continue
         if not head_noun:
             head_noun = tok_cf
+        content.add(tok_cf)
         if tok[0].isupper() or any(ch.isdigit() for ch in tok):
             strong.add(tok_cf)
 
-    return frozenset(strong), head_noun
+    return frozenset(strong), head_noun, frozenset(content)
+
+
+# A SPECIFIC entity-free subject (>= this many content words) demands more of a
+# query than its head noun: the query must also carry at least one other content
+# word of the subject. "No benchmark for the streaming ingest workload" is not
+# evidenced by a session that only searched "benchmark"; "no changelog
+# available" (a 2-word subject) still is, by "changelog release notes".
+#
+# Fractional coverage was tried first and rejected: it counts adjectives the
+# subject carries but no query ever would ("no antidote APPROVED for the toxin
+# in CURRENT guidelines"), which flipped a labeled-grounded corpus case to a
+# false alarm (q37). Requiring one corroborating content word — rather than a
+# fraction of all of them — is what distinguishes "the session searched for
+# this" from "the session used this word".
+_ABSENCE_SPECIFIC_SUBJECT_MIN: int = 3
+
+
+def _stem(word: str) -> str:
+    """Naive plural stem, used only for absence-subject matching so a claim's
+    'guidelines' matches a query's 'guideline'. Substring matching already
+    handles the reverse. Pure function."""
+    if len(word) > 3 and word.endswith("s") and not word.endswith("ss"):
+        return word[:-1]
+    return word
 
 
 def check_absence(
@@ -1001,7 +1203,7 @@ def check_absence(
 
     Pure function — no LLM, no network, no random, no wall-clock.
     """
-    strong, head_noun = _extract_absence_anchors(_nfkc(claim.text))
+    strong, head_noun, subject_content = _extract_absence_anchors(_nfkc(claim.text))
 
     # Distinct, non-empty, normalized queries.
     seen: set[str] = set()
@@ -1019,15 +1221,25 @@ def check_absence(
             if head_noun in q and all(a in q for a in strong)
         )
     else:
-        if not head_noun:
+        if not head_noun or not subject_content:
             return Verdict.UNVERIFIED_ABSENCE
-        containing = [q for q in distinct if head_noun in q]
-        # Majority-present head noun = non-discriminating corpus word. Applied
-        # only when the session has >=3 distinct queries: in a 2-query session
-        # a genuinely-targeted subject is necessarily "majority-present", so
-        # the filter would erase the legitimate focused-research pattern
-        # (pure Error-A) without evidence of collision.
-        if len(distinct) >= 3 and 2 * len(containing) > len(distinct):
+        # Entity-free subject: a query counts only if it carries the head noun
+        # AND — when the subject is specific — at least one OTHER of its
+        # content words. Head-noun-only matching let a session that merely
+        # searched "benchmark" support "no benchmark for the streaming ingest
+        # workload" (round 2, 2026-07-14).
+        head_stem = _stem(head_noun)
+        others = {_stem(w) for w in subject_content if w != head_noun}
+        specific = len(subject_content) >= _ABSENCE_SPECIFIC_SUBJECT_MIN
+        containing = [
+            q
+            for q in distinct
+            if head_stem in q
+            and (not specific or any(w in q for w in others))
+        ]
+        # A head noun present in a strict majority of a >=3-query session is a
+        # blanket corpus word and evidences no targeted search.
+        if len(distinct) >= 3 and 2 * len([q for q in distinct if head_noun in q]) > len(distinct):
             return Verdict.UNVERIFIED_ABSENCE
         match_count = len(containing)
 

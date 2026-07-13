@@ -43,7 +43,10 @@ Run from `Agent-Assure/` (env is `uv`; `install.sh` provisions runtime `.venv`).
 ```bash
 bash install.sh                      # provision .venv (Python >=3.11 + runtime deps)
 uv sync --extra dev                  # one-time: add pytest (dev deps)
-uv run pytest                        # full suite — 351 pass + 2 xfail (open moat items) on this branch
+uv sync --extra dev                  # REQUIRED before pytest — without it `uv run pytest`
+                                     #   silently falls back to a GLOBAL pytest and reports
+                                     #   ~46 bogus ModuleNotFoundErrors (OI-ENV-01)
+uv run pytest                        # full suite — 376 pass + 3 xfail (open moat items) on this branch
 uv run python scripts/ground_check.py \
     --draft DRAFT.md --store STORE.jsonl [--threshold 90] [--json]   # manual gate
 uv run python -m calibration.run_calibration   # sweep + LOO + emit CR (module form)
@@ -66,12 +69,26 @@ uv run python -m calibration.run_calibration   # sweep + LOO + emit CR (module f
   UNRECOVERABLE; Error-A (false alarm on a real claim) is recoverable. No change
   may reduce Error-A by raising Error-B. Positive class is pinned to VIOLATION
   (`dcce427`) — never flip it.
-- **Thresholds are data, not code.** `lex_tau = 0.71` is an n=12 calibration
-  output (CR-001), not a constant to inline-edit. Changing it = new calibration
-  run + new CR. Score gate default = 90 — but per ADR-005 (accepted
-  2026-07-12) the score is a SECONDARY bar: PASS additionally requires an
-  EMPTY retained appendix (zero violation-class verdicts); a ratio can never
-  buy a PASS past a retained violation.
+- **Thresholds are data, not code.** Changing one = new calibration run + new
+  CR, never an inline edit. **The gate RUNS at `lex_tau = 0.65`** (the
+  `t2_lexical` default); CR-001's calibrated **0.71 was never deployed** —
+  deploying it moves the live operating point and is Sai's call (OI-CAL-01).
+  Quote neither number as "the" threshold without saying which. Score gate
+  default = 90 — but per ADR-005 (accepted 2026-07-12) the score is a
+  SECONDARY bar: PASS additionally requires an EMPTY retained appendix (zero
+  violation-class verdicts); a ratio can never buy a PASS past a retained
+  violation.
+- **A fix to the moat gets red-teamed too.** Round 1 (2026-07-12) closed four
+  Error-B holes; round 2 (2026-07-14) found fourteen wrongful PASSes that
+  evaded those very fixes (nine rate phrasings, a Cyrillic homoglyph, a
+  quantity swap, an absence leak). Ship the adversary as a permanent guard
+  (`tests/red_team_moat/`), and re-run the sweep after every tier change.
+- **Regenerate the calibration corpus after ANY tier/classify change and diff
+  it.** It is the fix's own adversary: it caught an entity-only absence rule
+  flipping a labeled violation to supported (q22, round 1) and an
+  adjective-counting coverage rule raising a false alarm on a labeled-grounded
+  claim (q37, round 2) — both before commit. Byte-diff, then adjudicate every
+  drifted row against its label; never tune a constant to make one row pass.
 - **Held-out numbers only** (leave-one-out, per-claim); in-sample is not a result.
 - **`tier_sensitive` / lex_tau-invariant tagging** (`f11f8d4`, `ff24a82`):
   verdicts not governed by lex_tau must be tagged invariant or calibration
@@ -90,7 +107,7 @@ uv run python -m calibration.run_calibration   # sweep + LOO + emit CR (module f
 | `Agent-Assure/scripts/capture_hook.py`, `capture_core.py` | PostToolUse capture into the store |
 | `Agent-Assure/scripts/calibrate.py` | Pure calibration functions (metrics, sweep, LOO, emit_cr) |
 | `Agent-Assure/calibration/run_calibration.py` | Bootstrap sweep entry; `labeling.csv` holds labels |
-| `Agent-Assure/calibration/CR-001-bootstrap-lex-tau.md` | Current CR: lex_tau=0.71, n=12 |
+| `Agent-Assure/calibration/CR-001-bootstrap-lex-tau.md` | Current CR: recommends lex_tau=0.71 (n=12); gate still RUNS 0.65 — OI-CAL-01 |
 | `Agent-Assure/references/grounding-failure-types.md` | Every verdict, what it catches, how to fix |
 | `Agent-Assure/docs/PHASE2-SEQUENCING.md` | Phase 2 slice order (2c-harness → 2b → 2a → 2d) |
 | `Agent-Assure/demo/` | Offline moat demo: fabricated `[S3]` → FAIL, frozen fixtures |

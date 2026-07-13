@@ -191,3 +191,66 @@ to supported because every query in its session happened to mention the
 product name. The regeneration diff caught it before any commit. Even the fix
 for a moat hole needs its own adversary; ours turned out to be fifty-two rows
 of labeled clay.
+
+---
+
+## Round Two (2026-07-14): the fix gets red-teamed
+
+The four fixes shipped on the 12th were verified the way fixes usually are —
+against the attacks that motivated them. All six original drafts stopped
+passing; the suite went green; the guards went permanent. By every measure
+available *from inside the fix*, the holes were closed.
+
+Two nights later a second sweep asked a different question: not "does the fix
+stop the attack it was built for?" but "what does the fix actually *check*?"
+
+The rate-qualifier fix compared "per second" against "per minute" — but it read
+a rate only in the forms `per <word>` and `/<word>`, within two words of the
+number. So the gate that now refuses *"128000 operations per minute"* happily
+certified **"128000 operations each minute"**. And *"every minute"*. And *"a
+minute"*. And *"per-minute"* with a hyphen. And *"hourly"*. And a rate stated
+before the number. And — the one that should be framed and hung on a wall —
+**"128000 operations рer minute"**, where the `р` is Cyrillic U+0440. NFKC
+normalization, which the codebase applies religiously at every text boundary,
+does not fold Cyrillic `р` to Latin `p`. The homoglyph didn't defeat the rate
+check; it made the rate *invisible*, and an invisible rate meant "no rate
+asserted", which meant the bare number 128000 matched the source's 128000, and
+the draft sailed through at score 100.
+
+Nine phrasings, one alphabet, fourteen wrongful PASSes.
+
+The lesson is not that the first fix was bad. It is that **a fix inherits the
+imagination of the person who wrote it**, exactly as the original code did. The
+first round found the holes in the gate's threat model; the second round found
+the holes in the *fix's* threat model. There is no reason to think a third
+sweep would come back empty — and that is precisely why the adversary now lives
+in the test suite rather than in a report.
+
+## The corpus, again, as the fix's own adversary
+
+The repair for the absence leak went through two designs. The first counted how
+many of the negated subject's content words appeared in the session's queries,
+and demanded half of them. It closed the attack. It also flipped corpus row q37
+— *"There is no antidote approved for the toxin in current guidelines"*, a
+**labeled-grounded** claim, backed by two genuinely targeted searches — into a
+false alarm, because the rule was counting adjectives ("approved", "current")
+that no researcher would ever type into a search box, and because the claim
+said "guidelines" where the query said "guideline".
+
+Fifty-two rows of labeled clay caught it in a byte-diff, before a commit
+existed.
+
+The tempting repair was to lower the coverage threshold from 0.5 to 0.4 — one
+character, tests green, everybody home. That is threshold-fitting: tuning a
+constant until a single row behaves, with n=1 of evidence and no principle
+underneath. The actual repair was to change what the rule *means* — a query
+must carry the subject's head noun **and at least one other content word of the
+subject**, with plural stemming so "guidelines" meets "guideline". That rule
+distinguishes *the session searched for this thing* from *the session used this
+word*, which is the property the fix was always reaching for. q37 grounds. The
+streaming-ingest fabrication does not. And q30 — a **labeled violation** the
+gate had been wrongly certifying since before any of this began — flipped to a
+violation verdict on its own, unasked.
+
+The moat is measured now, not assumed. It is also, still, younger than its
+promise.

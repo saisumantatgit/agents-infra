@@ -82,12 +82,12 @@ All text fields are NFKC-normalized before matching.
 | Verdict | Meaning |
 |---|---|
 | `GROUNDED` | Claim supported by a verbatim source via T1 or T2 (or is a NON_CLAIM) |
-| `ABSENCE_SUPPORTED` | Absence claim backed by ≥2 distinct queries targeting the subject |
+| `ABSENCE_SUPPORTED` | Absence claim backed by ≥2 distinct queries that each carry every strong anchor (capitalized entity / numeric token) of the negated subject plus its head noun — or, for entity-free subjects, a head noun that is not a majority corpus word (2026-07-12 fix) |
 | `UNGROUNDED` | Verbatim sources exist but neither T1 nor T2 finds support |
 | `UNCITED` | Claim carries no citation markers |
 | `UNVERIFIED_CITATION` | Citation marker present but the source_id is absent from the store |
-| `UNVERIFIED_NUMBER` | NUMERIC claim whose number does not match any source (value + unit both checked) |
-| `UNVERIFIED_ABSENCE` | Absence claim with fewer than 2 distinct queries mentioning the subject |
+| `UNVERIFIED_NUMBER` | NUMERIC claim whose number does not match any source — value, unit, and (when the claim states one) the rate qualifier ("per second"/"/min" etc.) must all match (2026-07-12 fix) |
+| `UNVERIFIED_ABSENCE` | Absence claim where fewer than 2 distinct queries carry every strong anchor + head noun of the subject, or (entity-free subject, ≥3 distinct queries) the head noun is a non-discriminating majority-corpus word (2026-07-12 fix) |
 | `UNVERIFIED_RELATION` | Relational claim ("A causes B") without 2 distinct verbatim sources (one per side) |
 | `UNGROUNDABLE` | All cited sources have `full_text_source != "verbatim"` (e.g. haiku_summary), or source text is empty |
 
@@ -111,9 +111,9 @@ from the scored denominator.
 
 **T1 — Verbatim:** A contiguous span of ≥8 casefolded NFKC tokens from the claim appears in the source. Citation markers stripped before tokenizing.
 
-**T2 — Lexical-F1:** Content-word F1 between the claim and the best ±2-sentence window of a source is ≥ 0.65, AND every numeric token in the claim is present in that window. Stop words excluded from F1 computation.
+**T2 — Lexical-F1:** Content-word F1 between the claim and the best ±2-sentence window of a source is ≥ `lex_tau`, AND every numeric token in the claim is present in that window. Stop words excluded from F1 computation. **`lex_tau` ships at 0.65**; CR-001 calibrated 0.71 on n=12 but that value is not yet deployed (OI-CAL-01 — pending ratification of the n=52 gold labels, which supersede it).
 
-Tiers run **only** on sources with `full_text_source == "verbatim"`. NUMERIC claims additionally pass through `numeric_ok()` before T1/T2: the claim's numeric expression must match a source expression in both value and unit (25% ≠ bare 25; $4M ≡ $4,000,000).
+Tiers run **only** on sources with `full_text_source == "verbatim"`. NUMERIC claims additionally pass through `numeric_ok()` before T1/T2: the claim's numeric expression must match a source expression in both value and unit (25% ≠ bare 25; $4M ≡ $4,000,000). When the claim states a rate qualifier ("per second", "/min", etc.), the matching source mention must carry the SAME qualifier — a bare or differently-qualified occurrence fails closed (2026-07-12 fix).
 
 ---
 

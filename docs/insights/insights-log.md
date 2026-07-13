@@ -67,6 +67,70 @@ rule and INS-098 (adversarial review finds the adjacent hole).
 - [ ] Root `CLAUDE.md` Conventions — candidate cross-cutting rule ("ship the
       adversary as a regression tripwire") after a second validating instance.
 
+### [2026-07-14] A fix inherits the imagination of whoever wrote it — red-team the fix
+
+**Category:** principle
+**Source:** session observation (red-team round 2 against round 1's fixes)
+**Products affected:** Assure (generalizes to any verification/safety gate)
+
+**Insight:**
+A fix is normally verified against the attack that motivated it, which tests
+whether the fix stops *that* attack — not what the fix actually *checks*. Round 1
+closed "128000 operations per minute"; the gate then certified "each minute",
+"every minute", "a minute", "per-minute", "hourly", the qualifier placed before
+the number, and a Cyrillic homoglyph in "рer" — nine phrasings, fourteen wrongful
+PASSes, all against a fix that was real. The corollary is a scheduling rule, not
+a coding one: **the adversarial sweep must be re-run after the remediation, not
+only before it**, and the adversary should live in the suite (permanent guards),
+because there is no reason to think round three comes back empty.
+Sub-lesson (homoglyph): NFKC does NOT fold Cyrillic 'р'→'p'. A homoglyph did not
+defeat the rate check — it made the rate *invisible*, and an unread qualifier
+fell back to "no rate asserted." **Audit what your extractor does when it fails
+to extract**; a fail-open fallback inside a fail-closed gate is a hole shaped
+exactly like the thing you thought you were checking.
+
+**Evidence:**
+2026-07-14: 22 drafts / 6 attack families against the post-remediation gate;
+14 wrongful PASSes hand-reproduced. Recorded as AA-MOAT-R2-001..003 (fixed) and
+AA-MOAT-007 (open) in `Agent-Assure/docs/open-issues/OPEN-ISSUES.md`; guards in
+`tests/red_team_moat/test_moat_red_team_r2.py`; narrative in CN-ADR005 "Round Two".
+
+**Graduation target:**
+- [ ] Root `CLAUDE.md` Conventions — landed this session ("A fix to the moat gets
+      red-teamed too"); promote to HQ cross-project insights after a second instance.
+
+### [2026-07-14] Threshold-fitting wears the costume of a bug fix
+
+**Category:** anti-pattern
+**Source:** session observation (absence-rule repair, corpus row q37)
+**Products affected:** Assure; any thresholded classifier or gate
+
+**Insight:**
+When a validation corpus rejects your new rule on one row, the cheapest repair is
+almost always to move a constant — and it is almost always wrong. My subject-
+coverage rule (">=50% of the negated subject's content words must appear in a
+query") closed the attack but flipped a labeled-GROUNDED row to a false alarm,
+because it was counting adjectives no researcher would ever type. Lowering 0.5 to
+0.4 would have turned every test green in one character, leaving a rule fitted to
+exactly two examples and principled about nothing. The tell: **the constant had no
+meaning I could state in a sentence.** Rewriting the rule's *semantics* — head
+noun plus one corroborating content word, with plural stemming — cost twenty
+minutes and generalizes to cases not yet seen. Distinguish "the session searched
+for this thing" from "the session used this word"; a fraction cannot express that,
+so no value of the fraction was ever going to be right.
+
+**Evidence:**
+2026-07-14, corpus q37 ("There is no antidote approved for the toxin in current
+guidelines", labeled grounded, backed by two targeted searches) flipped to
+UNVERIFIED_ABSENCE under the coverage rule; restored by the semantic rewrite,
+with the attack (streaming-ingest fabrication) still dying. Final corpus drift:
+2 rows, both improvements. See CN-ADR005 "The corpus, again, as the fix's own
+adversary".
+
+**Graduation target:**
+- [ ] `SOUL.md` Anti-Patterns — candidate ("tuning a constant until the corpus
+      agrees") after a second instance.
+
 <!-- Graduated insights log:
      (record destination when an insight is promoted)
 -->

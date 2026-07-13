@@ -265,3 +265,36 @@ def test_entity_free_two_query_session_status_quo():
         "changelog release notes",
     ]
     assert check_absence(claim, queries) == Verdict.ABSENCE_SUPPORTED
+
+
+# ---------------------------------------------------------------------------
+# Subject-specificity rule (round 2, 2026-07-14): an entity-free subject that
+# is SPECIFIC (>=3 content words) needs a corroborating content word in the
+# query, not just its head noun.
+# ---------------------------------------------------------------------------
+
+def test_specific_entity_free_subject_needs_corroborating_word():
+    """'no benchmark for the streaming ingest workload' is NOT evidenced by a
+    session that only ever searched the word 'benchmark' (AA-MOAT-R2-003)."""
+    claim = absence_claim("There is no benchmark for the streaming ingest workload.")
+    queries = ["redis benchmark throughput", "postgresql write throughput benchmark"]
+    assert check_absence(claim, queries) == Verdict.UNVERIFIED_ABSENCE
+
+
+def test_specific_subject_supported_when_corroborated():
+    """Error-A guard (corpus q37): a genuinely targeted absence still passes —
+    'no antidote approved for the toxin' backed by two antidote+toxin searches.
+    Also proves plural stemming ('guidelines' vs query 'guideline')."""
+    claim = absence_claim(
+        "There is no antidote approved for the toxin in current guidelines."
+    )
+    queries = ["toxin antidote guideline search", "antidote literature review toxin"]
+    assert check_absence(claim, queries) == Verdict.ABSENCE_SUPPORTED
+
+
+def test_short_entity_free_subject_needs_only_head_noun():
+    """A 2-content-word subject ('no changelog available') is not 'specific';
+    the head noun alone still evidences it."""
+    claim = absence_claim("There is no changelog available.")
+    queries = ["project changelog location", "changelog release notes"]
+    assert check_absence(claim, queries) == Verdict.ABSENCE_SUPPORTED

@@ -100,13 +100,15 @@ The JSON report carries:
 
 ### 4. Present the result
 
-**PASS** — "Grounding gate: PASS (score N ≥ threshold, no fabricated citations).
-Every scored claim traces to a captured source."
+**PASS** — "Grounding gate: PASS (score N ≥ threshold, empty retained-violation
+appendix). Every scored claim traces to a captured source."
 
 **NEEDS_WORK / FAIL** — present the failing claims as a table (claim, verdict,
 why), grouped by verdict. Lead with any `UNVERIFIED_CITATION` — those are
 citations to sources that were never retrieved (fabricated), the highest-severity
-failure; they cap the gate at NEEDS_WORK regardless of score. See
+failure. Under ADR-005 (2026-07-12), ANY retained violation-class verdict —
+not just `UNVERIFIED_CITATION` — caps the gate at NEEDS_WORK regardless of
+score; PASS requires zero retained violations. See
 [references/grounding-failure-types.md](../../references/grounding-failure-types.md)
 for what each verdict means and how to remediate.
 
@@ -130,16 +132,18 @@ after the sentence-final period is parsed as its own segment and detaches from i
 claim (which then reads as UNCITED). This is fail-safe (it over-flags, never
 under-flags), but note it when a draft's claims come back UNCITED unexpectedly.
 
-## Verdict → gate summary
+## Verdict → gate summary (ADR-005 semantics, accepted 2026-07-12)
 
 | Gate | Condition |
 |---|---|
-| PASS | score ≥ threshold AND zero `UNVERIFIED_CITATION` |
-| NEEDS_WORK | score ≥ 60 AND (below threshold OR any `UNVERIFIED_CITATION` OR vacuous) |
-| FAIL | score < 60 — checked FIRST, so a sub-60 score is FAIL even with an `UNVERIFIED_CITATION` |
+| PASS | **empty retained-violation appendix** (zero violation-class verdicts) AND score ≥ threshold |
+| NEEDS_WORK | score ≥ 60 AND (any retained violation OR below threshold OR vacuous) |
+| FAIL | score < 60 — checked FIRST, so a sub-60 score is FAIL even when other overrides apply |
 
-NON_CLAIM statements (headers, questions, pure opinion) are excluded from the
-scored denominator.
+PASS means **every scored claim is grounded**, not "at least threshold% are" —
+one retained violation caps the gate at NEEDS_WORK regardless of score. The
+score threshold (default 90) is a secondary bar. NON_CLAIM statements (headers,
+questions, pure opinion) are excluded from the scored denominator.
 
 ## References
 

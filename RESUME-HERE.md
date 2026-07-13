@@ -1,50 +1,45 @@
 # RESUME HERE — Agent-Assure Calibration Workspace
 
-**Last session:** 2026-07-12 (moat red-team adjudication: ADR-005 accepted + 4 of 6 Error-B holes fixed).
-**Authoritative handoff:** `docs/logbook/2026-07-12-moat-remediation.md` — read it first; this file is the quick-start pointer, not the record. (The red-team *discovery* record is `docs/logbook/2026-07-12-moat-red-team-sweep.md`.)
-**Branch:** `agent-assure-calibration-run` (pushed; this directory is a git **worktree** of agents-infra). **Tree:** clean at close. **Suite:** 351 passed + 2 xfailed (`cd Agent-Assure && uv run pytest`) — the 2 xfails are OPEN moat items, deliberately red.
+**Last session:** 2026-07-14 (autonomous night: red-team round 2 — the 07-12 fixes were evaded 14 ways; 3 closed, 1 escalated; OI-CITE-01 + OI-CAL-02 closed; α4 READY).
+**Authoritative handoff:** `docs/logbook/2026-07-14-red-team-round-2.md` — read it first; this file is the quick-start pointer, not the record.
+**Branch:** `agent-assure-calibration-run` (pushed; this directory is a git **worktree** of agents-infra). **Tree:** clean at close. **Suite:** 379 passed + 3 xfailed — the 3 xfails are OPEN moat items, deliberately red.
 
 ## Orientation (5 minutes)
 
-1. Read `CLAUDE.md` (root) — the operating manual; Failure Modes and Escalation sections are binding. Gate semantics changed 2026-07-12 (ADR-005): PASS = empty retained appendix; score ≥90 is a secondary bar.
-2. Read the latest logbook entry (above).
-3. `ls inbox/pending/` — one P1 item is waiting on **Sai**, not on you.
-4. Verify before trusting: `git status` + `uv run pytest` (expect 351 passed + 2 xfailed). If either disagrees with this file, the artifacts win — investigate before building.
+1. `cd Agent-Assure && uv sync --extra dev && uv run pytest` → expect **379 passed + 3 xfailed**. **`uv sync --extra dev` is not optional** — without it pytest silently resolves to a GLOBAL pytest and shows ~46 bogus failures (OI-ENV-01).
+2. Read `CLAUDE.md` (root) — the operating manual. Gate semantics: ADR-005 (PASS = empty retained appendix). `lex_tau` **runs at 0.65**, not CR-001's 0.71 (OI-CAL-01 — your call).
+3. Read the latest logbook (above) and `Agent-Assure/docs/open-issues/OPEN-ISSUES.md`.
+4. `ls inbox/pending/` — one P1 item still waits on **you**, not on the next session.
+
+## Six decisions waiting for you (nothing below is blocked on anything else)
+
+| # | Decision | Where | One-line context |
+|---|---|---|---|
+| 1 | **Ratify gold labels** (30–45 min) | inbox P1 + `calibration/RATIFICATION-BRIEF-v2.md` | Unblocks α2/CR-002 → α3 → α5. Package UNCHANGED by all recent work. **Do OI-CAL-02's sibling check first: never run `build_corpus_v2` after ratifying without `--features-only`** (now guarded, but know why). |
+| 2 | **AA-MOAT-007** | OPEN-ISSUES | A verbless fabrication ("Redis: unquestionably the fastest datastore in history.") classifies NON_CLAIM → escapes scoring → rides inside a PASS. Score verbless assertions as claims (raises Error-A on headers), or leave it? |
+| 3 | **OI-CAL-01** | OPEN-ISSUES | Deploy CR-001's lex_tau=0.71 now, or hold at the shipped 0.65 until CR-002 supersedes it? |
+| 4 | **ADR-004 / Phase-2b (NLI)** | `docs/plans/ADR-004-DECISION-PACKAGE.md` | Under ADR-005, a T3 upgrade removes a claim from the appendix and so CAN create a PASS — contradicting "T3 never creates a PASS". 4 options with Error-A/B analysis; recommendation = Option 4. |
+| 5 | **AA-MOAT-003 / -005** | OPEN-ISSUES | Still deferred by your 07-12 ruling (T1 overreach → fold into 2b?; relational predicate → own decision). |
+| 6 | **OI-ENV-01** | OPEN-ISSUES | Make `install.sh` provision dev deps, or fail loud when pytest resolves outside `.venv`? |
 
 ## State snapshot
 
 | Thing | State |
 |---|---|
-| Phase 1 (gate + capture hook + plugin) | COMPLETE, merged |
+| Phase 1 (gate + capture + plugin) | COMPLETE |
 | Demo | **READY** — `Agent-Assure/demo/DEMO-SCRIPT.md`, golden-tested, offline |
-| 2c calibration harness | Built; bootstrap CR-001: lex_tau=0.71, held-out Error-B=0.143 (n=12, provisional). Corpus-v2 verified byte-identical post-moat-fixes — CR-001 stands |
-| Moat (red-team cohort) | 6 Error-B holes found 2026-07-12; **4 FIXED** (ADR-005 dilution ×2, numeric unit, absence anchoring) with permanent green guards; **2 OPEN by Sai's ruling** (AA-MOAT-003 T1 overreach, AA-MOAT-005 relational predicate) as strict xfails. See `Agent-Assure/docs/open-issues/OPEN-ISSUES.md` |
-| α1 ratification package | DELIVERED — `calibration/labeling-v2.csv` (n=52, all `candidate`, UNCHANGED by the fixes), brief at `calibration/RATIFICATION-BRIEF-v2.md` |
-| α2 calibration v2 (CR-002) | **BLOCKED on Sai** ratifying labels (inbox P1). CR-002 will also calibrate the ADR-005 secondary score bar |
-| 2b NLI tier (α3) | Not started; AA-MOAT-003 (+ absence-stemming / quantity-noun residuals) should ride with its design |
-| α5 sign-off | Blocked until AA-MOAT-003/-005 close (or Sai explicitly accepts them as documented residual risk) |
-| Skills | `.claude/skills/`: assure-calibrate, assure-red-team, assure-slice |
-| Plans | `docs/plans/`: HANDOFF-MASTER-PLAN, ALPHA-READINESS-PLAN (α0–α5), DEMO-READINESS-PLAN, LANE-A spec, LANE-B portfolio audit |
-
-## Decisions awaiting Sai (do NOT decide these yourself)
-
-1. Ratify/correct `labeling-v2.csv`, flip `label_status` → `gold` (inbox P1; 30–45 min with the brief; package unchanged by the moat fixes).
-2. AA-MOAT-003 (T1 verbatim overreach) — fix now, or fold into Phase-2b NLI design? AA-MOAT-005 (relational predicate) — needs its own decision; softest fixture, probe `unsupported-relation_3` first.
-3. Does the 2026-07-03 live capture run close the Phase-1b live-validation gate? Do not infer.
-4. Error-B monotonicity floor: keep 0.143 (n=12) or re-anchor at first ≥n=50 ratified run.
-5. Lane B commercial half: supply `Temp-DDmmm-Consulting.md` (template in `docs/plans/LANE-B-PORTFOLIO-AUDIT.md`, final section).
-
-## Next actions when unblocked
-
-- Labels ratified → invoke skill **`assure-calibrate`** → CR-002 (lex_tau + the ADR-005 secondary bar) → update stale "provisional" citations repo-wide.
-- Then Phase α3 (2b NLI tier) via skill **`assure-slice`**, folding in the AA-MOAT-003 decision → CR-003 re-calibration after NLI lands.
-- Then α4 second-repo install validation, α5 Opus whole-branch sign-off (needs the 2 open moat items closed or accepted).
+| α4 second-repo install | **READY (with caveats)** — `Agent-Assure/docs/alpha/ALPHA4-INSTALL-VALIDATION-2026-07-14.md`; fresh install → real store → genuine draft PASS → fabrication NEEDS_WORK |
+| Moat | Round 1 (07-12): 6 holes, 4 fixed. Round 2 (07-14): 14 wrongful PASSes evading those fixes — 3 mechanisms fixed, AA-MOAT-007 open. **Guards permanent** in `tests/red_team_moat/` |
+| Calibration | CR-001 (lex_tau 0.71 recommended, n=12) **re-run post-fix, reproduces byte-identically**. Corpus drift after tier changes: 2 rows, both improvements. Labels: 12 + 52, all intact, now **guarded against clobbering** (OI-CAL-02) |
+| α2 / CR-002 | **BLOCKED on your ratification** (decision #1) |
+| α5 sign-off | Blocked until AA-MOAT-003/-005/-007 close or are explicitly accepted as residual risk |
 
 ## Already done — do NOT redo
 
-Demo golden tests + script; CLAUDE.md rewrite; the 3 skills; corpus v2 + candidate labels; gold-only loader gate; portfolio audit (all `26a035a`). Red-team sweep + 6 findings recorded/hardened (`51b3d02`). ADR-005 implementation + numeric-unit + absence-anchoring fixes, guards, doc sync (this session — see latest logbook for commit).
+Demo + golden tests; CLAUDE.md operating manual; 3 skills; corpus v2 + candidate labels; gold-only loader gate; portfolio audit (`26a035a`). Round-1 red-team + 6 findings (`51b3d02`). ADR-005 + numeric-unit + absence fixes (`6624e85`). Round-2 fixes, OI-CITE-01, OI-CAL-02 guard, α4, ADR-004 package, doc conformance (this session). Verification evidence in `docs/plans/reports/`.
 
-## Open systemic items
+## Standing discipline (learned the hard way, twice)
 
-- Citation regex rejects letter-suffixed source IDs (`[S12a]`) silently — the *dilution* half is closed by ADR-005 (AA-MOAT-006 guard); the *classification* half (regex widening, OI-CITE-01) still open; reference build exists on the wrong base (OI-BUILD-01: rebase before trusting). Use `S\d+` IDs in new fixtures until fixed.
-- Absence anchors don't stem ("docs" ≠ "documentation"); numeric quantity-nouns not compared ("operations" vs "gigabytes") — recorded residuals in OPEN-ISSUES, ride with Phase-2b.
+- **Regenerate the calibration corpus and diff it after ANY classify/tiers/score change** — use `uv run python -m calibration.build_corpus_v2 --features-only`. It caught an Error-B leak (q22, round 1) and an Error-A regression (q37, round 2) before either could be committed.
+- **Never tune a constant to make one corpus row pass.** Change the rule's meaning. (See the q37 story in the logbook / CN-ADR005.)
+- **Re-run the red-team sweep after every remediation** — round 2 found 14 holes in round 1's fixes.

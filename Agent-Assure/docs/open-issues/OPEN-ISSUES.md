@@ -164,6 +164,50 @@ Phase-2b decision.
 
 ---
 
+## Cohort: 2026-07-14 red-team round 2 — evasions of the 2026-07-12 fixes
+
+The round-1 fixes were REAL but NARROW. A second sweep (22 drafts, 6 attack
+families) against the FIXED gate found 14 wrongful PASSes; every one was
+hand-reproduced before being recorded. Full report:
+`docs/plans/reports/RED-TEAM-R2-2026-07-14.md`.
+
+| ID | Class | Severity | Status |
+|----|-------|----------|--------|
+| AA-MOAT-R2-001 | rate-qualifier evasion (9 phrasings: each/every/a/one `<unit>`, hyphenated `per-minute`, adverbial `hourly`, qualifier before the number or >2 words after it, **Cyrillic homoglyph `рer`**) | Error-B | **FIXED 2026-07-14** |
+| AA-MOAT-R2-002 | quantity-noun swap (`128000 gigabytes/sec` grounded by `128000 operations/sec`) | Error-B | **FIXED 2026-07-14** |
+| AA-MOAT-R2-003 | absence leak: entity-free subject supported by a generic head noun in a <3-query session | Error-B | **FIXED 2026-07-14** |
+| **AA-MOAT-007** | **verbless NON_CLAIM smuggling** — "Redis: unquestionably the fastest datastore in all of human history." classifies `NON_CLAIM` (no finite verb), is excluded from the scored denominator, and rides inside a PASS | Error-B | **OPEN — blocked on Sai (Escalation #1)** |
+
+**Scope discipline.** The three FIXED items COMPLETE Sai's 2026-07-12 rulings
+(AA-MOAT-001: "compare value AND dimensional unit; fail-closed on any
+unit/quantity mismatch"; AA-MOAT-004: "anchor absence on discriminating
+tokens") — the round-1 implementation under-delivered them. **AA-MOAT-007 is a
+NEW decision** (it changes *what counts as a claim*, moving the Error-A/Error-B
+trade-off) and is therefore RECORDED, NOT FIXED, with a strict-xfail tripwire
+(`tests/red_team_moat/test_moat_red_team_r2.py::test_verbless_nonclaim_smuggle_must_not_pass`).
+
+**Sai's call on AA-MOAT-007:** should a verbless, citation-free assertion
+("X: the greatest Y in history.") be scored as a claim (→ UNCITED → blocks
+PASS), or remain NON_CLAIM? Scoring it raises Error-A on genuine headers and
+transition lines; leaving it open keeps a fabrication vector that requires only
+dropping the verb.
+
+**Closure evidence:** 11 round-2 guards proven red pre-fix, now green
+(`test_moat_red_team_r2.py`); suite 366 passed + 3 xfailed. **Corpus check
+(the fix's own adversary, again):** regeneration flipped THREE rows — two
+*improvements* (q30, a labeled violation the gate had wrongly called
+ABSENCE_SUPPORTED, now reads UNVERIFIED_ABSENCE — the gate now agrees with the
+human label; q29, "4,200 patients" grounded by "4,200 units", now correctly
+UNVERIFIED_NUMBER via the quantity comparison) and one *Error-A regression*
+(q37, a labeled-grounded absence, flipped to a false alarm because the first
+coverage rule counted adjectives no query would carry). The regression was
+fixed by design — head noun + one corroborating content word, with plural
+stemming — not by tuning the threshold to fit the case. Final drift: 2 rows,
+both improvements. **CR-001 re-run after the tier changes reproduces
+byte-identically** (lex_tau=0.71, held-out Error-A=0.20, Error-B=0.143).
+
+---
+
 ## Non-blocking / hygiene
 
 - **OI-BUILD-01 — build worktrees on the wrong base.** The two sweep builds
@@ -173,7 +217,54 @@ Phase-2b decision.
   `agent-assure-calibration-run` and re-verified before any merge. Reference
   material, not mergeable as-is. Worktrees live under
   `agents-infra/.claude/worktrees/wf_f5845e10-a39-{16,17}`.
-- **OI-CITE-01 — citation regex declassifies letter-suffixed IDs** (`[S12a]`
-  fails `S\d+`). Classification half of AA-MOAT-006; reference fix exists
-  (worktree -16). Systemic, but recoverable (fail-safe to UNCITED today), so not
-  Error-B on its own. Rebase + re-verify before merge.
+- **OI-CITE-01 — citation regex declassifies letter-suffixed IDs** —
+  **FIXED 2026-07-14** on-branch (not by rebasing worktree -16): `_CITATION_RE`
+  widened to `S\d+[a-zA-Z]*`. Red-first proven (4 tests failing pre-fix,
+  `tests/test_letter_suffixed_citations.py`; red output in the 2026-07-14
+  logbook). `[S1a]` now classifies as a citation → resolves or reads the
+  precise `UNVERIFIED_CITATION`; bracket digits no longer leak into
+  numeric_tokens. Corpus-v2 regeneration byte-identical. The "use `S\d+` IDs
+  only" fixture restriction is lifted.
+- **OI-CAL-01 — lex_tau cross-artifact drift (0.65 shipped vs 0.71 calibrated).**
+  Found 2026-07-14 by direct trace: the CLI exposes no lex_tau parameter and
+  `t2_lexical` defaults to **0.65** (spec provisional) — that is what the gate
+  RUNS. CR-001's chosen operating point (**0.71**, n=12, held-out) was recorded
+  but never deployed, while CLAUDE.md/memory/RESUME-HERE present 0.71 as "the"
+  lex_tau. Deploying 0.71 moves the live Error-A/Error-B operating point →
+  Escalation rule #1 → **Sai's one-line call: deploy 0.71 now (per CR-001), or
+  hold at 0.65 until the n=52 gold run (CR-002) supersedes it?** (CR-002 makes
+  this moot if ratification lands first.) Until ruled: docs corrected to say
+  "runs at 0.65; CR-001 recommends 0.71, undeployed."
+- **OI-ENV-01 (HIGH — onboarding trap, found in α4).** On a checkout provisioned
+  by `install.sh` alone, `uv run pytest` silently falls back to an unrelated
+  GLOBAL pytest (`~/.pyenv/shims/pytest`) and reports ~46 bogus
+  `ModuleNotFoundError` failures. The fix is `uv sync --extra dev` (351 passed
+  after) — but a first-time user sees a broken-looking suite. Options: make
+  `install.sh` provision dev deps, or fail loud when pytest resolves outside
+  the project `.venv`. Evidence:
+  `docs/alpha/ALPHA4-INSTALL-VALIDATION-2026-07-14.md` F-1.
+- **OI-DEC-01 (MEDIUM — decomposition, found in α4).** The conjunction splitter
+  detaches a citation from an earlier clause in compound sentences (aggravated
+  by a plural-noun false positive in the verb-like heuristic), and `syntok`
+  occasionally merges two differently-cited sentences into one claim on a
+  `(:NNNN).` punctuation pattern. Both are reproducible; both are fail-safe
+  today (they produce UNCITED / conservative verdicts, i.e. Error-A, not
+  Error-B), so they are hygiene, not moat. Evidence: α4 report F-2/F-3.
+- **OI-CAL-02 (HIGH — data-loss hazard).** `calibration/build_corpus.py`
+  regenerates `labeling.csv` and **blanks its `human_label` column**. Running
+  the builder destroys ratified labels — audit evidence that cannot be
+  regenerated. Hit live on 2026-07-14 (bootstrap n=12 labels wiped; the
+  fail-loud loader refused to calibrate on blanks and the file was restored
+  from git). Fix: the builder must refuse to overwrite a labeling CSV that
+  carries any non-empty `human_label` (write to a `.new` file and fail loud),
+  or write labels only when the target does not exist. Applies to
+  `build_corpus_v2.py` / `labeling-v2.csv` too — **it will destroy Sai's gold
+  labels the first time anyone regenerates the corpus after ratification.**
+  Sequence this BEFORE α2/CR-002.
+- **OI-NUM-02 — numeric tokens carry a trailing space** when no suffix follows
+  (`_NUMERIC_RE`'s optional `\s?`): `"5000000 "` not `"5000000"`. Downstream
+  parsing strips it, but the raw token feeds T2's numeric-presence window check
+  (`token in window_text`), where a space-suffixed token can miss a
+  sentence-final number — a small Error-A quirk. Needs its own red-first pass +
+  calibration byte-diff; not entangled with any Error-B path. Hygiene, low
+  priority.
