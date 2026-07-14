@@ -58,3 +58,7 @@ Structural set: CMM wins on precision/answer-shape; graphify recall-complete but
 - 111 dangling edges: semantic↔AST node-ID mismatch rate ≈5.6% of edges; check upstream issue tracker before adoption.
 - Self-reference: mid-pilot evidence file was swept into chunk 2's extraction (detect ran after it was written). Harmless here; on sensitive repos, freeze corpus before extraction.
 - sdist↔repo byte-diff not performed (Gate 0 residual risk, low).
+
+## Amendments
+
+- **2026-07-14 (post-review):** HQ re-adjudication (TDR-001 approval block) downgraded G6 CORRECT→PARTIAL — the answer links plan→PIR-001→AAR-002 without hallucinating but never states the plan's target code is the out-of-corpus plugin suite, and its test-cluster linkage points at Agent-Assure tests, not the plan's actual targets. Accepted on evidence by the executing session (independent evaluation, not deference). Semantic set becomes 1 CORRECT + 2 PARTIAL vs CMM 0/3; **PASS upheld** under the TDR criterion as written (G4 decisive; G5/G6 materially better than noise).
