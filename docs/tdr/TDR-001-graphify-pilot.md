@@ -75,4 +75,4 @@ Remove graphify install + generated `graph.json`/index artifacts; delete any MCP
 ## Approval Block
 
 - [x] Approved to execute — Sai, 2026-07-12 ("I am approving the Pilot B as designed, on agents-infra"), including contingent iVal extension ("i am also approving ival_2.0 graphify") gated on Gate 1 + pilot PASS.
-- [ ] CR-001 reviewed and closed.
+- [x] CR-001 reviewed and closed — HQ session, 2026-07-14. Independent re-adjudication of the semantic set: CMM 0/3 **reproduced live** (G4 BM25 re-run → test-function noise; G5 cosine re-run → scores ≈ −0.04 to −0.06, noise-level). One delta: G6 downgraded CORRECT→PARTIAL (output links plan→PIR-001→AAR-002 without hallucinating, but never states the plan's target code is the out-of-corpus plugin suite — the ground truth's required element; also the G1-dump-→PARTIAL burial standard applied consistently would score G4/G6 dumps stricter). **PASS upheld** under the TDR criterion as written ("answers what CMM cannot on ≥2 of 3"): G4 decisive, G6 materially better than noise. GEMINI_API_KEY guard independently verified as a real hazard on this machine (key present in fresh shell).
