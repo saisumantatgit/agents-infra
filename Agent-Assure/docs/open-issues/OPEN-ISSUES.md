@@ -250,7 +250,20 @@ byte-identically** (lex_tau=0.71, held-out Error-A=0.20, Error-B=0.143).
   `(:NNNN).` punctuation pattern. Both are reproducible; both are fail-safe
   today (they produce UNCITED / conservative verdicts, i.e. Error-A, not
   Error-B), so they are hygiene, not moat. Evidence: α4 report F-2/F-3.
-- **OI-CAL-02 (HIGH — data-loss hazard).** `calibration/build_corpus.py`
+- **OI-CAL-03 (systemic root of OI-CAL-02 — open).** The labeling CSV
+  **co-locates machine-generated scaffolding** (`claim_id`, `claim_text`,
+  `evidence`) **with irreplaceable human judgment** (`human_label`) in one file
+  **owned by a generator**. The OI-CAL-02 guard closes the destruction class but
+  makes a labeled corpus *immutable* — it cannot be extended after ratification
+  without a manual merge (a limitation accepted knowingly, traded against silent
+  destruction). Systemic fix: **separation** — the generator writes the scaffold;
+  labels live in their own append-only file joined by `claim_id`, so
+  "regenerate the corpus" and "preserve the judgment" stop being the same
+  operation. **Sequence this before any post-ratification corpus change.**
+  Full analysis: PIR-002; narrative: CN-PIR002.
+- **OI-CAL-02 (HIGH — data-loss hazard) — FIXED 2026-07-14** (`assert_labels_not_clobbered`
+  + `--features-only`; red-first; verified live against the 12 + 52 labeled rows).
+  Root cause remains open as OI-CAL-03. Original description: `calibration/build_corpus.py`
   regenerates `labeling.csv` and **blanks its `human_label` column**. Running
   the builder destroys ratified labels — audit evidence that cannot be
   regenerated. Hit live on 2026-07-14 (bootstrap n=12 labels wiped; the

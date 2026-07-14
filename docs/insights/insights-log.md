@@ -67,6 +67,46 @@ rule and INS-098 (adversarial review finds the adjacent hole).
 - [ ] Root `CLAUDE.md` Conventions — candidate cross-cutting rule ("ship the
       adversary as a regression tripwire") after a second validating instance.
 
+### [2026-07-14] Artifacts have the same asymmetry as verdicts — classify them derived vs authored
+
+**Category:** principle
+**Source:** incident (PIR-002 — corpus builder blanked the human labels)
+**Products affected:** Assure; any project with a human-in-the-loop data asset
+
+**Insight:**
+Every artifact a toolchain writes is either **derived** (the machine can remake it,
+identically — feature rows, reports, scores) or **authored** (a human made it; only
+a human can remake it — labels, ratifications, annotations). The two have the same
+recoverable/unrecoverable asymmetry that this project reasons about obsessively for
+*verdicts* (Error-A vs Error-B) — and we had never once applied that reasoning to
+*files*. A template generator, written before any labels existed, blanked the
+`human_label` column of the twelve labels CR-001 rests on; it was doing exactly what
+it was written to do. **The question no generator's author asks: what does this do if
+the file it is about to write already contains a human's work?** If the answer is
+"overwrite it", that is not a bug yet — it is an appointment.
+Corollary (**detection is not prevention**): what caught this was the fail-loud label
+*loader* — downstream of the destruction — plus git, plus the coincidence that the
+next command I typed happened to read the labels. Two recoveries and one piece of
+luck; zero prevention.
+Corollary (**a guard with no door gets torn out**): the guard makes a labeled corpus
+un-regenerable, which collides with the standing post-change drift-check discipline.
+Left there, the honest engineer hits the guard every time they do the right thing —
+so `--features-only` was added to make the safe path the easy path. Safety rails that
+obstruct correct work are removed by good people, not bad ones.
+
+**Evidence:**
+2026-07-14: `python -m calibration.build_corpus` blanked all 12 `human_label` cells
+(`build_corpus.py:460` writes `""` by design); `load_labels` raised on the next
+command; restored from git; CR-001 then reproduced byte-identically. Post-ratification
+the same keystroke destroys Sai's 52 gold labels (~45 min of irreproducible judgment,
+the α1 gate for all of Phase 2). Guard: `assert_labels_not_clobbered`, red-first,
+3 tests. Root cause (generator owns a file holding human input) still open as OI-CAL-03.
+
+**Graduation target:**
+- [ ] Root `CLAUDE.md` Conventions — landed ("labels are audit evidence, clobber-guarded")
+- [ ] HQ cross-project insights — strong candidate: this generalizes to any repo with
+      labeled data, annotations, or human ratifications sitting in a generated file.
+
 ### [2026-07-14] A fix inherits the imagination of whoever wrote it — red-team the fix
 
 **Category:** principle
