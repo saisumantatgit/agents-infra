@@ -250,16 +250,25 @@ byte-identically** (lex_tau=0.71, held-out Error-A=0.20, Error-B=0.143).
   `(:NNNN).` punctuation pattern. Both are reproducible; both are fail-safe
   today (they produce UNCITED / conservative verdicts, i.e. Error-A, not
   Error-B), so they are hygiene, not moat. Evidence: α4 report F-2/F-3.
-- **OI-CAL-03 (systemic root of OI-CAL-02 — open).** The labeling CSV
-  **co-locates machine-generated scaffolding** (`claim_id`, `claim_text`,
-  `evidence`) **with irreplaceable human judgment** (`human_label`) in one file
-  **owned by a generator**. The OI-CAL-02 guard closes the destruction class but
-  makes a labeled corpus *immutable* — it cannot be extended after ratification
-  without a manual merge (a limitation accepted knowingly, traded against silent
-  destruction). Systemic fix: **separation** — the generator writes the scaffold;
-  labels live in their own append-only file joined by `claim_id`, so
-  "regenerate the corpus" and "preserve the judgment" stop being the same
-  operation. **Sequence this before any post-ratification corpus change.**
+- **OI-CAL-03 (systemic root of OI-CAL-02) — FIXED 2026-07-14.** Separation
+  implemented, closing PIR-002's root cause:
+  - `calibration/labeling-v2.csv` is now a **derived SCAFFOLD** (claim, evidence,
+    candidate proposal, rationale) with **no human column**. The generator owns
+    it and regenerates it freely — a rebuild has nothing of the ratifier's to
+    destroy, **by construction rather than by guard**. The corpus is extensible
+    after ratification again (the cost the OI-CAL-02 guard had imposed).
+  - `calibration/labels-v2.csv` is the **human-owned LABELS** file. No generator
+    writes it; `python -m calibration.init_labels` creates it once and refuses to
+    overwrite. Row-aligned with the scaffold, so the brief's line numbers hold.
+  - `scripts/calibrate.py::load_gold_labels` joins them on `claim_id` and fails
+    loud on: non-gold status, bad/blank label, duplicate id, orphan label, an
+    **unlabeled** scaffold claim (silently shrinking n), and — **new property** —
+    a **STALE** label whose `claim_sha` no longer matches the claim + evidence
+    that was judged. Before OI-CAL-03 a corpus edit could silently re-point a
+    gold label at text the human never read; that hole is now closed and tested.
+  - Migration verified: 52 → 52 rows, zero labels altered, zero claim/evidence
+    text altered, every `claim_sha` validating against a freshly regenerated
+    scaffold. Tests: `tests/test_gold_labels_separation.py` (8).
   Full analysis: PIR-002; narrative: CN-PIR002.
 - **OI-CAL-02 (HIGH — data-loss hazard) — FIXED 2026-07-14** (`assert_labels_not_clobbered`
   + `--features-only`; red-first; verified live against the 12 + 52 labeled rows).

@@ -90,6 +90,15 @@ uv run python -m calibration.run_calibration   # sweep + LOO + emit CR (module f
   claim (q37, round 2) — both before commit. Byte-diff, then adjudicate every
   drifted row against its label; never tune a constant to make one row pass.
 - **Held-out numbers only** (leave-one-out, per-claim); in-sample is not a result.
+- **Sort every artifact into DERIVED or AUTHORED** (PIR-002). Derived (feature
+  rows, scaffolds, reports, CRs): the machine remakes them identically — let it.
+  Authored (human labels, ratifications): only a person can remake them, so **no
+  generator may ever write them.** They live in their own file (`labels-v2.csv`,
+  created once by `init_labels`) and are bound to what was judged by `claim_sha`
+  — the loader fails loud on a STALE label rather than re-pointing a human's
+  judgment at text they never read. Ask of any new writer: *what does this do if
+  the file already holds a human's work?* If the answer is "overwrite it", that
+  is not a bug yet — it is an appointment.
 - **`tier_sensitive` / lex_tau-invariant tagging** (`f11f8d4`, `ff24a82`):
   verdicts not governed by lex_tau must be tagged invariant or calibration
   miscounts. Any new verdict path must declare its tag.
@@ -106,7 +115,9 @@ uv run python -m calibration.run_calibration   # sweep + LOO + emit CR (module f
 | `Agent-Assure/scripts/ground_check.py` | Deterministic gate CLI — the moat |
 | `Agent-Assure/scripts/capture_hook.py`, `capture_core.py` | PostToolUse capture into the store |
 | `Agent-Assure/scripts/calibrate.py` | Pure calibration functions (metrics, sweep, LOO, emit_cr) |
-| `Agent-Assure/calibration/run_calibration.py` | Bootstrap sweep entry; `labeling.csv` holds labels |
+| `Agent-Assure/calibration/run_calibration.py` | Bootstrap sweep entry (legacy `labeling.csv`, n=12, inline labels — frozen, CR-001 depends on it) |
+| `Agent-Assure/calibration/labeling-v2.csv` | **Scaffold** — DERIVED (claim, evidence, candidate, rationale). No human column; regenerate freely |
+| `Agent-Assure/calibration/labels-v2.csv` | **Labels** — AUTHORED. Human-owned; no generator writes it. `init_labels` creates it once, refuses to overwrite |
 | `Agent-Assure/calibration/CR-001-bootstrap-lex-tau.md` | Current CR: recommends lex_tau=0.71 (n=12); gate still RUNS 0.65 — OI-CAL-01 |
 | `Agent-Assure/references/grounding-failure-types.md` | Every verdict, what it catches, how to fix |
 | `Agent-Assure/docs/PHASE2-SEQUENCING.md` | Phase 2 slice order (2c-harness → 2b → 2a → 2d) |

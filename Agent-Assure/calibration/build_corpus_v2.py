@@ -962,24 +962,28 @@ def write_labeling_v2_csv(
     cases_by_query: dict[str, CandidateCase],
     path: str,
 ) -> None:
-    """Write the CANDIDATE labeling package.
+    """Write the ratification SCAFFOLD (OI-CAL-03 / PIR-002).
 
-    Columns: claim_id, query_id, claim_text, evidence, human_label,
-    candidate_verdict, rationale, label_status.
+    Columns: claim_id, query_id, claim_text, evidence, candidate_verdict,
+    rationale. **No human column.** This file is DERIVED — the generator owns
+    it and may regenerate it freely as the corpus grows; nothing a human types
+    lives here, so a rebuild can never destroy judgment.
 
-    human_label AND candidate_verdict both carry the candidate label so a
-    ratifier edits human_label in place while candidate_verdict preserves the
-    original proposal. label_status is "candidate" on every row — the loader
-    refuses the file until Sai flips it to "gold".
+    Human labels live in their own file (`calibration/labels-v2.csv`), written
+    exactly once by `python -m calibration.init_labels` and never by any
+    generator. `load_gold_labels` joins the two on claim_id and fails loud if a
+    label has gone stale against a changed claim.
+
+    Before this split, this writer emitted `human_label` into the same file —
+    and a routine rebuild blanked twelve ratified labels (PIR-002).
 
     I/O boundary — the file write is the only side effect.
     """
-    assert_labels_not_clobbered(path)  # OI-CAL-02: never destroy human labels
     with open(path, "w", encoding="utf-8", newline="") as fh:
         writer = csv.writer(fh, quoting=csv.QUOTE_MINIMAL)
         writer.writerow([
             "claim_id", "query_id", "claim_text", "evidence",
-            "human_label", "candidate_verdict", "rationale", "label_status",
+            "candidate_verdict", "rationale",
         ])
         for row in rows:
             cc = cases_by_query[row.query_id]
@@ -989,9 +993,7 @@ def write_labeling_v2_csv(
                 row.claim_text,
                 _evidence_text(row, cc.case.store),
                 cc.candidate_label,
-                cc.candidate_label,
                 cc.rationale,
-                _LABEL_STATUS,
             ])
 
 

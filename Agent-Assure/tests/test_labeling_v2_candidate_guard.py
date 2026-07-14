@@ -24,7 +24,7 @@ from pathlib import Path
 
 import pytest
 
-from scripts.calibrate import load_labels
+from scripts.calibrate import load_gold_labels, load_labels
 
 _LABELING_V2 = Path(__file__).resolve().parents[1] / "calibration" / "labeling-v2.csv"
 
@@ -73,17 +73,25 @@ def test_load_labels_accepts_gold_status(tmp_path):
     assert labels["q2#0"].label == "violation"
 
 
-def test_real_labeling_v2_is_rejected_while_candidate():
+def test_real_labels_v2_is_rejected_while_candidate():
     """The actual α1 package is refused until ratified.
 
-    Skips (rather than fails) once Sai has flipped every row to gold, so this
-    test documents the α1 gate without breaking after ratification.
+    OI-CAL-03 moved the labels OUT of `labeling-v2.csv` (now a derived,
+    human-free scaffold) into `labels-v2.csv` (human-owned). The α1 gate is
+    unchanged in substance — calibration runs on gold only — so this test
+    follows the labels to their new home and asserts the same property against
+    the real file, via the joining loader.
+
+    Skips (rather than fails) once Sai has flipped every row to gold, so it
+    documents the gate without breaking after ratification.
     """
-    assert _LABELING_V2.exists(), f"missing {_LABELING_V2}"
-    with open(_LABELING_V2, encoding="utf-8", newline="") as fh:
+    labels_path = _LABELING_V2.parent / "labels-v2.csv"
+    assert labels_path.exists(), f"missing {labels_path}"
+    with open(labels_path, encoding="utf-8", newline="") as fh:
         statuses = {(r.get("label_status") or "").strip() for r in csv.DictReader(fh)}
     if statuses == {"gold"}:
-        pytest.skip("labeling-v2.csv already ratified (all rows gold)")
+        pytest.skip("labels-v2.csv already ratified (all rows gold)")
+
     with pytest.raises(ValueError) as exc:
-        load_labels(str(_LABELING_V2))
+        load_gold_labels(str(labels_path), str(_LABELING_V2))
     assert "gold" in str(exc.value).lower()

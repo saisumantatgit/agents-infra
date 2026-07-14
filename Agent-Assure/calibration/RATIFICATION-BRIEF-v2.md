@@ -1,7 +1,11 @@
 # Gold-Label Ratification Brief — Agent-Assure Calibration v2
 
 **For:** Sai · **From:** assure-calibration (Phase α1) · **Date:** 2026-07-08
-**Artifact:** `calibration/labeling-v2.csv` — 52 candidate claims / 52 queries
+**Revised:** 2026-07-14 — labels moved to their own file (OI-CAL-03 / PIR-002)
+**You read:** `calibration/labeling-v2.csv` (scaffold — claim, evidence, candidate, rationale)
+**You edit:** `calibration/labels-v2.csv` (labels — the ONLY file you touch)
+52 candidate claims / 52 queries · **the two files are row-aligned**, so every
+line number below is the same line in both.
 **Expected effort:** 30–45 min · **Blocks:** Phase α2 calibration run (CR-002)
 
 ---
@@ -11,8 +15,20 @@
 A widened calibration corpus (n=52, up from the n=12 bootstrap) with a
 **candidate** grounding label pre-filled on every row. Your job is not to
 label from scratch — it is to **ratify or correct** the candidate calls, then
-mark the file gold. The gate cannot calibrate on these labels until you do:
-`load_labels` refuses any row whose `label_status != gold` (fail-loud, tested).
+mark them gold. The gate cannot calibrate on these labels until you do:
+`load_gold_labels` refuses any row whose `label_status != gold` (fail-loud, tested).
+
+**Why two files (new, 2026-07-14).** Your labels are the one artifact in this
+repo no machine can reproduce, so they now live in a file **no generator may
+write** (`labels-v2.csv`). Everything the machine makes — claim text, evidence,
+the candidate proposal — stays in the regenerable scaffold (`labeling-v2.csv`).
+Before this split, rebuilding the corpus **blanked the labels**; it did exactly
+that to the n=12 bootstrap set on 2026-07-14 (PIR-002). Each label is also bound
+by a `claim_sha` to the exact claim + evidence you read: if the corpus is later
+regenerated and a claim's wording changes, the loader **fails loud on that row**
+rather than quietly re-pointing your judgment at a sentence you never saw.
+You don't have to do anything about any of this — just know that the file you
+edit is safe, and it is the only one you should edit.
 
 Class balance: **25 violation / 27 grounded (48% violation)** — comfortably
 above the 30% positive-class floor. Every failure type in
@@ -20,16 +36,19 @@ above the 30% positive-class floor. Every failure type in
 
 ## How to ratify (3 steps)
 
-1. Open `calibration/labeling-v2.csv`. Each row shows `claim_text`, the
-   `evidence` the gate would see, the `candidate_verdict`, and a one-line
-   `rationale`. The label you judge lives in **`human_label`** (pre-set equal
-   to the candidate).
-2. For each row, decide **grounded** (the evidence genuinely supports the
-   claim) or **violation** (it does not). Change `human_label` only where you
-   disagree. `candidate_verdict` and `rationale` are a frozen record — leave
-   them.
-3. When done, set **`label_status` to `gold` on every row** (find-and-replace
-   `candidate` → `gold`). Save. That flip is what unblocks α2.
+1. Open **both** files side by side. `labeling-v2.csv` (read-only for you) shows
+   each row's `claim_text`, the `evidence` the gate would see, the
+   `candidate_verdict`, and a one-line `rationale`. `labels-v2.csv` (the file
+   you edit) carries the same rows in the same order — `claim_id`,
+   `human_label` (pre-set to the candidate), `label_status`, `claim_sha`,
+   and a free-text `note`.
+2. For each row, decide **grounded** (the evidence genuinely supports the claim)
+   or **violation** (it does not). Change `human_label` in `labels-v2.csv` only
+   where you disagree. Leave `claim_sha` alone — it binds your judgment to the
+   exact text you read. Use `note` for anything you want to say to your future
+   self (or to me).
+3. When done, set **`label_status` to `gold` on every row** of `labels-v2.csv`
+   (find-and-replace `candidate` → `gold`). Save. That flip is what unblocks α2.
 
 Judge grounding as a human would: does the cited source text (or, for absence
 claims, the listed searches) actually establish the sentence? The gate's own

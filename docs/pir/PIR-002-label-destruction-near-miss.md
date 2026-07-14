@@ -135,3 +135,33 @@ treat the second like the first.
 
 Recorded in `docs/insights/insights-log.md`; narrative in
 `docs/case-narratives/CN-PIR002-The-Labels-That-Almost-Werent.md`.
+
+---
+
+## 8. Amendment — 2026-07-14: root cause closed (OI-CAL-03)
+
+§6 recorded that the guard closed the *destruction class* but not the *root
+cause*, and that the corpus had consequently become un-extendable once labeled.
+Sai directed the systemic fix the same day. It is implemented:
+
+- **Separation.** `labeling-v2.csv` is now a derived SCAFFOLD with **no human
+  column** — a rebuild is non-destructive *by construction*, not by guard, and
+  the corpus is extensible again. `labels-v2.csv` is human-owned; its only
+  writer (`calibration.init_labels`) creates it once and refuses to overwrite.
+- **Staleness binding — a property the old design could not express.** Each
+  label carries `claim_sha`, a hash of the exact claim + evidence the ratifier
+  read. `load_gold_labels` fails loud if the corpus is regenerated and a claim's
+  wording changes under a gold label, rather than silently transferring a human's
+  judgment to a sentence they never saw. **This hole existed for the whole life of
+  the project and nobody had noticed it.** It surfaced only because separating the
+  artifacts forced the question: *what binds a label to the thing it labels?*
+- **Migration verified:** 52 → 52 rows, zero labels altered, zero claim/evidence
+  text altered, every `claim_sha` validating against a freshly regenerated
+  scaffold. Suite: 387 passed + 3 xfailed.
+
+The `assert_labels_not_clobbered` guard remains in force for the **legacy**
+bootstrap file (`labeling.csv`, inline labels, frozen — CR-001 depends on it).
+
+**Standing lesson:** the guard was the right first move — it stopped the bleeding
+in minutes. But a guard that makes correct work harder is a tourniquet, not a
+cure. The cure was to remove the hazard so the guard is no longer load-bearing.

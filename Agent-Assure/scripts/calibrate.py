@@ -435,6 +435,117 @@ def load_labels(path: str) -> dict[str, HumanLabel]:
     return labels
 
 
+def load_gold_labels(
+    labels_path: str, scaffold_path: str
+) -> dict[str, HumanLabel]:
+    """Read the HUMAN-OWNED labels file and bind it to the generator-owned
+    scaffold (OI-CAL-03 / PIR-002). Returns {claim_id: HumanLabel}.
+
+    The two files are separate on purpose: the scaffold (claim text, evidence,
+    the candidate proposal) is DERIVED and freely regenerated as the corpus
+    changes; the labels are AUTHORED and no generator may write them. This
+    loader is the join, and it fails loud on every way the two can disagree:
+
+    1. **Not gold.** Any row whose ``label_status`` is not exactly ``gold``
+       (after NFKC) — a candidate label must never tune a threshold.
+    2. **Bad label.** Any ``human_label`` that is not ``grounded`` /
+       ``violation``, blank included — never silently defaulted.
+    3. **Duplicate claim_id** in the labels file — would silently discard one
+       human's judgment.
+    4. **Orphan label** — a labeled claim_id that is not in the scaffold: the
+       claim it judged no longer exists.
+    5. **Unlabeled claim** — a scaffold claim with no label row: silently
+       dropping it shrinks n and biases every threshold derived from it.
+    6. **STALE label** — the claim's text or evidence has CHANGED since the
+       human judged it (``claim_sha`` mismatch). Their verdict was about a
+       claim they can no longer be said to have read; transferring it to the
+       new wording would fabricate a human judgment. This check is the reason
+       the sha is stored, and it is a property the pre-OI-CAL-03 single-file
+       design could not express at all.
+
+    Pure apart from reading the two files.
+    """
+    from calibration.init_labels import claim_sha  # local: avoids a cycle
+
+    with open(scaffold_path, encoding="utf-8", newline="") as fh:
+        scaffold = {r["claim_id"]: r for r in csv.DictReader(fh)}
+
+    labels: dict[str, HumanLabel] = {}
+    with open(labels_path, encoding="utf-8", newline="") as fh:
+        for line_no, record in enumerate(csv.DictReader(fh), start=2):
+            claim_id = (record.get("claim_id") or "").strip()
+
+            if claim_id in labels:
+                raise ValueError(
+                    f"load_gold_labels: {labels_path!r} line {line_no} "
+                    f"duplicates claim_id {claim_id!r} — a duplicate silently "
+                    "discards the earlier row's human judgment."
+                )
+
+            status = unicodedata.normalize(
+                "NFKC", record.get("label_status") or ""
+            ).strip()
+            if status != "gold":
+                raise ValueError(
+                    f"load_gold_labels: {labels_path!r} line {line_no} "
+                    f"(claim_id={claim_id!r}) has label_status {status!r}, but "
+                    "calibration runs on gold labels only. Ratify the rows and "
+                    "flip label_status to 'gold' — a candidate (un-ratified) "
+                    "label must never tune a threshold."
+                )
+
+            label = unicodedata.normalize("NFKC", record.get("human_label") or "")
+            if label not in _ALLOWED_HUMAN_LABELS:
+                raise ValueError(
+                    f"load_gold_labels: {labels_path!r} line {line_no} "
+                    f"(claim_id={claim_id!r}) has human_label {label!r}, which "
+                    f"is not one of {sorted(_ALLOWED_HUMAN_LABELS)}. An "
+                    "unlabeled or mislabeled row is never silently defaulted."
+                )
+
+            row = scaffold.get(claim_id)
+            if row is None:
+                raise ValueError(
+                    f"load_gold_labels: {labels_path!r} line {line_no} labels "
+                    f"claim_id {claim_id!r}, which is not in the scaffold "
+                    f"{scaffold_path!r}. The claim this judgment was made "
+                    "against no longer exists — resolve by hand; never drop it "
+                    "silently."
+                )
+
+            recorded_sha = (record.get("claim_sha") or "").strip()
+            current_sha = claim_sha(row["claim_text"], row["evidence"])
+            if recorded_sha != current_sha:
+                raise ValueError(
+                    f"load_gold_labels: {labels_path!r} line {line_no} "
+                    f"(claim_id={claim_id!r}) is STALE — the claim or its "
+                    f"evidence has changed since it was judged "
+                    f"(recorded sha {recorded_sha!r}, current {current_sha!r}). "
+                    "This label was given for text the ratifier can no longer "
+                    "be said to have read; applying it to the new wording would "
+                    "fabricate a human judgment. Re-ratify this row (update its "
+                    "human_label and claim_sha) before calibrating."
+                )
+
+            raw_kind = (record.get("violation_kind") or "").strip()
+            labels[claim_id] = HumanLabel(
+                claim_id=claim_id, label=label, violation_kind=raw_kind or None
+            )
+
+    unlabeled = sorted(set(scaffold) - set(labels))
+    if unlabeled:
+        raise ValueError(
+            f"load_gold_labels: {len(unlabeled)} scaffold claim(s) have no "
+            f"label in {labels_path!r} (first: {unlabeled[0]!r}). Every claim "
+            "must be labeled before calibration — silently dropping one shrinks "
+            "n and biases every threshold derived from it. Seed missing rows "
+            "with `python -m calibration.init_labels` against a fresh labels "
+            "file, or add them by hand."
+        )
+
+    return labels
+
+
 def join_labels(
     rows: list[ClaimFeatureRow], labels: dict[str, HumanLabel]
 ) -> list[LabeledClaim]:

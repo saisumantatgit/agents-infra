@@ -56,30 +56,37 @@ def test_bootstrap_writer_refuses_to_clobber_human_labels(tmp_path):
     assert target.read_text(encoding="utf-8") == before, "labels were destroyed"
 
 
-def test_v2_writer_refuses_to_clobber_gold_labels(tmp_path):
-    """write_labeling_v2_csv must not overwrite Sai's ratified gold labels —
-    the exact scenario that would hit the first time anyone regenerates the
-    corpus after α1 ratification."""
-    target = tmp_path / "labeling-v2.csv"
-    _write_labeled_csv(
-        target,
-        [
-            "claim_id", "query_id", "claim_text", "evidence", "human_label",
-            "candidate_verdict", "rationale", "label_status",
-        ],
-        "human_label",
-        "grounded",
-    )
-    before = target.read_text(encoding="utf-8")
+def test_v2_writer_cannot_destroy_labels_because_it_holds_none(tmp_path):
+    """OI-CAL-03 supersedes the v2 half of the guard by REMOVING the hazard
+    rather than blocking it: the v2 writer emits a derived SCAFFOLD with no
+    human column, so a rebuild has nothing of the ratifier's to destroy — and
+    the corpus stays extensible after ratification (which the guard alone had
+    made impossible).
 
-    with pytest.raises(ValueError, match="human label"):
-        write_labeling_v2_csv([], {}, str(target))
+    The protection that used to live here now lives in two stronger places:
+      * `calibration.init_labels` refuses to overwrite the labels file
+        (tests/test_gold_labels_separation.py::test_init_labels_refuses_to_overwrite);
+      * `load_gold_labels` fails loud on a STALE label — a judgment made
+        against a claim whose text has since changed
+        (…::test_stale_label_fails_loud).
 
-    assert target.read_text(encoding="utf-8") == before, "GOLD labels were destroyed"
-
-
-def test_writer_still_writes_when_target_absent(tmp_path):
-    """The guard must not block a legitimate first write."""
+    Here we assert the structural invariant that makes that safe: the writer
+    emits no human column, so a rebuild is non-destructive by construction.
+    """
     target = tmp_path / "labeling-v2.csv"
     write_labeling_v2_csv([], {}, str(target))
+
+    with open(target, encoding="utf-8", newline="") as fh:
+        header = next(csv.reader(fh))
+    assert "human_label" not in header, (
+        "the scaffold writer emits a human column again — PIR-002 regression: "
+        "a rebuild could destroy ratified judgment"
+    )
+    assert "label_status" not in header
+
+
+def test_bootstrap_writer_still_writes_when_target_absent(tmp_path):
+    """The legacy guard must not block a legitimate first write."""
+    target = tmp_path / "labeling.csv"
+    write_enriched_labeling_csv([], {}, str(target))
     assert target.exists()
