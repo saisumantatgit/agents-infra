@@ -129,12 +129,15 @@ cat calibration/CR-001-bootstrap-lex-tau.md
 
 Say it straight:
 
-> **"The lexical-match threshold (`lex_tau`) is calibrated at 0.71, from a
-> bootstrap run of n=12 claims across 12 queries — held out, leave-one-out.
-> At that operating point: false-alarm rate (recoverable) is 0.20; false-negative
-> rate — a fabrication slipping through — is 0.143. This is provisional,
-> not proof. n=12 is a calibration run, not a production guarantee, and it
-> gets wider as more labeled data comes in."**
+**"The gate you just watched runs its lexical-match threshold (`lex_tau`) at
+0.65 — the shipped default. A bootstrap calibration of n=12 claims across 12
+queries recommends 0.71 instead; at THAT operating point, held out
+leave-one-out, the false-alarm rate is 0.20 and the false-negative rate — a
+fabrication slipping through — is 0.143. We have not deployed 0.71 yet,
+because n=12 is a calibration run, not a production guarantee. A wider
+ratified run supersedes it. So: those numbers describe the recommended
+operating point, not the one on screen — and I'd rather tell you that than
+quote you a number that sounds better than it is."**
 
 This is the deliberate honesty beat: showing the calibration math — including
 its limits — earns more trust than hiding it would.
