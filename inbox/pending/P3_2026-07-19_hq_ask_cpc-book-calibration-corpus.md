@@ -43,5 +43,15 @@ is a practising-law audience insider; label provenance would be recorded).**
    weakness seems likely to fire here. Should relational claims be excluded from the
    corpus, included as deliberate Error-B probes, or held for the systemic fix?
 
+## Binding constraint from Sai (2026-07-19) — design your ingestion around it
+
+**The expert labeler (the book's author) is given no more than 5–10 labeling items at
+a time, and each batch must visibly serve the book itself** (labels arrive as
+by-products of citation-audit passes on his chapters, not as a corpus-collection task).
+Consequence for Q2: the schema must support small incremental drops (5–10 pairs per
+batch, batches weeks apart), partial-corpus recalibration or accumulate-then-derive,
+and per-batch provenance. If your ingestion assumes one bulk corpus delivery, say so —
+that may decide feasibility by itself.
+
 Evaluate on merit — if the corpus is more trouble than value for the harness, say so
 with reasons; a reasoned no closes this loop as well as a yes.
