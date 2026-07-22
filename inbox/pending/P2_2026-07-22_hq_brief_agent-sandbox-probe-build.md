@@ -88,6 +88,20 @@ v0.1 adapters: **grok, claude, codex** (the three Sai runs). Others via a generi
 - Name-clearance before it's load-bearing (the attestor P-07 lesson).
 - Which report format graduates first; whether it publishes under Sai-presence AI-safety branding.
 
+## Relationship to attestor (build it LIFTABLE)
+
+This tool is the **public, vendor-neutral proving-ground** for a method attestor already
+committed to but hasn't built: its **D-018 permission-escape probe class** (its thesis D-002
+is literally "the control must sit outside the agent"). A parallel ask went to attestor
+(`attestor-2026-07-22-002`, same thread) to evaluate lifting the method into its signed-
+attestation pipeline. Consequence for THIS build: keep the core — canary boundary, escape
+corpus (esp. container/process-spawn), verdict-by-artifact, CLAIM-vs-RESULT — **vendor-neutral
+and cleanly separable from the CLI adapters**, so attestor can lift the engine without the
+dev-tool packaging (the D-013 lift pattern, like iPay's ledger → attestor evidence chain).
+Two altitudes, one engine: this tool tests *third-party CLIs*; attestor's probe tests a
+*customer's own deployed agent* under a pack's declared boundary. Don't merge them; make the
+engine liftable.
+
 ## References
 HQ `docs/specs/agent-sandbox-probe-spec.md` (full spec), `docs/insights/insights-log.md` INS-027,
 `docs/case-narratives/CN-INS027-*.md`, `docs/research/xai-grok-sandbox-claims-2026-07-22.md`,
