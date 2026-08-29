@@ -1433,6 +1433,43 @@ def window_supports(source: RetrievedSource, argument_text: str) -> bool:
 # Relational grounding
 # ---------------------------------------------------------------------------
 
+def _relation_asserted(
+    sources: list[RetrievedSource], side_a: str, side_b: str
+) -> bool:
+    """Return True iff some ±2-sentence window of some source asserts a relation
+    between *side_a* and *side_b*.
+
+    A window asserts the relation when it carries BOTH endpoints AND at least
+    one relational trigger from the lexicon (``_RELATIONAL_TRIGGERS``). The
+    trigger family is deliberately not required to match the claim's own
+    trigger verbatim: "causes" / "leads to" / "results in" express the same
+    relation, and demanding a surface match would raise Error-A on faithful
+    paraphrase without closing any Error-B path (a window with NO trigger
+    asserts no relation at all, whichever word the claim chose).
+
+    OI-MOAT-05. Pure function — no mutation, no LLM/network/random/wall-clock.
+    """
+    a = _nfkc(side_a).casefold().strip()
+    b = _nfkc(side_b).casefold().strip()
+    if not a or not b:
+        return False
+
+    for source in sources:
+        sentences = _split_sentences(source.text)
+        if not sentences:
+            sentences = [source.text]
+        n = len(sentences)
+        for c in range(n):
+            lo = max(0, c - 2)
+            hi = min(n, c + 3)
+            window = _nfkc(" ".join(sentences[lo:hi])).casefold()
+            if a not in window or b not in window:
+                continue
+            if any(trigger in window for trigger in _RELATIONAL_TRIGGERS):
+                return True
+    return False
+
+
 def ground_relational(claim: Claim, store: dict[str, RetrievedSource]) -> Verdict:
     """Return GROUNDED or UNVERIFIED_RELATION for a RELATIONAL claim.
 
@@ -1483,12 +1520,26 @@ def ground_relational(claim: Claim, store: dict[str, RetrievedSource]) -> Verdic
     }
 
     # There must exist at least one (s_a, s_b) pair where s_a != s_b.
-    for s_a_id in a_supported_in:
-        for s_b_id in b_supported_in:
-            if s_a_id != s_b_id:
-                return Verdict.GROUNDED
+    endpoints_split_across_sources = any(
+        s_a_id != s_b_id for s_a_id in a_supported_in for s_b_id in b_supported_in
+    )
+    if not endpoints_split_across_sources:
+        return Verdict.UNVERIFIED_RELATION
 
-    return Verdict.UNVERIFIED_RELATION
+    # OI-MOAT-05 predicate check (2026-08-30): endpoint PRESENCE in two
+    # disjoint sources is not support for the RELATION. "Marketing spend rose"
+    # in S1 and "signups rose" in S2 are two independent facts; the causal link
+    # between them is the draft's own invention, and the old rule certified it.
+    # Some cited verbatim source must actually ASSERT a relation between the two
+    # endpoints: a window carrying a relational trigger AND both endpoints.
+    # This is the corpus's own discriminator — q12/q36 (labeled grounded) each
+    # have such a window ("insulin resistance ... causes type 2 diabetes");
+    # q25/q26/q48 (labeled violation) have none.
+    # Fail-closed: this can only move a relation AWAY from GROUNDED.
+    if not _relation_asserted(sources_list, side_a, side_b):
+        return Verdict.UNVERIFIED_RELATION
+
+    return Verdict.GROUNDED
 
 
 # ---------------------------------------------------------------------------

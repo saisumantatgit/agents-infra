@@ -87,16 +87,23 @@ def test_single_source_relation_not_grounded():
 
 
 def test_two_sided_relation_grounded():
-    """Side A in S1, side B in S2 (both verbatim) → GROUNDED.
+    """Side A in S1, side B in S2, AND a source that ASSERTS the link → GROUNDED.
 
-    S1 discusses 'insulin resistance'; S2 discusses 'type 2 diabetes'.
-    The claim asserts a causal link. Both sides are supported across two
-    distinct verbatim sources → GROUNDED.
+    CONTRACT CHANGE (OI-MOAT-05, D-04/D-05, 2026-08-30): spec §4.8's
+    two-distinct-source rule is NECESSARY BUT NOT SUFFICIENT, and this test
+    previously encoded the insufficient form — S1 merely defining "insulin
+    resistance" and S2 merely defining "type 2 diabetes" was accepted as
+    grounding the CAUSAL claim between them. That is the over-association
+    defect itself (identical in shape to corpus rows q25/q26/q48, all
+    human-labeled *violation*). S1 now asserts the relation, as the labeled-
+    grounded corpus rows q12/q36 do; the endpoint split across two sources is
+    retained unchanged.
     """
     s1 = _src(
         "S1",
-        "Insulin resistance occurs when cells in your body do not respond "
-        "well to insulin and cannot use glucose from your blood for energy.",
+        "Insulin resistance occurs when cells do not respond well to insulin. "
+        "Sustained insulin resistance causes type 2 diabetes to develop over "
+        "time as the pancreas can no longer compensate.",
     )
     s2 = _src(
         "S2",
@@ -228,14 +235,19 @@ def test_nfkc_normalization_in_matching():
     """
     # S1 contains side_A ('insulin resistance') encoded as full-width Latin.
     # A plain casefold (without NFKC) would not match ASCII 'insulin resistance'.
+    # The relation-assertion window (required since OI-MOAT-05) lives HERE, so
+    # side_A is reachable ONLY through the full-width fold: strip NFKC and this
+    # test fails, which is the property it exists to assert (no tautology).
     fw_s1_text = (
         "Ｉｎｓｕｌｉｎ"  # Ｉｎｓｕｌｉｎ
         " "
         "ｒｅｓｉｓｔａｎｃｅ"  # ｒｅｓｉｓｔａｎｃｅ
-        " is a metabolic condition."
+        " is a metabolic condition that causes type 2 diabetes."
     )
     s1 = _src("S1", fw_s1_text)
-    # S2 uses normal ASCII for side_B ('type 2 diabetes').
+    # S2 uses normal ASCII for side_B ('type 2 diabetes') and asserts the
+    # relation (required since OI-MOAT-05; the NFKC property under test is
+    # unaffected — side_A still only matches via the full-width fold in S1).
     s2 = _src("S2", "Type 2 diabetes is a chronic metabolic disease.")
 
     claim = _claim(
@@ -306,3 +318,61 @@ def test_extract_arguments_skips_numeric_head():
     assert side_a == "resistance", (
         f"Expected side_A='resistance', got {side_a!r}"
     )
+
+
+# --- OI-MOAT-05: predicate support required (D-05, 2026-08-30) ---------------
+
+def test_endpoint_co_presence_without_asserted_relation_not_grounded():
+    """THE OI-MOAT-05 regression. Two sources each state ONE endpoint fact and
+    neither asserts any link between them — the causal claim is the draft's own
+    invention and must NOT be certified.
+
+    This is the exact shape of corpus rows q25/q26/q48, all human-labeled
+    *violation*, which the pre-fix gate returned GROUNDED (three Error-B
+    misses). Proven red against the pre-fix tree.
+    """
+    s1 = _src("S1", "Marketing spend increased twenty percent quarter over quarter.")
+    s2 = _src("S2", "Customer signups rose sharply in the weeks after the launch.")
+    claim = _claim(
+        "Increased marketing spend drives higher customer signups [S1][S2].",
+        "[S1]",
+        "[S2]",
+    )
+    assert ground_relational(claim, _store(s1, s2)) == Verdict.UNVERIFIED_RELATION
+
+
+def test_asserted_relation_with_split_endpoints_is_grounded():
+    """Error-A boundary: when a source DOES assert the relation (and the
+    endpoints still split across two distinct verbatim sources), the claim
+    grounds — mirroring corpus rows q12/q36, both human-labeled *grounded*."""
+    s1 = _src(
+        "S1",
+        "Elevated cortisol leads to impaired sleep by delaying sleep onset.",
+    )
+    s2 = _src(
+        "S2",
+        "Impaired sleep is commonly observed together with elevated cortisol.",
+    )
+    claim = _claim(
+        "Elevated cortisol leads to impaired sleep [S1][S2].",
+        "[S1]",
+        "[S2]",
+    )
+    assert ground_relational(claim, _store(s1, s2)) == Verdict.GROUNDED
+
+
+def test_trigger_without_both_endpoints_not_grounded():
+    """A relational trigger somewhere in a source is not enough — the asserting
+    window must carry BOTH endpoints, or any source discussing causation at all
+    would ground any relation between any two nouns it mentions."""
+    s1 = _src(
+        "S1",
+        "Marketing spend increased. Seasonality causes revenue fluctuations.",
+    )
+    s2 = _src("S2", "Customer signups rose sharply after the launch.")
+    claim = _claim(
+        "Increased marketing spend drives higher customer signups [S1][S2].",
+        "[S1]",
+        "[S2]",
+    )
+    assert ground_relational(claim, _store(s1, s2)) == Verdict.UNVERIFIED_RELATION

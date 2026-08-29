@@ -72,8 +72,12 @@ def _src(source_id: str, text: str) -> RetrievedSource:
 _Q1_STORE = {
     "S1": _src(
         "S1",
-        "Insulin resistance occurs when cells in your body do not respond "
-        "well to insulin and cannot use glucose from your blood for energy.",
+        "Insulin resistance occurs when cells do not respond well to insulin. "
+        "Sustained insulin resistance causes type 2 diabetes to develop. "
+        # ^ OI-MOAT-05 (2026-08-30): a source must ASSERT the relation, not
+        #   merely mention one endpoint — endpoint co-presence across two
+        #   sources is the over-association defect (corpus q25/q26/q48).
+        "Cells cannot use glucose from the blood for energy.",
     ),
     "S2": _src(
         "S2",

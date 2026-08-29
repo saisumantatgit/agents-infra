@@ -301,8 +301,12 @@ def test_relational_grounded_row_is_not_tier_sensitive():
     violation at lex_tau >= t2_f1, silently corrupting held-out Error-B."""
     s1 = _src(
         "S1",
-        "Insulin resistance occurs when cells in your body do not respond "
-        "well to insulin and cannot use glucose from your blood for energy.",
+        "Insulin resistance occurs when cells do not respond well to insulin. "
+        "Sustained insulin resistance causes type 2 diabetes to develop. "
+        # ^ OI-MOAT-05 (2026-08-30): a source must ASSERT the relation, not
+        #   merely mention one endpoint — endpoint co-presence across two
+        #   sources is the over-association defect (corpus q25/q26/q48).
+        "Cells cannot use glucose from the blood for energy.",
     )
     s2 = _src(
         "S2",
