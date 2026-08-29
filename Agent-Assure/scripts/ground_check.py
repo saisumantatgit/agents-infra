@@ -499,6 +499,7 @@ def t1_verbatim(
     if n < min_quote_len:
         return False
 
+    span_matched = False
     for source in sources:
         source_tokens = _tokenize(source.text)
         # Build a set of all contiguous n-grams in the source for O(n) lookup.
@@ -516,9 +517,31 @@ def t1_verbatim(
         # Check each claim window of length min_quote_len.
         for j in range(n - min_quote_len + 1):
             if tuple(claim_tokens[j : j + min_quote_len]) in source_ngrams:
-                return True
+                span_matched = True
+                break
+        if span_matched:
+            break
 
-    return False
+    if not span_matched:
+        return False
+
+    # OI-MOAT-03 residual-coverage check (2026-08-30): a verbatim span must not
+    # certify words it never checked. The original rule returned True on ANY
+    # contiguous >=8-token span, so a fabricated superlative appended in the
+    # same clause ("…, by every available measure, the single fastest database
+    # ever engineered") rode to GROUNDED inside the span's credit. T1 now
+    # grounds a claim only when EVERY content token of the claim appears
+    # somewhere in the cited verbatim sources (union) — the span proves the
+    # quote, the coverage proves there is no unchecked residual assertion.
+    # Fail-closed: a claim T1 now refuses falls through to T2 (and, when the
+    # Phase-2b NLI tier lands, to T3) — this check can only move claims AWAY
+    # from GROUNDED, never toward it.
+    source_vocab: set[str] = set()
+    for source in sources:
+        source_vocab.update(_tokenize(source.text))
+    claim_content = _content_words(claim_tokens)
+    uncovered = [t for t in claim_content if t not in source_vocab]
+    return not uncovered
 
 
 # ---------------------------------------------------------------------------

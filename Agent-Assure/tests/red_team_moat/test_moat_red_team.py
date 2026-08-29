@@ -92,27 +92,34 @@ MOAT_GUARDS = [
         "claim blocks PASS regardless of the 90.0 score.",
         id="OI-MOAT-06-letter-suffixed-dilution",
     ),
-]
-
-# --- OPEN violations: still xfail, deferred by Sai's 2026-07-12 ruling --------
-# fixture stem -> (open-issue id, root cause, one-line mechanism)
-MOAT_VIOLATIONS = [
     pytest.param(
         "paraphrase-overreach_1",
         "OI-MOAT-03",
-        "Root B: a verbatim >=8-token span short-circuits T1; the surrounding "
-        "fabricated superlative ('single fastest database ever engineered') is "
-        "never checked.",
+        "FIXED 2026-08-30 (T1 residual-coverage, D-04): a verbatim span "
+        "grounds a claim only when every content token of the claim is "
+        "covered by the cited verbatim sources — the appended superlative "
+        "('single fastest database ever engineered') is uncovered residual, "
+        "so T1 refuses and the claim reads UNGROUNDED.",
         id="OI-MOAT-03-paraphrase-overreach",
     ),
     pytest.param(
         "unsupported-relation_3",
         "OI-MOAT-05",
-        "Root B: the two-source relational rule checks endpoint-noun presence, "
-        "not support for the relation/predicate ('decisively outperforming').",
+        "FIXTURE closed 2026-08-30 by the same residual-coverage check "
+        "(D-04: 'PostgreSQL'/'outperforming' are uncovered residual in S1); "
+        "the RELATIONAL-path root (endpoint-presence-in-two-disjoint-sources "
+        "grounds an unasserted relation) is fixed separately in D-05 — see "
+        "test_relational.py predicate-support regressions.",
         id="OI-MOAT-05-unsupported-relation",
     ),
 ]
+
+# --- OPEN violations: still xfail (none as of 2026-08-30) ---------------------
+# Both 2026-07-12 deferrals closed under the D-03/D-04/D-05 autonomous calls
+# (docs/decisions/RATIFICATION-REGISTER-2026-08-30.md; each proven red first —
+# these two params sat strict-xfail, observed failing, from 2026-07-12 until
+# the fixes flipped them XPASS on 2026-08-30).
+MOAT_VIOLATIONS: list = []
 
 
 def _assert_not_pass(stem: str, issue_id: str, mechanism: str) -> None:

@@ -21,10 +21,10 @@ from scripts.ground_check import (
 # Helpers
 # ---------------------------------------------------------------------------
 
-def src(text: str) -> RetrievedSource:
+def src(text: str, sid: str = "S1") -> RetrievedSource:
     """Build a minimal RetrievedSource with the given text."""
     return RetrievedSource(
-        source_id="S1",
+        source_id=sid,
         url=None,
         file_path=None,
         fetched_at="t",
@@ -83,18 +83,72 @@ def test_t1_case_insensitive():
 def test_t1_min_quote_len_boundary():
     """Exactly min_quote_len=8 tokens → hit; min_quote_len=9 → miss.
 
-    Claim content tokens: the system processes requests at high speed always done
+    Claim tokens: the system processes requests at high speed always done
     (9 tokens total). The source contains the 8-token prefix
     'the system processes requests at high speed always' verbatim, but NOT all 9
-    since 'done' is absent. So min_quote_len=8 hits (8-token window present),
-    and min_quote_len=9 misses (no 9-token contiguous span is shared).
+    contiguously — 'done' appears elsewhere in the source, so the residual-
+    coverage check (OI-MOAT-03) is satisfied while no 9-token CONTIGUOUS span
+    is shared. min_quote_len=8 hits; min_quote_len=9 misses.
+
+    NB the fixture deliberately places 'done' in the source: this test isolates
+    the SPAN-LENGTH boundary. Coverage of the residual is a separate property
+    with its own tests (test_t1_uncovered_residual_*).
     """
-    # 9 content tokens total; source shares the first 8 contiguous ones
+    # 9 content tokens total; source shares the first 8 contiguous ones and
+    # carries the 9th ('done') non-contiguously so coverage is not the variable.
     claim_text = "the system processes requests at high speed always done [S1]."
-    source_text = "the system processes requests at high speed always in production"
+    source_text = (
+        "the system processes requests at high speed always in production; "
+        "the migration is done"
+    )
     assert t1_verbatim(mk(claim_text), [src(source_text)], min_quote_len=8)
     # min_quote_len=9: no 9-token contiguous span is shared between claim and source
     assert not t1_verbatim(mk(claim_text), [src(source_text)], min_quote_len=9)
+
+
+# --- OI-MOAT-03 residual-coverage (D-04, 2026-08-30) -------------------------
+
+def test_t1_uncovered_residual_refuses_span():
+    """A verbatim span must NOT ground a claim carrying unchecked residual.
+
+    The 8-token span is genuinely present, but the appended superlative
+    ('single fastest database ever engineered') appears nowhere in the source.
+    T1 must refuse and let the claim fall through to T2/UNGROUNDED, rather
+    than certifying words it never checked (the OI-MOAT-03 mechanism).
+    """
+    claim = mk(
+        "Redis is an in-memory data structure store that is, by every available "
+        "measure, the single fastest database ever engineered [S1]."
+    )
+    source = src(
+        "Redis is an in-memory data structure store used as a database, cache "
+        "and message broker."
+    )
+    assert not t1_verbatim(claim, [source])
+
+
+def test_t1_fully_covered_residual_still_grounds():
+    """Error-A boundary: when every content token IS covered by the source, a
+    verbatim span still grounds — the fix must not break honest quotation."""
+    claim = mk(
+        "Redis is an in-memory data structure store used as a cache [S1]."
+    )
+    source = src(
+        "Redis is an in-memory data structure store used as a database, cache "
+        "and message broker."
+    )
+    assert t1_verbatim(claim, [source])
+
+
+def test_t1_residual_coverage_spans_multiple_sources():
+    """Coverage is evaluated over the UNION of the cited verbatim sources: a
+    claim quoting S1 with a residual term documented in S2 stays grounded."""
+    claim = mk(
+        "Redis is an in-memory data structure store with durability guarantees [S1][S2]."
+    )
+    s1 = src("Redis is an in-memory data structure store used as a cache.")
+    s2 = src("The benchmark enabled full durability guarantees throughout.", sid="S2")
+    assert t1_verbatim(claim, [s1, s2])
 
 
 def test_t1_empty_sources():
