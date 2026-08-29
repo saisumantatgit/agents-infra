@@ -23,7 +23,8 @@ ratification register with a one-step undo, for you to ratify or reverse:
 
 ## Orientation (5 minutes)
 
-1. `cd Agent-Assure && uv sync && uv run pytest`.
+1. `cd Agent-Assure && uv sync && uv run pytest` → 442 passed + 1 skipped + 1 xfailed
+   (the xfail is OI-MOAT-20, deliberately open; the skip is an empty parametrize).
    (`--extra dev` is no longer required — OI-ENV-01 fixed.)
 2. Read `CLAUDE.md` (root) — the operating manual. Gate semantics: ADR-005
    (PASS = empty retained appendix). **`lex_tau` now RUNS at 0.71.**

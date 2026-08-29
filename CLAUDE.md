@@ -43,9 +43,12 @@ Run from `Agent-Assure/` (env is `uv`; `install.sh` provisions runtime `.venv`).
 ```bash
 bash install.sh                      # provision .venv (Python >=3.11 + runtime deps)
 uv sync                              # provisions runtime deps AND pytest (dev group)
-uv run pytest                        # full suite — 433 passed + 1 skipped (2026-08-30)
-                                     #   the 1 skip is the now-EMPTY MOAT_VIOLATIONS
-                                     #   parametrize: no OPEN moat xfails remain.
+uv run pytest                        # full suite — 442 passed + 1 skipped + 1 xfailed
+                                     #   (2026-08-30; the count moves with every
+                                     #   red-team round, so trust the RUN, not this
+                                     #   number). The skip is the empty
+                                     #   MOAT_VIOLATIONS parametrize; the xfail is
+                                     #   OI-MOAT-20, deliberately open.
                                      # (`--extra dev` is no longer needed: pytest moved to
                                      #  [dependency-groups] dev, which uv sync installs by
                                      #  default — OI-ENV-01. A conftest guard fails loud if
