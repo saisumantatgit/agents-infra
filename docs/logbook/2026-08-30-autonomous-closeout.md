@@ -97,6 +97,64 @@ batches — which would double-count, or carry two contradictory truths for one 
 Provenance is mandatory and typed, and a **non-human `labeler` is refused in code** —
 CLAUDE.md failure-mode 5 turned from discipline into a machine-checkable gate.
 
+## Red-team round 3 — and why the day was not over when it looked over
+
+By evening the three items were closed and the suite was green with no
+deliberate failures left in it. Then the standing rule applied: *a fix to the
+moat gets red-teamed too.* An Opus-class adversary ran 37 drafts against fixes
+that were hours old and returned **17 wrongful PASSes over 5 mechanisms — two
+of them evasions of that same morning's work** (`852a169`). Round 2 found 14
+holes in round 1's fixes; the pattern held exactly, which is the argument for
+the rule rather than a surprise. All five were re-reproduced by hand before
+being accepted; 10 regressions were observed RED before their fixes.
+
+- **OI-MOAT-11.** The `>=6 content token` floor from D-03 was walked under by a
+  five-token fabrication (`PostgreSQL: unrecoverable corruption under load.` ->
+  PASS 100.0). **Any count is a dial the attacker owns**: the defender publishes
+  it once, in code; the attacker reads it and writes to it. Replaced with a
+  structural test that has no dial - a list NAMES (all content words are proper
+  nouns), an assertion PREDICATES (introduces lower-case descriptive content).
+  A fabrication cannot shorten its way out without ceasing to make the claim.
+- **OI-MOAT-12.** The header branch returned NON_CLAIM before the verbless rule
+  ever ran, so any header without a numeric or citation escaped scoring
+  regardless of what it asserted. The same finite-verb assertion test now
+  decides headers: "## Results" structural, "### Redis silently drops writes"
+  scored.
+- **OI-MOAT-13 (the worst).** D-04's coverage check tested the claim's tokens
+  against the UNION of the cited sources, so the identical false claim FAILED
+  on [S1] and PASSED on [S1][S2] - S2 contributed the one missing word.
+  **Adding a citation made a false claim easier to ground**, which inverts the
+  premise of the entire tool. Coverage is now per source, which is also the
+  principled reading: T1 is the verbatim tier and a quotation comes from ONE
+  document.
+- **OI-MOAT-14.** The absence path reasons over what was SEARCHED and never
+  over what was FOUND, so "No benchmark throughput figures exist." was
+  certified against a store consisting entirely of benchmark throughput
+  figures - the gate asserting the opposite of its own evidence.
+- **OI-MOAT-15.** The quantity reader breaks on the first token and failed OPEN
+  on a singular or unrecognised noun, silently disabling the dimensional check
+  OI-MOAT-01/-09 exist to enforce.
+
+**The corpus caught a bad fix for the third session running, and this one is
+the sharpest instance yet.** My first OI-MOAT-14 draft refused any absence whose
+subject words appeared in a retrieved source. Regeneration flipped q13, q14 and
+q37 - all human-labeled GROUNDED - into false alarms, because their supporting
+sources read "No recall evidence was found" and "returned zero results": text
+carrying the subject's words **precisely because it reports the absence**.
+Presence is not contradiction. The check now distinguishes an affirmative
+mention (refutes) from a negated one (corroborates), and regeneration is
+byte-identical. The 433-test suite had nothing to say about any of it.
+
+I also **reverted** a change mid-fix. Removing the absence blanket-word guard's
+>=3-query gate rejected four legitimate absences (a changelog searched twice,
+q37's antidote pair, contraindications). In a 2-query session, "both queries
+mention the head noun" is the signature of a TARGETED search, not of a blanket
+word - the gate was right and my argument for removing it ("a majority is a
+majority") was wrong. It stays.
+
+**Round 4 was dispatched against the round-3 fixes** on the same standing rule.
+Its disposition is the first thing to check on resuming.
+
 ## Decisions (mine, on merit — full basis in the register)
 
 - **D-01 park-list reading.** "Applying bindings" and the gross_wages adjudication
@@ -155,6 +213,14 @@ it is about *reversibility*. The moat's own asymmetry, applied one level up — 
 decisions about the moat rather than to the verdicts inside it — is what made the
 backlog tractable, and it is the same move PIR-002 made when it applied the
 verdict-asymmetry to artifacts.
+
+## Denied / not done (recorded per the escalation rule)
+
+- **`git push` was DENIED by the permission classifier.** All commits are local
+  on `agent-assure-calibration-run`; the tree is clean. Nothing was routed
+  around the denial and no alternative push path was attempted. The branch needs
+  `git push origin agent-assure-calibration-run` from a session with that
+  permission. The HQ repo commit (`2c19ede`, the cpc-book ack) is likewise local.
 
 **Next action:** Sai ratifies `labels-v2.csv` (still the long pole, still untouched)
 and the 12-row register. Then α2/CR-002 → α5. OI-DEC-01 and ADR-004 Q1–Q4 remain his.
