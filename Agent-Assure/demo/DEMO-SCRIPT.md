@@ -130,14 +130,22 @@ cat calibration/CR-001-bootstrap-lex-tau.md
 Say it straight:
 
 **"The gate you just watched runs its lexical-match threshold (`lex_tau`) at
-0.65 — the shipped default. A bootstrap calibration of n=12 claims across 12
-queries recommends 0.71 instead; at THAT operating point, held out
-leave-one-out, the false-alarm rate is 0.20 and the false-negative rate — a
-fabrication slipping through — is 0.143. We have not deployed 0.71 yet,
-because n=12 is a calibration run, not a production guarantee. A wider
-ratified run supersedes it. So: those numbers describe the recommended
-operating point, not the one on screen — and I'd rather tell you that than
-quote you a number that sounds better than it is."**
+0.71. That is the calibrated operating point, and it IS the one on screen —
+but I want to be precise about what stands behind it. It comes from a
+bootstrap run of twelve claims across twelve queries. Held out leave-one-out,
+the false-alarm rate is 0.20 and the false-negative rate — a fabrication
+slipping through — is 0.143. Twelve is a calibration run, not a production
+guarantee, so treat both of those numbers as provisional until a wider
+human-ratified run supersedes them. I'd rather tell you the sample size than
+quote you a rate that sounds better than its evidence."**
+
+*(If asked how the fabrication rate is measured: by adversarially attacking
+this gate. Four red-team rounds have run against it; each one found wrongful
+PASSes in the previous round's fixes — six, then fourteen, then seventeen,
+then twenty-five — and every one is now a permanent regression guard. One is
+still open and carries a failing test that names it. That record is the
+honest answer to "how do you know it works": not that nothing was found, but
+that what was found is written down and tested.)*
 
 This is the deliberate honesty beat: showing the calibration math — including
 its limits — earns more trust than hiding it would.
