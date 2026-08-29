@@ -24,9 +24,9 @@ stayed yours. Then the red team ran three times and reshaped the day.
 
 ## Orientation (5 minutes)
 
-1. `cd Agent-Assure && uv sync && uv run pytest` → **453 passed + 1 skipped + 3 xfailed**
-   (the count moves every red-team round — trust the run). The 3 xfails are
-   deliberately-open items: OI-MOAT-20, OI-MOAT-21, OI-T2-01.
+1. `cd Agent-Assure && uv sync && uv run pytest` → **453 passed + 1 skipped + 4 xfailed**
+   (the count moves every red-team round — trust the run). The 4 xfails are
+   deliberately-open items: OI-MOAT-20, OI-MOAT-21, and OI-T2-01 (two cases).
    `--extra dev` is no longer needed (OI-ENV-01 fixed).
 2. `CLAUDE.md` (root) — the operating manual. **`lex_tau` now RUNS at 0.71.**
 3. `docs/decisions/RATIFICATION-REGISTER-2026-08-30.md` — the 14 autonomous calls.
