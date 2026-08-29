@@ -32,9 +32,12 @@ escalation rule protects; a PASS-enabling change does.**
 2. **OI-MOAT-03 — T1 certifies words it never checked** (`8cdd21b`, D-04).
    `t1_verbatim` returned True on ANY ≥8-token contiguous span, blind to a
    fabricated superlative appended in the same clause. T1 now additionally requires
-   every content token of the claim to appear in the union of the cited verbatim
-   sources: the span proves the quote, the coverage proves there is no unchecked
-   residual. Deferred since 07-12 as "interacts with Phase-2b NLI" — it did not: the
+   every content token of the claim to be covered by the cited source: the span
+   proves the quote, the coverage proves there is no unchecked residual.
+   (**Superseded the same day by OI-MOAT-13**: this first version tested the UNION
+   of the cited sources and was broken by round 3 — coverage is now evaluated
+   PER SOURCE. See the round-3 section.)
+   Deferred since 07-12 as "interacts with Phase-2b NLI" — it did not: the
    Error-B half is a coverage question T1 can answer deterministically, and only the
    Error-A recovery (clearing a *faithful* paraphrase) needs NLI.
 
