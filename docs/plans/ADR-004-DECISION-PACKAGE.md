@@ -163,3 +163,80 @@ citation-regex fix (OI-CITE-01); that fix landed the same night — suite is
 green (355 passed + 2 xfailed) and OI-CITE-01 is CLOSED, so the NLI rebase no
 longer needs to sequence around it. Also relevant to Q-rulings: OI-CAL-01
 (lex_tau runs at 0.65 shipped; CR-001's 0.71 undeployed) — see OPEN-ISSUES.
+
+---
+
+## Addendum — 2026-08-30: what changed, and how it moves Q1–Q6
+
+Written by the autonomous close-out session. **The package body above is
+unchanged and still accurate as an analysis of the T3 design.** What has
+changed is the evidence around it, in two directions that pull opposite ways.
+
+### 1. T3 is no longer carrying an Error-B fix — that argument for it is gone
+
+§3 argued that closing AA-MOAT-003 (now **OI-MOAT-03**) "requires Opt 3/4
+semantics PLUS a T1-residual-routing change." That turned out not to be so.
+The Error-B half — a verbatim span certifying words it never checked — is a
+*coverage* question T1 can answer deterministically, and it was closed on
+2026-08-30 with a per-source residual-coverage check plus subject anchoring
+(OI-MOAT-03 → OI-MOAT-13 → OI-MOAT-18, three iterations under red-team
+pressure). AA-MOAT-005/**OI-MOAT-05** likewise closed deterministically.
+
+**Consequence for Q5:** the question "should OI-MOAT-03's fix be scoped into
+α3 because it needs Opt 3/4 semantics?" is moot. It is fixed, without T3.
+
+**Consequence for the urgency of 2b as a whole:** T3's remaining value is
+**Error-A recovery** — clearing faithful paraphrases the lexical tiers wrongly
+flag — which is real but recoverable, and therefore not release-blocking. 2b
+drops from "carries a moat fix" to "reduces false alarms."
+
+### 2. But round 4 found a class the lexical tiers structurally cannot see
+
+Round 4 (2026-08-30) produced **OI-MOAT-18**, the subject swap:
+
+```
+The disk-backed alternative sustained approximately 128000 operations per
+second, which was about twelve times the throughput of Redis [S1].
+```
+
+Every content token is in S1; an 8-token span is verbatim in S1; the claim is
+false, because it reverses who beat whom. It was closed by anchoring T1's span
+to the claim's own subject — a real fix, but a *positional* one. **Coverage is
+set membership, and a set has no notion of who did what to whom.** Predicate
+argument structure is exactly what an entailment model reads and what no
+bag-of-words tier can.
+
+So the honest statement of T3's value has inverted rather than shrunk: it is no
+longer needed for the Error-B case the package was written about, and it is now
+the only principled answer to a *different* Error-B class that the package did
+not consider. The subject-swap family is currently held by a heuristic that
+round 5 may well break.
+
+### 3. Two rulings the package does not ask for, which the evidence now needs
+
+- **Is a deterministic-only moat the goal, or the current means?** Four
+  red-team rounds found 6 → 14 → 17 → 25 wrongful PASSes, each round breaking
+  the previous round's fixes. Every fix so far has been lexical or positional.
+  If the evasion tail is unbounded, "zero LLM calls" is a constraint that
+  eventually costs more Error-B than it saves; if it converges, the constraint
+  is cheap and correct. The round-5 report carries an explicit **convergence
+  assessment** commissioned to inform exactly this. Read it before ruling Q3.
+- **OI-MOAT-20 is the shape of the residue.** A verb-final header
+  (`### PostgreSQL Fails`) still escapes scoring. Closing it deterministically
+  means either scoring every multi-word heading (Error-A on ordinary documents)
+  or adding a POS tagger — a local, non-generative dependency that is *exactly*
+  the category ADR-004 Q3 is about. Q3's answer therefore governs more than the
+  NLI tier.
+
+### 4. Unchanged and still yours
+
+Q1 (Option 4 semantics), Q2 (the three mechanical guarantees), Q3 (the "ZERO
+LLM calls" slogan amendment), Q4 (gold `nli_tau` before enablement), Q6 (pin
+the model sha, vendor weights). The recommendation of **Option 4** stands; its
+load-bearing premise — that `nli_tau` is LOO-validated on **gold** labels, never
+candidate — is unchanged and still gates enablement.
+
+**Cost estimates in §6 are now overstated** for the rebase line: the on-branch
+`ground_check.py` has moved substantially further (four red-team cohorts) since
+they were written, so the three-way merge against reference build `-17` is
+larger, not smaller. Treat §6 as a floor.
