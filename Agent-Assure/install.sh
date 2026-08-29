@@ -25,7 +25,14 @@ echo "Provisioning virtual environment (.venv) and installing runtime deps..."
 # (syntok, pyyaml) per the lockfile. Do NOT pre-create the venv with an explicit
 # `uv venv --python ...` — that desyncs the interpreter uv resolves for the
 # project and leaves `uv run` pointing at a different, empty environment.
-# (Developers run `uv sync --extra dev` to add pytest; end users don't need it.)
+# NOTE (2026-08-30, OI-ENV-01): pytest now lives in [dependency-groups] dev,
+# which `uv sync` installs BY DEFAULT — so this line provisions pytest for END
+# USERS too, not just developers. That is deliberate: the OI-ENV-01 trap was a
+# first-time user running the suite and seeing ~46 bogus ModuleNotFoundErrors,
+# and a user who can verify their own install is the point. Cost is ~5 pure-
+# Python packages. To ship a leaner end-user env instead, change this line to
+# `uv sync --no-dev` — that is Sai's call (Escalation #4), see register D-07.
+# COMMENT ONLY: this note changed no behaviour; the command below is untouched.
 uv sync >/dev/null 2>&1 || uv pip install syntok pyyaml >/dev/null 2>&1
 
 # 2. Sanity check — the engine, the hook, and the gate's deps all import.
