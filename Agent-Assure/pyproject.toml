@@ -5,6 +5,12 @@ requires-python = ">=3.11"
 dependencies = ["syntok", "pyyaml"]
 
 [project.optional-dependencies]
+# Kept for back-compat with documented `uv sync --extra dev`; the canonical
+# home is [dependency-groups] dev below, which `uv sync` installs BY DEFAULT
+# (OI-ENV-01: a bare `uv sync` checkout must never resolve a global pytest).
+dev = ["pytest"]
+
+[dependency-groups]
 dev = ["pytest"]
 
 [tool.pytest.ini_options]
