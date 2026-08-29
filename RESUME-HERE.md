@@ -2,75 +2,76 @@
 
 **Last session:** 2026-08-30 (autonomous close-out run under Sai's 10M sanction + standing order).
 **Authoritative handoff:** `docs/logbook/2026-08-30-autonomous-closeout.md`, then `docs/decisions/RATIFICATION-REGISTER-2026-08-30.md` (every autonomous call + its undo). This file is the quick-start pointer, not the record.
-**Branch:** `agent-assure-calibration-run` (this directory is a git **worktree** of agents-infra).
+**Branch:** `agent-assure-calibration-run` — **~30 commits NOT PUSHED**: `git push` was denied by the permission classifier this session. Push is the first thing to do.
 
-## What changed on 2026-08-30 (read the register before reversing anything)
+## What changed on 2026-08-30
 
-All three moat holes that had been OPEN since 2026-07-12/14 are **closed**, plus
-two hygiene items and the threshold drift. Every call is logged in the
-ratification register with a one-step undo, for you to ratify or reverse:
+Every item parked behind "Sai must rule" was re-examined against one question:
+*does this need a human ruling, or was it merely unresolved?* The separator
+turned out to be **reversibility, not importance** — a fail-closed change cannot
+manufacture the unrecoverable error. Three July deferrals were mine; the rest
+stayed yours. Then the red team ran three times and reshaped the day.
 
 | Was | Now |
 |---|---|
-| OI-MOAT-03 (T1 span certifies unchecked words) | **FIXED** — residual-coverage check (D-04) |
-| OI-MOAT-05 (relation grounded by endpoint co-presence) | **FIXED** — predicate-support check (D-05) |
-| OI-MOAT-07 (verbless fabrication escapes the denominator) | **FIXED** — verbless exemption narrowed (D-03) |
-| OI-CAL-01 (gate ran 0.65 while docs said 0.71) | **RESOLVED** — 0.71 deployed, `--lex-tau` added (D-06) |
-| OI-ENV-01 (global-pytest onboarding trap) | **FIXED** — dev dependency-group + conftest guard (D-07) |
-| OI-NUM-02 (trailing-space numeric token) | **FIXED** (D-12) |
+| OI-MOAT-03 / -05 / -07 (open since July) | **FIXED** (D-03/-04/-05) |
+| OI-CAL-01 (gate ran 0.65 while docs said 0.71) | **RESOLVED** — 0.71 deployed + `--lex-tau` (D-06) |
+| OI-ENV-01, OI-NUM-02 | **FIXED** (D-07, D-12) |
 | AA-MOAT-* IDs | **renamed** OI-MOAT-{NN} per HQ ADR-039 (D-08) |
 | cpc-book ask (open since 07-19) | **answered** + batch ingestion built (D-09) |
+| Red-team rounds **3, 4, 5** | **65 wrongful PASSes found**; OI-MOAT-11…19, 22/23/24 closed |
+| Error-A never measured | `tests/honest_drafts/` harness added (D-13) |
 
 ## Orientation (5 minutes)
 
-1. `cd Agent-Assure && uv sync && uv run pytest` → 442 passed + 1 skipped + 1 xfailed
-   (the xfail is OI-MOAT-20, deliberately open; the skip is an empty parametrize).
-   (`--extra dev` is no longer required — OI-ENV-01 fixed.)
-2. Read `CLAUDE.md` (root) — the operating manual. Gate semantics: ADR-005
-   (PASS = empty retained appendix). **`lex_tau` now RUNS at 0.71.**
-3. `docs/decisions/RATIFICATION-REGISTER-2026-08-30.md` — the 12 autonomous calls.
-4. `Agent-Assure/docs/plans/reports/RED-TEAM-R3-2026-08-30.md` — round-3 adversary
-   run against the new fixes. **Read this before trusting the fixes.**
+1. `cd Agent-Assure && uv sync && uv run pytest` → **453 passed + 1 skipped + 3 xfailed**
+   (the count moves every red-team round — trust the run). The 3 xfails are
+   deliberately-open items: OI-MOAT-20, OI-MOAT-21, OI-T2-01.
+   `--extra dev` is no longer needed (OI-ENV-01 fixed).
+2. `CLAUDE.md` (root) — the operating manual. **`lex_tau` now RUNS at 0.71.**
+3. `docs/decisions/RATIFICATION-REGISTER-2026-08-30.md` — the 14 autonomous calls.
+4. `Agent-Assure/docs/plans/reports/RED-TEAM-R{3,4,5}-2026-08-30.md` — **read R5's
+   convergence assessment before trusting any of the fixes.**
 5. `ls inbox/pending/` — one P1 item still waits on **you**.
 
-## Still waiting on you
+## Waiting on you
 
 | # | Decision | Where | One-line context |
 |---|---|---|---|
-| 1 | **Ratify gold labels** (30–45 min) | inbox P1 + `calibration/RATIFICATION-BRIEF-v2.md` | STILL THE LONG POLE. Unblocks α2/CR-002 → α3 → α5. **Edit `labels-v2.csv`.** Nothing this session touched your labels; all 52 remain `candidate`, exactly as you left them. |
-| 2 | **Ratify or reverse the 12 autonomous calls** | `docs/decisions/RATIFICATION-REGISTER-2026-08-30.md` | Each row carries its undo. D-03/-04/-05 changed moat semantics (all fail-closed); D-06 moved the live operating point (measurement-neutral on both corpora). |
-| 3 | **OI-DEC-01** | OPEN-ISSUES | Escalated deliberately: the fix is the first PASS-*enabling* change in the cohort, so it is Escalation-#1 yours. Propagate a sentence-final citation across a conjunction split, or document "cite each clause"? |
-| 4 | **ADR-004 / Phase-2b (NLI)** | `docs/plans/ADR-004-DECISION-PACKAGE.md` | Q1–Q4 unchanged and still yours. **Less urgent now:** 2b was carrying the Error-B fix for OI-MOAT-03; that landed deterministically, so 2b's remaining value is Error-A recovery on paraphrase. |
-| 5 | **OI-BUILD-01** | OPEN-ISSUES | The two reference worktrees are still on the wrong base; reference material only. |
+| 1 | **Ratify gold labels** (30–45 min) | inbox P1 + `calibration/RATIFICATION-BRIEF-v2.md` | STILL THE LONG POLE. **Edit `labels-v2.csv`.** Nothing this session touched them; all 52 remain `candidate`. |
+| 2 | **Push the branch** | — | `git push origin agent-assure-calibration-run`, plus 1 commit in `~/vibe-coding/Agents/Claude`. My push was denied; I did not route around it. |
+| 3 | **Ratify or reverse the 14 autonomous calls** | the register | Each row carries its undo. Includes a self-disclosed side effect: the pytest change altered what `install.sh` does for END USERS. |
+| 4 | **OI-MOAT-21 — T2 is not sound** | OPEN-ISSUES | **The most consequential open item.** T2 alone suffices for GROUNDED, and T2 is an F1 *ratio* over the claim's own length. Round 5 hit F1=1.000 with a false-order recitation; it PASSes at lex_tau **0.99**. Demoting T2 changes the gate's meaning and invalidates the calibration — Escalation #1+#3. |
+| 5 | **OI-DEC-01** | OPEN-ISSUES | The first PASS-*enabling* fix in the cohort ⇒ yours. |
+| 6 | **OI-T2-01** | OPEN-ISSUES | A **verbatim** short quote reads UNGROUNDED. Pre-existing; found by the new Error-A harness, invisible to red-teaming by construction. |
+| 7 | **OI-MOAT-20** | OPEN-ISSUES | Verb-final header escapes scoring. Closing it deterministically needs a POS tagger ⇒ ADR-004 Q3 territory. |
+| 8 | **ADR-004 / Phase-2b** | `docs/plans/ADR-004-DECISION-PACKAGE.md` | **Read the 2026-08-30 addendum**: T3's case has *inverted*, not shrunk. |
 
 ## State snapshot
 
 | Thing | State |
 |---|---|
 | Phase 1 (gate + capture + plugin) | COMPLETE |
-| Demo | **READY** — re-verified 2026-08-30 post-fixes: honest draft still PASS (100.0), fabricated still FAIL (50.0) |
-| α4 second-repo install | READY (with caveats) — `docs/alpha/ALPHA4-INSTALL-VALIDATION-2026-07-14.md` |
-| Moat | Rounds 1–2 closed; **round 3 run 2026-08-30 against the new fixes** — see the R3 report for what it found and what was done about it |
-| Calibration | CR-001 stands (n=12). Labels: 52 candidate, **untouched**. Batch ingestion for incremental multi-domain corpora is built and tested |
+| Demo | READY — re-verified after every fix today (honest PASS 100.0, fabricated FAIL 50.0) |
+| Moat | Rounds 1–5 done. **Each round found holes in the previous round's fixes.** R5 convergence: drafts/mechanism 7.4→10.3→12.5, every R4 fix attacked directly held, but surviving attacks are *more* natural. Verdict: **the process is converging; the T2 design is not.** |
+| Calibration | CR-001 stands (n=12). Labels: 52 candidate, **untouched**. Batch ingestion built for incremental multi-domain corpora |
 | α2 / CR-002 | **BLOCKED on your ratification** (unchanged) |
-| α5 sign-off | Gated on your ratification of the register + gold labels, and on the R3 disposition |
+| α5 sign-off | Gated on ratification + **OI-MOAT-21**, which is a live Error-B hole |
 
-## Already done — do NOT redo
-
-Everything in the 2026-07-16 RESUME-HERE, plus this session: the four moat/threshold
-fixes, the ADR-039 rename, OI-ENV-01, OI-NUM-02, batch ingestion + cpc-book ack,
-red-team round 3. See the logbook for the full commit list.
-
-## Standing discipline (learned the hard way, three times now)
+## Standing discipline (each learned by being burned)
 
 - **Regenerate the corpus and diff it after ANY classify/tiers/score change** —
-  `uv run python -m calibration.build_corpus_v2 --features-only`. It adjudicated
-  every fix this session: it confirmed D-05 by flipping exactly the three
-  human-labeled-violation rows, and it showed D-04's only drift was in the
-  right direction.
+  `uv run python -m calibration.build_corpus_v2 --features-only`. It has caught a
+  bad fix in **four** sessions running, including one a 446-test green suite waved through.
 - **Never tune a constant to make one corpus row pass.** Change the rule's meaning.
-- **Re-run the red-team after every remediation** — round 2 found 14 holes in
-  round 1's fixes; round 3 was run against this session's fixes for the same reason.
-- **Green-on-first-run is not evidence.** Mutation-check a new guard: disable it
-  and watch the test fail. Two tests written this session looked fine and were
-  asserting nothing until that check caught them.
+- **Re-run the red team after every remediation.** Five rounds; every one found
+  holes in the last, twice within hours.
+- **Never key a defence on a property the author controls** — a token count was
+  walked under, its proper-noun replacement was beaten by the Shift key.
+- **Every "I don't know" must point AWAY from PASS.** `NON_CLAIM`, `None`, and an
+  empty set were all catch-alls pointing toward it.
+- **Fix BOTH branches.** Three of round 5's four findings were one fix applied to
+  one side of a two-branch decision (T1 not T2; query side not contradiction side).
+- **Measure both directions.** Red-teaming cannot find a wrongful FAIL by
+  construction; `tests/honest_drafts/` exists for that half.
+- **Green-on-first-run is not evidence.** Mutation-check new guards.

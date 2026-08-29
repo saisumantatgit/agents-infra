@@ -217,6 +217,74 @@ decisions about the moat rather than to the verdicts inside it — is what made 
 backlog tractable, and it is the same move PIR-002 made when it applied the
 verdict-asymmetry to artifacts.
 
+## Rounds 4 and 5 — and the two findings that outlast the patches
+
+The standing rule was applied twice more. **Round 4** (41 drafts) found 25
+wrongful PASSes over 4 mechanisms; **round 5** (50 drafts) found 23 more over 4.
+Every finding in both rounds was an evasion of a fix from the same day. Across
+rounds 3-5 that is **65 wrongful PASSes**, and 11 of the 12 mechanisms are now
+closed with permanent guards.
+
+Two things came out of it that matter more than the patches.
+
+**1. Round 4's root cause: "I don't know" pointed toward PASS.** Three of its
+four findings were one mistake wearing three costumes — `NON_CLAIM` ("could not
+classify") left the scored denominator; `claim_rate=None` ("could not read a
+rate") imposed no constraint; an empty corroborator set ("subject too thin to
+check") reported no objection. A gate whose entire job is to constrain had
+three places where *not knowing* was treated as *no objection*. Also, round 4
+beat round 3's proper-noun rule with the **Shift key** — which corrected the
+morning's lesson: it was never about numeric thresholds, it is about keying a
+defence on any surface property the author controls.
+
+**2. Round 5's finding, which I escalated rather than fixed — OI-MOAT-21.**
+`ground()` accepts `t1_verbatim(...) OR t2_lexical(...)`, so **T2 alone is
+sufficient for GROUNDED**, and T2 is a content-word F1 *ratio* whose denominator
+is the claim's own length — which the author writes. Round 5 produced a draft
+scoring **F1 = 1.000** by reciting all of S1's vocabulary in an order that
+reverses its meaning. It PASSes at **lex_tau 0.99**. No threshold rejects it,
+because a threshold on an attacker-controlled ratio is not a soundness test at
+any value. I closed the cases I could (misattribution, polarity) and stopped:
+the real fix is demoting T2 from sufficient-for-GROUNDED, which changes what the
+gate MEANS and invalidates the calibration lex_tau is derived from. Escalation
+#1 and #3 together.
+
+Two discarded attempts are recorded in the code because they were instructive.
+A positional "subject" check was defeated by a fronted adverbial ("In our
+controlled benchmark on a single node, PostgreSQL sustained…" has first content
+token *our*). Full content coverage closed the attack but rejected `achieves`
+against `delivers` — destroying exactly the paraphrase grounding T2 exists for,
+and caught by the golden matrix rather than by argument. What shipped instead
+targets the attack precisely: a content word absent from the cited source but
+present in a **different source the same session retrieved** is misattribution,
+which needs no grammar, no case and no threshold. Corpus byte-identical.
+
+**Convergence (commissioned from round 5, because the owner needs to know if
+this terminates):** drafts per mechanism rose **7.4 → 10.3 → 12.5**, and for the
+first time **every fix attacked directly held**. But three of four findings were
+one meta-error — a fix applied to one branch of a two-branch decision — and the
+surviving attacks are *more* natural than round 4's, not less: cross-entity
+attribution and polarity errors are the base-rate LLM failure, which is what
+this tool exists to catch. Round 5's verdict, endorsed: **the process is
+converging; the T2 design is not.**
+
+## The measurement nobody had taken
+
+After nine consecutive fail-closed fixes I pointed the instrument the other way
+and asked whether honest drafts still pass. One does not:
+
+    "PostgreSQL is a relational database management system [S2]."   -> UNGROUNDED
+
+That sentence is copied out of S2 word for word. Seven tokens, one below T1's
+span floor, and a content-word F1 that divides five correct words by the
+twenty-five in the source window (0.385). It **predates this session** — it
+fails identically at lex_tau 0.65 — and five rounds of adversarial testing had
+walked past it **by construction**: a red-teamer hunts wrongful PASSes and
+structurally cannot surface a wrongful FAIL. The harness had been measuring one
+side of a two-sided instrument and calling the result the moat's condition.
+`tests/honest_drafts/` now exists beside `tests/red_team_moat/`, with its known
+false alarms counted as strict-xfails (OI-T2-01) instead of waiting for a user.
+
 ## Denied / not done (recorded per the escalation rule)
 
 - **`git push` was DENIED by the permission classifier.** All commits are local
@@ -225,5 +293,8 @@ verdict-asymmetry to artifacts.
   `git push origin agent-assure-calibration-run` from a session with that
   permission. The HQ repo commit (`2c19ede`, the cpc-book ack) is likewise local.
 
-**Next action:** Sai ratifies `labels-v2.csv` (still the long pole, still untouched)
-and the 12-row register. Then α2/CR-002 → α5. OI-DEC-01 and ADR-004 Q1–Q4 remain his.
+**Next action:** push the branch (my push was denied). Then Sai ratifies
+`labels-v2.csv` — still the long pole, still untouched — and the 14-row
+register. **OI-MOAT-21 is the item to read first**: it is a live Error-B hole
+whose fix is a spec-level decision, and α5 sign-off cannot honestly precede it.
+OI-DEC-01, OI-T2-01, OI-MOAT-20 and ADR-004 Q1–Q6 also remain his.
