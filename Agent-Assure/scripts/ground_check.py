@@ -708,7 +708,7 @@ _ABSOLUTE_MULTIPLIERS: dict[str, int] = {
 # Suffixes that mark the "percent" unit type.
 _PERCENT_SUFFIXES: frozenset[str] = frozenset({"%", "percent"})
 
-# --- Numeric CONTEXT extraction: quantity + rate (AA-MOAT-001, round 2) ------
+# --- Numeric CONTEXT extraction: quantity + rate (OI-MOAT-01, round 2) ------
 # A numeric mention carries a DIMENSIONAL UNIT beyond its magnitude:
 #   "128000 operations per second" -> quantity "operation", rate "second".
 # Round 1 (2026-07-12) compared only the rate, and only in `per <word>` /
@@ -999,7 +999,7 @@ def numeric_ok(claim: Claim, sources: list[RetrievedSource]) -> bool:
     - Unit normalization: $4M ≡ $4,000,000 ≡ 4 million USD ≡ 4000000 (all "absolute").
     - Only k / m / M / million / bn / billion suffixes normalized within "absolute".
     - Exotic units → fail-closed (parse returns None → no match).
-    - Dimensional unit (AA-MOAT-001, completed round 2): a numeric mention
+    - Dimensional unit (OI-MOAT-01, completed round 2): a numeric mention
       carries a measured QUANTITY ("operations", "gigabytes") and a RATE
       denominator ("per second") beyond its magnitude. Whenever the CLAIM
       states one of these, the matching source mention must carry the SAME
@@ -1108,7 +1108,7 @@ def _extract_absence_anchors(
     subject of *text*.
 
     *text* must already be NFKC-normalized and keep its ORIGINAL case —
-    capitalization is the entity signal (AA-MOAT-004 fix).
+    capitalization is the entity signal (OI-MOAT-04 fix).
 
     strong_anchors:  casefolded discriminating tokens of the negated subject —
                      named entities (capitalized after the trigger) and numeric
@@ -1177,7 +1177,7 @@ def check_absence(
 ) -> Verdict:
     """Return ABSENCE_SUPPORTED or UNVERIFIED_ABSENCE for an absence claim.
 
-    Anchoring (AA-MOAT-004 fix — discriminating tokens, not the bare head noun):
+    Anchoring (OI-MOAT-04 fix — discriminating tokens, not the bare head noun):
 
     - **Strong anchors present** (named entities / numerics in the negated
       subject): a query supports the absence ONLY IF it mentions EVERY strong
@@ -1568,7 +1568,7 @@ def score_report(
     threshold% are". The score threshold is retained as a secondary bar; it is
     no longer sufficient on its own — a single retained violation-class verdict
     caps the gate at NEEDS_WORK regardless of score (ADR-005, accepted
-    2026-07-12; closes the threshold-dilution vector, AA-MOAT-002/-006). The
+    2026-07-12; closes the threshold-dilution vector, OI-MOAT-02/-006). The
     pre-existing UNVERIFIED_CITATION hard override is kept as defense in depth
     (it is subsumed by the appendix cap for scored claims). Neither override
     ever lifts a FAIL upward (FAIL is checked first).

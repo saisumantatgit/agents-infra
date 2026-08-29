@@ -16,10 +16,10 @@
 | # | Decision | Where | One-line context |
 |---|---|---|---|
 | 1 | **Ratify gold labels** (30–45 min) | inbox P1 + `calibration/RATIFICATION-BRIEF-v2.md` | Unblocks α2/CR-002 → α3 → α5. **Edit `labels-v2.csv`** (not `labeling-v2.csv` — labels now live in their own human-owned file, OI-CAL-03). Corpus rebuilds are now safe by construction; a stale label fails loud. |
-| 2 | **AA-MOAT-007** | OPEN-ISSUES | A verbless fabrication ("Redis: unquestionably the fastest datastore in history.") classifies NON_CLAIM → escapes scoring → rides inside a PASS. Score verbless assertions as claims (raises Error-A on headers), or leave it? |
+| 2 | **OI-MOAT-07** | OPEN-ISSUES | A verbless fabrication ("Redis: unquestionably the fastest datastore in history.") classifies NON_CLAIM → escapes scoring → rides inside a PASS. Score verbless assertions as claims (raises Error-A on headers), or leave it? |
 | 3 | **OI-CAL-01** | OPEN-ISSUES | Deploy CR-001's lex_tau=0.71 now, or hold at the shipped 0.65 until CR-002 supersedes it? |
 | 4 | **ADR-004 / Phase-2b (NLI)** | `docs/plans/ADR-004-DECISION-PACKAGE.md` | Under ADR-005, a T3 upgrade removes a claim from the appendix and so CAN create a PASS — contradicting "T3 never creates a PASS". 4 options with Error-A/B analysis; recommendation = Option 4. |
-| 5 | **AA-MOAT-003 / -005** | OPEN-ISSUES | Still deferred by your 07-12 ruling (T1 overreach → fold into 2b?; relational predicate → own decision). |
+| 5 | **OI-MOAT-03 / -005** | OPEN-ISSUES | Still deferred by your 07-12 ruling (T1 overreach → fold into 2b?; relational predicate → own decision). |
 | 6 | **OI-ENV-01** | OPEN-ISSUES | Make `install.sh` provision dev deps, or fail loud when pytest resolves outside `.venv`? |
 
 ## State snapshot
@@ -29,10 +29,10 @@
 | Phase 1 (gate + capture + plugin) | COMPLETE |
 | Demo | **READY** — `Agent-Assure/demo/DEMO-SCRIPT.md`, golden-tested, offline |
 | α4 second-repo install | **READY (with caveats)** — `Agent-Assure/docs/alpha/ALPHA4-INSTALL-VALIDATION-2026-07-14.md`; fresh install → real store → genuine draft PASS → fabrication NEEDS_WORK |
-| Moat | Round 1 (07-12): 6 holes, 4 fixed. Round 2 (07-14): 14 wrongful PASSes evading those fixes — 3 mechanisms fixed, AA-MOAT-007 open. **Guards permanent** in `tests/red_team_moat/` |
+| Moat | Round 1 (07-12): 6 holes, 4 fixed. Round 2 (07-14): 14 wrongful PASSes evading those fixes — 3 mechanisms fixed, OI-MOAT-07 open. **Guards permanent** in `tests/red_team_moat/` |
 | Calibration | CR-001 (lex_tau 0.71 recommended, n=12) **re-run post-fix, reproduces byte-identically**. Labels: 12 legacy + 52 candidate, all intact. **Labels now split from scaffold** (OI-CAL-03): edit `labels-v2.csv`; `labeling-v2.csv` is a regenerable scaffold with no human column. `claim_sha` binds each label to what was judged; stale labels fail loud |
 | α2 / CR-002 | **BLOCKED on your ratification** (decision #1) |
-| α5 sign-off | Blocked until AA-MOAT-003/-005/-007 close or are explicitly accepted as residual risk |
+| α5 sign-off | Blocked until OI-MOAT-03/-005/-007 close or are explicitly accepted as residual risk |
 
 ## Already done — do NOT redo
 

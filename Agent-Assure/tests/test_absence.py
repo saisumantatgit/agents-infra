@@ -181,7 +181,7 @@ def test_empty_string_queries_not_matched():
 
 
 # ---------------------------------------------------------------------------
-# Discriminating-anchor semantics (AA-MOAT-004 fix, 2026-07-12)
+# Discriminating-anchor semantics (OI-MOAT-04 fix, 2026-07-12)
 # Proven-red at the bug level via tests/red_team_moat (xfail → XPASS flip);
 # these pin the mechanism directly.
 # ---------------------------------------------------------------------------
@@ -189,7 +189,7 @@ def test_empty_string_queries_not_matched():
 def test_strong_anchors_all_required():
     """Every entity anchor of the negated subject must appear in a supporting
     query: 'no benchmark comparing MongoDB against Redis' is NOT supported by
-    generic benchmark queries that never mention MongoDB (AA-MOAT-004)."""
+    generic benchmark queries that never mention MongoDB (OI-MOAT-04)."""
     claim = absence_claim(
         "We found no benchmark comparing MongoDB against either Redis or "
         "PostgreSQL on this hardware."
@@ -275,7 +275,7 @@ def test_entity_free_two_query_session_status_quo():
 
 def test_specific_entity_free_subject_needs_corroborating_word():
     """'no benchmark for the streaming ingest workload' is NOT evidenced by a
-    session that only ever searched the word 'benchmark' (AA-MOAT-R2-003)."""
+    session that only ever searched the word 'benchmark' (OI-MOAT-10)."""
     claim = absence_claim("There is no benchmark for the streaming ingest workload.")
     queries = ["redis benchmark throughput", "postgresql write throughput benchmark"]
     assert check_absence(claim, queries) == Verdict.UNVERIFIED_ABSENCE

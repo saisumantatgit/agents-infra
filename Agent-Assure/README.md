@@ -101,7 +101,7 @@ All text fields are NFKC-normalized before matching.
 
 `PASS` means **every scored claim is grounded**, not "at least 90% are" — one
 retained violation caps the gate regardless of score (this closed the
-threshold-dilution vector, AA-MOAT-002/-006). The score threshold
+threshold-dilution vector, OI-MOAT-02/-006). The score threshold
 (default 90.0) is retained as a secondary bar. NON_CLAIM verdicts are excluded
 from the scored denominator.
 

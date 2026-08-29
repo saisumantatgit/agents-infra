@@ -353,7 +353,7 @@ def test_threshold_drives_needs_work():
     # ADR-005 (empty-appendix hard-cap): lowering the threshold below the
     # score can no longer buy a PASS while a violation-class claim is
     # retained — the appendix caps the gate regardless of the score bar.
-    # (Pre-ADR-005 this asserted PASS; that was the AA-MOAT-002/-006
+    # (Pre-ADR-005 this asserted PASS; that was the OI-MOAT-02/-006
     # threshold-dilution vector.)
     rep_low = score_report(claims, store, threshold=60.0)
     assert rep_low["gate"] == "NEEDS_WORK"

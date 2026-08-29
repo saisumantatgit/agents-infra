@@ -27,7 +27,7 @@ we can point to where it came from, retrieved this session."
 **Gate effect:** counts toward the numerator (supported).
 **Meaning:** an absence claim ("no X exists", "there is no evidence of Y") backed
 by ≥2 distinct queries in the store's `query_provenance` that support it under the
-discriminating-anchor rule (AA-MOAT-004 fix, 2026-07-12): if the negated subject
+discriminating-anchor rule (OI-MOAT-04 fix, 2026-07-12): if the negated subject
 has strong anchors (capitalized entities / numeric tokens), a query counts only if
 it contains EVERY strong anchor AND the subject's head noun — a query that merely
 shares one entity or the bare head noun does not count. For an entity-free
@@ -47,7 +47,7 @@ floor for that.
 but its mere presence in the report now also caps the overall gate at
 `NEEDS_WORK` regardless of score — unless score < 60, which is `FAIL` (checked
 first). `PASS` requires an EMPTY retained-violation list, not merely a score
-≥ threshold; this closed the threshold-dilution vector (AA-MOAT-002/-006). See
+≥ threshold; this closed the threshold-dilution vector (OI-MOAT-02/-006). See
 the README's Score gate table for the full gate table.
 
 ### UNVERIFIED_CITATION  — the fabricated-citation catch
@@ -94,7 +94,7 @@ points at.
 unit, **and** — when the claim states one — the rate qualifier are all checked:
 `25%` ≠ bare `25`; `$4M` ≡ `$4,000,000`; a claim stating "128000 operations per
 MINUTE" is not grounded by a source that only says "128000 operations per
-SECOND" — the qualifier must match too (AA-MOAT-001 fix, 2026-07-12). A claim
+SECOND" — the qualifier must match too (OI-MOAT-01 fix, 2026-07-12). A claim
 with no stated rate qualifier matches by value+unit as before.
 **Fix:** correct the number (and qualifier, if stated) to the source value, or
 cite the source that actually carries it.
@@ -106,7 +106,7 @@ from borrowing a source's digits while changing their meaning.
 
 **Gate effect:** violation.
 **Meaning:** an absence claim backed by fewer than 2 distinct queries that meet
-the discriminating-anchor rule (AA-MOAT-004 fix, 2026-07-12): for a subject with
+the discriminating-anchor rule (OI-MOAT-04 fix, 2026-07-12): for a subject with
 strong anchors (named entities / numerics), a query must contain ALL of them
 plus the subject's head noun — a query about "MongoDB pricing" does not support
 "no benchmark comparing MongoDB against Redis" just because it mentions MongoDB.

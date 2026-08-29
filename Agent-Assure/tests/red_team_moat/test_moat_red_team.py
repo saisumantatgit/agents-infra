@@ -21,8 +21,8 @@ Why ``strict xfail`` and not a plain failing test:
 
 2026-07-12 update (Sai's ruling): ADR-005 (empty-appendix hard-cap) ACCEPTED;
 numeric-unit and absence-anchoring fixes GREENLIT and landed. Their four tests
-flipped XPASS and are now permanent green guards (MOAT_GUARDS). AA-MOAT-003
-(T1 overreach) and AA-MOAT-005 (relational predicate) remain OPEN by the same
+flipped XPASS and are now permanent green guards (MOAT_GUARDS). OI-MOAT-03
+(T1 overreach) and OI-MOAT-05 (relational predicate) remain OPEN by the same
 ruling — still strict xfail. Do NOT remove a remaining xfail marker without
 the corresponding fix + calibration re-run + new CR (Escalation rule #1).
 """
@@ -66,31 +66,31 @@ def _gate(draft: str) -> dict:
 MOAT_GUARDS = [
     pytest.param(
         "numeric-drift-unit_1",
-        "AA-MOAT-001",
+        "OI-MOAT-01",
         "FIXED (rate-qualifier comparison in numeric_ok): 'operations per "
         "minute' no longer grounds against 'per second'.",
-        id="AA-MOAT-001-numeric-drift-unit",
+        id="OI-MOAT-01-numeric-drift-unit",
     ),
     pytest.param(
         "numeric-drift-decimal_4",
-        "AA-MOAT-002",
+        "OI-MOAT-02",
         "FIXED (ADR-005 empty-appendix hard-cap): a retained "
         "UNVERIFIED_NUMBER can no longer ride inside a >=90% PASS.",
-        id="AA-MOAT-002-numeric-drift-decimal-dilution",
+        id="OI-MOAT-02-numeric-drift-decimal-dilution",
     ),
     pytest.param(
         "unsubstantiated-absence_1",
-        "AA-MOAT-004",
+        "OI-MOAT-04",
         "FIXED (discriminating-anchor absence check): entity/numeric anchors "
         "of the negated subject must all appear in the supporting queries.",
-        id="AA-MOAT-004-unsubstantiated-absence",
+        id="OI-MOAT-04-unsubstantiated-absence",
     ),
     pytest.param(
         "letter-suffixed-source-id_5",
-        "AA-MOAT-006",
+        "OI-MOAT-06",
         "FIXED (ADR-005 empty-appendix hard-cap): the retained UNCITED [S1a] "
         "claim blocks PASS regardless of the 90.0 score.",
-        id="AA-MOAT-006-letter-suffixed-dilution",
+        id="OI-MOAT-06-letter-suffixed-dilution",
     ),
 ]
 
@@ -99,18 +99,18 @@ MOAT_GUARDS = [
 MOAT_VIOLATIONS = [
     pytest.param(
         "paraphrase-overreach_1",
-        "AA-MOAT-003",
+        "OI-MOAT-03",
         "Root B: a verbatim >=8-token span short-circuits T1; the surrounding "
         "fabricated superlative ('single fastest database ever engineered') is "
         "never checked.",
-        id="AA-MOAT-003-paraphrase-overreach",
+        id="OI-MOAT-03-paraphrase-overreach",
     ),
     pytest.param(
         "unsupported-relation_3",
-        "AA-MOAT-005",
+        "OI-MOAT-05",
         "Root B: the two-source relational rule checks endpoint-noun presence, "
         "not support for the relation/predicate ('decisively outperforming').",
-        id="AA-MOAT-005-unsupported-relation",
+        id="OI-MOAT-05-unsupported-relation",
     ),
 ]
 

@@ -6,6 +6,33 @@ here; the proven-red regression cover lives in
 failure the moment a fix lands). Narrative context:
 `docs/case-narratives/CN-ADR005-The-Ninety-Percent-Moat.md`.
 
+## ADR-039 conformance (2026-08-30)
+
+This register conforms to HQ ADR-039 (one type, three classes). The former
+`AA-MOAT-{NNN}` series is collapsed into this register as `OI-MOAT-{NN}`,
+class INVARIANT, per HQ's 2026-07-18 ruling. **Alias map** (historical records
+— logbooks, ADR-005, PIR/CN, sent correspondence — retain the old IDs):
+AA-MOAT-001→OI-MOAT-01 … AA-MOAT-007→OI-MOAT-07; AA-MOAT-R2-001/-002/-003→OI-MOAT-08/-09/-10.
+
+| ID | Class | Status | Tripwire (INVARIANT-mandatory) |
+|---|---|---|---|
+| OI-MOAT-01 | INVARIANT | FIXED 2026-07-12 | `test_moat_red_team.py::test_fixed_fabrication_stays_blocked[OI-MOAT-01…]` (green guard) |
+| OI-MOAT-02 | INVARIANT | FIXED 2026-07-12 | same file (green guard) |
+| OI-MOAT-03 | INVARIANT | OPEN | `test_moat_red_team.py::test_fabrication_must_not_pass[OI-MOAT-03…]` (strict xfail) |
+| OI-MOAT-04 | INVARIANT | FIXED 2026-07-12 | same file (green guard) |
+| OI-MOAT-05 | INVARIANT | OPEN | `test_moat_red_team.py::test_fabrication_must_not_pass[OI-MOAT-05…]` (strict xfail) |
+| OI-MOAT-06 | INVARIANT | FIXED 2026-07-12 | same file (green guard) |
+| OI-MOAT-07 | INVARIANT | OPEN | `test_moat_red_team_r2.py::test_verbless_nonclaim_smuggle_must_not_pass` (strict xfail) |
+| OI-MOAT-08/-09/-10 | INVARIANT | FIXED 2026-07-14 | `test_moat_red_team_r2.py` (green guards) |
+| OI-BUILD-01 | HYGIENE | OPEN | — |
+| OI-CITE-01 | INVARIANT | FIXED 2026-07-14 | `tests/test_letter_suffixed_citations.py` |
+| OI-CAL-01 | DECISION-GAP | OPEN | — |
+| OI-ENV-01 | HYGIENE | OPEN | — |
+| OI-DEC-01 | HYGIENE | OPEN | — |
+| OI-CAL-02 | INVARIANT | FIXED 2026-07-14 | `tests/test_labeling_overwrite_guard.py` |
+| OI-CAL-03 | INVARIANT | FIXED 2026-07-14 | `tests/test_gold_labels_separation.py` |
+| OI-NUM-02 | HYGIENE | OPEN | — |
+
 Severity **Error-B** = a fabrication/unsupported claim certified as PASS — the
 **unrecoverable** class under the pinned asymmetric invariant (CLAUDE.md
 "Moat-integrity is an INVARIANT, not a preference"). Every Error-B item below is
@@ -27,11 +54,11 @@ hand-reproduction corrected it to two — see CN §"Two roots, not one"):
   `grounding_score >= 90` even when `retained_appendix` is non-empty. A single
   retained violation-class claim padded to <=10% of a >=10-claim draft rides
   through *inside* a PASS. The gate *knows* the claim is unsupported and passes
-  anyway. Affects AA-MOAT-002, AA-MOAT-006 (and, by construction, a diluted
+  anyway. Affects OI-MOAT-02, OI-MOAT-06 (and, by construction, a diluted
   variant of every other class).
 - **Root B — Per-claim over-grounding (tiers).** The gate marks a claim
   `GROUNDED` / `ABSENCE_SUPPORTED` that is not supported, scoring 100 with an
-  **empty** appendix — so no score-bar fix can catch it. Affects AA-MOAT-001,
+  **empty** appendix — so no score-bar fix can catch it. Affects OI-MOAT-01,
   -003, -004, -005.
 
 **Escalation:** every fix alters the Error-A/Error-B trade-off or the gate score
@@ -40,12 +67,12 @@ patched. The score-bar decision is drafted as **ADR-005** (Status: Proposed).
 
 | ID | Class | Root | Severity | Status |
 |----|-------|------|----------|--------|
-| AA-MOAT-001 | numeric-drift-unit | B | Error-B | **FIXED 2026-07-12** (rate-qualifier comparison; Sai greenlight) |
-| AA-MOAT-002 | numeric-drift-decimal (dilution) | A | Error-B | **FIXED 2026-07-12** (ADR-005 accepted + implemented) |
-| AA-MOAT-003 | paraphrase-overreach | B | Error-B | OPEN — deferred by Sai ruling 2026-07-12 (interacts with Phase-2b NLI design; decide last) |
-| AA-MOAT-004 | unsubstantiated-absence | B | Error-B | **FIXED 2026-07-12** (discriminating-anchor check; Sai greenlight) |
-| AA-MOAT-005 | unsupported-relation | B | Error-B | OPEN — deferred by Sai ruling 2026-07-12 (needs its own decision; softest fixture — probe first) |
-| AA-MOAT-006 | letter-suffixed-id (dilution) | A | Error-B | **FIXED 2026-07-12** (ADR-005 accepted + implemented) |
+| OI-MOAT-01 | numeric-drift-unit | B | Error-B | **FIXED 2026-07-12** (rate-qualifier comparison; Sai greenlight) |
+| OI-MOAT-02 | numeric-drift-decimal (dilution) | A | Error-B | **FIXED 2026-07-12** (ADR-005 accepted + implemented) |
+| OI-MOAT-03 | paraphrase-overreach | B | Error-B | OPEN — deferred by Sai ruling 2026-07-12 (interacts with Phase-2b NLI design; decide last) |
+| OI-MOAT-04 | unsubstantiated-absence | B | Error-B | **FIXED 2026-07-12** (discriminating-anchor check; Sai greenlight) |
+| OI-MOAT-05 | unsupported-relation | B | Error-B | OPEN — deferred by Sai ruling 2026-07-12 (needs its own decision; softest fixture — probe first) |
+| OI-MOAT-06 | letter-suffixed-id (dilution) | A | Error-B | **FIXED 2026-07-12** (ADR-005 accepted + implemented) |
 
 **Closure evidence (2026-07-12):** each FIXED item's strict-xfail flipped XPASS
 when its fix landed and was converted to a permanent green guard
@@ -64,12 +91,12 @@ additionally requiring the subject head noun in supporting queries, pinned by
 **Residual (recorded, not Error-B-proven):** absence anchors do not stem
 tokens ("docs" ≠ "documentation"); numeric quantity-nouns ("operations" vs
 "gigabytes") are still not compared — both live in the same
-fail-closed-vs-Error-A trade space as AA-MOAT-003 and should ride with the
+fail-closed-vs-Error-A trade space as OI-MOAT-03 and should ride with the
 Phase-2b decision.
 
 ---
 
-### AA-MOAT-001 — numeric tier is unit-blind
+### OI-MOAT-01 — numeric tier is unit-blind
 
 - **Draft:** `tests/red_team_moat/fixtures/numeric-drift-unit_1.md`
 - **Claim:** "Redis sustained approximately 128000 operations **per minute** [S1]"
@@ -85,7 +112,7 @@ Phase-2b decision.
   preserve Error-B monotonicity. Add proven-red regression, re-run calibration
   (classify/tiers change → `calibration/` goes stale → new ADR-025 CR).
 
-### AA-MOAT-002 — threshold-dilution admits a retained numeric violation
+### OI-MOAT-02 — threshold-dilution admits a retained numeric violation
 
 - **Draft:** `tests/red_team_moat/fixtures/numeric-drift-decimal_4.md`
 - **Shape:** 9 clean verbatim-grounded claims + 1 drifted number
@@ -98,7 +125,7 @@ Phase-2b decision.
   retained violation-class verdicts (mirror the existing `UNVERIFIED_CITATION`
   hard-override, generalized). Raises Error-A only in the recoverable direction.
 
-### AA-MOAT-003 — T1 verbatim span short-circuits an unsupported superlative
+### OI-MOAT-03 — T1 verbatim span short-circuits an unsupported superlative
 
 - **Draft:** `tests/red_team_moat/fixtures/paraphrase-overreach_1.md`
 - **Claim:** "Redis is an in-memory data structure store that is, by every
@@ -115,7 +142,7 @@ Phase-2b decision.
   unsupported; route substantial uncovered residual to the fail-closed T3 tier
   (Phase 2b) and never let T1 short-circuit it. Tiers/score change → new CR.
 
-### AA-MOAT-004 — absence grounding anchors on the wrong tokens
+### OI-MOAT-04 — absence grounding anchors on the wrong tokens
 
 - **Draft:** `tests/red_team_moat/fixtures/unsubstantiated-absence_1.md`
 - **Claims:** "There is no benchmark that shows Redis handling more than 500000
@@ -132,7 +159,7 @@ Phase-2b decision.
   content; treat majority-present corpus words as non-discriminating. Do NOT
   narrow `query_provenance` as a case patch — that hides the collision.
 
-### AA-MOAT-005 — relational rule checks endpoint nouns, not the relation
+### OI-MOAT-05 — relational rule checks endpoint nouns, not the relation
 
 - **Draft:** `tests/red_team_moat/fixtures/unsupported-relation_3.md`
 - **Claim:** "Redis sustained approximately 128000 operations per second,
@@ -148,18 +175,18 @@ Phase-2b decision.
   classifying comparatives as RELATIONAL is necessary but not sufficient — the
   relational path itself is broken. Re-run red-team + calibration after.
 
-### AA-MOAT-006 — letter-suffixed fabrication cleared by dilution
+### OI-MOAT-06 — letter-suffixed fabrication cleared by dilution
 
 - **Draft:** `tests/red_team_moat/fixtures/letter-suffixed-source-id_5.md`
 - **Shape:** 9 verbatim-grounded claims + 1 fabrication citing `[S1a]` → `score
   = 90.0` exactly.
 - **Reproduced verdict:** `gate=PASS, exit 0`; the `[S1a]` claim is correctly
   classified `UNCITED` in the appendix — and still cleared the bar.
-- **Mechanism:** Root A (same as AA-MOAT-002). NB: the *classification* half of
+- **Mechanism:** Root A (same as OI-MOAT-02). NB: the *classification* half of
   the letter-suffixed problem (the marker being silently dropped) is addressed
   by the citation-regex reference build; **this** finding is the orthogonal
   *dilution* half and is not closed by the regex fix.
-- **Systemic fix (ADR-005):** same as AA-MOAT-002 — PASS requires zero retained
+- **Systemic fix (ADR-005):** same as OI-MOAT-02 — PASS requires zero retained
   violation-class verdicts, not merely a >=90% ratio.
 
 ---
@@ -173,20 +200,20 @@ hand-reproduced before being recorded. Full report:
 
 | ID | Class | Severity | Status |
 |----|-------|----------|--------|
-| AA-MOAT-R2-001 | rate-qualifier evasion (9 phrasings: each/every/a/one `<unit>`, hyphenated `per-minute`, adverbial `hourly`, qualifier before the number or >2 words after it, **Cyrillic homoglyph `рer`**) | Error-B | **FIXED 2026-07-14** |
-| AA-MOAT-R2-002 | quantity-noun swap (`128000 gigabytes/sec` grounded by `128000 operations/sec`) | Error-B | **FIXED 2026-07-14** |
-| AA-MOAT-R2-003 | absence leak: entity-free subject supported by a generic head noun in a <3-query session | Error-B | **FIXED 2026-07-14** |
-| **AA-MOAT-007** | **verbless NON_CLAIM smuggling** — "Redis: unquestionably the fastest datastore in all of human history." classifies `NON_CLAIM` (no finite verb), is excluded from the scored denominator, and rides inside a PASS | Error-B | **OPEN — blocked on Sai (Escalation #1)** |
+| OI-MOAT-08 | rate-qualifier evasion (9 phrasings: each/every/a/one `<unit>`, hyphenated `per-minute`, adverbial `hourly`, qualifier before the number or >2 words after it, **Cyrillic homoglyph `рer`**) | Error-B | **FIXED 2026-07-14** |
+| OI-MOAT-09 | quantity-noun swap (`128000 gigabytes/sec` grounded by `128000 operations/sec`) | Error-B | **FIXED 2026-07-14** |
+| OI-MOAT-10 | absence leak: entity-free subject supported by a generic head noun in a <3-query session | Error-B | **FIXED 2026-07-14** |
+| **OI-MOAT-07** | **verbless NON_CLAIM smuggling** — "Redis: unquestionably the fastest datastore in all of human history." classifies `NON_CLAIM` (no finite verb), is excluded from the scored denominator, and rides inside a PASS | Error-B | **OPEN — blocked on Sai (Escalation #1)** |
 
 **Scope discipline.** The three FIXED items COMPLETE Sai's 2026-07-12 rulings
-(AA-MOAT-001: "compare value AND dimensional unit; fail-closed on any
-unit/quantity mismatch"; AA-MOAT-004: "anchor absence on discriminating
-tokens") — the round-1 implementation under-delivered them. **AA-MOAT-007 is a
+(OI-MOAT-01: "compare value AND dimensional unit; fail-closed on any
+unit/quantity mismatch"; OI-MOAT-04: "anchor absence on discriminating
+tokens") — the round-1 implementation under-delivered them. **OI-MOAT-07 is a
 NEW decision** (it changes *what counts as a claim*, moving the Error-A/Error-B
 trade-off) and is therefore RECORDED, NOT FIXED, with a strict-xfail tripwire
 (`tests/red_team_moat/test_moat_red_team_r2.py::test_verbless_nonclaim_smuggle_must_not_pass`).
 
-**Sai's call on AA-MOAT-007:** should a verbless, citation-free assertion
+**Sai's call on OI-MOAT-07:** should a verbless, citation-free assertion
 ("X: the greatest Y in history.") be scored as a claim (→ UNCITED → blocks
 PASS), or remain NON_CLAIM? Scoring it raises Error-A on genuine headers and
 transition lines; leaving it open keeps a fabrication vector that requires only

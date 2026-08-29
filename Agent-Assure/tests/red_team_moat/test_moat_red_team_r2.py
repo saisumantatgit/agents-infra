@@ -11,12 +11,12 @@ docs/plans/reports/RED-TEAM-R2-2026-07-14.md).
 These are permanent green guards: each asserts the CORRECT behavior
 (gate != PASS), each was seen red first (INS-005).
 
-Scope note — these fixes COMPLETE Sai's 2026-07-12 rulings (AA-MOAT-001
+Scope note — these fixes COMPLETE Sai's 2026-07-12 rulings (OI-MOAT-01
 "compare value AND dimensional unit; fail-closed on any unit/quantity
-mismatch"; AA-MOAT-004 "anchor absence on discriminating tokens; treat
+mismatch"; OI-MOAT-04 "anchor absence on discriminating tokens; treat
 majority-present corpus words as non-discriminating") rather than making a new
 Error-A/Error-B decision. The one genuinely NEW class found in round 2 —
-verbless NON_CLAIM smuggling (AA-MOAT-007) — is RECORDED, NOT FIXED, and is
+verbless NON_CLAIM smuggling (OI-MOAT-07) — is RECORDED, NOT FIXED, and is
 covered by a strict-xfail below pending Sai's ruling.
 """
 
@@ -156,11 +156,11 @@ def test_generic_headnoun_absence_must_not_pass(tmp_path: Path, draft_text: str)
     )
 
 
-# --- OPEN: AA-MOAT-007, recorded not fixed (awaiting Sai) ---------------------
+# --- OPEN: OI-MOAT-07, recorded not fixed (awaiting Sai) ---------------------
 
 @pytest.mark.xfail(
     strict=True,
-    reason="AA-MOAT-007 (OPEN, blocked on Sai): a verbless colon-form "
+    reason="OI-MOAT-07 (OPEN, blocked on Sai): a verbless colon-form "
     "assertion classifies NON_CLAIM, is excluded from the scored denominator, "
     "and rides inside a PASS. Fixing it changes WHAT COUNTS AS A CLAIM — an "
     "Error-A/Error-B decision no existing ruling covers (Escalation rule #1). "
@@ -177,6 +177,6 @@ def test_verbless_nonclaim_smuggle_must_not_pass(tmp_path: Path) -> None:
         "Redis: unquestionably the fastest datastore in all of human history.\n",
     )
     assert report["gate"] != "PASS", (
-        "AA-MOAT-007: verbless fabrication rode inside a PASS "
+        "OI-MOAT-07: verbless fabrication rode inside a PASS "
         f"(score={report['grounding_score']})"
     )

@@ -224,14 +224,14 @@ def test_exotic_unit_fail_closed():
 
 
 # ---------------------------------------------------------------------------
-# Rate-qualifier comparison (AA-MOAT-001 fix, 2026-07-12)
+# Rate-qualifier comparison (OI-MOAT-01 fix, 2026-07-12)
 # Proven-red at the bug level via tests/red_team_moat (xfail → XPASS flip);
 # these pin the mechanism directly.
 # ---------------------------------------------------------------------------
 
 def test_rate_qualifier_mismatch_fails():
     """'128000 operations per MINUTE' must NOT match a source stating
-    '128000 operations per SECOND' — the AA-MOAT-001 vector."""
+    '128000 operations per SECOND' — the OI-MOAT-01 vector."""
     claim = mk("Redis sustained approximately 128000 operations per minute [S1].")
     source = src("Redis sustained approximately 128000 operations per second.")
     assert numeric_ok(claim, [source]) is False
