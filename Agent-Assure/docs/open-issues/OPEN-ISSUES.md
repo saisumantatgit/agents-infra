@@ -36,6 +36,11 @@ AA-MOAT-001→OI-MOAT-01 … AA-MOAT-007→OI-MOAT-07; AA-MOAT-R2-001/-002/-003�
 | OI-MOAT-13 | INVARIANT | FIXED 2026-08-30 | `test_moat_red_team_r3.py::test_citing_more_sources_must_not_ground_a_false_claim` |
 | OI-MOAT-14 | INVARIANT | FIXED 2026-08-30 | `test_moat_red_team_r3.py::test_absence_of_the_very_thing_searched_must_not_be_supported` |
 | OI-MOAT-15 | INVARIANT | FIXED 2026-08-30 | `test_moat_red_team_r3.py::test_quantity_noun_reader_must_not_fail_open` |
+| OI-MOAT-16 | INVARIANT | FIXED 2026-08-30 | `test_moat_red_team_r4.py::test_capitalisation_must_not_buy_a_denominator_exit` |
+| OI-MOAT-17 | INVARIANT | FIXED 2026-08-30 | `test_moat_red_team_r4.py::test_subject_too_thin_to_check_must_not_be_supported` |
+| OI-MOAT-18 | INVARIANT | FIXED 2026-08-30 | `test_moat_red_team_r4.py::test_subject_swap_within_one_source_must_not_ground` |
+| OI-MOAT-19 | INVARIANT | FIXED 2026-08-30 | `test_moat_red_team_r4.py::test_rate_free_restatement_of_a_rate_must_not_ground` |
+| **OI-MOAT-20** | **INVARIANT** | **OPEN** | `test_moat_red_team_r4.py::test_verb_final_header_must_not_escape_denominator` (strict xfail) |
 | OI-NUM-02 | HYGIENE | FIXED 2026-08-30 | `tests/test_numeric.py::test_sentence_final_source_number_still_grounds` |
 
 Severity **Error-B** = a fabrication/unsupported claim certified as PASS — the
@@ -296,6 +301,58 @@ resolution, and the Cyrillic-homoglyph rate path all HELD. **lex_tau is not
 implicated** — D05/D24/D35 re-run at `--lex-tau 0.65 / 0.71 / 0.90` give
 identical gate verdicts at all three; every wrongful PASS was
 lex_tau-invariant. Deploying 0.71 opened no path.
+
+---
+
+## Cohort: 2026-08-30 red-team round 4 — evasions of round 3's fixes
+
+41 drafts, **25 wrongful PASSes over 4 mechanisms, every one an evasion of a fix
+landed the same day.** Rounds 1→2→3→4 have each broken the previous round's
+work. Full report: `docs/plans/reports/RED-TEAM-R4-2026-08-30.md`. All findings
+independently re-reproduced by hand; 8 regressions observed RED pre-fix.
+
+| ID | Class | Severity | Status |
+|----|-------|----------|--------|
+| OI-MOAT-16 (RT4-01) | **Title Case defeats both of round 3's NON_CLAIM tests** — `_has_finite_verb` skipped capitalised tokens, and the verbless branch tested `str.isupper()`. "PostgreSQL Fails." / "### Redis Loses Data" → NON_CLAIM → PASS 100.0 | Error-B | **FIXED 2026-08-30** |
+| OI-MOAT-17 (RT4-02) | **`No benchmark.` — the entire document — returned ABSENCE_SUPPORTED, PASS, exit 0** against a store of nothing but benchmarks. A one-content-word subject made the contradiction check vacuously False; the query side stemmed and the contradiction side did not | Error-B | **FIXED 2026-08-30** |
+| OI-MOAT-18 (RT4-03) | per-source coverage is still SET MEMBERSHIP, so a single-source **subject swap** grounds: "The disk-backed alternative sustained … 128000 operations per second … twelve times the throughput of Redis [S1]" → GROUNDED 100.0 | Error-B | **FIXED 2026-08-30** |
+| OI-MOAT-19 (RT4-04) | **deleting "per second" deleted the check** — `claim_rate=None` read as unconstrained, so S1's rate grounded a claim asserting a total | Error-B | **FIXED 2026-08-30** |
+| **OI-MOAT-20** | **verb-FINAL header** ("### PostgreSQL Fails") still reads structural — the documented residue of the OI-MOAT-16 header rule | Error-B | **OPEN — strict-xfail tripwire** |
+
+**Tripwires:** `tests/red_team_moat/test_moat_red_team_r4.py` (9 green guards +
+1 strict xfail for OI-MOAT-20).
+
+### The cross-cutting finding — this is the one to remember
+
+**Three of the four are the same anti-pattern: an absent or unreadable field
+read as "unconstrained", inside a gate whose entire job is to constrain.**
+
+- `NON_CLAIM` — "I could not classify this" → leaves the scored denominator.
+- `claim_rate = None` — "I could not read a rate" → impose no rate constraint.
+- `others = ∅` — "the subject is too thin to check" → the check reports no objection.
+
+Each is a catch-all pointing **toward** PASS. Every "I don't know" in a
+verification gate must point **away** from it. The fixes invert those defaults
+rather than patch the four symptoms.
+
+### And a second lesson, learned twice in two rounds
+
+Round 3 replaced a gameable token COUNT with a proper-noun test. Round 4 beat
+that with the **Shift key**. Both rules keyed on a surface property the author
+controls — length, then capitalisation — and in both cases the attacker simply
+set that property. The header rule that replaced them uses a POSITIONAL signal
+(an English heading ends in its head noun; an assertion puts its verb medially
+and continues), which the attacker controls far less directly. Its residue is
+recorded as OI-MOAT-20 rather than papered over: closing it means either
+scoring every multi-word heading — Error-A on ordinary documents, which gets
+the tool switched off, itself a moat failure — or adding a real POS tagger,
+which is a dependency and a design decision, not a patch.
+
+**Corpus adjudication:** one row drifted (q08, labeled *grounded*) — verdict
+unchanged GROUNDED, `t1_verbatim` true→false, `tier_sensitive` false→true. It
+is now grounded via T2 (f1=0.824, comfortably above the deployed 0.71) instead
+of T1, because subject-anchoring made T1 decline. Label still satisfied, and
+the `tier_sensitive` tag is now *more* accurate. Demo re-verified.
 
 ---
 

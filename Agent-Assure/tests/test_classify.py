@@ -121,14 +121,26 @@ def test_hedged_numeric_no_citation_digit_junk():
 #          _has_finite_verb (used in NON_CLAIM gate) and _has_verb_like_token
 # ---------------------------------------------------------------------------
 
-def test_capitalized_fragment_non_claim():
-    """A fragment of only capitalized tokens with no auxiliary should be NON_CLAIM.
+def test_capitalized_fragment_is_now_scored():
+    """SUPERSEDED by RT4-01 (2026-08-30). This test asserted that a fragment of
+    capitalized tokens is NON_CLAIM, which was the behaviour red-team round 4
+    exploited: `_has_finite_verb` skipped capitalized tokens as proper nouns, so
+    "PostgreSQL Fails." had no detectable verb and left the scored denominator.
+    Case is one bit per word and the attacker sets it.
 
-    Example: 'Redis Postgres' — two proper nouns, no verb.
-    Both _has_finite_verb and _has_verb_like_token must agree: no finite verb present.
+    Verb detection is now case-insensitive, so "Redis Postgres" ("Redis" ends
+    in -s) reads as a claim. Accepted Error-A on a bare name-list line: it
+    resolves UNCITED and blocks PASS, which is recoverable by citing or
+    removing the line. A smuggled fabrication is not recoverable.
+
+    NB the CONJUNCTION SPLITTER keeps the capitalization skip
+    (`_has_verb_like_token`) — there, under-splitting is the safe error and no
+    denominator exit is at stake.
     """
     c = classify(mk("Redis Postgres"))
-    assert c.kind == ClaimKind.NON_CLAIM, f"expected NON_CLAIM, got {c.kind}"
+    assert c.kind != ClaimKind.NON_CLAIM, (
+        f"capitalized fragment escaped scoring again: {c.kind}"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -189,9 +201,15 @@ def test_verbless_citation_only_claim_is_scored():
     assert c.kind != ClaimKind.NON_CLAIM, f"verbless cited claim wrongly excluded: {c.kind}"
 
 
-def test_verbless_no_content_stays_non_claim():
-    """A verbless fragment with NO numeric/citation content stays NON_CLAIM."""
-    assert classify(mk("Redis Postgres MongoDB")).kind == ClaimKind.NON_CLAIM
+def test_contentless_fragment_stays_non_claim():
+    """Only a fragment with NO content words at all is still NON_CLAIM.
+
+    Narrowed by RT4-01 (2026-08-30): "Redis Postgres MongoDB" is now scored
+    (see test_capitalized_fragment_is_now_scored). NON_CLAIM is reduced to what
+    document furniture actually is — headers that assert nothing, pure
+    transitions, and fragments carrying no content words.
+    """
+    assert classify(mk("the and of")).kind == ClaimKind.NON_CLAIM
 
 
 # --- OI-MOAT-07 (fixed 2026-08-30): verbless CONTENT-BEARING assertions -------
@@ -205,7 +223,7 @@ def test_verbless_long_assertion_is_scored():
     assert c.kind != ClaimKind.NON_CLAIM, f"verbless assertion wrongly excluded: {c.kind}"
 
 
-def test_verbless_name_list_stays_non_claim():
+def test_verbless_name_list_is_now_scored():
     """Error-A boundary, REVISED after RT3-01 (2026-08-30).
 
     The first OI-MOAT-07 fix used a >=6-content-token floor, and round 3 broke
@@ -222,9 +240,14 @@ def test_verbless_name_list_stays_non_claim():
     knowingly — it is recoverable (add the '#'), and a smuggled fabrication
     is not. See test_verbless_predicate_is_scored.
     """
-    for label in ("Redis Postgres MongoDB", "PostgreSQL", "Redis Cluster"):
+    # REVISED AGAIN by RT4-01: the proper-noun test keyed on case, and round 4
+    # beat it with Title Case ("PostgreSQL: Catastrophic Data Loss."). Two
+    # rounds running, a test keyed on a surface property the author controls
+    # was defeated by setting that property. The case test is gone; these are
+    # now scored, which is the accepted Error-A.
+    for label in ("Redis Postgres MongoDB", "Redis Cluster"):
         c = classify(mk(label))
-        assert c.kind == ClaimKind.NON_CLAIM, f"{label!r} wrongly scored: {c.kind}"
+        assert c.kind != ClaimKind.NON_CLAIM, f"{label!r} escaped scoring: {c.kind}"
 
 
 def test_verbless_predicate_is_scored():

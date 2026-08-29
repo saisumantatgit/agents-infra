@@ -319,12 +319,43 @@ def _has_finite_verb(text: str) -> bool:
         w_core = t_core.lower()
         if w_core in auxiliaries:
             return True
-        # Skip capitalized tokens — treat as proper nouns, not verbs.
-        if t_core and t_core[0].isupper():
-            continue
+        # RT4-01 (2026-08-30): the capitalized-token skip is GONE from this
+        # path. It was a proper-noun heuristic — reasonable for the CONJUNCTION
+        # SPLITTER, where under-splitting is the safe error and _has_verb_like_
+        # token still keeps it — but here it decided whether a fragment escapes
+        # the scored denominator, and CASE IS ONE BIT PER WORD THAT THE
+        # ATTACKER OWNS. "PostgreSQL Fails." had no detectable verb purely
+        # because "Fails" was capitalised; Title Case defeated the whole rule.
+        # Detection is now case-insensitive, which errs toward calling things
+        # claims — the fail-closed direction for a denominator test.
         w_orig = t.lower()
         if len(w_orig) >= min_len and any(w_orig.endswith(s) for s in suffixes):
             return True
+    return False
+
+
+def _header_asserts(header_body: str) -> bool:
+    """Return True if *header_body* reads as an assertion rather than a label.
+
+    An auxiliary anywhere, or a verb-like token that is not the final content
+    token. See the discussion in ``_is_non_claim``. Pure function.
+    """
+    raw = [tok for tok in header_body.split() if tok.strip(".,;:!?\"'()[]{}")]
+    content = [
+        tok for tok in raw
+        if tok.strip(".,;:!?\"'()[]{}").casefold() not in _STOP_WORDS
+    ]
+    if not content:
+        return False
+    for tok in raw:
+        if tok.rstrip(".,;:!?").lower() in _AUXILIARIES:
+            return True
+    final = content[-1]
+    for tok in content[:-1] if len(content) > 1 else []:
+        w = tok.lower()
+        if len(w) >= _VERB_SUFFIX_MIN_LEN and any(w.endswith(s) for s in _VERB_SUFFIXES):
+            return True
+    _ = final
     return False
 
 
@@ -362,10 +393,27 @@ def _is_non_claim(text: str) -> bool:
         # matter what it asserted — "### Redis silently drops writes above ten
         # thousand concurrent clients" was NON_CLAIM and rode inside a PASS.
         # A heading that PREDICATES something is an assertion wearing a
-        # heading's clothes. Apply the SAME assertion test used everywhere
-        # else: a finite verb. "## Results" has none and stays structural;
-        # "### Redis silently drops writes" does, and is scored.
-        return not _has_finite_verb(header_body)
+        # heading's clothes, and must be scored.
+        #
+        # Headers need their own verb test (RT4-01 follow-through). The body
+        # rule is now case-insensitive, and applied to headers it scores
+        # "## Results" — the suffix heuristic cannot tell a plural noun from a
+        # third-person verb, and an ordinary heading blocking PASS on every
+        # document is an Error-A cost that would get the tool switched off,
+        # which is its own kind of moat failure.
+        #
+        # The positional signal separates them without a count and without
+        # relying on case: an English HEADING ends in its head noun
+        # ("Results", "Key Findings"), while an ASSERTION puts its verb
+        # medially and continues ("Redis LOSES Data"). So a header is scored
+        # when it carries a verb-like token that is not its final content
+        # token. Auxiliaries count wherever they appear.
+        #
+        # KNOWN RESIDUE, recorded not hidden: a verb-FINAL header
+        # ("### PostgreSQL Fails") still reads structural. Tracked as
+        # OI-MOAT-19 with a strict-xfail tripwire — the honest mechanism this
+        # repo uses for a hole it has not closed, rather than a silent gap.
+        return not _header_asserts(header_body)
     # Pure transition: strip citations, lowercase, and check against transition set
     stripped = _CITATION_RE.sub("", text).strip().rstrip(".,;:!?").lower()
     if stripped in _TRANSITION_PHRASES:
@@ -399,17 +447,29 @@ def _is_non_claim(text: str) -> bool:
         # written in sentence case ("Results and discussion" with no '#') is
         # now scored → UNCITED → blocks PASS. That is recoverable (add the
         # '#', or cite it); a smuggled fabrication is not.
+        # RT4-01 (2026-08-30): the "all content words are proper nouns" test is
+        # GONE. It was the right IDEA — a list names, an assertion predicates —
+        # but implemented with str.isupper(), i.e. keyed on case, which the
+        # attacker sets freely: "PostgreSQL: Catastrophic Data Loss." satisfied
+        # it exactly. Two rounds running, a test that keyed on a surface
+        # property the author controls was defeated by setting that property.
+        #
+        # With verb detection now case-insensitive above, a genuinely verbless
+        # fragment carrying content is rare and is SCORED. NON_CLAIM is reduced
+        # to what document furniture actually is: markdown headers with no
+        # assertion (handled above), pure transition phrases (above), and
+        # fragments with no content words at all.
+        #
+        # Accepted Error-A, stated plainly: a bare name-list line ("Redis
+        # Postgres MongoDB") is now scored -> UNCITED -> blocks PASS. That is
+        # recoverable by citing or removing the line; a smuggled fabrication is
+        # not recoverable at all.
         content_tokens = [
             tok for tok in _CITATION_RE.sub("", text).split()
             if tok.strip(".,;:!?\"'()[]{}") and
             tok.strip(".,;:!?\"'()[]{}").casefold() not in _STOP_WORDS
         ]
-        if not content_tokens:
-            return True
-        all_proper = all(
-            tok.strip(".,;:!?\"'()[]{}")[:1].isupper() for tok in content_tokens
-        )
-        return all_proper
+        return not content_tokens
     return False
 
 
@@ -563,7 +623,38 @@ def t1_verbatim(
 
         # This source supplied the span; it must also cover the residual.
         source_vocab = set(source_tokens)
-        if all(tok in source_vocab for tok in _content_words(claim_tokens)):
+        if not all(tok in source_vocab for tok in _content_words(claim_tokens)):
+            continue
+
+        # RT4-03 (2026-08-30): coverage is SET MEMBERSHIP, and a set has no
+        # notion of who did what to whom. Every content token of "The
+        # disk-backed alternative sustained approximately 128000 operations per
+        # second ... twelve times the throughput of Redis" is in S1, and an
+        # 8-gram is verbatim — but the claim REVERSES the subjects, handing
+        # Redis's measured throughput to the system it beat.
+        #
+        # The span must therefore be anchored to the claim's own subject: the
+        # matched window has to START at the claim's first content token. An
+        # honest quotation restates its subject and then continues, so the
+        # source contains "<subject> ... <span>" contiguously; a subject swap
+        # does not, because the source never said that subject did that thing.
+        # Fail-closed: a claim quoting mid-sentence falls through to T2.
+        claim_content = _content_words(claim_tokens)
+        if not claim_content:
+            continue
+        subject = claim_content[0]
+        subject_positions = [
+            i for i, tok in enumerate(claim_tokens) if tok == subject
+        ]
+        anchored = False
+        for start in subject_positions:
+            if start + min_quote_len > n:
+                continue
+            window = tuple(claim_tokens[start : start + min_quote_len])
+            if window in source_ngrams:
+                anchored = True
+                break
+        if anchored:
             return True
 
     return False
@@ -1341,11 +1432,32 @@ def check_absence(
     # refutes the absence; refusing is fail-closed.
     if source_texts:
         others = {w for w in subject_content if w != head_noun}
+        # RT4-02 (2026-08-30): with a ONE-content-word subject there is no
+        # "other" word, so the contradiction test below (`any(w in body for w
+        # in others)`) is vacuously False and silently declines to run. The
+        # gate then certified `No benchmark.` — the entire document — as
+        # ABSENCE_SUPPORTED against a store of nothing but benchmarks.
+        #
+        # This is the round-4 anti-pattern in its purest form: a field too thin
+        # to CHECK was read as a check that found NO OBJECTION. An absence
+        # whose subject cannot be discriminated is not thereby supported; it is
+        # unverifiable, and unverifiable must point away from PASS.
+        if not strong and (not head_noun or not others):
+            return Verdict.UNVERIFIED_ABSENCE
         for text in source_texts:
             for window in _split_sentences(text) or [text]:
                 body = _nfkc(window).casefold()
+                # Stem parity (RT4-02): the QUERY side stems its comparisons
+                # while this side matched raw substrings, so a plural spelling
+                # slipped past the contradiction check that the query check
+                # would have caught. Both sides now stem.
+                body_stems = {_stem(w) for w in _re.findall(r"\w+", body)}
                 mentions = (
-                    (head_noun and head_noun in body and any(w in body for w in others))
+                    (
+                        head_noun
+                        and (head_noun in body or _stem(head_noun) in body_stems)
+                        and any(w in body or _stem(w) in body_stems for w in others)
+                    )
                     or (strong and all(a in body for a in strong))
                 )
                 if not mentions:

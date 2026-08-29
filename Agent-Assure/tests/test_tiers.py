@@ -97,9 +97,12 @@ def test_t1_min_quote_len_boundary():
     # 9 content tokens total; source shares the first 8 contiguous ones and
     # carries the 9th ('done') non-contiguously so coverage is not the variable.
     claim_text = "the system processes requests at high speed always done [S1]."
+    # The 8-gram must start at the claim's SUBJECT ("system") since RT4-03
+    # anchored T1's span to it; 'done' therefore has to sit inside that window
+    # in the source, and no NINE-token anchored window can exist (the claim has
+    # only 9 tokens and the subject is at index 1).
     source_text = (
-        "the system processes requests at high speed always in production; "
-        "the migration is done"
+        "the system processes requests at high speed always done in production"
     )
     assert t1_verbatim(mk(claim_text), [src(source_text)], min_quote_len=8)
     # min_quote_len=9: no 9-token contiguous span is shared between claim and source
