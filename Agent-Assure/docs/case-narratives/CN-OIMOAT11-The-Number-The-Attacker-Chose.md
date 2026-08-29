@@ -185,3 +185,90 @@ the author defined the rule to exclude.
 Which is the same lesson the ninety-percent moat taught in July, arriving by a
 different road: the thing that had been tested was not the thing that was
 believed. The believing is the fast part. The testing is the whole job.
+
+---
+
+## Coda, written later the same day
+
+The fix that replaced the six-token floor was the proper-noun test: a list
+names, an assertion predicates, so a verbless fragment whose content words are
+all capitalised is furniture and everything else is a claim. It had the
+property the count lacked — you could say in one sentence what it meant — and
+it closed every attack round three had.
+
+Round four beat it with the Shift key.
+
+```
+PostgreSQL: Catastrophic Data Loss.
+```
+
+Title Case. Every content word capitalised, so the fragment "names" by the new
+rule's own definition. And underneath it, the same defect twice over: the verb
+detector had been skipping capitalised tokens as probable proper nouns, so
+`PostgreSQL Fails.` contained no verb the gate could see either. Both halves of
+the round-three rule keyed on case, and case is one bit per word that the person
+writing the draft sets for free.
+
+So the lesson written that morning — *never draw a numeric line an attacker can
+step over* — had been the right observation about the wrong noun. It was never
+really about numbers. **It is about keying a defence on any surface property the
+author controls.** Length was one. Capitalisation was another. There will be
+more, and the only durable move is to test something the attacker cannot set
+without also giving up the attack: the tokens that make the claim a claim, or
+where the verb sits relative to the head noun, or whether the source actually
+says this subject did this thing.
+
+Round four also found the deeper pattern, and it is the one worth carrying out
+of this repo. Three of its four findings were a single mistake wearing three
+costumes:
+
+- `NON_CLAIM` — *I could not classify this* — and the claim left the denominator.
+- `claim_rate = None` — *I could not read a rate* — and no rate constraint applied.
+- an empty corroborator set — *this subject is too thin to check* — and the check
+  reported no objection.
+
+Every one of them is a catch-all, and every one of them pointed toward PASS. A
+gate whose entire purpose is to constrain had three separate places where *not
+knowing* was treated as *no objection*. The individual patches matter less than
+the audit that follows from naming it: in a verification tool, walk every
+`None`, every empty collection, every default branch, and ask which way it
+points. There is only one acceptable answer.
+
+## The measurement nobody had taken
+
+The last thing that happened that day was not an attack.
+
+After nine consecutive fail-closed fixes — every one making the gate stricter,
+every one justified by the asymmetry that a false alarm is recoverable and a
+certified fabrication is not — someone finally pointed the other way and asked
+whether honest drafts still passed.
+
+```
+PostgreSQL is a relational database management system [S2].
+```
+
+That is a sentence copied out of S2, word for word, cited correctly. The gate
+said `UNGROUNDED`. Seven tokens, one below the verbatim tier's floor, and then
+a content-word F1 that divides the claim's five correct words by the twenty-five
+in the source window and returns 0.385.
+
+*I quoted your source exactly and you told me it was ungrounded* is the worst
+sentence a grounding tool can provoke, and four rounds of adversarial testing had
+walked past it without a flicker — not by oversight, but **by construction**. A
+red-teamer is paid to find wrongful PASSes. No quantity of red-teaming will ever
+surface a wrongful FAIL, because that is not the question being asked. The
+harness had been measuring one side of a two-sided instrument for four rounds and
+calling the result the moat's condition.
+
+The bug turned out to predate everything done that day — it fails identically at
+the old threshold, and the eight-token floor is original design. That is almost
+worse. It means it had been there the whole time, in a repo with a 446-test suite
+and a written invariant about asymmetric error, and the only reason it stayed
+invisible is that nobody had written the test that would have to fail.
+
+There is now a `tests/honest_drafts/` beside `tests/red_team_moat/`, and its two
+known false alarms are strict-xfails naming an open issue, so the false-alarm
+surface is counted rather than discovered by a user. It is a small directory. It
+exists because a gate has two failure modes and this project, which had reasoned
+about that asymmetry more carefully than most, had built an instrument for
+exactly one of them.
