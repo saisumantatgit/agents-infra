@@ -29,6 +29,7 @@ AA-MOAT-001→OI-MOAT-01 … AA-MOAT-007→OI-MOAT-07; AA-MOAT-R2-001/-002/-003�
 | OI-CAL-01 | DECISION-GAP | FIXED 2026-08-30 | — |
 | OI-ENV-01 | HYGIENE | FIXED 2026-08-30 | `tests/conftest.py` guard |
 | OI-DEC-01 | DECISION-GAP | OPEN (escalated 2026-08-30) | — |
+| OI-T2-01 | HYGIENE | OPEN (Error-A; found by honest-draft sweep) | — |
 | OI-CAL-02 | INVARIANT | FIXED 2026-07-14 | `tests/test_labeling_overwrite_guard.py` |
 | OI-CAL-03 | INVARIANT | FIXED 2026-07-14 | `tests/test_gold_labels_separation.py` |
 | OI-MOAT-11 | INVARIANT | FIXED 2026-08-30 | `test_moat_red_team_r3.py::test_short_verbless_fragment_must_not_escape_denominator` |
@@ -357,6 +358,44 @@ the `tier_sensitive` tag is now *more* accurate. Demo re-verified.
 ---
 
 ## Non-blocking / hygiene
+
+- **OI-T2-01 (MEDIUM — Error-A, found 2026-08-30 by a deliberate honest-draft
+  sweep, not by an adversary).** A short sentence quoted **verbatim** from a
+  source can read `UNGROUNDED`:
+
+      claim:  "PostgreSQL is a relational database management system [S2]."
+      S2:     "PostgreSQL is a relational database management system. Under
+               the same benchmark load and hardware, PostgreSQL sustained ..."
+      verdict: UNGROUNDED   (t2_f1 = 0.385)
+
+  Two independent causes stack. (1) T1 needs a >=8-token contiguous span and
+  this whole sentence is 7 tokens, so the verbatim tier never fires on a short
+  quotation. (2) T2's content-word **F1 penalises precision against a long
+  source window**: the claim's 5 content words are correct and complete, but
+  the window carries ~25, so recall 1.0 pairs with precision 0.2. The user
+  experience is the worst kind for this product — *"I quoted your source
+  exactly and it says ungrounded."*
+
+  **Not caused by this session's changes, and verified so:** the same claim
+  scores 0.385 and fails at lex_tau **0.65** as well as 0.71, and T1's 8-token
+  floor is original design. Recorded because a fail-safe direction is still a
+  cost, and this one is invisible to an adversarial sweep by construction — a
+  red-teamer looks for wrongful PASSes, so no number of red-team rounds would
+  ever have surfaced it.
+
+  **Systemic fix (options, Sai's call — it moves the Error-A/Error-B
+  trade-off):** (a) let T1 fire on a shorter span when the claim IS the span
+  (a whole-sentence exact match, which cannot be an over-reach because there is
+  no residual); (b) score T2 on claim-recall rather than F1, which the spec
+  already flags as deferred to calibration (spec §12.5) and which precisely
+  targets the long-window dilution; (c) leave it to the T3/NLI tier. Note (a)
+  is fail-closed-safe and narrowly scoped; (b) changes every T2 verdict and
+  needs a full calibration run + CR.
+
+  **Relevance to ADR-004:** this is the Error-A class the NLI tier exists to
+  recover, and it is more common in real drafts than the paraphrase cases the
+  package models — an author quoting a short definition verbatim is ordinary
+  behaviour.
 
 - **OI-BUILD-01 — build worktrees on the wrong base.** The two sweep builds
   (citation-regex `9d14ff1`, NLI-tier `d859e09`) were cut from `agents-infra`
