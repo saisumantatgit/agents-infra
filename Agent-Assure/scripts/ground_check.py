@@ -303,6 +303,13 @@ _TRANSITION_PHRASES: frozenset[str] = frozenset({
 })
 
 
+# OI-MOAT-07: a verbless non-header fragment with at least this many content
+# (non-stop-word) tokens is scored as a claim, not excluded as NON_CLAIM.
+# 6 keeps genuine short labels ("Results and discussion", "Key findings")
+# unscored while denying the verb-dropping fabrication its denominator exit.
+_VERBLESS_CONTENT_TOKEN_MIN: int = 6
+
+
 def _has_finite_verb(text: str) -> bool:
     """Return True if *text* appears to contain a finite verb (rough heuristic).
 
@@ -370,6 +377,18 @@ def _is_non_claim(text: str) -> bool:
         # digits (e.g. [S9] → '9') do not count as numeric content.
         has_numeric = bool(_NUMERIC_RE.search(_CITATION_RE.sub("", text)))
         if has_citation or has_numeric:
+            return False
+        # OI-MOAT-07 (2026-08-30): "no finite verb" is a gameable PROXY for
+        # structure. A verbless body fragment carrying substantial content
+        # ("Redis: unquestionably the fastest datastore in all of human
+        # history.") is an assertion to any reader — dropping the verb must not
+        # buy an exit from the scored denominator. NON_CLAIM stays reserved for
+        # genuinely structural fragments: headers (handled above), transitions
+        # (above), and SHORT labels. A verbless fragment with >= 6 content
+        # tokens is scored (→ UNCITED when uncited → blocks PASS). Fail-closed
+        # direction only: this can move claims INTO scoring, never out.
+        content_tokens = _content_words(_tokenize(_CITATION_RE.sub("", text)))
+        if len(content_tokens) >= _VERBLESS_CONTENT_TOKEN_MIN:
             return False
         return True
     return False

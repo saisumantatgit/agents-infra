@@ -156,20 +156,18 @@ def test_generic_headnoun_absence_must_not_pass(tmp_path: Path, draft_text: str)
     )
 
 
-# --- OPEN: OI-MOAT-07, recorded not fixed (awaiting Sai) ---------------------
+# --- OI-MOAT-07: FIXED 2026-08-30 (permanent green guard) --------------------
+# Fix: _is_non_claim narrows the verbless exemption — a non-header,
+# non-transition verbless fragment with >= _VERBLESS_CONTENT_TOKEN_MIN content
+# tokens is scored (→ UNCITED → blocks PASS). Autonomous call D-03,
+# docs/decisions/RATIFICATION-REGISTER-2026-08-30.md (undo = revert commit).
+# Proven red first: this test was a strict xfail observed failing on this
+# branch through 2026-08-30; it XPASSed the moment the fix landed (INS-005).
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="OI-MOAT-07 (OPEN, blocked on Sai): a verbless colon-form "
-    "assertion classifies NON_CLAIM, is excluded from the scored denominator, "
-    "and rides inside a PASS. Fixing it changes WHAT COUNTS AS A CLAIM — an "
-    "Error-A/Error-B decision no existing ruling covers (Escalation rule #1). "
-    "When this XPASSes, a fix has landed: remove the marker.",
-)
 def test_verbless_nonclaim_smuggle_must_not_pass(tmp_path: Path) -> None:
     """A fabricated superlative written verblessly ('Redis: unquestionably the
-    fastest datastore in all of human history.') is classified NON_CLAIM and
-    therefore never scored — the draft PASSes carrying it."""
+    fastest datastore in all of human history.') must be scored, not excluded
+    as NON_CLAIM — dropping the verb must not buy a denominator exit."""
     report = _gate(
         tmp_path,
         "Redis is an in-memory data structure store used as a database and "

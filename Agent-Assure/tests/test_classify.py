@@ -192,3 +192,26 @@ def test_verbless_citation_only_claim_is_scored():
 def test_verbless_no_content_stays_non_claim():
     """A verbless fragment with NO numeric/citation content stays NON_CLAIM."""
     assert classify(mk("Redis Postgres MongoDB")).kind == ClaimKind.NON_CLAIM
+
+
+# --- OI-MOAT-07 (fixed 2026-08-30): verbless CONTENT-BEARING assertions -------
+#     are scored; genuinely structural short labels stay NON_CLAIM.
+
+def test_verbless_long_assertion_is_scored():
+    """OI-MOAT-07: a verbless colon-form assertion with substantial content
+    ('Redis: unquestionably the fastest datastore in all of human history.')
+    must be scored — dropping the verb must not buy a denominator exit."""
+    c = classify(mk("Redis: unquestionably the fastest datastore in all of human history."))
+    assert c.kind != ClaimKind.NON_CLAIM, f"verbless assertion wrongly excluded: {c.kind}"
+
+
+def test_verbless_short_label_stays_non_claim():
+    """Error-A boundary: genuine short structural labels (< 6 content tokens,
+    no verb, no numeric/citation) remain NON_CLAIM."""
+    # NB: labels whose tokens trip the verb-suffix heuristic ("Key findingS")
+    # were scored before this fix too — that is pre-existing behavior, not
+    # OI-MOAT-07 scope. The boundary tested here is the genuinely-verbless one.
+    for label in ("Results and discussion", "Background",
+                  "Methodology overview", "Summary of prior art"):
+        c = classify(mk(label))
+        assert c.kind == ClaimKind.NON_CLAIM, f"{label!r} wrongly scored: {c.kind}"
