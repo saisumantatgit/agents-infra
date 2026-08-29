@@ -17,7 +17,7 @@ hook recorded *this session*, in `.assure/evidence-store.jsonl`.
 **Gate effect:** counts toward the numerator (supported).
 **Meaning:** the claim is supported by a `verbatim` source — either a contiguous
 ≥8-token span appears in the source (T1), or content-word F1 against the best
-±2-sentence window is ≥ 0.65 with all numerics present (T2). NON_CLAIM
+±2-sentence window is ≥ `lex_tau` (0.71, CR-001) with all numerics present (T2). NON_CLAIM
 statements are also reported GROUNDED but are excluded from the denominator.
 **Why it matters:** this is the only state that certifies "an AI said it *and*
 we can point to where it came from, retrieved this session."

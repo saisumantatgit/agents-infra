@@ -227,9 +227,13 @@ def test_t2_no_numeric_tokens_only_f1_gate():
         "Redis handles many operations per second on commodity hardware in production"
     )
     claim = mk("Redis handles operations per second [S1].")
-    # Numeric tokens should be empty; T2 should succeed on F1 alone
+    # Numeric tokens should be empty; T2 should succeed on F1 alone.
+    # lex_tau is passed EXPLICITLY: the property under test is "with no numeric
+    # tokens, only the F1 gate applies" — it must not silently depend on where
+    # the deployed operating point happens to sit (this fixture scores in the
+    # 0.65-0.71 band and broke on the OI-CAL-01 deployment).
     assert claim.numeric_tokens == ()
-    assert t2_lexical(claim, [src(source_text)])
+    assert t2_lexical(claim, [src(source_text)], lex_tau=0.65)
 
 
 def test_t2_multiple_sources_best_window():

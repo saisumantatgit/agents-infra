@@ -70,10 +70,12 @@ uv run python -m calibration.run_calibration   # sweep + LOO + emit CR (module f
   may reduce Error-A by raising Error-B. Positive class is pinned to VIOLATION
   (`dcce427`) — never flip it.
 - **Thresholds are data, not code.** Changing one = new calibration run + new
-  CR, never an inline edit. **The gate RUNS at `lex_tau = 0.65`** (the
-  `t2_lexical` default); CR-001's calibrated **0.71 was never deployed** —
-  deploying it moves the live operating point and is Sai's call (OI-CAL-01).
-  Quote neither number as "the" threshold without saying which. Score gate
+  CR, never an inline edit. **The gate RUNS at `lex_tau = 0.71`**
+  (`_LEX_TAU_DEFAULT` in `ground_check.py`) — CR-001's calibrated point,
+  deployed 2026-08-30 (OI-CAL-01 closed, register D-06). It had shipped at
+  0.65 while every doc quoted 0.71; the deployment is measurement-neutral
+  (zero `tier_sensitive` rows flip between 0.65 and 0.71 on either corpus).
+  `--lex-tau` overrides for one run. CR-002 supersedes on gold labels. Score gate
   default = 90 — but per ADR-005 (accepted 2026-07-12) the score is a
   SECONDARY bar: PASS additionally requires an EMPTY retained appendix (zero
   violation-class verdicts); a ratio can never buy a PASS past a retained
@@ -118,7 +120,7 @@ uv run python -m calibration.run_calibration   # sweep + LOO + emit CR (module f
 | `Agent-Assure/calibration/run_calibration.py` | Bootstrap sweep entry (legacy `labeling.csv`, n=12, inline labels — frozen, CR-001 depends on it) |
 | `Agent-Assure/calibration/labeling-v2.csv` | **Scaffold** — DERIVED (claim, evidence, candidate, rationale). No human column; regenerate freely |
 | `Agent-Assure/calibration/labels-v2.csv` | **Labels** — AUTHORED. Human-owned; no generator writes it. `init_labels` creates it once, refuses to overwrite |
-| `Agent-Assure/calibration/CR-001-bootstrap-lex-tau.md` | Current CR: recommends lex_tau=0.71 (n=12); gate still RUNS 0.65 — OI-CAL-01 |
+| `Agent-Assure/calibration/CR-001-bootstrap-lex-tau.md` | Current CR: lex_tau=0.71 (n=12) — DEPLOYED 2026-08-30, OI-CAL-01 closed |
 | `Agent-Assure/references/grounding-failure-types.md` | Every verdict, what it catches, how to fix |
 | `Agent-Assure/docs/PHASE2-SEQUENCING.md` | Phase 2 slice order (2c-harness → 2b → 2a → 2d) |
 | `Agent-Assure/demo/` | Offline moat demo: fabricated `[S3]` → FAIL, frozen fixtures |

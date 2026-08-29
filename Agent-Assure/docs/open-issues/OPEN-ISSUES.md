@@ -11,23 +11,23 @@ failure the moment a fix lands). Narrative context:
 This register conforms to HQ ADR-039 (one type, three classes). The former
 `AA-MOAT-{NNN}` series is collapsed into this register as `OI-MOAT-{NN}`,
 class INVARIANT, per HQ's 2026-07-18 ruling. **Alias map** (historical records
-— logbooks, ADR-005, PIR/CN, sent correspondence — retain the old IDs):
+— logbooks, ADR-05, PIR/CN, sent correspondence — retain the old IDs):
 AA-MOAT-001→OI-MOAT-01 … AA-MOAT-007→OI-MOAT-07; AA-MOAT-R2-001/-002/-003→OI-MOAT-08/-09/-10.
 
 | ID | Class | Status | Tripwire (INVARIANT-mandatory) |
 |---|---|---|---|
 | OI-MOAT-01 | INVARIANT | FIXED 2026-07-12 | `test_moat_red_team.py::test_fixed_fabrication_stays_blocked[OI-MOAT-01…]` (green guard) |
 | OI-MOAT-02 | INVARIANT | FIXED 2026-07-12 | same file (green guard) |
-| OI-MOAT-03 | INVARIANT | OPEN | `test_moat_red_team.py::test_fabrication_must_not_pass[OI-MOAT-03…]` (strict xfail) |
+| OI-MOAT-03 | INVARIANT | FIXED 2026-08-30 | `test_moat_red_team.py::test_fixed_fabrication_stays_blocked[OI-MOAT-03…]` (green guard) + `test_tiers.py::test_t1_uncovered_residual_refuses_span` |
 | OI-MOAT-04 | INVARIANT | FIXED 2026-07-12 | same file (green guard) |
-| OI-MOAT-05 | INVARIANT | OPEN | `test_moat_red_team.py::test_fabrication_must_not_pass[OI-MOAT-05…]` (strict xfail) |
+| OI-MOAT-05 | INVARIANT | FIXED 2026-08-30 | `test_relational.py::test_endpoint_co_presence_without_asserted_relation_not_grounded` (green guard) |
 | OI-MOAT-06 | INVARIANT | FIXED 2026-07-12 | same file (green guard) |
-| OI-MOAT-07 | INVARIANT | OPEN | `test_moat_red_team_r2.py::test_verbless_nonclaim_smuggle_must_not_pass` (strict xfail) |
+| OI-MOAT-07 | INVARIANT | FIXED 2026-08-30 | `test_moat_red_team_r2.py::test_verbless_nonclaim_smuggle_must_not_pass` (green guard) |
 | OI-MOAT-08/-09/-10 | INVARIANT | FIXED 2026-07-14 | `test_moat_red_team_r2.py` (green guards) |
 | OI-BUILD-01 | HYGIENE | OPEN | — |
 | OI-CITE-01 | INVARIANT | FIXED 2026-07-14 | `tests/test_letter_suffixed_citations.py` |
-| OI-CAL-01 | DECISION-GAP | OPEN | — |
-| OI-ENV-01 | HYGIENE | OPEN | — |
+| OI-CAL-01 | DECISION-GAP | FIXED 2026-08-30 | — |
+| OI-ENV-01 | HYGIENE | FIXED 2026-08-30 | `tests/conftest.py` guard |
 | OI-DEC-01 | HYGIENE | OPEN | — |
 | OI-CAL-02 | INVARIANT | FIXED 2026-07-14 | `tests/test_labeling_overwrite_guard.py` |
 | OI-CAL-03 | INVARIANT | FIXED 2026-07-14 | `tests/test_gold_labels_separation.py` |
@@ -59,26 +59,26 @@ hand-reproduction corrected it to two — see CN §"Two roots, not one"):
 - **Root B — Per-claim over-grounding (tiers).** The gate marks a claim
   `GROUNDED` / `ABSENCE_SUPPORTED` that is not supported, scoring 100 with an
   **empty** appendix — so no score-bar fix can catch it. Affects OI-MOAT-01,
-  -003, -004, -005.
+  -03, -04, -05.
 
 **Escalation:** every fix alters the Error-A/Error-B trade-off or the gate score
 bar → Escalation rule #1 → **STOP and ask Sai**. These are recorded, not
-patched. The score-bar decision is drafted as **ADR-005** (Status: Proposed).
+patched. The score-bar decision is drafted as **ADR-05** (Status: Proposed).
 
 | ID | Class | Root | Severity | Status |
 |----|-------|------|----------|--------|
 | OI-MOAT-01 | numeric-drift-unit | B | Error-B | **FIXED 2026-07-12** (rate-qualifier comparison; Sai greenlight) |
-| OI-MOAT-02 | numeric-drift-decimal (dilution) | A | Error-B | **FIXED 2026-07-12** (ADR-005 accepted + implemented) |
-| OI-MOAT-03 | paraphrase-overreach | B | Error-B | OPEN — deferred by Sai ruling 2026-07-12 (interacts with Phase-2b NLI design; decide last) |
+| OI-MOAT-02 | numeric-drift-decimal (dilution) | A | Error-B | **FIXED 2026-07-12** (ADR-05 accepted + implemented) |
+| OI-MOAT-03 | paraphrase-overreach | B | Error-B | **FIXED 2026-08-30** (T1 residual-coverage; autonomous call D-06 register) |
 | OI-MOAT-04 | unsubstantiated-absence | B | Error-B | **FIXED 2026-07-12** (discriminating-anchor check; Sai greenlight) |
-| OI-MOAT-05 | unsupported-relation | B | Error-B | OPEN — deferred by Sai ruling 2026-07-12 (needs its own decision; softest fixture — probe first) |
-| OI-MOAT-06 | letter-suffixed-id (dilution) | A | Error-B | **FIXED 2026-07-12** (ADR-005 accepted + implemented) |
+| OI-MOAT-05 | unsupported-relation | B | Error-B | **FIXED 2026-08-30** (relational predicate support; autonomous call D-05 register) |
+| OI-MOAT-06 | letter-suffixed-id (dilution) | A | Error-B | **FIXED 2026-07-12** (ADR-05 accepted + implemented) |
 
 **Closure evidence (2026-07-12):** each FIXED item's strict-xfail flipped XPASS
 when its fix landed and was converted to a permanent green guard
 (`test_moat_red_team.py::test_fixed_fabrication_stays_blocked`). Suite:
 351 passed + 2 xfailed (the two OPEN items). All three fixes are structurally
-one-directional (a violation can only move away from PASS): ADR-005 only
+one-directional (a violation can only move away from PASS): ADR-05 only
 removes PASSes; a qualifier-less numeric claim is bit-identical to old
 behavior; the new absence rule matches a strict subset of the old rule's
 queries. Corpus-v2 regeneration is byte-identical post-fix — lex_tau inputs
@@ -121,7 +121,7 @@ Phase-2b decision.
   `UNVERIFIED_NUMBER` and placed in the retained appendix — then passed anyway.
 - **Mechanism:** Root A. PASS requires `grounding_score >= 90`; it does not
   require an empty appendix. 1-of-10 = 90.0 clears the bar.
-- **Systemic fix (ADR-005):** PASS requires a non-empty draft to carry **zero**
+- **Systemic fix (ADR-05):** PASS requires a non-empty draft to carry **zero**
   retained violation-class verdicts (mirror the existing `UNVERIFIED_CITATION`
   hard-override, generalized). Raises Error-A only in the recoverable direction.
 
@@ -186,7 +186,7 @@ Phase-2b decision.
   the letter-suffixed problem (the marker being silently dropped) is addressed
   by the citation-regex reference build; **this** finding is the orthogonal
   *dilution* half and is not closed by the regex fix.
-- **Systemic fix (ADR-005):** same as OI-MOAT-02 — PASS requires zero retained
+- **Systemic fix (ADR-05):** same as OI-MOAT-02 — PASS requires zero retained
   violation-class verdicts, not merely a >=90% ratio.
 
 ---
@@ -203,7 +203,7 @@ hand-reproduced before being recorded. Full report:
 | OI-MOAT-08 | rate-qualifier evasion (9 phrasings: each/every/a/one `<unit>`, hyphenated `per-minute`, adverbial `hourly`, qualifier before the number or >2 words after it, **Cyrillic homoglyph `рer`**) | Error-B | **FIXED 2026-07-14** |
 | OI-MOAT-09 | quantity-noun swap (`128000 gigabytes/sec` grounded by `128000 operations/sec`) | Error-B | **FIXED 2026-07-14** |
 | OI-MOAT-10 | absence leak: entity-free subject supported by a generic head noun in a <3-query session | Error-B | **FIXED 2026-07-14** |
-| **OI-MOAT-07** | **verbless NON_CLAIM smuggling** — "Redis: unquestionably the fastest datastore in all of human history." classifies `NON_CLAIM` (no finite verb), is excluded from the scored denominator, and rides inside a PASS | Error-B | **OPEN — blocked on Sai (Escalation #1)** |
+| **OI-MOAT-07** | **verbless NON_CLAIM smuggling — FIXED 2026-08-30 (D-03)** — "Redis: unquestionably the fastest datastore in all of human history." classifies `NON_CLAIM` (no finite verb), is excluded from the scored denominator, and rides inside a PASS | Error-B | **OPEN — blocked on Sai (Escalation #1)** |
 
 **Scope discipline.** The three FIXED items COMPLETE Sai's 2026-07-12 rulings
 (OI-MOAT-01: "compare value AND dimensional unit; fail-closed on any
@@ -252,7 +252,7 @@ byte-identically** (lex_tau=0.71, held-out Error-A=0.20, Error-B=0.143).
   precise `UNVERIFIED_CITATION`; bracket digits no longer leak into
   numeric_tokens. Corpus-v2 regeneration byte-identical. The "use `S\d+` IDs
   only" fixture restriction is lifted.
-- **OI-CAL-01 — lex_tau cross-artifact drift (0.65 shipped vs 0.71 calibrated).**
+- **OI-CAL-01 — lex_tau cross-artifact drift (0.65 shipped vs 0.71 calibrated) — RESOLVED 2026-08-30 (register D-06): 0.71 DEPLOYED as `_LEX_TAU_DEFAULT`, `--lex-tau` flag added.** Closure evidence: measurement-neutral on both corpora — every tau in [0.60, 0.71] gives the identical confusion matrix on the n=12 labeled set (tp=6 fp=0 tn=5 fn=1), and ZERO `tier_sensitive` rows fall in [0.65, 0.71) on the n=52 corpus (the 3 rows in-band are all tier-invariant). Corpus regeneration byte-identical. Four tests that had silently hardcoded 0.65 were decoupled to read the constant. Original description follows:
   Found 2026-07-14 by direct trace: the CLI exposes no lex_tau parameter and
   `t2_lexical` defaults to **0.65** (spec provisional) — that is what the gate
   RUNS. CR-001's chosen operating point (**0.71**, n=12, held-out) was recorded

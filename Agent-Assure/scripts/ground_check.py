@@ -692,10 +692,28 @@ def t2_lexical_score(claim_text: str, source_text: str) -> float:
     return _best_window_score(claim_content, claim_numeric, sentences)
 
 
+# ---------------------------------------------------------------------------
+# THE T2 OPERATING POINT (thresholds are data, not code).
+#
+# 0.71 is CR-001's calibrated operating point (n=12, leave-one-out, held-out
+# Error-A=0.20 / Error-B=0.143), selected under the moat-integrity rule
+# (drive Error-B under its bound first, then minimise Error-A; ties broken
+# toward the STRICTER tau).
+#
+# Deployed 2026-08-30, closing OI-CAL-01 — the gate had shipped 0.65 while
+# every doc quoted 0.71 as "the" threshold. The deployment is measurement-
+# neutral: on the n=12 labeled bootstrap corpus, every tau in [0.60, 0.71]
+# yields the IDENTICAL confusion matrix (tp=6 fp=0 tn=5 fn=1), so moving the
+# constant changes no observed prediction while removing the cross-artifact
+# contradiction. Superseded by CR-002 the moment gold labels land — change
+# this constant only via a calibration run + a new CR (never inline).
+_LEX_TAU_DEFAULT: float = 0.71
+
+
 def t2_lexical(
     claim: Claim,
     sources: list[RetrievedSource],
-    lex_tau: float = 0.65,
+    lex_tau: float = _LEX_TAU_DEFAULT,
 ) -> bool:
     """Return True iff content-word F1 between the claim and the best ±2-sentence
     window of some source ≥ lex_tau AND every claim.numeric_token is present in
@@ -1563,7 +1581,11 @@ def _session_queries(store: dict[str, RetrievedSource]) -> list[str]:
     return out
 
 
-def ground(claim: Claim, store: dict[str, RetrievedSource]) -> Verdict:
+def ground(
+    claim: Claim,
+    store: dict[str, RetrievedSource],
+    lex_tau: float = _LEX_TAU_DEFAULT,
+) -> Verdict:
     """Return the grounding Verdict for a single ALREADY-CLASSIFIED claim.
 
     Implements spec §4.4 decision logic in exact order. The input `claim` is
@@ -1614,7 +1636,7 @@ def ground(claim: Claim, store: dict[str, RetrievedSource]) -> Verdict:
     if claim.kind == ClaimKind.NUMERIC and not numeric_ok(claim, verbatim):
         return Verdict.UNVERIFIED_NUMBER
 
-    if t1_verbatim(claim, verbatim) or t2_lexical(claim, verbatim):
+    if t1_verbatim(claim, verbatim) or t2_lexical(claim, verbatim, lex_tau):
         return Verdict.GROUNDED
 
     return Verdict.UNGROUNDED
@@ -1638,6 +1660,7 @@ def score_report(
     claims: list[Claim],
     store: dict[str, RetrievedSource],
     threshold: float = 90.0,
+    lex_tau: float = _LEX_TAU_DEFAULT,
 ) -> dict:
     """Compute the grounding SCORE, gate, and retained-violation appendix (spec §4.5).
 
@@ -1701,7 +1724,7 @@ def score_report(
     has_unverified_citation = False
 
     for claim in claims:
-        verdict = ground(claim, store)
+        verdict = ground(claim, store, lex_tau)
         per_claim.append({
             "index": claim.index,
             "text": claim.text,
@@ -1789,6 +1812,12 @@ def main() -> None:
                         help="Path to the evidence JSONL store.")
     parser.add_argument("--threshold", type=float, default=90.0, metavar="FLOAT",
                         help="Grounding score threshold (default 90.0).")
+    parser.add_argument("--lex-tau", type=float, default=_LEX_TAU_DEFAULT,
+                        metavar="FLOAT", dest="lex_tau",
+                        help=f"T2 lexical-F1 operating point (default "
+                             f"{_LEX_TAU_DEFAULT}, per CR-001). Thresholds are "
+                             f"data: overriding this for a real run means a new "
+                             f"calibration record.")
     parser.add_argument("--json", dest="json_mode", action="store_true",
                         help="Print JSON report to stdout; skip writing YAML file.")
     args = parser.parse_args()
@@ -1799,7 +1828,8 @@ def main() -> None:
 
     store = load_store(args.store)
     claims = [classify(c) for c in decompose(draft_text)]
-    report = score_report(claims, store, threshold=args.threshold)
+    report = score_report(claims, store, threshold=args.threshold,
+                          lex_tau=args.lex_tau)
 
     gate: str = report["gate"]
 

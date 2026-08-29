@@ -23,6 +23,7 @@ from pathlib import Path
 import pytest
 
 from scripts.ground_check import RetrievedSource
+from scripts.ground_check import _LEX_TAU_DEFAULT
 from scripts.calibrate import (
     ClaimFeatureRow,
     HumanLabel,
@@ -57,10 +58,13 @@ def _src(source_id: str, text: str) -> RetrievedSource:
 
 def _store() -> dict[str, RetrievedSource]:
     s1 = _src("S1", "Redis handles 100K operations per second on commodity hardware.")
+    # S2's window is deliberately tight: the T2-only claim must clear the
+    # DEPLOYED lex_tau (_LEX_TAU_DEFAULT), not merely some historical literal.
+    # The looser prior wording scored 0.667 and silently pinned this test to
+    # lex_tau=0.65 — it broke on the OI-CAL-01 0.65->0.71 deployment (D-06).
     s2 = _src(
         "S2",
-        "Company filings show that revenue grew 12% year over year "
-        "across the segment.",
+        "Revenue grew 12% year over year.",
     )
     return {"S1": s1, "S2": s2}
 
@@ -120,8 +124,9 @@ def test_t2_only_grounded_claim_row():
     assert row.cited_source_ids == ("S2",)
     assert row.citations_resolved is True
     assert row.t1_verbatim is False
-    assert row.t2_f1 == pytest.approx(2 / 3)
-    assert row.t2_f1 >= 0.65  # the actual grounding threshold this claim clears
+    assert row.t2_f1 == pytest.approx(1.0)
+    # Threshold read from the constant — never a literal (thresholds are data).
+    assert row.t2_f1 >= _LEX_TAU_DEFAULT
     assert row.numeric_ok is True
     assert row.predicted_verdict == "GROUNDED"
 

@@ -111,7 +111,7 @@ from the scored denominator.
 
 **T1 — Verbatim:** A contiguous span of ≥8 casefolded NFKC tokens from the claim appears in the source. Citation markers stripped before tokenizing.
 
-**T2 — Lexical-F1:** Content-word F1 between the claim and the best ±2-sentence window of a source is ≥ `lex_tau`, AND every numeric token in the claim is present in that window. Stop words excluded from F1 computation. **`lex_tau` ships at 0.65**; CR-001 calibrated 0.71 on n=12 but that value is not yet deployed (OI-CAL-01 — pending ratification of the n=52 gold labels, which supersede it).
+**T2 — Lexical-F1:** Content-word F1 between the claim and the best ±2-sentence window of a source is ≥ `lex_tau`, AND every numeric token in the claim is present in that window. Stop words excluded from F1 computation. **`lex_tau` runs at 0.71** — CR-001's calibrated operating point (n=12, leave-one-out), deployed 2026-08-30 (closes OI-CAL-01; it had shipped at 0.65 while every doc quoted 0.71). Override for one run with `--lex-tau`; changing the shipped value means a new calibration run and a new CR, never an inline edit. CR-002 (n=52 gold labels) supersedes.
 
 Tiers run **only** on sources with `full_text_source == "verbatim"`. NUMERIC claims additionally pass through `numeric_ok()` before T1/T2: the claim's numeric expression must match a source expression in both value and unit (25% ≠ bare 25; $4M ≡ $4,000,000). When the claim states a rate qualifier ("per second", "/min", etc.), the matching source mention must carry the SAME qualifier — a bare or differently-qualified occurrence fails closed (2026-07-12 fix).
 

@@ -10,7 +10,10 @@ TDD sequence:
   Step 4: Run → PASS (new + all existing).
 """
 
+import pytest
+
 from scripts.ground_check import (
+    _LEX_TAU_DEFAULT,
     Claim,
     ClaimKind,
     RetrievedSource,
@@ -51,7 +54,8 @@ def mk(t: str) -> Claim:
 
 def test_t2_lexical_score_near_verbatim_window_is_high():
     """A claim whose content words and numeric token are almost entirely
-    covered by a source window scores >= 0.65.
+    covered by a source window scores high (the docstring derives the exact
+    value; asserting it beats asserting a threshold comparison).
 
     Claim content words: [revenue, grew, 12, year, year] (5, 'over' is a stop
     word). Window content words: [company, filings, show, revenue, grew, 12,
@@ -65,7 +69,10 @@ def test_t2_lexical_score_near_verbatim_window_is_high():
         "across the segment."
     )
     score = t2_lexical_score(claim_text, source_text)
-    assert score >= 0.65
+    # The exact derived value (2*0.5*1.0/1.5), not a threshold comparison:
+    # this test is about the SCORE, and must not move when the deployed
+    # operating point moves (OI-CAL-01).
+    assert score == pytest.approx(2 / 3)
 
 
 def test_t2_lexical_score_unrelated_claim_is_low():
@@ -97,10 +104,14 @@ def test_t2_lexical_score_returns_float_not_bool():
 
 def test_t2_lexical_matches_score_threshold_on_three_fixtures():
     """t2_lexical must be exactly equivalent to thresholding t2_lexical_score
-    at lex_tau (default 0.65) — the refactor must not change grounding
+    at the deployed lex_tau (``_LEX_TAU_DEFAULT``) — the refactor must not
+    change grounding
     behavior, only expose the raw score.
 
-    Three fixture pairs, chosen to span the outcome space at tau=0.65:
+    Three fixture pairs spanning the outcome space. The threshold is read
+    from the constant, never hardcoded: a literal here would silently
+    re-couple the suite to one operating point (it did — this test broke
+    on the OI-CAL-01 0.65->0.71 deployment because it said 0.65 twice).
       1. High word + numeric overlap -> True.
       2. Zero word overlap, no numeric tokens -> False.
       3. Numeric token present but low word overlap -> False (nonzero score).
@@ -124,11 +135,11 @@ def test_t2_lexical_matches_score_threshold_on_three_fixtures():
     for claim_text, source_text in fixtures:
         claim = mk(claim_text)
         source = src(source_text)
-        expected = t2_lexical_score(claim_text, source_text) >= 0.65
+        expected = t2_lexical_score(claim_text, source_text) >= _LEX_TAU_DEFAULT
         actual = t2_lexical(claim, [source])
         assert actual == expected, (
             f"t2_lexical({claim_text!r}, ...) = {actual}, "
-            f"but t2_lexical_score(...) >= 0.65 = {expected}"
+            f"but t2_lexical_score(...) >= {_LEX_TAU_DEFAULT} = {expected}"
         )
 
 
