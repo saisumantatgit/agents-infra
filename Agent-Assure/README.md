@@ -121,7 +121,7 @@ Tiers run **only** on sources with `full_text_source == "verbatim"`. NUMERIC cla
 
 ```bash
 cd Agent-Assure
-uv sync --extra dev   # one-time: adds pytest (install.sh installs runtime deps only)
+uv sync               # runtime deps + pytest (dev group, installed by default)
 uv run pytest
 ```
 

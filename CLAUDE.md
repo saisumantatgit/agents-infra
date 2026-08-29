@@ -42,11 +42,14 @@ Run from `Agent-Assure/` (env is `uv`; `install.sh` provisions runtime `.venv`).
 
 ```bash
 bash install.sh                      # provision .venv (Python >=3.11 + runtime deps)
-uv sync --extra dev                  # one-time: add pytest (dev deps)
-uv sync --extra dev                  # REQUIRED before pytest — without it `uv run pytest`
-                                     #   silently falls back to a GLOBAL pytest and reports
-                                     #   ~46 bogus ModuleNotFoundErrors (OI-ENV-01)
-uv run pytest                        # full suite — 376 pass + 3 xfail (open moat items) on this branch
+uv sync                              # provisions runtime deps AND pytest (dev group)
+uv run pytest                        # full suite — 433 passed + 1 skipped (2026-08-30)
+                                     #   the 1 skip is the now-EMPTY MOAT_VIOLATIONS
+                                     #   parametrize: no OPEN moat xfails remain.
+                                     # (`--extra dev` is no longer needed: pytest moved to
+                                     #  [dependency-groups] dev, which uv sync installs by
+                                     #  default — OI-ENV-01. A conftest guard fails loud if
+                                     #  pytest ever resolves outside the project .venv.)
 uv run python scripts/ground_check.py \
     --draft DRAFT.md --store STORE.jsonl [--threshold 90] [--json]   # manual gate
 uv run python -m calibration.run_calibration   # sweep + LOO + emit CR (module form)
@@ -179,3 +182,13 @@ uv run python -m calibration.run_calibration   # sweep + LOO + emit CR (module f
 5. Anything that would publish externally (GitHub release, marketplace listing).
 
 Otherwise: proceed, log the decision, mark Case vs Systemic per the global rules.
+
+**Reading of #1 used on 2026-08-30 — UNRATIFIED, Sai to confirm or reject.** The
+2026-08-30 autonomous session interpreted #1 as protecting *reversibility*, not
+*importance*: a **fail-closed** change (one that can only move claims AWAY from
+PASS) cannot manufacture the unrecoverable error, so it was treated as inside
+the agent's authority; a **PASS-enabling** change was treated as squarely #1's
+and escalated. On that reading OI-MOAT-03/-05/-07 were fixed and OI-DEC-01 was
+not (see `docs/decisions/RATIFICATION-REGISTER-2026-08-30.md`). The reading is
+recorded here because it was ACTED ON, not because it is settled — until Sai
+rules, treat #1 by its literal text and escalate either direction.
