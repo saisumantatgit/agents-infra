@@ -350,12 +350,14 @@ def _header_asserts(header_body: str) -> bool:
     for tok in raw:
         if tok.rstrip(".,;:!?").lower() in _AUXILIARIES:
             return True
-    final = content[-1]
+    # R5-04 (2026-08-30): the suffix test ran on RAW tokens, so a trailing comma
+    # made "Corrupts," not end in "s" and "### PostgreSQL Corrupts, Data"
+    # escaped while the unpunctuated form was caught. Strip punctuation first —
+    # the same normalisation every other token test in this module performs.
     for tok in content[:-1] if len(content) > 1 else []:
-        w = tok.lower()
+        w = tok.strip(".,;:!?\"'()[]{}").lower()
         if len(w) >= _VERB_SUFFIX_MIN_LEN and any(w.endswith(s) for s in _VERB_SUFFIXES):
             return True
-    _ = final
     return False
 
 
@@ -833,6 +835,7 @@ def t2_lexical(
     claim: Claim,
     sources: list[RetrievedSource],
     lex_tau: float = _LEX_TAU_DEFAULT,
+    other_source_texts: list[str] | None = None,
 ) -> bool:
     """Return True iff content-word F1 between the claim and the best ±2-sentence
     window of some source ≥ lex_tau AND every claim.numeric_token is present in
@@ -854,9 +857,78 @@ def t2_lexical(
     if not claim_content:
         return False
 
+    # R5-01 (2026-08-30): T2 needed the SAME constraints T1 got in round 4.
+    # `ground()` is `t1_verbatim(...) or t2_lexical(...)`, round 4 hardened T1
+    # only, and the attacker took the other branch: a claim handing Redis's
+    # 128000 ops/sec to PostgreSQL and citing [S1] scored GROUNDED at 100.0 —
+    # although "postgresql" occurs NOWHERE in S1 — because content-word F1 over
+    # the rest of the sentence cleared lex_tau.
+    #
+    # Raising lex_tau cannot fix this and never could: F1 is a RATIO whose
+    # denominator includes the claim's own length, and the attacker writes the
+    # claim. Round 5 produced a variant scoring F1=1.000 by reciting the
+    # source's whole vocabulary in a false order. A threshold on an
+    # attacker-controlled ratio is not a soundness test at any value.
+    #
+    # Two constraints, both fail-closed, neither a retune:
+    #   (1) SUBJECT COVERAGE — the claim's first content token must occur in
+    #       the source T2 is matching against. An honest claim names its
+    #       subject in the source it cites; cross-entity attribution cannot.
+    #   (2) POLARITY — the claim and the matched source must not disagree about
+    #       negation. "Redis NEVER sustained..." shares nearly every content
+    #       word with the sentence it contradicts, which is exactly what a
+    #       bag-of-words tier scores as agreement.
+    # Constraint (1) is a MISATTRIBUTION check, and getting here took two
+    # discarded attempts worth recording.
+    #
+    # "Require the claim's SUBJECT to appear in the cited source" fails on a
+    # fronted adverbial: "In our controlled benchmark on a single node,
+    # PostgreSQL sustained..." has first-content-token "our", which IS in S1.
+    # Guessing grammar positionally is the same class of error as guessing it
+    # with a count.
+    #
+    # "Require EVERY content token to appear in the cited source" closes the
+    # attack but destroys T2's reason to exist: it rejects
+    # "PostgreSQL query optimization ACHIEVES high throughput" against a source
+    # saying "...DELIVERS high throughput" — a one-word synonym, which is
+    # precisely the paraphrase T2 was built to ground. (Proven by the golden
+    # matrix, not by argument.)
+    #
+    # What actually distinguishes the attack: the substituted entity is not
+    # merely absent from the cited source, it is present in a DIFFERENT source
+    # the same session retrieved. A synonym the author chose ("achieves") is
+    # absent from the whole store; a misattributed entity ("postgresql", cited
+    # to S1) is sitting in S2. **Using source B's vocabulary while citing
+    # source A is what misattribution IS**, and it needs no grammar, no case,
+    # and no threshold.
+    #
+    # Residual, stated plainly: this catches misattribution only when the
+    # session actually retrieved the other entity. It does not make T2 sound —
+    # see OI-MOAT-21, which carries round 5's finding that a ratio over
+    # attacker-controlled length cannot be a soundness test at any lex_tau.
+    claim_negated = bool(_ABSENCE_NEGATION_RE.search(_nfkc(claim.text).casefold()))
+    elsewhere: set[str] = set()
+    for text in (other_source_texts or []):
+        elsewhere.update(_tokenize(text))
+
     for source in sources:
-        if t2_lexical_score(claim.text, source.text) >= lex_tau:
-            return True
+        if t2_lexical_score(claim.text, source.text) < lex_tau:
+            continue
+        source_vocab = set(_tokenize(source.text))
+        misattributed = [
+            tok for tok in claim_content
+            if tok not in source_vocab and tok in elsewhere
+        ]
+        if misattributed:
+            continue
+        # (2) POLARITY — a negated restatement shares nearly all its content
+        # words with the sentence it contradicts, which a bag-of-words tier
+        # scores as agreement.
+        if claim_negated != bool(
+            _ABSENCE_NEGATION_RE.search(_nfkc(source.text).casefold())
+        ):
+            continue
+        return True
 
     return False
 
@@ -1432,6 +1504,14 @@ def check_absence(
     # refutes the absence; refusing is fail-closed.
     if source_texts:
         others = {w for w in subject_content if w != head_noun}
+        # Symmetry with the query side (R5-03): when the subject is NOT
+        # specific enough for the query rule to demand a corroborator, this
+        # rule must not demand one either — otherwise a non-specific subject
+        # switches the contradiction check off while leaving the (weaker)
+        # query check on, which is precisely backwards.
+        contradiction_needs_corroborator = (
+            len(subject_content) >= _ABSENCE_SPECIFIC_SUBJECT_MIN
+        )
         # RT4-02 (2026-08-30): with a ONE-content-word subject there is no
         # "other" word, so the contradiction test below (`any(w in body for w
         # in others)`) is vacuously False and silently declines to run. The
@@ -1452,12 +1532,16 @@ def check_absence(
                 # slipped past the contradiction check that the query check
                 # would have caught. Both sides now stem.
                 body_stems = {_stem(w) for w in _re.findall(r"\w+", body)}
+                head_present = bool(head_noun) and (
+                    head_noun in body or _stem(head_noun) in body_stems
+                )
+                corroborated = (
+                    any(w in body or _stem(w) in body_stems for w in others)
+                    if contradiction_needs_corroborator
+                    else True
+                )
                 mentions = (
-                    (
-                        head_noun
-                        and (head_noun in body or _stem(head_noun) in body_stems)
-                        and any(w in body or _stem(w) in body_stems for w in others)
-                    )
+                    (head_present and corroborated)
                     or (strong and all(a in body for a in strong))
                 )
                 if not mentions:
@@ -1502,6 +1586,15 @@ def check_absence(
         head_stem = _stem(head_noun)
         others = {_stem(w) for w in subject_content if w != head_noun}
         specific = len(subject_content) >= _ABSENCE_SPECIFIC_SUBJECT_MIN
+        # R5-03 (2026-08-30): the two sides disagreed about "specific", and the
+        # attacker stood in the disagreement. `There are no throughput
+        # figures.` has a 2-content-word subject, so the QUERY side treats it
+        # as non-specific and asks only for the head noun ("throughput",
+        # present in both session queries) — while the CONTRADICTION side above
+        # always demanded a corroborator ("figures", absent from every source),
+        # so it could never fire. Result: the absence of the very thing every
+        # source reports was certified at 100.0.
+        # The fix is symmetry, applied above via _absence_specific().
         containing = [
             q
             for q in distinct
@@ -1859,7 +1952,12 @@ def ground(
     if claim.kind == ClaimKind.NUMERIC and not numeric_ok(claim, verbatim):
         return Verdict.UNVERIFIED_NUMBER
 
-    if t1_verbatim(claim, verbatim) or t2_lexical(claim, verbatim, lex_tau):
+    cited_ids = {s.source_id for s in verbatim}
+    others = [
+        s.text for s in store.values()
+        if s.source_id not in cited_ids and s.full_text_source == "verbatim" and s.text
+    ]
+    if t1_verbatim(claim, verbatim) or t2_lexical(claim, verbatim, lex_tau, others):
         return Verdict.GROUNDED
 
     return Verdict.UNGROUNDED

@@ -41,6 +41,10 @@ AA-MOAT-001→OI-MOAT-01 … AA-MOAT-007→OI-MOAT-07; AA-MOAT-R2-001/-002/-003�
 | OI-MOAT-17 | INVARIANT | FIXED 2026-08-30 | `test_moat_red_team_r4.py::test_subject_too_thin_to_check_must_not_be_supported` |
 | OI-MOAT-18 | INVARIANT | FIXED 2026-08-30 | `test_moat_red_team_r4.py::test_subject_swap_within_one_source_must_not_ground` |
 | OI-MOAT-19 | INVARIANT | FIXED 2026-08-30 | `test_moat_red_team_r4.py::test_rate_free_restatement_of_a_rate_must_not_ground` |
+| OI-MOAT-22 | INVARIANT | FIXED 2026-08-30 | `test_moat_red_team_r5.py::test_cross_entity_attribution_must_not_ground_via_t2` |
+| OI-MOAT-23 | INVARIANT | FIXED 2026-08-30 | `test_moat_red_team_r5.py::test_two_word_absence_subject_must_not_self_certify` |
+| OI-MOAT-24 | INVARIANT | FIXED 2026-08-30 | `test_moat_red_team_r5.py::test_punctuated_header_assertion_must_not_escape` |
+| **OI-MOAT-21** | **INVARIANT** | **OPEN (escalated: T2 soundness)** | `test_moat_red_team_r5.py::test_reordered_full_vocabulary_recitation_must_not_ground` (strict xfail) |
 | **OI-MOAT-20** | **INVARIANT** | **OPEN** | `test_moat_red_team_r4.py::test_verb_final_header_must_not_escape_denominator` (strict xfail) |
 | OI-NUM-02 | HYGIENE | FIXED 2026-08-30 | `tests/test_numeric.py::test_sentence_final_source_number_still_grounds` |
 
@@ -354,6 +358,70 @@ unchanged GROUNDED, `t1_verbatim` true→false, `tier_sensitive` false→true. I
 is now grounded via T2 (f1=0.824, comfortably above the deployed 0.71) instead
 of T1, because subject-anchoring made T1 decline. Label still satisfied, and
 the `tier_sensitive` tag is now *more* accurate. Demo re-verified.
+
+---
+
+## Cohort: 2026-08-30 red-team round 5 — the other branch of the `or`
+
+50 drafts, **23 wrongful PASSes over 4 mechanisms.** Round 5 also carried a
+commissioned **convergence assessment** (below), because rounds 1→4 had each
+broken the previous round's fixes and the owner needs to know whether that
+terminates. Report: `docs/plans/reports/RED-TEAM-R5-2026-08-30.md`.
+
+| ID | Class | Severity | Status |
+|----|-------|----------|--------|
+| OI-MOAT-22 (R5-01) | **cross-entity attribution via T2** — a claim handing Redis's 128000 ops/sec to PostgreSQL and citing `[S1]` scored GROUNDED at 100.0, although "postgresql" occurs nowhere in S1. Round 4 hardened T1; `ground()` is `t1 OR t2`, and the attacker took the other branch. Polarity flips (`never sustained`) likewise | Error-B | **FIXED 2026-08-30** |
+| OI-MOAT-23 (R5-03) | **`There are no throughput figures.` → ABSENCE_SUPPORTED, PASS** against a store whose every source reports throughput figures. A 2-content-word subject is "non-specific" to the query rule (head noun alone suffices) but the contradiction rule always demanded a corroborator, so it could never fire | Error-B | **FIXED 2026-08-30** |
+| OI-MOAT-24 (R5-04) | `### PostgreSQL Corrupts, Data` escapes the denominator while the unpunctuated form is caught — the header verb test ran on RAW tokens, so a comma made "Corrupts," not end in "s" | Error-B | **FIXED 2026-08-30** |
+| **OI-MOAT-21 (R5-02)** | **T2's SOUNDNESS — escalated, not fixed.** See below | Error-B | **OPEN — Sai's call, strict-xfail tripwire** |
+
+**Tripwires:** `tests/red_team_moat/test_moat_red_team_r5.py` (7 green guards +
+1 strict xfail).
+
+### OI-MOAT-21 — the one that is not an agent's to close
+
+- **class:** INVARIANT · **status:** OPEN · **escalation:** Sai (Escalation #1 + #3)
+- **tripwire:** `test_moat_red_team_r5.py::test_reordered_full_vocabulary_recitation_must_not_ground`
+
+`ground()` accepts `t1_verbatim(...) OR t2_lexical(...)`, so **T2 alone is
+sufficient for GROUNDED** — and T2 is a content-word F1 *ratio* whose
+denominator is the claim's own length, which the author writes. Round 5
+produced a draft scoring **F1 = 1.000** by reciting all of S1's vocabulary in
+an order that reverses its meaning. It is **lex_tau-invariant: it PASSes at
+0.99.** No threshold rejects it, because a threshold on an attacker-controlled
+ratio is not a soundness test at any value.
+
+The 2026-08-30 misattribution and polarity constraints close the cases where
+the session retrieved the substituted entity, or where polarity flipped. They
+do not make a bag-of-words ratio sound, and no constraint bolted onto one will.
+Two attempts before the one that shipped are recorded in the code comment:
+a positional "subject" guess (defeated by a fronted adverbial) and full content
+coverage (which closed the attack but rejected `achieves` against `delivers`,
+destroying the paraphrase grounding T2 exists for).
+
+**Round 5's recommendation, endorsed:** demote T2 from
+sufficient-for-GROUNDED — to a corroborating signal, or behind an
+order/structure check. **Why this is not an agent's call:** it changes what the
+gate MEANS, and it invalidates the calibration `lex_tau` is derived from (a
+threshold on a tier that no longer decides anything alone is a different
+parameter). That is Escalation #1 and #3 together.
+
+### Convergence assessment (commissioned; round 5's own numbers)
+
+- **Drafts per mechanism found: 7.4 → 10.3 → 12.5** across rounds 3, 4, 5 —
+  attacks are getting more expensive to produce.
+- **Every round-4 fix attacked directly HELD.** This is the first round where
+  that is true.
+- **But 3 of round 5's 4 findings are one meta-error** — a fix applied to one
+  branch of a two-branch decision (T1 but not T2; the query side but not the
+  contradiction side; the unpunctuated token but not the punctuated). That
+  class is *enumerable*, which is good news: it is auditable rather than
+  endless.
+- **The surviving attacks are MORE natural than round 4's, not less.**
+  Cross-entity attribution and polarity errors are the base-rate LLM failure
+  mode — what this tool exists to catch — not red-team artefacts.
+- **Round 5's judgment, recorded verbatim:** *the process is converging; the T2
+  design is not.*
 
 ---
 
