@@ -28,7 +28,7 @@ AA-MOAT-001→OI-MOAT-01 … AA-MOAT-007→OI-MOAT-07; AA-MOAT-R2-001/-002/-003�
 | OI-CITE-01 | INVARIANT | FIXED 2026-07-14 | `tests/test_letter_suffixed_citations.py` |
 | OI-CAL-01 | DECISION-GAP | FIXED 2026-08-30 | — |
 | OI-ENV-01 | HYGIENE | FIXED 2026-08-30 | `tests/conftest.py` guard |
-| OI-DEC-01 | HYGIENE | OPEN | — |
+| OI-DEC-01 | DECISION-GAP | OPEN (escalated 2026-08-30) | — |
 | OI-CAL-02 | INVARIANT | FIXED 2026-07-14 | `tests/test_labeling_overwrite_guard.py` |
 | OI-CAL-03 | INVARIANT | FIXED 2026-07-14 | `tests/test_gold_labels_separation.py` |
 | OI-NUM-02 | HYGIENE | FIXED 2026-08-30 | `tests/test_numeric.py::test_sentence_final_source_number_still_grounds` |
@@ -270,7 +270,34 @@ byte-identically** (lex_tau=0.71, held-out Error-A=0.20, Error-B=0.143).
   `install.sh` provision dev deps, or fail loud when pytest resolves outside
   the project `.venv`. Evidence:
   `docs/alpha/ALPHA4-INSTALL-VALIDATION-2026-07-14.md` F-1.
-- **OI-DEC-01 (MEDIUM — decomposition, found in α4).** The conjunction splitter
+- **OI-DEC-01 (MEDIUM — decomposition, found in α4) — OPEN, ESCALATED to Sai
+  2026-08-30 (register D-12).** Re-reproduced this session on the current tree:
+
+      decompose("Redis is fast and PostgreSQL is durable [S1].")
+        -> "Redis is fast"                  citations=()      -> UNCITED
+        -> "PostgreSQL is durable [S1]."    citations=([S1],)
+
+  The conjunction split detaches a sentence-final citation from the left
+  clause, so a claim the author DID cite reads UNCITED and (post-ADR-005)
+  blocks PASS. Fail-safe today — it is an Error-A false alarm, not an Error-B
+  leak — which is why it stayed hygiene.
+
+  **Why it was NOT fixed autonomously alongside the other four items.** The
+  obvious fix (propagate a sentence-final citation to every clause of the
+  split sentence) is the first change in this cohort that moves claims TOWARD
+  PASS: a clause that today is unconditionally UNCITED would instead be
+  tier-checked against the propagated source, and could resolve GROUNDED. The
+  claim still faces a real grounding check — nothing is waved through — but
+  the change alters the Error-A/Error-B trade-off in the PASS-enabling
+  direction, which is Escalation rule #1 and therefore Sai's call. D-03/-04/
+  -05 were all strictly fail-closed and D-06 was measurement-neutral; this one
+  is not, and the distinction is the whole reason the escalation rule exists.
+
+  **Sai's one-line call:** propagate a sentence-final citation to all clauses
+  of a conjunction-split sentence (removes a real false-alarm class, opens a
+  narrow PASS-enabling path through the normal tiers), or keep the current
+  fail-safe detachment and instead document "cite each clause" as authoring
+  guidance? Original description: The conjunction splitter
   detaches a citation from an earlier clause in compound sentences (aggravated
   by a plural-noun false positive in the verb-like heuristic), and `syntok`
   occasionally merges two differently-cited sentences into one claim on a
