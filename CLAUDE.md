@@ -91,11 +91,20 @@ uv run python -m calibration.run_calibration   # sweep + LOO + emit CR (module f
   the fixture it was written against and leaves the class open — every time so
   far. Ship the adversary as a permanent guard (`tests/red_team_moat/`), and
   re-run the sweep after every tier change.
-- **Never draw a numeric line an attacker can step over.** Round 3 killed a
-  `>= 6 content tokens` rule by writing a five-token fabrication. Any threshold
-  that separates "structure" from "assertion" (or benign from malicious) is a
-  dial the attacker owns. Find the STRUCTURAL property instead — what a list
-  does that an assertion does not — and test that.
+- **Never key a moat rule on a surface property the author controls.** Round 3
+  killed a `>= 6 content tokens` rule with a five-token fabrication; round 4
+  killed its proper-noun replacement with the **Shift key** (Title Case).
+  Length and capitalisation are both set by whoever writes the draft. Prefer a
+  property the attacker cannot set without giving up the attack — a positional
+  or grammatical signal, or the presence of the very tokens that make the claim
+  a claim.
+- **Every "I don't know" must point AWAY from PASS.** Round 4's four findings
+  were three instances of ONE bug: an absent or unreadable field read as
+  *unconstrained*. `NON_CLAIM` ("could not classify") left the denominator;
+  `claim_rate=None` ("could not read a rate") imposed no constraint; an empty
+  corroborator set ("subject too thin to check") reported no objection. In a
+  gate whose job is to constrain, a catch-all must fail closed. **Audit every
+  new `None`, empty-collection, and default branch for which way it points.**
 - **Regenerate the calibration corpus after ANY tier/classify change and diff
   it.** It is the fix's own adversary: it caught an entity-only absence rule
   flipping a labeled violation to supported (q22, round 1) and an
