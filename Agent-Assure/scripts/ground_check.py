@@ -303,13 +303,6 @@ _TRANSITION_PHRASES: frozenset[str] = frozenset({
 })
 
 
-# OI-MOAT-07: a verbless non-header fragment with at least this many content
-# (non-stop-word) tokens is scored as a claim, not excluded as NON_CLAIM.
-# 6 keeps genuine short labels ("Results and discussion", "Key findings")
-# unscored while denying the verb-dropping fabrication its denominator exit.
-_VERBLESS_CONTENT_TOKEN_MIN: int = 6
-
-
 def _has_finite_verb(text: str) -> bool:
     """Return True if *text* appears to contain a finite verb (rough heuristic).
 
@@ -364,7 +357,15 @@ def _is_non_claim(text: str) -> bool:
         has_numeric = bool(_NUMERIC_RE.search(_CITATION_RE.sub("", header_body)))
         if has_citation or has_numeric:
             return False
-        return True
+        # RT3-02 (2026-08-30): this branch used to return True here, so ANY
+        # header without a numeric or citation left the scored denominator no
+        # matter what it asserted — "### Redis silently drops writes above ten
+        # thousand concurrent clients" was NON_CLAIM and rode inside a PASS.
+        # A heading that PREDICATES something is an assertion wearing a
+        # heading's clothes. Apply the SAME assertion test used everywhere
+        # else: a finite verb. "## Results" has none and stays structural;
+        # "### Redis silently drops writes" does, and is scored.
+        return not _has_finite_verb(header_body)
     # Pure transition: strip citations, lowercase, and check against transition set
     stripped = _CITATION_RE.sub("", text).strip().rstrip(".,;:!?").lower()
     if stripped in _TRANSITION_PHRASES:
@@ -378,19 +379,37 @@ def _is_non_claim(text: str) -> bool:
         has_numeric = bool(_NUMERIC_RE.search(_CITATION_RE.sub("", text)))
         if has_citation or has_numeric:
             return False
-        # OI-MOAT-07 (2026-08-30): "no finite verb" is a gameable PROXY for
-        # structure. A verbless body fragment carrying substantial content
-        # ("Redis: unquestionably the fastest datastore in all of human
-        # history.") is an assertion to any reader — dropping the verb must not
-        # buy an exit from the scored denominator. NON_CLAIM stays reserved for
-        # genuinely structural fragments: headers (handled above), transitions
-        # (above), and SHORT labels. A verbless fragment with >= 6 content
-        # tokens is scored (→ UNCITED when uncited → blocks PASS). Fail-closed
-        # direction only: this can move claims INTO scoring, never out.
-        content_tokens = _content_words(_tokenize(_CITATION_RE.sub("", text)))
-        if len(content_tokens) >= _VERBLESS_CONTENT_TOKEN_MIN:
-            return False
-        return True
+        # OI-MOAT-07, hardened after RT3-01 (2026-08-30). "No finite verb" is
+        # a gameable proxy for structure, and so was the >=6-content-token
+        # floor that first replaced it: the attacker simply writes a shorter
+        # fabrication ("PostgreSQL: unrecoverable corruption under load." — 5
+        # content tokens, gate PASS 100.0). ANY count is a dial the attacker
+        # owns, so the count is gone.
+        #
+        # The structural test that is NOT a dial: a label or list NAMES things;
+        # an assertion PREDICATES something about them. A verbless fragment
+        # whose content words are all proper nouns is a name list ("Redis
+        # Postgres MongoDB"); one that introduces lower-case descriptive
+        # content is predicating ("PostgreSQL: unrecoverable corruption") and
+        # is scored. The attacker cannot shorten their way out — a fabrication
+        # must say something about its subject, and saying it requires exactly
+        # the descriptive tokens this test looks for.
+        #
+        # Error-A cost, accepted deliberately: a bare non-header section label
+        # written in sentence case ("Results and discussion" with no '#') is
+        # now scored → UNCITED → blocks PASS. That is recoverable (add the
+        # '#', or cite it); a smuggled fabrication is not.
+        content_tokens = [
+            tok for tok in _CITATION_RE.sub("", text).split()
+            if tok.strip(".,;:!?\"'()[]{}") and
+            tok.strip(".,;:!?\"'()[]{}").casefold() not in _STOP_WORDS
+        ]
+        if not content_tokens:
+            return True
+        all_proper = all(
+            tok.strip(".,;:!?\"'()[]{}")[:1].isupper() for tok in content_tokens
+        )
+        return all_proper
     return False
 
 
@@ -505,7 +524,20 @@ def t1_verbatim(
     if n < min_quote_len:
         return False
 
-    span_matched = False
+    # Coverage is evaluated PER SOURCE, against the same source that supplied
+    # the span (RT3-03, 2026-08-30). The first version of this check tested the
+    # claim's tokens against the UNION of the cited sources, which meant adding
+    # a citation WIDENED the vocabulary available to cover a fabrication:
+    # "PostgreSQL sustained approximately 128000 operations per second ...
+    # [S1]" correctly FAILED, and the identical claim cited "[S1][S2]" PASSED
+    # at 100.0 — S2 contributed the word "postgresql" and nothing else. Citing
+    # more evidence made a false claim pass, inverting the tool's premise.
+    #
+    # Per-source is also the principled reading: T1 is the VERBATIM tier, and a
+    # quotation comes from ONE document. Splitting the evidentiary burden
+    # across sources is the relational tier's job, and even there it now
+    # requires a window that asserts the link. A genuine multi-source claim
+    # simply falls through to T2 — fail-closed, recoverable.
     for source in sources:
         source_tokens = _tokenize(source.text)
         # Build a set of all contiguous n-grams in the source for O(n) lookup.
@@ -521,33 +553,22 @@ def t1_verbatim(
         for i in range(m - min_quote_len + 1):
             source_ngrams.add(tuple(source_tokens[i : i + min_quote_len]))
         # Check each claim window of length min_quote_len.
+        span_matched = False
         for j in range(n - min_quote_len + 1):
             if tuple(claim_tokens[j : j + min_quote_len]) in source_ngrams:
                 span_matched = True
                 break
-        if span_matched:
-            break
+        if not span_matched:
+            continue
 
-    if not span_matched:
-        return False
+        # This source supplied the span; it must also cover the residual.
+        source_vocab = set(source_tokens)
+        if all(tok in source_vocab for tok in _content_words(claim_tokens)):
+            return True
 
-    # OI-MOAT-03 residual-coverage check (2026-08-30): a verbatim span must not
-    # certify words it never checked. The original rule returned True on ANY
-    # contiguous >=8-token span, so a fabricated superlative appended in the
-    # same clause ("…, by every available measure, the single fastest database
-    # ever engineered") rode to GROUNDED inside the span's credit. T1 now
-    # grounds a claim only when EVERY content token of the claim appears
-    # somewhere in the cited verbatim sources (union) — the span proves the
-    # quote, the coverage proves there is no unchecked residual assertion.
-    # Fail-closed: a claim T1 now refuses falls through to T2 (and, when the
-    # Phase-2b NLI tier lands, to T3) — this check can only move claims AWAY
-    # from GROUNDED, never toward it.
-    source_vocab: set[str] = set()
-    for source in sources:
-        source_vocab.update(_tokenize(source.text))
-    claim_content = _content_words(claim_tokens)
-    uncovered = [t for t in claim_content if t not in source_vocab]
-    return not uncovered
+    return False
+
+
 
 
 # ---------------------------------------------------------------------------
@@ -979,6 +1000,27 @@ def _numeric_context(before_text: str, after_text: str) -> tuple[str | None, str
         is_plural = len(tok) > 3 and tok.endswith("s") and not tok.endswith("ss")
         if is_plural or tok in _QUANTITY_CANON:
             quantity = _canon_quantity(tok)
+            break
+        # RT3-05 (2026-08-30): this used to `break` unconditionally, so ONE
+        # unrecognised token in the quantity slot left quantity=None — which
+        # numeric_ok reads as "the claim asserts no dimension" and therefore
+        # imposes NO constraint. "128000 node per second" was grounded by
+        # "128000 operations per second": a singular or unknown noun switched
+        # off the dimensional check that OI-MOAT-01/-09 exist to enforce.
+        #
+        # When a RATE trigger is present the construction is unambiguously
+        # "<number> <measured noun> per <unit>", so an unrecognised noun in
+        # that slot is a quantity ASSERTION we cannot canonicalise — not an
+        # absence of one. Carry it through as itself so it must still match
+        # the source's quantity (it will not), i.e. fail CLOSED.
+        #
+        # Scoped to rate-bearing mentions on purpose: with no rate trigger the
+        # slot is genuinely ambiguous ("$4M last year" would assert a quantity
+        # of "last"), and reading it there is the Error-A regression this
+        # loop's skip-list was built to avoid. No rate -> unchanged behaviour.
+        if rate is not None:
+            quantity = tok
+            break
         break
 
     return quantity, rate
@@ -1160,6 +1202,15 @@ _HEAD_NOUN_STOPS: frozenset[str] = frozenset({
 
 # Absence trigger phrases as one regex (longest alternative first so
 # "there is no " wins over the embedded "no " at the same position).
+# Negation cues that mark a source window as REPORTING an absence rather than
+# asserting the thing claimed absent (RT3-04 content-contradiction check).
+_ABSENCE_NEGATION_RE = _re.compile(
+    r"\b(?:no|not|none|never|zero|without|absent|lacks?|lacking|"
+    r"nothing|neither|nor|failed to|unable to|did not|does not|"
+    r"could not|were not|was not|is not|are not)\b",
+    _re.IGNORECASE,
+)
+
 _ABSENCE_LEAD_RE = _re.compile(
     "|".join(_re.escape(lead) for lead in sorted(_ABSENCE_LEAD, key=len, reverse=True)),
     _re.IGNORECASE,
@@ -1241,6 +1292,7 @@ def check_absence(
     claim: Claim,
     queries: list[str],
     min_absence_searches: int = 2,
+    source_texts: list[str] | None = None,
 ) -> Verdict:
     """Return ABSENCE_SUPPORTED or UNVERIFIED_ABSENCE for an absence claim.
 
@@ -1271,6 +1323,46 @@ def check_absence(
     Pure function — no LLM, no network, no random, no wall-clock.
     """
     strong, head_noun, subject_content = _extract_absence_anchors(_nfkc(claim.text))
+
+    # RT3-04 (2026-08-30): CONTENT CONTRADICTION — check what was FOUND, not
+    # only what was SEARCHED.
+    #
+    # Until now the absence path reasoned exclusively over query_provenance.
+    # That left it structurally unable to notice the loudest possible
+    # refutation: the retrieved sources containing the very thing claimed
+    # absent. Against a store that is nothing but benchmark throughput
+    # figures, "No benchmark throughput figures exist." was certified
+    # ABSENCE_SUPPORTED at 100.0 — the gate asserting the opposite of its own
+    # evidence, which is the single worst thing a grounding gate can do.
+    #
+    # The test mirrors the query-side rule exactly (head noun + at least one
+    # corroborating content word, within ONE source) so that "discriminating"
+    # means the same thing on both sides. A source that speaks to the subject
+    # refutes the absence; refusing is fail-closed.
+    if source_texts:
+        others = {w for w in subject_content if w != head_noun}
+        for text in source_texts:
+            for window in _split_sentences(text) or [text]:
+                body = _nfkc(window).casefold()
+                mentions = (
+                    (head_noun and head_noun in body and any(w in body for w in others))
+                    or (strong and all(a in body for a in strong))
+                )
+                if not mentions:
+                    continue
+                # An AFFIRMATIVE mention of the subject refutes the absence; a
+                # NEGATED one corroborates it. Without this distinction the
+                # check flips its own meaning: the corpus's labeled-grounded
+                # absences (q13/q14/q37) are supported by sources that say
+                # "No recall evidence was found" / "returned zero results" —
+                # text that carries the subject's words precisely BECAUSE it
+                # reports the absence. The first version of this check read
+                # those as contradictions and turned three human-labeled
+                # GROUNDED rows into false alarms (caught by the mandatory
+                # corpus regeneration diff, not by the test suite).
+                if _ABSENCE_NEGATION_RE.search(body):
+                    continue
+                return Verdict.UNVERIFIED_ABSENCE
 
     # Distinct, non-empty, normalized queries.
     seen: set[str] = set()
@@ -1306,6 +1398,14 @@ def check_absence(
         ]
         # A head noun present in a strict majority of a >=3-query session is a
         # blanket corpus word and evidences no targeted search.
+        #
+        # The >=3 gate is DELIBERATE and was re-validated on 2026-08-30: in a
+        # 2-query session, "both queries mention the head noun" is the
+        # signature of a TARGETED search, not of a blanket word. Removing the
+        # gate rejected four legitimate absences (a changelog searched twice,
+        # corpus q37's antidote+toxin pair, contraindications) — Error-A on
+        # exactly the claims the absence path exists to support. RT3-04 is a
+        # different defect and is fixed below, against the store's CONTENT.
         if len(distinct) >= 3 and 2 * len([q for q in distinct if head_noun in q]) > len(distinct):
             return Verdict.UNVERIFIED_ABSENCE
         match_count = len(containing)
@@ -1625,7 +1725,11 @@ def ground(
     if claim.kind == ClaimKind.RELATIONAL:
         return ground_relational(claim, store)
     if claim.kind == ClaimKind.ABSENCE:
-        return check_absence(claim, _session_queries(store))
+        return check_absence(
+            claim,
+            _session_queries(store),
+            source_texts=[s.text for s in store.values() if s.text],
+        )
 
     if not claim.citations:
         return Verdict.UNCITED

@@ -140,15 +140,33 @@ def test_t1_fully_covered_residual_still_grounds():
     assert t1_verbatim(claim, [source])
 
 
-def test_t1_residual_coverage_spans_multiple_sources():
-    """Coverage is evaluated over the UNION of the cited verbatim sources: a
-    claim quoting S1 with a residual term documented in S2 stays grounded."""
+def test_t1_coverage_is_per_source_not_union():
+    """SUPERSEDES the union rule (RT3-03, 2026-08-30).
+
+    Coverage was first evaluated over the UNION of the cited sources, which
+    meant that adding a citation WIDENED the vocabulary available to cover a
+    fabrication — the same claim FAILED on [S1] and PASSED on [S1][S2].
+    Citing more evidence must never make a claim easier to ground.
+
+    Coverage is now per source: the source that supplied the >=8-token span
+    must also cover the claim's residual. T1 is the VERBATIM tier and a
+    quotation comes from ONE document; a genuine multi-source claim falls
+    through to T2, which is fail-closed and recoverable.
+    """
     claim = mk(
         "Redis is an in-memory data structure store with durability guarantees [S1][S2]."
     )
     s1 = src("Redis is an in-memory data structure store used as a cache.")
     s2 = src("The benchmark enabled full durability guarantees throughout.", sid="S2")
-    assert t1_verbatim(claim, [s1, s2])
+    # S1 supplies the span but not "durability"/"guarantees"; S2 has those but
+    # no span. Neither source alone satisfies both, so T1 refuses.
+    assert not t1_verbatim(claim, [s1, s2])
+    # Control: one source carrying BOTH the span and the residual still grounds.
+    whole = src(
+        "Redis is an in-memory data structure store used as a cache with "
+        "durability guarantees."
+    )
+    assert t1_verbatim(claim, [whole, s2])
 
 
 def test_t1_empty_sources():

@@ -205,13 +205,33 @@ def test_verbless_long_assertion_is_scored():
     assert c.kind != ClaimKind.NON_CLAIM, f"verbless assertion wrongly excluded: {c.kind}"
 
 
-def test_verbless_short_label_stays_non_claim():
-    """Error-A boundary: genuine short structural labels (< 6 content tokens,
-    no verb, no numeric/citation) remain NON_CLAIM."""
-    # NB: labels whose tokens trip the verb-suffix heuristic ("Key findingS")
-    # were scored before this fix too — that is pre-existing behavior, not
-    # OI-MOAT-07 scope. The boundary tested here is the genuinely-verbless one.
-    for label in ("Results and discussion", "Background",
-                  "Methodology overview", "Summary of prior art"):
+def test_verbless_name_list_stays_non_claim():
+    """Error-A boundary, REVISED after RT3-01 (2026-08-30).
+
+    The first OI-MOAT-07 fix used a >=6-content-token floor, and round 3 broke
+    it by writing a SHORTER fabrication ("PostgreSQL: unrecoverable corruption
+    under load.", 5 content tokens, gate PASS). Any count is a dial the
+    attacker owns, so the count is gone; the structural test is now
+    "names things" vs "predicates something".
+
+    What stays NON_CLAIM: a verbless fragment whose content words are all
+    proper nouns — a name list, which asserts nothing.
+
+    What is now SCORED, deliberately: a bare sentence-case section label with
+    no '#' ("Results and discussion"). That is a real Error-A cost, taken
+    knowingly — it is recoverable (add the '#'), and a smuggled fabrication
+    is not. See test_verbless_predicate_is_scored.
+    """
+    for label in ("Redis Postgres MongoDB", "PostgreSQL", "Redis Cluster"):
         c = classify(mk(label))
         assert c.kind == ClaimKind.NON_CLAIM, f"{label!r} wrongly scored: {c.kind}"
+
+
+def test_verbless_predicate_is_scored():
+    """The RT3-01 class: a short verbless fragment that PREDICATES something
+    about its subject is an assertion, however few tokens it uses."""
+    for smuggle in ("PostgreSQL: unrecoverable corruption under load.",
+                    "Redis: catastrophic data loss.",
+                    "PostgreSQL: silently lossy."):
+        c = classify(mk(smuggle))
+        assert c.kind != ClaimKind.NON_CLAIM, f"{smuggle!r} escaped scoring: {c.kind}"

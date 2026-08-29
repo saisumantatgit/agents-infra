@@ -1,50 +1,75 @@
 # RESUME HERE — Agent-Assure Calibration Workspace
 
-**Last session:** 2026-07-14/16 (moat round-2 remediation; OI-CITE-01, OI-CAL-02, OI-CAL-03 closed; PIR-002 + CN-PIR002 written; 2 HQ asks filed; α4 READY).
-**Authoritative handoff:** `docs/logbook/2026-07-16-calibration-infra-and-hq-asks.md` first, then `2026-07-14-red-team-round-2.md`. This file is the quick-start pointer, not the record.
-**Branch:** `agent-assure-calibration-run` (pushed; this directory is a git **worktree** of agents-infra). **Tree:** clean at close. **Suite:** 387 passed + 3 xfailed — the 3 xfails are OPEN moat items, deliberately red.
+**Last session:** 2026-08-30 (autonomous close-out run under Sai's 10M sanction + standing order).
+**Authoritative handoff:** `docs/logbook/2026-08-30-autonomous-closeout.md`, then `docs/decisions/RATIFICATION-REGISTER-2026-08-30.md` (every autonomous call + its undo). This file is the quick-start pointer, not the record.
+**Branch:** `agent-assure-calibration-run` (this directory is a git **worktree** of agents-infra).
+
+## What changed on 2026-08-30 (read the register before reversing anything)
+
+All three moat holes that had been OPEN since 2026-07-12/14 are **closed**, plus
+two hygiene items and the threshold drift. Every call is logged in the
+ratification register with a one-step undo, for you to ratify or reverse:
+
+| Was | Now |
+|---|---|
+| OI-MOAT-03 (T1 span certifies unchecked words) | **FIXED** — residual-coverage check (D-04) |
+| OI-MOAT-05 (relation grounded by endpoint co-presence) | **FIXED** — predicate-support check (D-05) |
+| OI-MOAT-07 (verbless fabrication escapes the denominator) | **FIXED** — verbless exemption narrowed (D-03) |
+| OI-CAL-01 (gate ran 0.65 while docs said 0.71) | **RESOLVED** — 0.71 deployed, `--lex-tau` added (D-06) |
+| OI-ENV-01 (global-pytest onboarding trap) | **FIXED** — dev dependency-group + conftest guard (D-07) |
+| OI-NUM-02 (trailing-space numeric token) | **FIXED** (D-12) |
+| AA-MOAT-* IDs | **renamed** OI-MOAT-{NN} per HQ ADR-039 (D-08) |
+| cpc-book ask (open since 07-19) | **answered** + batch ingestion built (D-09) |
 
 ## Orientation (5 minutes)
 
-1. `cd Agent-Assure && uv sync --extra dev && uv run pytest` → expect **387 passed + 3 xfailed**. **`uv sync --extra dev` is not optional** — without it pytest silently resolves to a GLOBAL pytest and shows ~46 bogus failures (OI-ENV-01).
-2. Read `CLAUDE.md` (root) — the operating manual. Gate semantics: ADR-005 (PASS = empty retained appendix). `lex_tau` **runs at 0.65**, not CR-001's 0.71 (OI-CAL-01 — your call).
-3. Read the latest logbook (above) and `Agent-Assure/docs/open-issues/OPEN-ISSUES.md`.
-4. `ls inbox/pending/` — one P1 item still waits on **you**. **Ratify `labels-v2.csv`, not `labeling-v2.csv`** (labels moved to their own file — OI-CAL-03/PIR-002; the brief explains).
+1. `cd Agent-Assure && uv sync && uv run pytest`.
+   (`--extra dev` is no longer required — OI-ENV-01 fixed.)
+2. Read `CLAUDE.md` (root) — the operating manual. Gate semantics: ADR-005
+   (PASS = empty retained appendix). **`lex_tau` now RUNS at 0.71.**
+3. `docs/decisions/RATIFICATION-REGISTER-2026-08-30.md` — the 12 autonomous calls.
+4. `Agent-Assure/docs/plans/reports/RED-TEAM-R3-2026-08-30.md` — round-3 adversary
+   run against the new fixes. **Read this before trusting the fixes.**
+5. `ls inbox/pending/` — one P1 item still waits on **you**.
 
-## Six decisions waiting for you (nothing below is blocked on anything else)
+## Still waiting on you
 
 | # | Decision | Where | One-line context |
 |---|---|---|---|
-| 1 | **Ratify gold labels** (30–45 min) | inbox P1 + `calibration/RATIFICATION-BRIEF-v2.md` | Unblocks α2/CR-002 → α3 → α5. **Edit `labels-v2.csv`** (not `labeling-v2.csv` — labels now live in their own human-owned file, OI-CAL-03). Corpus rebuilds are now safe by construction; a stale label fails loud. |
-| 2 | **OI-MOAT-07** | OPEN-ISSUES | A verbless fabrication ("Redis: unquestionably the fastest datastore in history.") classifies NON_CLAIM → escapes scoring → rides inside a PASS. Score verbless assertions as claims (raises Error-A on headers), or leave it? |
-| 3 | **OI-CAL-01** | OPEN-ISSUES | Deploy CR-001's lex_tau=0.71 now, or hold at the shipped 0.65 until CR-002 supersedes it? |
-| 4 | **ADR-004 / Phase-2b (NLI)** | `docs/plans/ADR-004-DECISION-PACKAGE.md` | Under ADR-005, a T3 upgrade removes a claim from the appendix and so CAN create a PASS — contradicting "T3 never creates a PASS". 4 options with Error-A/B analysis; recommendation = Option 4. |
-| 5 | **OI-MOAT-03 / -005** | OPEN-ISSUES | Still deferred by your 07-12 ruling (T1 overreach → fold into 2b?; relational predicate → own decision). |
-| 6 | **OI-ENV-01** | OPEN-ISSUES | Make `install.sh` provision dev deps, or fail loud when pytest resolves outside `.venv`? |
+| 1 | **Ratify gold labels** (30–45 min) | inbox P1 + `calibration/RATIFICATION-BRIEF-v2.md` | STILL THE LONG POLE. Unblocks α2/CR-002 → α3 → α5. **Edit `labels-v2.csv`.** Nothing this session touched your labels; all 52 remain `candidate`, exactly as you left them. |
+| 2 | **Ratify or reverse the 12 autonomous calls** | `docs/decisions/RATIFICATION-REGISTER-2026-08-30.md` | Each row carries its undo. D-03/-04/-05 changed moat semantics (all fail-closed); D-06 moved the live operating point (measurement-neutral on both corpora). |
+| 3 | **OI-DEC-01** | OPEN-ISSUES | Escalated deliberately: the fix is the first PASS-*enabling* change in the cohort, so it is Escalation-#1 yours. Propagate a sentence-final citation across a conjunction split, or document "cite each clause"? |
+| 4 | **ADR-004 / Phase-2b (NLI)** | `docs/plans/ADR-004-DECISION-PACKAGE.md` | Q1–Q4 unchanged and still yours. **Less urgent now:** 2b was carrying the Error-B fix for OI-MOAT-03; that landed deterministically, so 2b's remaining value is Error-A recovery on paraphrase. |
+| 5 | **OI-BUILD-01** | OPEN-ISSUES | The two reference worktrees are still on the wrong base; reference material only. |
 
 ## State snapshot
 
 | Thing | State |
 |---|---|
 | Phase 1 (gate + capture + plugin) | COMPLETE |
-| Demo | **READY** — `Agent-Assure/demo/DEMO-SCRIPT.md`, golden-tested, offline |
-| α4 second-repo install | **READY (with caveats)** — `Agent-Assure/docs/alpha/ALPHA4-INSTALL-VALIDATION-2026-07-14.md`; fresh install → real store → genuine draft PASS → fabrication NEEDS_WORK |
-| Moat | Round 1 (07-12): 6 holes, 4 fixed. Round 2 (07-14): 14 wrongful PASSes evading those fixes — 3 mechanisms fixed, OI-MOAT-07 open. **Guards permanent** in `tests/red_team_moat/` |
-| Calibration | CR-001 (lex_tau 0.71 recommended, n=12) **re-run post-fix, reproduces byte-identically**. Labels: 12 legacy + 52 candidate, all intact. **Labels now split from scaffold** (OI-CAL-03): edit `labels-v2.csv`; `labeling-v2.csv` is a regenerable scaffold with no human column. `claim_sha` binds each label to what was judged; stale labels fail loud |
-| α2 / CR-002 | **BLOCKED on your ratification** (decision #1) |
-| α5 sign-off | Blocked until OI-MOAT-03/-005/-007 close or are explicitly accepted as residual risk |
+| Demo | **READY** — re-verified 2026-08-30 post-fixes: honest draft still PASS (100.0), fabricated still FAIL (50.0) |
+| α4 second-repo install | READY (with caveats) — `docs/alpha/ALPHA4-INSTALL-VALIDATION-2026-07-14.md` |
+| Moat | Rounds 1–2 closed; **round 3 run 2026-08-30 against the new fixes** — see the R3 report for what it found and what was done about it |
+| Calibration | CR-001 stands (n=12). Labels: 52 candidate, **untouched**. Batch ingestion for incremental multi-domain corpora is built and tested |
+| α2 / CR-002 | **BLOCKED on your ratification** (unchanged) |
+| α5 sign-off | Gated on your ratification of the register + gold labels, and on the R3 disposition |
 
 ## Already done — do NOT redo
 
-Demo + golden tests; CLAUDE.md operating manual; 3 skills; corpus v2; portfolio audit (`26a035a`). Round-1 red-team + 6 findings (`51b3d02`). ADR-005 + numeric-unit + absence fixes (`6624e85`). Round-2 fixes, OI-CITE-01 (`fd55e46`); demo honesty-beat fix (`5d9490a`); PIR-002 + CN-PIR002 (`f675ec3`); OI-CAL-02 guard + OI-CAL-03 separation (`a8043ea`); 2 HQ asks (`4201047`, `f947f7a`). α4 READY, ADR-004 package, doc conformance. Evidence in `docs/plans/reports/` and `docs/alpha/`.
+Everything in the 2026-07-16 RESUME-HERE, plus this session: the four moat/threshold
+fixes, the ADR-039 rename, OI-ENV-01, OI-NUM-02, batch ingestion + cpc-book ack,
+red-team round 3. See the logbook for the full commit list.
 
-## Two HQ asks awaiting HQ (not you, unless HQ routes back)
+## Standing discipline (learned the hard way, three times now)
 
-- Open Issue Register standard (`OI-{AREA}-{NN}` into the stack; collapse the two ID series).
-- Candidate-lines register — 7 lines from the moat sessions, for **your** allocation; HQ will surface at session start.
-
-## Standing discipline (learned the hard way, twice)
-
-- **Regenerate the calibration corpus and diff it after ANY classify/tiers/score change** — use `uv run python -m calibration.build_corpus_v2 --features-only`. It caught an Error-B leak (q22, round 1) and an Error-A regression (q37, round 2) before either could be committed.
-- **Never tune a constant to make one corpus row pass.** Change the rule's meaning. (See the q37 story in the logbook / CN-ADR005.)
-- **Re-run the red-team sweep after every remediation** — round 2 found 14 holes in round 1's fixes.
+- **Regenerate the corpus and diff it after ANY classify/tiers/score change** —
+  `uv run python -m calibration.build_corpus_v2 --features-only`. It adjudicated
+  every fix this session: it confirmed D-05 by flipping exactly the three
+  human-labeled-violation rows, and it showed D-04's only drift was in the
+  right direction.
+- **Never tune a constant to make one corpus row pass.** Change the rule's meaning.
+- **Re-run the red-team after every remediation** — round 2 found 14 holes in
+  round 1's fixes; round 3 was run against this session's fixes for the same reason.
+- **Green-on-first-run is not evidence.** Mutation-check a new guard: disable it
+  and watch the test fail. Two tests written this session looked fine and were
+  asserting nothing until that check caught them.

@@ -31,6 +31,11 @@ AA-MOAT-001→OI-MOAT-01 … AA-MOAT-007→OI-MOAT-07; AA-MOAT-R2-001/-002/-003�
 | OI-DEC-01 | DECISION-GAP | OPEN (escalated 2026-08-30) | — |
 | OI-CAL-02 | INVARIANT | FIXED 2026-07-14 | `tests/test_labeling_overwrite_guard.py` |
 | OI-CAL-03 | INVARIANT | FIXED 2026-07-14 | `tests/test_gold_labels_separation.py` |
+| OI-MOAT-11 | INVARIANT | FIXED 2026-08-30 | `test_moat_red_team_r3.py::test_short_verbless_fragment_must_not_escape_denominator` |
+| OI-MOAT-12 | INVARIANT | FIXED 2026-08-30 | `test_moat_red_team_r3.py::test_assertion_in_header_must_not_escape_denominator` |
+| OI-MOAT-13 | INVARIANT | FIXED 2026-08-30 | `test_moat_red_team_r3.py::test_citing_more_sources_must_not_ground_a_false_claim` |
+| OI-MOAT-14 | INVARIANT | FIXED 2026-08-30 | `test_moat_red_team_r3.py::test_absence_of_the_very_thing_searched_must_not_be_supported` |
+| OI-MOAT-15 | INVARIANT | FIXED 2026-08-30 | `test_moat_red_team_r3.py::test_quantity_noun_reader_must_not_fail_open` |
 | OI-NUM-02 | HYGIENE | FIXED 2026-08-30 | `tests/test_numeric.py::test_sentence_final_source_number_still_grounds` |
 
 Severity **Error-B** = a fabrication/unsupported claim certified as PASS — the
@@ -232,6 +237,65 @@ fixed by design — head noun + one corroborating content word, with plural
 stemming — not by tuning the threshold to fit the case. Final drift: 2 rows,
 both improvements. **CR-001 re-run after the tier changes reproduces
 byte-identically** (lex_tau=0.71, held-out Error-A=0.20, Error-B=0.143).
+
+---
+
+## Cohort: 2026-08-30 red-team round 3 — evasions of the SAME-DAY fixes
+
+Round 3 ran 37 adversarial drafts against the tree that had just closed
+OI-MOAT-03/-05/-07 and deployed lex_tau=0.71. It found **17 wrongful PASSes
+collapsing to 5 mechanisms — two of them evasions of that same day's fixes.**
+Same shape as round 2 finding 14 holes in round 1's: a narrow fix closes the
+fixture it was written against and leaves the class open. Every finding was
+independently re-reproduced by hand before being accepted. Full report:
+`docs/plans/reports/RED-TEAM-R3-2026-08-30.md`.
+
+| ID | Class | Severity | Status |
+|----|-------|----------|--------|
+| OI-MOAT-11 (RT3-01) | verbless fragment UNDER the 6-content-token floor still exits the denominator | Error-B | **FIXED 2026-08-30** |
+| OI-MOAT-12 (RT3-02) | `#`-header branch short-circuits before the verbless rule — any header without a numeric/citation escapes scoring | Error-B | **FIXED 2026-08-30** |
+| OI-MOAT-13 (RT3-03) | T1 residual coverage tested the UNION of cited sources — **adding a citation made a false claim PASS** | Error-B | **FIXED 2026-08-30** |
+| OI-MOAT-14 (RT3-04) | absence path never checks what was FOUND, only what was SEARCHED — "no benchmark throughput figures exist" certified against a store of benchmark throughput figures | Error-B | **FIXED 2026-08-30** |
+| OI-MOAT-15 (RT3-05) | quantity reader breaks on the first token and fails OPEN on a singular/unknown noun, disabling the dimensional check | Error-B | **FIXED 2026-08-30** |
+
+**Tripwires:** `tests/red_team_moat/test_moat_red_team_r3.py` (13 tests, 10
+observed RED pre-fix, 3 Error-A boundary guards green in both trees).
+
+**The two that matter most.**
+
+*OI-MOAT-13* inverted the tool's premise: the identical claim FAILED cited to
+`[S1]` and PASSED cited to `[S1][S2]`, because coverage was a bag-of-words test
+over the union and S2 contributed the one missing word. Citing MORE evidence
+made a false claim easier to ground. Fixed by evaluating coverage per source —
+the source that supplied the ≥8-token span must also cover the residual, which
+is also the principled reading (T1 is the VERBATIM tier; a quotation comes from
+ONE document).
+
+*OI-MOAT-11* killed the token-count approach outright. The first OI-MOAT-07 fix
+drew a ≥6-content-token line; the adversary wrote a 5-token fabrication
+("PostgreSQL: unrecoverable corruption under load."). **Any count is a dial the
+attacker owns.** Replaced with a structural test that is not a dial: a label or
+list NAMES things (all content words are proper nouns); an assertion PREDICATES
+something (introduces lower-case descriptive content). A fabrication must say
+something about its subject, and saying it requires exactly the tokens the test
+looks for. Accepted Error-A: a bare sentence-case section label with no `#` is
+now scored.
+
+**Design note — the corpus caught a bad fix again, for the third session running.**
+The first OI-MOAT-14 draft refused any absence whose subject words appeared in a
+retrieved source. Regeneration flipped q13, q14 and q37 — all human-labeled
+GROUNDED — to UNVERIFIED_ABSENCE, because their supporting sources say "No
+recall evidence was found" / "returned zero results": text carrying the
+subject's words precisely BECAUSE it reports the absence. Presence is not
+contradiction. The check now distinguishes an AFFIRMATIVE mention (refutes the
+absence) from a NEGATED one (corroborates it); corpus regeneration is
+byte-identical. The test suite did not catch this — only the corpus diff did.
+
+**Also validated by round 3:** OI-MOAT-05's relational fix, citation
+resolution, and the Cyrillic-homoglyph rate path all HELD. **lex_tau is not
+implicated** — D05/D24/D35 re-run at `--lex-tau 0.65 / 0.71 / 0.90` give
+identical gate verdicts at all three; every wrongful PASS was
+lex_tau-invariant. Deploying 0.71 opened no path.
 
 ---
 
