@@ -31,7 +31,7 @@ AA-MOAT-001→OI-MOAT-01 … AA-MOAT-007→OI-MOAT-07; AA-MOAT-R2-001/-002/-003�
 | OI-DEC-01 | HYGIENE | OPEN | — |
 | OI-CAL-02 | INVARIANT | FIXED 2026-07-14 | `tests/test_labeling_overwrite_guard.py` |
 | OI-CAL-03 | INVARIANT | FIXED 2026-07-14 | `tests/test_gold_labels_separation.py` |
-| OI-NUM-02 | HYGIENE | OPEN | — |
+| OI-NUM-02 | HYGIENE | FIXED 2026-08-30 | `tests/test_numeric.py::test_sentence_final_source_number_still_grounds` |
 
 Severity **Error-B** = a fabrication/unsupported claim certified as PASS — the
 **unrecoverable** class under the pinned asymmetric invariant (CLAUDE.md
@@ -310,7 +310,7 @@ byte-identically** (lex_tau=0.71, held-out Error-A=0.20, Error-B=0.143).
   `build_corpus_v2.py` / `labeling-v2.csv` too — **it will destroy Sai's gold
   labels the first time anyone regenerates the corpus after ratification.**
   Sequence this BEFORE α2/CR-002.
-- **OI-NUM-02 — numeric tokens carry a trailing space** when no suffix follows
+- **OI-NUM-02 — numeric tokens carry a trailing space — FIXED 2026-08-30 (D-12).** Both extraction sites now rstrip the token (classify + _numeric_tokens_from_text, kept identical). Red-first: 2 tests seen failing pre-fix. Corpus regeneration byte-identical. Original description: when no suffix follows
   (`_NUMERIC_RE`'s optional `\s?`): `"5000000 "` not `"5000000"`. Downstream
   parsing strips it, but the raw token feeds T2's numeric-presence window check
   (`token in window_text`), where a space-suffixed token can miss a

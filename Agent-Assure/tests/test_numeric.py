@@ -331,3 +331,34 @@ def test_adverbial_rate_is_read():
     claim = mk("The job processed 4000 records hourly [S1].")
     source = src("The job processed 4000 records per second in the trial.")
     assert numeric_ok(claim, [source]) is False
+
+
+# --- OI-NUM-02: numeric tokens must not carry a trailing space --------------
+
+def test_numeric_token_has_no_trailing_space():
+    """_NUMERIC_RE's optional `\\s?` (which exists to allow '5 million') also
+    consumes a trailing space when NO suffix follows, yielding '5000000 '
+    instead of '5000000'. OI-NUM-02."""
+    from scripts.ground_check import _numeric_tokens_from_text
+    assert _numeric_tokens_from_text("Revenue of 5000000 last year") == ("5000000",)
+
+
+def test_suffixed_numeric_token_keeps_its_suffix():
+    """Error-A boundary: the fix must not break the case the `\\s?` exists for."""
+    from scripts.ground_check import _numeric_tokens_from_text
+    assert _numeric_tokens_from_text("Revenue of $4 million last year") == ("$4 million",)
+
+
+def test_sentence_final_source_number_still_grounds():
+    """The user-visible consequence of OI-NUM-02: a space-suffixed claim token
+    cannot substring-match a number that ends the source sentence, so a
+    genuinely grounded claim reads UNGROUNDED (a false alarm, Error-A)."""
+    from scripts.ground_check import t2_lexical_score
+    score = t2_lexical_score(
+        "Revenue reached 5000000 [S1].",
+        "Company revenue reached 5000000",
+    )
+    assert score > 0.0, (
+        "sentence-final source number failed the numeric-presence gate — "
+        "OI-NUM-02 trailing-space token"
+    )

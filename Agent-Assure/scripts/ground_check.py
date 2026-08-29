@@ -417,8 +417,14 @@ def classify(claim: Claim) -> Claim:
     _raw_numeric = _NUMERIC_RE.findall(_text_for_numeric)
     # Strip a single trailing period from each token (sentence-boundary artifact).
     # Preserves $4M, 25%, $4,000,000 unchanged since they don't end with '.'.
+    # OI-NUM-02: rstrip the token. _NUMERIC_RE's optional `\s?` exists so
+    # "$4 million" stays one token, but with no suffix present it also eats a
+    # trailing space, yielding "5000000 ". That token is then substring-matched
+    # against the source window (t2's numeric-presence gate), where it cannot
+    # match a number ending a sentence — a false alarm on a real claim.
+    # rstrip only touches the tail, so "$4 million"'s internal space survives.
     numeric_tokens: tuple[str, ...] = tuple(
-        t[:-1] if t.endswith(".") else t for t in _raw_numeric
+        (t[:-1] if t.endswith(".") else t).rstrip() for t in _raw_numeric
     )
 
     # --- Ordered classification cascade ---
@@ -660,7 +666,8 @@ def _numeric_tokens_from_text(text: str) -> tuple[str, ...]:
     normalized = _nfkc(text)
     text_for_numeric = _CITATION_RE.sub("", normalized)
     raw_numeric = _NUMERIC_RE.findall(text_for_numeric)
-    return tuple(t[:-1] if t.endswith(".") else t for t in raw_numeric)
+    # rstrip per OI-NUM-02 — must stay identical to classify()'s extraction.
+    return tuple((t[:-1] if t.endswith(".") else t).rstrip() for t in raw_numeric)
 
 
 def t2_lexical_score(claim_text: str, source_text: str) -> float:
