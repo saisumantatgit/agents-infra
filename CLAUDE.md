@@ -80,11 +80,19 @@ uv run python -m calibration.run_calibration   # sweep + LOO + emit CR (module f
   SECONDARY bar: PASS additionally requires an EMPTY retained appendix (zero
   violation-class verdicts); a ratio can never buy a PASS past a retained
   violation.
-- **A fix to the moat gets red-teamed too.** Round 1 (2026-07-12) closed four
-  Error-B holes; round 2 (2026-07-14) found fourteen wrongful PASSes that
-  evaded those very fixes (nine rate phrasings, a Cyrillic homoglyph, a
-  quantity swap, an absence leak). Ship the adversary as a permanent guard
-  (`tests/red_team_moat/`), and re-run the sweep after every tier change.
+- **A fix to the moat gets red-teamed too — this is now a three-round law, not
+  a maxim.** Round 1 (2026-07-12) closed four Error-B holes; round 2
+  (2026-07-14) found fourteen wrongful PASSes evading those very fixes; round 3
+  (2026-08-30) found seventeen more over five mechanisms, **two of them
+  evasions of fixes landed hours earlier the same day**. A narrow fix closes
+  the fixture it was written against and leaves the class open — every time so
+  far. Ship the adversary as a permanent guard (`tests/red_team_moat/`), and
+  re-run the sweep after every tier change.
+- **Never draw a numeric line an attacker can step over.** Round 3 killed a
+  `>= 6 content tokens` rule by writing a five-token fabrication. Any threshold
+  that separates "structure" from "assertion" (or benign from malicious) is a
+  dial the attacker owns. Find the STRUCTURAL property instead — what a list
+  does that an assertion does not — and test that.
 - **Regenerate the calibration corpus after ANY tier/classify change and diff
   it.** It is the fix's own adversary: it caught an entity-only absence rule
   flipping a labeled violation to supported (q22, round 1) and an

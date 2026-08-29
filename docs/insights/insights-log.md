@@ -174,3 +174,83 @@ adversary".
 <!-- Graduated insights log:
      (record destination when an insight is promoted)
 -->
+
+### [2026-08-30] A numeric line between "benign" and "malicious" is a dial the attacker owns
+
+**Category:** principle
+**Source:** session observation (red-team round 3 vs a fix landed hours earlier)
+**Products affected:** Assure; any gate with a "substantive enough to check" rule
+
+**Insight:**
+Closing OI-MOAT-07 required separating structural fragments (headings, labels)
+from smuggled assertions. I drew the line with a count: a verbless fragment with
+≥6 content tokens is scored. The adversary wrote a five-token fabrication
+(`PostgreSQL: unrecoverable corruption under load.`) and walked straight under
+it. **Any threshold separating benign from malicious is a parameter the attacker
+controls and the defender does not** — the defender picks it once, in public, in
+code; the attacker reads it and picks accordingly. The tell is identical to the
+constant-tuning insight below, one level up: *I could not state what the number
+meant.* Six was "about the length of a real heading", which is a description of
+the benign class, not a property distinguishing the two classes.
+
+The fix was to find the structural property the count was proxying for. A label
+or list **names** things; an assertion **predicates** something about them. So: a
+verbless fragment whose content words are all proper nouns is a name list; one
+that introduces lower-case descriptive content is predicating. That test has no
+dial. A fabrication must say something about its subject, and saying it requires
+exactly the tokens the test looks for — the attacker cannot shorten their way out
+without also ceasing to make the claim.
+
+**Evidence:**
+2026-08-30. `_VERBLESS_CONTENT_TOKEN_MIN = 6` shipped in the morning; red-team
+round 3 (37 drafts) returned `gate=PASS score=100.0` on a 5-content-token
+colon-form fabrication (RT3-01 → OI-MOAT-11), plus a header variant that never
+reached the rule at all (RT3-02 → OI-MOAT-12). Replaced with the proper-noun
+test; 13 permanent guards in `tests/red_team_moat/test_moat_red_team_r3.py`,
+corpus regeneration byte-identical.
+
+**Graduation target:**
+- [x] Sub-project `CLAUDE.md` — landed 2026-08-30 as "Never draw a numeric line
+      an attacker can step over."
+- [ ] `SOUL.md` Anti-Patterns — candidate, jointly with the constant-tuning
+      insight below; **that entry's "after a second instance" trigger has now
+      fired** (2026-07-14 corpus constant; 2026-08-30 token floor), so the two
+      should graduate together as one anti-pattern: *a number you cannot define
+      in a sentence is a bug with a plausible face.*
+
+### [2026-08-30] More evidence made a false claim easier to ground
+
+**Category:** gotcha
+**Source:** session observation (red-team round 3, finding RT3-03)
+**Products affected:** Assure; any multi-source evidence checker
+
+**Insight:**
+A coverage check ("every content token of the claim must appear in the cited
+sources") is the obvious way to stop a verbatim span from certifying words it
+never checked. Evaluated over the **union** of the cited sources, it produced a
+result that inverts the premise of a grounding tool: the identical false claim
+`FAIL`ed cited to `[S1]` and `PASS`ed cited to `[S1][S2]`, because S2 supplied
+the one word S1 lacked. **Adding a citation widened the vocabulary available to
+cover a fabrication.** Any check that pools evidence across sources before
+testing a claim has this shape — pooling is what lets an unrelated document
+launder a term into the claim's support.
+
+The general rule: **a per-claim check must name the source that discharges it.**
+T1 is the verbatim tier and a quotation comes from one document, so the source
+supplying the span must also cover the residual. Splitting the evidentiary
+burden across documents is a *relational* assertion, and the relational path has
+its own (and now stricter) rule. When a check cannot say which source satisfied
+it, it is not grounding — it is set membership.
+
+**Evidence:**
+2026-08-30, RT3-03 → OI-MOAT-13: `PostgreSQL sustained approximately 128000
+operations per second which was about twelve times [S1][S2].` → `gate=PASS
+score=100.0`; the same text cited `[S1]` alone → `gate=FAIL score=0.0`. S1 is
+Redis's throughput; S2 contributed only the token "postgresql". Guard:
+`test_citing_more_sources_must_not_ground_a_false_claim`, with the single-source
+control pinned beside it.
+
+**Graduation target:**
+- [ ] Root `CLAUDE.md` — candidate cross-cutting rule for the suite ("a per-claim
+      check must name the source that discharges it") after a second instance in
+      another product.
