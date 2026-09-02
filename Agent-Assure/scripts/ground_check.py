@@ -187,8 +187,76 @@ def _conjunction_split(sentence: str) -> list[str]:
         right_tokens = right.split()
         if _has_verb_like_token(left_tokens) and _has_verb_like_token(right_tokens):
             # Strip trailing punctuation carried into *left* from the separator
-            return [left.rstrip(";").strip(), right.strip()]
+            left = left.rstrip(";").strip()
+            right = right.strip()
+            return [_propagate_sentence_citation(left, right), right]
     return [sentence]
+
+
+def _propagate_sentence_citation(left: str, right: str) -> str:
+    """Return *left* with the sentence's trailing citation appended, if it has none.
+
+    OI-DEC-01. A marker at the END of a compound sentence cites the SENTENCE,
+    so the clause the splitter carved off the front is cited too. Without this
+    the left clause reads UNCITED and — post-ADR-005 — blocks PASS, which
+    penalises an author who cited correctly.
+
+    This is the cohort's only PASS-ENABLING change (ratified by Sai 2026-09-02
+    with a red-team gate: tests/test_citation_propagation.py). Note what it does
+    and does not buy: it converts UNCITED into *run the normal tiers against
+    the cited source*. The clause still has to ground. The PASS-enabling path is
+    exactly as wide as the tiers are correct and no wider.
+
+    Two things it must never do, both tested:
+
+    * **Overwrite.** A clause carrying its OWN citation keeps it. Re-pointing a
+      claim at a source the author did not cite for it is the fabrication the
+      gate exists to catch, and doing it in the decomposer would be invisible.
+    * **Invent.** Only a marker that is genuinely sentence-final propagates. A
+      mid-sentence marker belongs to its own clause; treating it as
+      sentence-scoped would attach a source to text the author placed it
+      before. That case cannot arise here (a mid-sentence marker lands in
+      *left*, which then has a citation and is skipped) and is pinned by test.
+
+    Pure function — returns a new string, mutates nothing.
+    """
+    if _CITATION_RE.search(left):
+        return left
+    trailing = _TRAILING_CITATIONS_RE.search(right)
+    if not trailing:
+        return left
+    return f"{left} {trailing.group(1)}"
+
+
+def _propagate_across_semicolon(sentence: str, following: str) -> str:
+    """Return *sentence* with *following*'s trailing citation, if it is a clause.
+
+    OI-DEC-01, second path. syntok treats "; " as a SENTENCE boundary, so
+    "Redis is fast; PostgreSQL is durable [S1]." never reaches
+    _conjunction_split as one string — it arrives as two segments, and the
+    first reads UNCITED. (This is why _conjunction_split's own "; " separator is
+    effectively unreachable for that shape.)
+
+    The discriminator is the author's own punctuation: a segment ending in ";"
+    is NOT a terminated sentence, so the terminal citation of the sentence it
+    runs into covers it. A segment ending in "." IS terminated, and propagating
+    across a full stop would attach a source to a sentence the author never
+    cited — the same "invent" failure _propagate_sentence_citation refuses. The
+    trailing ";" is what separates the two cases, and it is set by the author
+    for grammatical reasons, not to satisfy the gate.
+
+    Only the IMMEDIATELY following segment is consulted, so a citation cannot
+    travel back across an intervening terminated sentence.
+
+    Pure function — returns a new string, mutates nothing.
+    """
+    body = sentence.rstrip()
+    if not body.endswith(";") or _CITATION_RE.search(body):
+        return sentence
+    trailing = _TRAILING_CITATIONS_RE.search(following.strip())
+    if not trailing:
+        return sentence
+    return f"{body.rstrip(';').rstrip()} {trailing.group(1)}"
 
 
 def _iter_raw_sentences(text: str) -> Iterator[str]:
@@ -219,7 +287,12 @@ def decompose(draft: str) -> list[Claim]:
 
     claims: list[Claim] = []
     index = 0
-    for raw_sentence in _iter_raw_sentences(draft):
+    raw_sentences = list(_iter_raw_sentences(draft))
+    for position, raw_sentence in enumerate(raw_sentences):
+        following = (
+            raw_sentences[position + 1] if position + 1 < len(raw_sentences) else ""
+        )
+        raw_sentence = _propagate_across_semicolon(raw_sentence, following)
         for text in _conjunction_split(raw_sentence):
             text = text.strip()
             if not text:
@@ -248,6 +321,15 @@ import re as _re
 # into numeric_tokens). Matched, it resolves like any key: absent from the
 # store -> the precise UNVERIFIED_CITATION verdict.
 _CITATION_RE = _re.compile(r"\[(?:S\d+[a-zA-Z]*|source:[^\]]+)\]")
+
+# One or more citation markers at the very END of a clause, optionally followed
+# by terminal punctuation. Anchored with $ on purpose: only a SENTENCE-FINAL
+# marker cites the whole sentence, which is what makes propagating it to an
+# earlier clause faithful to the author rather than a guess (OI-DEC-01, used by
+# _propagate_sentence_citation).
+_TRAILING_CITATIONS_RE = _re.compile(
+    r"((?:\[(?:S\d+[a-zA-Z]*|source:[^\]]+)\])+)\s*[.!?]*\s*$"
+)
 
 # Relational trigger lexicon for argument extraction (ordered longest-first so
 # multi-word triggers match before their shorter prefixes; e.g. "caused by"

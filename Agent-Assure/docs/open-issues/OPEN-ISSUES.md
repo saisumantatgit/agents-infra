@@ -28,7 +28,7 @@ AA-MOAT-001→OI-MOAT-01 … AA-MOAT-007→OI-MOAT-07; AA-MOAT-R2-001/-002/-003�
 | OI-CITE-01 | INVARIANT | FIXED 2026-07-14 | `tests/test_letter_suffixed_citations.py` |
 | OI-CAL-01 | DECISION-GAP | FIXED 2026-08-30 | — |
 | OI-ENV-01 | HYGIENE | FIXED 2026-08-30 | `tests/conftest.py` guard |
-| OI-DEC-01 | DECISION-GAP | OPEN (escalated 2026-08-30) | — |
+| OI-DEC-01 | DECISION-GAP | FIXED 2026-09-02 (ratified by Sai) | `tests/test_citation_propagation.py` (8) |
 | OI-T2-01 | HYGIENE | OPEN (Error-A; found by honest-draft sweep) | — |
 | OI-CAL-02 | INVARIANT | FIXED 2026-07-14 | `tests/test_labeling_overwrite_guard.py` |
 | OI-CAL-03 | INVARIANT | FIXED 2026-07-14 | `tests/test_gold_labels_separation.py` |

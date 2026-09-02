@@ -43,7 +43,7 @@ Run from `Agent-Assure/` (env is `uv`; `install.sh` provisions runtime `.venv`).
 ```bash
 bash install.sh                      # provision .venv (Python >=3.11 + runtime deps)
 uv sync                              # provisions runtime deps AND pytest (dev group)
-uv run pytest                        # full suite — 464 passed + 2 skipped + 9 xfailed
+uv run pytest                        # full suite — 472 passed + 2 skipped + 9 xfailed
                                      #   (2026-09-02; the count moves with every
                                      #   red-team round, so trust the RUN, not this
                                      #   number). The 9 xfails are deliberately-open
