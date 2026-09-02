@@ -285,13 +285,97 @@ side of a two-sided instrument and calling the result the moat's condition.
 `tests/honest_drafts/` now exists beside `tests/red_team_moat/`, with its known
 false alarms counted as strict-xfails (OI-T2-01) instead of waiting for a user.
 
+## 2026-09-02 — α2 CLOSED (the long pole cleared)
+
+Sai ratified all 52 labels, blind, via a review page that withheld the
+candidate verdicts. Then: **CR-002** — lex_tau **0.76**, n=52 gold,
+leave-one-out, held-out **Error-A 0.200 / Error-B 0.111**. Supersedes CR-001
+(n=12, 0.71, Error-B 0.143). Error-B monotonicity holds, 0.143 → 0.111, so
+this is not buying Error-A down by raising Error-B. Deployed the same day;
+measurement-neutral, zero `tier_sensitive` rows fall in [0.71, 0.76).
+
+Agreement between his labels and the machine candidates: **41/52 (78.8%)**, or
+74.4% on the 43 rows we had not discussed in chat. The 11 disagreements sorted
+into four kinds, and only one was a genuine question:
+
+1. **My defect (q24, q44).** They are violations solely because their sources
+   are `haiku_summary`, and the scaffold exposed **no source-type field at
+   all**. He saw a perfect textual match and answered "supported" — correctly,
+   for what he was shown. **Those two rows were unlabellable by any human from
+   that sheet.** Fixed systemically: `source_type` is now a scaffold COLUMN
+   (verbatim / haiku_summary / absence / unresolved / mixed). Emitted as a
+   column deliberately — folding the marker into `evidence` would have changed
+   every `claim_sha` and marked all 52 labels STALE, the exact failure
+   OI-CAL-03 exists to prevent. Verified: scaffold regenerated, all 52 still
+   validate.
+2. **I conceded (q16).** "Margin as 25" means 25%.
+3. **He corrected on evidence (q17, q50).** 100,000 vs 10,000; 3.5 vs 3.2 GHz.
+   Partly my UI: digits sat in prose at the same weight as everything else.
+4. **His tightenings I accepted (q14, q37, q49).** On q14 he is plainly right —
+   "no recall in ANY regulated market" over-reaches two searches, one of them
+   FDA-specific. I had missed the scope mismatch entirely.
+
+His ruling on q24/q44 stated the principle better than I had: *"how do we
+establish that the summary has actually accurately captured the source?"*
+Nobody can — the summariser is not in the evidence store.
+
+### A tripwire went green for the wrong reason, and I nearly banked it
+
+Deploying 0.76 made the **OI-MOAT-21** strict-xfail XPASS. For about thirty
+seconds that looked like a fix. It was not: that particular draft scored
+f1=0.7391 and the threshold simply stepped over it. Checked before believing
+it — a one-word-swap reordering (f1=0.840) still PASSes at 0.71, **0.76 and
+0.83**. The hole is exactly where it was.
+
+Banking that XPASS would have been textbook "green test as proof": a tripwire
+going quiet for a reason unrelated to the defect it guards. The tripwire is now
+rewritten around a draft that survives, plus a parametrised test asserting the
+hole is **threshold-independent** — it fails loudly if lex_tau ever appears to
+close OI-MOAT-21, because that would mean something structural landed and is
+worth checking rather than celebrating.
+
+### Withdrawals from this session (§3c)
+
+- **I filed a false alarm to HQ** claiming its repo had 208 unpushed commits and
+  100 days of governance on one disk. Wrong: `origin/main..HEAD` measures branch
+  *divergence*, not unpushed work, and HQ works on `agent-assure-design` where
+  everything was already backed up. Retracted same day, original claim retained
+  for inspection. The two readings return the **same number**, and I reinforced
+  the false one with a true observation (51,516 insertions vs 5 deletions) that
+  explained away the only thing that might have prompted a second look.
+- **I told Sai to review 208 commits before pushing.** Withdrawn — the diff was
+  almost purely additive; my caution was pointed at the wrong risk.
+- **My first "% ready" answer used Alpha as the denominator without saying so.**
+  Corrected to two figures with explicit denominators (~55% of Alpha, ~35% of
+  the product vision) once the ambiguity was visible.
+
+**Reflection:** The most interesting thing today was not a bug but a *shape*.
+Three separate times, something went green for a reason unrelated to the thing
+it was supposed to be measuring — a tripwire that passed because a threshold
+moved past one draft; a labelling sheet that produced a confident wrong answer
+because it withheld the only field that mattered; a git command that returned
+the right number for a question I was not asking. In every case the artifact
+looked healthy from outside, and the only way through was to ask *what would
+have to be true for this signal to be meaningless?* That question is the entire
+product, aimed inward. Agent-Assure exists because a citation looks identical
+whether or not it supports its claim; and it turns out a passing test, a
+finished label sheet, and a clean `git log` are the same kind of object. The
+thing that keeps catching these is never cleverness — it is refusing to accept
+a green signal whose mechanism I have not personally traced.
+
+**Agents this session:** 3 (red-team rounds 3, 4, 5 — all Opus-class;
+adversarial verification where a miss ships is the one gate that never
+downgrades). Combined: 128 adversarial drafts, 65 wrongful PASSes found, 11 of
+12 mechanisms closed, ~451K subagent tokens. All other work ran in the main
+loop: moat-semantics design and adjudication of label disagreements, the two
+classes the routing table pins there.
+
 ## Denied / not done (recorded per the escalation rule)
 
-- **`git push` was DENIED by the permission classifier.** All commits are local
-  on `agent-assure-calibration-run`; the tree is clean. Nothing was routed
-  around the denial and no alternative push path was attempted. The branch needs
-  `git push origin agent-assure-calibration-run` from a session with that
-  permission. The HQ repo commit (`2c19ede`, the cpc-book ack) is likewise local.
+- **`git push` was DENIED by the permission classifier** on 2026-08-30. Nothing
+  was routed around it and no alternative path was attempted; it was surfaced to
+  Sai, who granted approval explicitly on 2026-09-02. **Both repos are now
+  pushed and in sync.**
 
 **Next action:** push the branch (my push was denied). Then Sai ratifies
 `labels-v2.csv` — still the long pole, still untouched — and the 14-row

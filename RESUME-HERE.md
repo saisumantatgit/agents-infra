@@ -1,8 +1,9 @@
 # RESUME HERE — Agent-Assure Calibration Workspace
 
-**Last session:** 2026-08-30 (autonomous close-out run under Sai's 10M sanction + standing order).
+**Last session:** 2026-08-30 → 09-02 (autonomous close-out; **α2 CLOSED — gold labels ratified, CR-002 emitted**).
 **Authoritative handoff:** `docs/logbook/2026-08-30-autonomous-closeout.md`, then `docs/decisions/RATIFICATION-REGISTER-2026-08-30.md` (every autonomous call + its undo). This file is the quick-start pointer, not the record.
-**Branch:** `agent-assure-calibration-run` — **~30 commits NOT PUSHED**: `git push` was denied by the permission classifier this session. Push is the first thing to do.
+**Branch:** `agent-assure-calibration-run` — **pushed and in sync.** Suite: 455 passed, 2 skipped, 4 xfailed.
+**The 10M plan:** `docs/plans/BUDGET-PLAN-10M-2026-09-02.md`. **Open threads + owners:** `docs/jobs/REGISTER.md`.
 
 ## What changed on 2026-08-30
 
@@ -21,6 +22,9 @@ stayed yours. Then the red team ran three times and reshaped the day.
 | cpc-book ask (open since 07-19) | **answered** + batch ingestion built (D-09) |
 | Red-team rounds **3, 4, 5** | **65 wrongful PASSes found**; OI-MOAT-11…19, 22/23/24 closed |
 | Error-A never measured | `tests/honest_drafts/` harness added (D-13) |
+| **Gold labels — the long pole since 07-08** | **RATIFIED 2026-09-02.** 52 gold, 25 grounded / 27 violation |
+| **CR-002** | **lex_tau 0.76, held-out Error-A 0.200 / Error-B 0.111 (n=52).** Deployed. Supersedes CR-001 |
+| Corpus defect (source type hidden from labellers) | `source_type` scaffold column added |
 
 ## Orientation (5 minutes)
 
@@ -39,7 +43,7 @@ stayed yours. Then the red team ran three times and reshaped the day.
 | # | Decision | Where | One-line context |
 |---|---|---|---|
 | 1 | **Ratify gold labels** (30–45 min) | inbox P1 + `calibration/RATIFICATION-BRIEF-v2.md` | STILL THE LONG POLE. **Edit `labels-v2.csv`.** Nothing this session touched them; all 52 remain `candidate`. |
-| 2 | **Push the branch** | — | `git push origin agent-assure-calibration-run`, plus 1 commit in `~/vibe-coding/Agents/Claude`. My push was denied; I did not route around it. |
+| 2 | **Second blind labeller** (0 tokens) | link in the logbook | The ONE step that makes CR-002 independent. You were both ratifier and project owner, and had seen 9 candidates; final labels differ from mine on only 4/52. 40 min of someone else's time. |
 | 3 | **Ratify or reverse the 14 autonomous calls** | the register | Each row carries its undo. Includes a self-disclosed side effect: the pytest change altered what `install.sh` does for END USERS. |
 | 4 | **OI-MOAT-21 — T2 is not sound** | OPEN-ISSUES | **The most consequential open item.** T2 alone suffices for GROUNDED, and T2 is an F1 *ratio* over the claim's own length. Round 5 hit F1=1.000 with a false-order recitation; it PASSes at lex_tau **0.99**. Demoting T2 changes the gate's meaning and invalidates the calibration — Escalation #1+#3. |
 | 5 | **OI-DEC-01** | OPEN-ISSUES | The first PASS-*enabling* fix in the cohort ⇒ yours. |
@@ -54,8 +58,8 @@ stayed yours. Then the red team ran three times and reshaped the day.
 | Phase 1 (gate + capture + plugin) | COMPLETE |
 | Demo | READY — re-verified after every fix today (honest PASS 100.0, fabricated FAIL 50.0) |
 | Moat | Rounds 1–5 done. **Each round found holes in the previous round's fixes.** R5 convergence: drafts/mechanism 7.4→10.3→12.5, every R4 fix attacked directly held, but surviving attacks are *more* natural. Verdict: **the process is converging; the T2 design is not.** |
-| Calibration | CR-001 stands (n=12). Labels: 52 candidate, **untouched**. Batch ingestion built for incremental multi-domain corpora |
-| α2 / CR-002 | **BLOCKED on your ratification** (unchanged) |
+| Calibration | **CR-002 (n=52 gold) is current**; CR-001 superseded. Batch ingestion built but never exercised on real data (J-12) |
+| α2 / CR-002 | **CLOSED 2026-09-02.** lex_tau 0.76 deployed; CR-002 carries an explicit independence caveat |
 | α5 sign-off | Gated on ratification + **OI-MOAT-21**, which is a live Error-B hole |
 
 ## Standing discipline (each learned by being burned)
