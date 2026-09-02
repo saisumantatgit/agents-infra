@@ -40,6 +40,21 @@ REPO_ROOT = Path(__file__).parent.parent.parent
 GROUND_CHECK = str(REPO_ROOT / "scripts" / "ground_check.py")
 STORE = str(REPO_ROOT / "tests" / "red_team_moat" / "fixtures" / "store.jsonl")
 
+# A SECOND frozen store, owned by this harness (the adversarial fixture above is
+# frozen and must not grow honest-side cases). Its sources are deliberately
+# SHORT — one sentence each — because window length is what decides whether the
+# T2-only region is reachable at all. Against the long red-team sources, a claim
+# with no novel tokens can only clear lex_tau by covering most of the window,
+# and covering most of a long window forces a >=8-token contiguous span, which
+# T1 catches first. Short sources are therefore the only place a T2-ONLY honest
+# claim exists — which is exactly why the harness had no such case (see
+# test_t2_only_* below).
+#   S1 "The redesigned coolant pump delivers a lower operating temperature than
+#       the previous unit in sustained load testing."
+#   S2 "In the second quarter, Helios Freight moved 3,100 containers through its
+#       northern terminal."
+T2_STORE = str(Path(__file__).parent / "fixtures" / "store.jsonl")
+
 # Frozen store (same fixture the adversarial harness uses):
 #   S1 "Redis is an in-memory data structure store used as a database and
 #       cache. In our controlled benchmark on a single node, Redis sustained
@@ -51,12 +66,12 @@ STORE = str(REPO_ROOT / "tests" / "red_team_moat" / "fixtures" / "store.jsonl")
 #       write operations per second with full durability guarantees enabled."
 
 
-def _gate(tmp_path: Path, draft_text: str) -> dict:
+def _gate(tmp_path: Path, draft_text: str, store: str = STORE) -> dict:
     draft = tmp_path / "draft.md"
     draft.write_text(draft_text, encoding="utf-8")
     env = {**os.environ, "PYTHONPATH": str(REPO_ROOT)}
     result = subprocess.run(
-        [sys.executable, GROUND_CHECK, "--draft", str(draft), "--store", STORE, "--json"],
+        [sys.executable, GROUND_CHECK, "--draft", str(draft), "--store", store, "--json"],
         capture_output=True, text=True, env=env,
     )
     assert result.stdout, f"gate produced no stdout.\nstderr: {result.stderr}"
@@ -151,3 +166,96 @@ def test_faithful_reordering_should_ground(tmp_path: Path) -> None:
         "controlled benchmark on a single node [S1].\n"
     )
     _assert_clean(_gate(tmp_path, draft), draft)
+
+
+# --- The T2-ONLY region: the blind spot this harness had ---------------------
+#
+# Found 2026-09-02 by the adversarial challenge on OI-MOAT-21
+# (docs/reports/CHALLENGE-2026-09-02-t2-demotion.md, finding (d)). Every honest
+# draft above is grounded by T1. So the harness could not observe ANY change to
+# T2 — including removing it entirely. An Error-A harness blind to a whole tier
+# is not measuring the surface it claims to measure.
+#
+# Both drafts below are grounded by T2 ALONE (T1 misses, t2_f1 >= lex_tau) and
+# contain ZERO novel content tokens — every word is in the cited source, only
+# the order and the trimmed material differ. That second property is what makes
+# them DISCRIMINATING rather than merely additional:
+#
+#   * demoting T2 from sufficient-for-GROUNDED turns both RED;
+#   * the coverage repair (require the source to contain every claim content
+#     token) leaves both GREEN.
+#
+# The two candidate fixes for OI-MOAT-21 disagree here, so this file now
+# separates them. Before it existed, the n=52 corpus scored the coverage repair
+# as strictly better while containing no instance of the case it breaks.
+
+T2_ONLY_HONEST = [
+    pytest.param(
+        "The redesigned coolant pump delivers lower operating temperature than "
+        "the previous unit [S1].\n",
+        id="t2-only-faithful-trim-factual",
+    ),
+    pytest.param(
+        "Helios Freight moved 3,100 containers in the second quarter [S2].\n",
+        id="t2-only-faithful-reorder-numeric",
+    ),
+]
+
+
+@pytest.mark.parametrize("draft", T2_ONLY_HONEST)
+def test_t2_only_honest_draft_is_not_flagged(tmp_path: Path, draft: str) -> None:
+    """An honest claim that only T2 can ground must still reach PASS.
+
+    This is the guard that any change to T2's sufficiency has a visible,
+    counted Error-A cost instead of a silent one.
+    """
+    _assert_clean(_gate(tmp_path, draft, store=T2_STORE), draft)
+
+
+@pytest.mark.parametrize("draft", T2_ONLY_HONEST)
+def test_t2_only_drafts_really_are_t2_only(tmp_path: Path, draft: str) -> None:
+    """Assert the MECHANISM, not just the verdict.
+
+    Without this, the tests above would keep passing if a future change made
+    these claims T1-grounded — and the T2 blind spot would silently reopen
+    while the file that exists to close it stayed green.
+    """
+    sys.path.insert(0, str(REPO_ROOT))
+    from scripts.ground_check import (  # noqa: PLC0415
+        _LEX_TAU_DEFAULT,
+        _content_words,
+        _tokenize,
+        classify,
+        decompose,
+        load_store,
+        t1_verbatim,
+        t2_lexical_score,
+    )
+
+    store = load_store(T2_STORE)
+    claim = classify(next(iter(decompose(draft))))
+    cited = [store[c.strip("[]")] for c in claim.citations]
+    assert cited, "fixture drift: the draft's citation no longer resolves"
+
+    assert not t1_verbatim(claim, cited), (
+        "fixture drift: T1 now grounds this claim, so it no longer exercises "
+        "the T2-only region this test exists to cover."
+    )
+    f1 = max(t2_lexical_score(claim.text, s.text) for s in cited)
+    assert f1 >= _LEX_TAU_DEFAULT, (
+        f"fixture drift: t2_f1={f1:.3f} fell below the deployed lex_tau "
+        f"{_LEX_TAU_DEFAULT}; the claim is no longer T2-grounded."
+    )
+
+    vocab = {t for s in cited for t in _tokenize(s.text)}
+    cite_tokens = {c.strip("[]").casefold() for c in claim.citations}
+    novel = [
+        t for t in _content_words(_tokenize(claim.text))
+        if t not in vocab and t not in cite_tokens
+    ]
+    assert not novel, (
+        f"fixture drift: claim introduces token(s) absent from the source "
+        f"{novel!r}. The zero-novel-token property is what makes this case "
+        f"distinguish T2-demotion from the coverage repair; without it the "
+        f"test no longer separates the two candidate fixes for OI-MOAT-21."
+    )
