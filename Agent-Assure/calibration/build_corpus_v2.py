@@ -983,7 +983,7 @@ def write_labeling_v2_csv(
         writer = csv.writer(fh, quoting=csv.QUOTE_MINIMAL)
         writer.writerow([
             "claim_id", "query_id", "claim_text", "evidence",
-            "candidate_verdict", "rationale",
+            "source_type", "candidate_verdict", "rationale",
         ])
         for row in rows:
             cc = cases_by_query[row.query_id]
@@ -992,9 +992,39 @@ def write_labeling_v2_csv(
                 row.query_id,
                 row.claim_text,
                 _evidence_text(row, cc.case.store),
+                _source_type(row, cc.case.store),
                 cc.candidate_label,
                 cc.rationale,
             ])
+
+
+def _source_type(row, store) -> str:
+    """Return the capture type of the claim's cited sources, for the scaffold.
+
+    Added 2026-09-02 after ratification exposed a corpus defect: q24/q44 are
+    violations ONLY because their sources are ``haiku_summary`` — an AI's
+    summary rather than captured text — and the scaffold exposed no such field.
+    A human reading that sheet saw a perfect textual match and correctly
+    answered "supported"; those two rows were unlabellable as written.
+
+    Emitted as a COLUMN on purpose. Folding the marker into ``evidence`` would
+    change every ``claim_sha`` and mark all 52 ratified labels STALE, which is
+    the failure OI-CAL-03 exists to prevent.
+
+    Values: "verbatim" (safe to ground against), "haiku_summary" (an AI summary
+    — cannot ground; nobody can verify the summariser), "mixed", "absence"
+    (no source; the evidence is a search log), or "unresolved" (cited id not in
+    the store — a fabricated citation).
+    """
+    ids = tuple(getattr(row, "cited_source_ids", ()) or ())
+    if not ids:
+        return "absence"
+    kinds = []
+    for sid in ids:
+        src = store.get(sid)
+        kinds.append(src.full_text_source if src is not None else "unresolved")
+    uniq = sorted(set(kinds))
+    return uniq[0] if len(uniq) == 1 else "mixed"
 
 
 def _print_summary(

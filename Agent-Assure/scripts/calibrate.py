@@ -1137,6 +1137,16 @@ def emit_cr(
             lines.append(f"| {key} | {proj_val} | deferred | deferred |")
         elif proj_val == 0:
             lines.append(f"| {key} | {proj_val} | {act_val} | n/a |")
+        elif not isinstance(proj_val, (int, float)) or not isinstance(act_val, (int, float)):
+            # A CR is an audit artifact; a TypeError from inside an f-string is
+            # not a usable failure. Deferred metrics are signalled by actual=None
+            # (handled above) — anything else non-numeric is a caller error and
+            # is named as one.
+            raise TypeError(
+                f"emit_cr: metric {key!r} has non-numeric projection "
+                f"{proj_val!r} / actual {act_val!r}; a delta cannot be computed. "
+                "Pass numbers, or actual=None to mark the metric deferred."
+            )
         else:
             delta_pct = (act_val - proj_val) / proj_val * 100
             lines.append(

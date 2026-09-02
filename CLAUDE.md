@@ -77,12 +77,13 @@ uv run python -m calibration.run_calibration   # sweep + LOO + emit CR (module f
   may reduce Error-A by raising Error-B. Positive class is pinned to VIOLATION
   (`dcce427`) — never flip it.
 - **Thresholds are data, not code.** Changing one = new calibration run + new
-  CR, never an inline edit. **The gate RUNS at `lex_tau = 0.71`**
-  (`_LEX_TAU_DEFAULT` in `ground_check.py`) — CR-001's calibrated point,
-  deployed 2026-08-30 (OI-CAL-01 closed, register D-06). It had shipped at
-  0.65 while every doc quoted 0.71; the deployment is measurement-neutral
-  (zero `tier_sensitive` rows flip between 0.65 and 0.71 on either corpus).
-  `--lex-tau` overrides for one run. CR-002 supersedes on gold labels. Score gate
+  CR, never an inline edit. **The gate RUNS at `lex_tau = 0.76`**
+  (`_LEX_TAU_DEFAULT` in `ground_check.py`) — **CR-002's** point: n=52
+  Sai-ratified GOLD labels, leave-one-out, held-out Error-A=0.200 /
+  Error-B=0.111. Supersedes CR-001 (n=12, 0.71, Error-B=0.143); Error-B
+  monotonicity holds. Deployed 2026-09-02, measurement-neutral (zero
+  `tier_sensitive` rows fall in [0.71, 0.76)). Read CR-002's independence
+  caveat before quoting the rates. `--lex-tau` overrides for one run. Score gate
   default = 90 — but per ADR-005 (accepted 2026-07-12) the score is a
   SECONDARY bar: PASS additionally requires an EMPTY retained appendix (zero
   violation-class verdicts); a ratio can never buy a PASS past a retained
@@ -142,9 +143,10 @@ uv run python -m calibration.run_calibration   # sweep + LOO + emit CR (module f
 | `Agent-Assure/scripts/capture_hook.py`, `capture_core.py` | PostToolUse capture into the store |
 | `Agent-Assure/scripts/calibrate.py` | Pure calibration functions (metrics, sweep, LOO, emit_cr) |
 | `Agent-Assure/calibration/run_calibration.py` | Bootstrap sweep entry (legacy `labeling.csv`, n=12, inline labels — frozen, CR-001 depends on it) |
-| `Agent-Assure/calibration/labeling-v2.csv` | **Scaffold** — DERIVED (claim, evidence, candidate, rationale). No human column; regenerate freely |
-| `Agent-Assure/calibration/labels-v2.csv` | **Labels** — AUTHORED. Human-owned; no generator writes it. `init_labels` creates it once, refuses to overwrite |
-| `Agent-Assure/calibration/CR-001-bootstrap-lex-tau.md` | Current CR: lex_tau=0.71 (n=12) — DEPLOYED 2026-08-30, OI-CAL-01 closed |
+| `Agent-Assure/calibration/labeling-v2.csv` | **Scaffold** — DERIVED (claim, evidence, **source_type**, candidate, rationale). No human column; regenerate freely |
+| `Agent-Assure/calibration/labels-v2.csv` | **Labels** — AUTHORED. **RATIFIED GOLD 2026-09-02** (52 rows, Sai). No generator writes it |
+| `Agent-Assure/calibration/CR-002-gold-lex-tau.md` | **Current CR**: lex_tau=0.76, n=52 GOLD, held-out A=0.200 B=0.111 — deployed 2026-09-02 |
+| `Agent-Assure/calibration/CR-001-bootstrap-lex-tau.md` | Superseded by CR-002 (n=12 bootstrap; kept for the delta column) |
 | `Agent-Assure/references/grounding-failure-types.md` | Every verdict, what it catches, how to fix |
 | `Agent-Assure/docs/PHASE2-SEQUENCING.md` | Phase 2 slice order (2c-harness → 2b → 2a → 2d) |
 | `Agent-Assure/demo/` | Offline moat demo: fabricated `[S3]` → FAIL, frozen fixtures |
@@ -170,8 +172,10 @@ uv run python -m calibration.run_calibration   # sweep + LOO + emit CR (module f
    → Raise with the offending line/key; the store is audit evidence.
 3. **Trading Error-B for Error-A** while tuning. → Minimize Error-A subject to
    Error-B ≤ the current held-out value; violations rejected regardless of F1.
-4. **Quoting n=12 numbers as validated.** → Every error rate carries
-   "(n=12, provisional, CR-001)" until a ≥n=50 ratified-label run supersedes it.
+4. **Quoting error rates without their provenance.** → Every rate carries
+   "(n=52, single ratifier, CR-002)". The ratifier is the project owner and the
+   gold labels differ from the machine candidates on only 4/52 rows — strong,
+   but NOT external ground truth. A second blind labeller is the open step.
 5. **Self-labeling calibration data.** → Claude-generated labels are `candidate`;
    only Sai-ratified labels are `gold`; calibrate on gold only.
 6. **Inventing verdicts** (`PARTIAL_PASS`, …). → Taxonomy is closed; ADR first.

@@ -167,11 +167,41 @@ def test_reordered_full_vocabulary_recitation_must_not_ground(tmp_path: Path) ->
     this from the truth, and T2 has no model of order at all.
     """
     draft = (
-        "The disk-backed alternative sustained approximately twelve times the "
-        "throughput of Redis under the same workload in our controlled "
-        "benchmark on a single node [S1].\n"
+        "In our controlled benchmark on a single node, the disk-backed "
+        "alternative sustained approximately 128000 operations per second, "
+        "which was about twelve times the throughput of Redis under the same "
+        "workload [S1].\n"
     )
     report = _gate(tmp_path, draft)
     assert report["gate"] != "PASS", (
         f"OI-MOAT-21: order-only falsehood grounded (score={report['grounding_score']})"
+    )
+
+
+@pytest.mark.parametrize("tau", ["0.71", "0.76", "0.83"])
+def test_oi_moat_21_is_not_closed_by_raising_lex_tau(tmp_path: Path, tau: str) -> None:
+    """Guards the CONCLUSION, not just the instance.
+
+    On 2026-09-02 the CR-002 deployment (0.71 -> 0.76) made the previous
+    OI-MOAT-21 draft XPASS, because that particular draft scored f1=0.7391 and
+    the threshold simply stepped over it. Nothing was fixed. Treating that as
+    closure would have been the exact "green test as proof" failure this repo
+    bans — a tripwire going quiet for a reason unrelated to the defect.
+
+    This test pins the real claim: the hole is threshold-INDEPENDENT. The
+    attacker adds matching vocabulary until the ratio clears whatever bar is
+    set, because F1's denominator is the claim's own length and the attacker
+    writes the claim. If this ever fails, lex_tau did NOT close OI-MOAT-21 —
+    something structural did, and that is worth checking before celebrating.
+    """
+    draft = (
+        "In our controlled benchmark on a single node, the disk-backed "
+        "alternative sustained approximately 128000 operations per second, "
+        "which was about twelve times the throughput of Redis under the same "
+        "workload [S1].\n"
+    )
+    assert _gate(tmp_path, draft, lex_tau=tau)["gate"] == "PASS", (
+        f"OI-MOAT-21 appears closed at lex_tau={tau}. If a STRUCTURAL fix "
+        "landed, delete this test and the xfail above. If only the threshold "
+        "moved, the hole is still open and this draft needs more vocabulary."
     )

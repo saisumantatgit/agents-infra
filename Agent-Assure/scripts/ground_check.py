@@ -821,14 +821,22 @@ def t2_lexical_score(claim_text: str, source_text: str) -> float:
 # (drive Error-B under its bound first, then minimise Error-A; ties broken
 # toward the STRICTER tau).
 #
-# Deployed 2026-08-30, closing OI-CAL-01 — the gate had shipped 0.65 while
-# every doc quoted 0.71 as "the" threshold. The deployment is measurement-
-# neutral: on the n=12 labeled bootstrap corpus, every tau in [0.60, 0.71]
-# yields the IDENTICAL confusion matrix (tp=6 fp=0 tn=5 fn=1), so moving the
-# constant changes no observed prediction while removing the cross-artifact
-# contradiction. Superseded by CR-002 the moment gold labels land — change
-# this constant only via a calibration run + a new CR (never inline).
-_LEX_TAU_DEFAULT: float = 0.71
+# 0.76 is CR-002's operating point: n=52 SAI-RATIFIED GOLD labels, leave-one-out,
+# held-out Error-A=0.200 / Error-B=0.111. It supersedes CR-001's 0.71 (n=12,
+# Error-B=0.143) — Error-B monotonicity holds, 0.143 -> 0.111, so this is not
+# buying Error-A down by raising Error-B.
+#
+# Deployed 2026-09-02. Measurement-neutral on the corpus: ZERO tier_sensitive
+# rows fall in [0.71, 0.76), so no observed prediction changes; the move is the
+# calibration speaking, not a retune. (The prior 0.65 -> 0.71 deployment on
+# 2026-08-30 closed OI-CAL-01, where the gate ran 0.65 while every doc quoted
+# 0.71.)
+#
+# Read the CR's independence caveat before quoting these rates: the ratifier is
+# the project owner and the final labels differ from the machine's candidates on
+# only 4 of 52 rows. Change this constant only via a calibration run + a new CR
+# (never inline).
+_LEX_TAU_DEFAULT: float = 0.76
 
 
 def t2_lexical(
