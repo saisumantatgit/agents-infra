@@ -186,8 +186,15 @@ def _conjunction_split(sentence: str) -> list[str]:
         left_tokens = left.split()
         right_tokens = right.split()
         if _has_verb_like_token(left_tokens) and _has_verb_like_token(right_tokens):
-            # Strip trailing punctuation carried into *left* from the separator
-            left = left.rstrip(";").strip()
+            # Strip the separator's litter from *left* (OI-DEC-04). Splitting
+            # "The written statement is in, and the case is contested" at
+            # " and " leaves the left clause holding a comma it did not own:
+            # "The written statement is in,". No verdict changes — punctuation
+            # is stripped before tokenizing — but that trailing mark is what the
+            # user sees in the report, and on real prose it made a COMPLETE
+            # clause read as a sentence fragment. The gate should quote the
+            # writer, not the splitter.
+            left = left.rstrip(";,:—–- \t").strip()
             right = right.strip()
             return [_propagate_sentence_citation(left, right), right]
     return [sentence]
@@ -259,11 +266,34 @@ def _propagate_across_semicolon(sentence: str, following: str) -> str:
     return f"{body.rstrip(';').rstrip()} {trailing.group(1)}"
 
 
+def _strip_html_comments(text: str) -> str:
+    """Remove well-formed HTML comments from *text* (OI-DEC-03).
+
+    An authoring comment is not prose: it is not rendered, not published, and
+    not read. Before this, a draft's own working notes decomposed into scored
+    claims — "[Sn] anchors are working-draft verification tags (store:
+    .assure/evidence-store.jsonl)" became a FACTUAL claim, and the bare "-->"
+    became another. A gate that flags the writer's TODO notes as ungrounded is
+    not measuring the document the reader gets.
+
+    **Only WELL-FORMED pairs are removed, and that is the load-bearing choice.**
+    An unterminated "<!--" is left in place, so the text after it stays scored.
+    Stripping to end-of-document would mean one stray, possibly accidental,
+    "<!--" silently deletes every claim below it from the denominator — a
+    catastrophic-and-invisible failure, versus the mild and visible one of
+    scoring a malformed comment. Unparseable input must not shrink the thing
+    being checked.
+
+    Pure function.
+    """
+    return _HTML_COMMENT_RE.sub(" ", text)
+
+
 def _iter_raw_sentences(text: str) -> Iterator[str]:
     """Yield NFKC-normalized sentence strings from *text* using syntok."""
     import syntok.segmenter as segmenter  # lazy import — keeps top-level pure
 
-    normalized = _nfkc(text)
+    normalized = _strip_html_comments(_nfkc(text))
     for paragraph in segmenter.process(normalized):
         for sentence_tokens in paragraph:
             yield _reconstruct_sentence(sentence_tokens)
@@ -313,6 +343,11 @@ def decompose(draft: str) -> list[Claim]:
 # ---------------------------------------------------------------------------
 
 import re as _re
+
+# A WELL-FORMED HTML/Markdown comment. Non-greedy and DOTALL so a multi-line
+# authoring note is removed as one unit and two separate comments are not merged
+# into one span that swallows the prose between them.
+_HTML_COMMENT_RE = _re.compile(r"<!--.*?-->", _re.DOTALL)
 
 # Citation pattern: [S1], [S12], [source:some-text]
 # S\d+ plus optional letter suffix (OI-CITE-01): `[S1a]` is a citation MARKER
@@ -456,6 +491,25 @@ def _is_non_claim(text: str) -> bool:
     unsure, classify as a real claim — over-scoring is safe; silently excluding a
     fabricated claim is the failure.
     """
+    # ZERO content words -> NON_CLAIM (OI-DEC-06). Markdown furniture reached
+    # this function and was scored: "---", "***", "|---|---|" all classified
+    # FACTUAL and were flagged UNGROUNDED against the store.
+    #
+    # Note the rule is ZERO, not "few". Round 3 killed a ">= 6 content tokens"
+    # floor by writing a five-token fabrication, and round 4 killed its
+    # capitalisation-based replacement with the Shift key — any positive
+    # threshold is a line the author can step under while still asserting
+    # something. Zero is not that kind of line: a span with no content words has
+    # no subject and no predicate, so there is nothing to assert and nothing to
+    # smuggle. It is a property of the span, not a budget to spend up to.
+    #
+    # Numerics and citations are checked FIRST and override, so "99% [S9]" —
+    # which has no content WORDS but plenty of verifiable content — stays a
+    # scored claim.
+    body = _strip_citations(text)
+    if not _NUMERIC_RE.search(body) and not _content_words(_tokenize(body)):
+        return True
+
     # Header ('#'-prefixed): a heading that carries a citation marker or a numeric
     # token is real, verifiable claim content and MUST NOT be excluded — otherwise
     # a fabricated claim hides behind '# ...' and vanishes from the denominator
@@ -631,8 +685,18 @@ def _strip_citations(text: str) -> str:
 
     Used before tokenizing claim text so that citation tokens do not pollute
     span matching or F1 computation.
+
+    The whitespace left behind is collapsed (OI-DEC-06). Removing the marker
+    from "the guarantee was invoked [S3]." used to yield "the guarantee was
+    invoked ." — a space the writer never typed, in front of their own full
+    stop. No verdict depends on it (the tokenizer discards whitespace), but the
+    report quotes claim text back to the user, and text they did not write is
+    corrosive in the one artifact whose entire job is fidelity to what they
+    wrote.
     """
-    return _CITATION_RE.sub("", text)
+    stripped = _CITATION_RE.sub("", text)
+    stripped = _re.sub(r"\s+([.,;:!?])", r"\1", stripped)
+    return _re.sub(r"[ \t]{2,}", " ", stripped)
 
 
 # Tokens that make the text AFTER them someone else's assertion, or a denial of
@@ -856,8 +920,24 @@ _STOP_WORDS: frozenset[str] = frozenset({
 
 
 def _content_words(tokens: list[str]) -> list[str]:
-    """Return tokens that are not stop words."""
-    return [t for t in tokens if t not in _STOP_WORDS]
+    """Return tokens that are not stop words and carry at least one letter or digit.
+
+    The alphanumeric requirement is a 2026-09-03 correction. The tokenizer is
+    `\w+`, and in Python `\w` includes the UNDERSCORE — so a Markdown
+    horizontal rule written as "___" tokenized to the single "word" `___` and
+    counted as content. That made "___" a scored FACTUAL claim, flagged
+    UNGROUNDED against the store, while the visually identical "---" was
+    correctly ignored. Whether a rule is drawn with dashes or underscores is
+    not a fact about the document.
+
+    Purely fail-closed in the tiers (a token nobody can match was inflating
+    both sides of an F1) and it is what makes the zero-content NON_CLAIM rule
+    mean what it says.
+    """
+    return [
+        t for t in tokens
+        if t not in _STOP_WORDS and any(ch.isalnum() for ch in t)
+    ]
 
 
 def _f1(claim_words: list[str], window_words: list[str]) -> float:
