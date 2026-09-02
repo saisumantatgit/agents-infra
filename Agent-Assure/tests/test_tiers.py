@@ -101,8 +101,17 @@ def test_t1_min_quote_len_boundary():
     # anchored T1's span to it; 'done' therefore has to sit inside that window
     # in the source, and no NINE-token anchored window can exist (the claim has
     # only 9 tokens and the subject is at index 1).
+    # The source opens with "our", not "the", so the ANCHORED 8-gram
+    # ("system ... done", starting at the claim's first content token) is
+    # contiguous while the claim's full 9-token sequence is not. Corrected
+    # 2026-09-02: the old fixture read "...high speed always done in production",
+    # which DID contain all nine contiguously — the min_quote_len=9 assertion
+    # passed because subject-anchoring rejected the 9-gram, not because no
+    # 9-gram existed, so the test was not isolating the span-length boundary its
+    # docstring names. ADR-006's exact-containment path surfaced this by
+    # grounding the claim outright.
     source_text = (
-        "the system processes requests at high speed always done in production"
+        "our system processes requests at high speed always done in production"
     )
     assert t1_verbatim(mk(claim_text), [src(source_text)], min_quote_len=8)
     # min_quote_len=9: no 9-token contiguous span is shared between claim and source

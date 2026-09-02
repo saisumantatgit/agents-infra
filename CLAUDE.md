@@ -18,10 +18,12 @@ for `Agent-Assure/`.
    the model saw. Native `WebFetch` is Haiku-summarized, so it is tagged
    `haiku_summary` and the gate refuses to certify against it.
 2. **Verify (deterministic gate).** `scripts/ground_check.py` decomposes a draft
-   into atomic claims, classifies each, and grounds each via two lexical tiers
-   (T1 verbatim ≥8-token span; T2 lexical-F1 ≥ lex_tau window with numerics
-   present), numeric value+unit matching, absence 2-query and relational
-   2-source rules. It returns a gate verdict.
+   into atomic claims, classifies each, and grounds each via **T1 alone**
+   (a contiguous verbatim span ≥8 tokens, OR the whole claim contained verbatim
+   in a cited source and not under an attribution/denial hedge), numeric
+   value+unit matching, absence 2-query and relational 2-source rules. It
+   returns a gate verdict. **T2 (lexical F1) was DEMOTED 2026-09-02 (ADR-006)
+   and decides nothing** — it is emitted as a diagnostic only.
 
 **The moat: pure Python, deterministic, ZERO LLM calls during grounding.** A
 verdict is a mechanical fact about the store — which is exactly why a fabricated
@@ -79,14 +81,17 @@ uv run python -m calibration.run_calibration   # sweep + LOO + emit CR (module f
   UNRECOVERABLE; Error-A (false alarm on a real claim) is recoverable. No change
   may reduce Error-A by raising Error-B. Positive class is pinned to VIOLATION
   (`dcce427`) — never flip it.
-- **Thresholds are data, not code.** Changing one = new calibration run + new
-  CR, never an inline edit. **The gate RUNS at `lex_tau = 0.76`**
-  (`_LEX_TAU_DEFAULT` in `ground_check.py`) — **CR-002's** point: n=52
-  Sai-ratified GOLD labels, leave-one-out, held-out Error-A=0.200 /
-  Error-B=0.111. Supersedes CR-001 (n=12, 0.71, Error-B=0.143); Error-B
-  monotonicity holds. Deployed 2026-09-02, measurement-neutral (zero
-  `tier_sensitive` rows fall in [0.71, 0.76)). Read CR-002's independence
-  caveat before quoting the rates. `--lex-tau` overrides for one run. Score gate
+- **Thresholds are data, not code — and the grounding path now has NONE.**
+  **`lex_tau` is RETIRED (ADR-006 / CR-003, 2026-09-02)**; `--lex-tau` RAISES
+  rather than silently no-op'ing. T2 was demoted because a true and a false
+  claim can be the same one-token delta and score an identical `t2_f1` (5/5
+  matched pairs), and because a bag of words has no order (a false reordering
+  scored 1.000). **Current rates: Error-A=0.320 / Error-B=0.074, n=52 gold
+  (CR-003)** — held-out BY CONSTRUCTION, since with zero fitted parameters the
+  in-sample bias LOO existed to remove does not arise. Supersedes CR-002
+  (0.76, A=0.200/B=0.111); Error-B monotonicity holds. The 0.320 is real: honest
+  paraphrase now reads UNGROUNDED, counted as strict xfails, recoverable only by
+  T3/NLI (ADR-004), which is now LOAD-BEARING rather than optional. Score gate
   default = 90 — but per ADR-005 (accepted 2026-07-12) the score is a
   SECONDARY bar: PASS additionally requires an EMPTY retained appendix (zero
   violation-class verdicts); a ratio can never buy a PASS past a retained
@@ -129,9 +134,11 @@ uv run python -m calibration.run_calibration   # sweep + LOO + emit CR (module f
   judgment at text they never read. Ask of any new writer: *what does this do if
   the file already holds a human's work?* If the answer is "overwrite it", that
   is not a bug yet — it is an appointment.
-- **`tier_sensitive` / lex_tau-invariant tagging** (`f11f8d4`, `ff24a82`):
-  verdicts not governed by lex_tau must be tagged invariant or calibration
-  miscounts. Any new verdict path must declare its tag.
+- **`tier_sensitive` is now ALWAYS False** (ADR-006): no verdict consults
+  `lex_tau`, so no row may enter a lexical sweep. The field is kept, not
+  deleted — a sweep over an empty set is a visible no-op, whereas dropping the
+  field would let a future threshold silently re-thresholds verdicts that cannot
+  move and report a fabricated operating point.
 - **NFKC-normalize before ANY text match** at every text path's ingestion boundary.
 - **`haiku_summary` can never ground a claim** — tiers must not run on it;
   claim → `UNGROUNDABLE`. Preserve on every new evidence path.
@@ -148,7 +155,9 @@ uv run python -m calibration.run_calibration   # sweep + LOO + emit CR (module f
 | `Agent-Assure/calibration/run_calibration.py` | Bootstrap sweep entry (legacy `labeling.csv`, n=12, inline labels — frozen, CR-001 depends on it) |
 | `Agent-Assure/calibration/labeling-v2.csv` | **Scaffold** — DERIVED (claim, evidence, **source_type**, candidate, rationale). No human column; regenerate freely |
 | `Agent-Assure/calibration/labels-v2.csv` | **Labels** — AUTHORED. **RATIFIED GOLD 2026-09-02** (52 rows, Sai). No generator writes it |
-| `Agent-Assure/calibration/CR-002-gold-lex-tau.md` | **Current CR**: lex_tau=0.76, n=52 GOLD, held-out A=0.200 B=0.111 — deployed 2026-09-02 |
+| `Agent-Assure/calibration/CR-003-t2-demotion.md` | **Current CR**: T2 demoted, lex_tau RETIRED, n=52 GOLD, A=0.320 B=0.074 — deployed 2026-09-02 |
+| `docs/decisions/ADR-006-demote-t2.md` | Why T2 cannot be sufficient, why the coverage repair was rejected, what quote-mining costs |
+| `Agent-Assure/calibration/CR-002-gold-lex-tau.md` | Superseded by CR-003 (lex_tau=0.76, A=0.200 B=0.111) |
 | `Agent-Assure/calibration/CR-001-bootstrap-lex-tau.md` | Superseded by CR-002 (n=12 bootstrap; kept for the delta column) |
 | `Agent-Assure/references/grounding-failure-types.md` | Every verdict, what it catches, how to fix |
 | `Agent-Assure/docs/PHASE2-SEQUENCING.md` | Phase 2 slice order (2c-harness → 2b → 2a → 2d) |
@@ -176,7 +185,7 @@ uv run python -m calibration.run_calibration   # sweep + LOO + emit CR (module f
 3. **Trading Error-B for Error-A** while tuning. → Minimize Error-A subject to
    Error-B ≤ the current held-out value; violations rejected regardless of F1.
 4. **Quoting error rates without their provenance.** → Every rate carries
-   "(n=52, single ratifier, CR-002)". The ratifier is the project owner and the
+   "(n=52, single ratifier, CR-003)". The ratifier is the project owner and the
    gold labels differ from the machine candidates on only 4/52 rows — strong,
    but NOT external ground truth. A second blind labeller is the open step.
 5. **Self-labeling calibration data.** → Claude-generated labels are `candidate`;

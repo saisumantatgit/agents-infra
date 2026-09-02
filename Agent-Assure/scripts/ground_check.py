@@ -635,6 +635,89 @@ def _strip_citations(text: str) -> str:
     return _CITATION_RE.sub("", text)
 
 
+# Tokens that make the text AFTER them someone else's assertion, or a denial of
+# it, rather than the source speaking in its own voice. Used ONLY by the
+# exact-containment path (OI-T2-01): lowering T1's length floor to zero means a
+# short span can be lifted out of "critics claim X" or "it is not true that X"
+# and re-published as X, so containment is refused when one of these governs the
+# span. Set membership on the tokens immediately preceding the span — a
+# deliberately blunt, deterministic test, not an attempt at parsing.
+_SPAN_HEDGE_TOKENS: frozenset[str] = frozenset({
+    # attribution — the source reports that SOMEONE ELSE said this
+    "claim", "claims", "claimed", "claiming", "alleges", "alleged", "allege",
+    "allegedly", "asserts", "asserted", "argues", "argued", "contends",
+    "contended", "purports", "purported", "purportedly", "suggests",
+    "suggested", "reportedly", "rumored", "rumoured", "supposedly", "says",
+    "said", "believes", "believed", "according", "per",
+    # denial / falsity — the source says this is NOT so
+    "not", "no", "never", "untrue", "false", "falsely", "incorrectly",
+    "wrongly", "denies", "denied", "denying", "disputes", "disputed",
+    "refutes", "refuted", "myth", "misconception", "contrary", "without",
+    # conditionals / hypotheticals — the source is not asserting this
+    "if", "unless", "whether", "would", "could", "might", "hypothetically",
+    "suppose", "supposing", "assume", "assuming",
+})
+
+# How many source tokens before the span are inspected for a hedge. Five covers
+# "it is not true that X", "according to the vendor, X" and "critics have long
+# claimed X" without reaching back into an unrelated preceding clause.
+_SPAN_HEDGE_LOOKBACK: int = 5
+
+
+def _span_is_hedged(source_tokens: list[str], start: int) -> bool:
+    """Return True iff the span at *start* sits under an attribution or denial.
+
+    Looks at the up-to-_SPAN_HEDGE_LOOKBACK tokens immediately preceding the
+    span. A hit means the source is reporting or denying the statement rather
+    than making it, so quoting the span alone misrepresents the source.
+
+    Fail-closed by construction: an ambiguous or unparseable context is one
+    where a hedge token happens to be nearby, and that returns True (refuse),
+    never False. Pure function.
+    """
+    window = source_tokens[max(0, start - _SPAN_HEDGE_LOOKBACK):start]
+    return any(tok in _SPAN_HEDGE_TOKENS for tok in window)
+
+
+def _claim_contained_verbatim(
+    claim_tokens: list[str], sources: list[RetrievedSource]
+) -> bool:
+    """Return True iff the claim's ENTIRE token sequence is a contiguous,
+    un-hedged span of some source (OI-T2-01, ADR-006).
+
+    Why this is sound where a length floor is not. T1's ≥8-token floor exists
+    so a short, high-frequency fragment cannot be assembled out of a source's
+    vocabulary. But when the span IS the whole claim, there is no residual to
+    assemble and no ratio to game: the source contains the claim, character for
+    character, in order. An attacker cannot fabricate by exact quotation —
+    doing so means giving up the fabrication.
+
+    This became load-bearing when T2 was demoted. 31 of the 52 calibration
+    claims are shorter than 8 content tokens, so without this path a claim
+    quoted word-for-word from its source reads UNGROUNDED — which the gate's
+    own end-to-end fixture did ("Redis handles 100K ops per second", 6 tokens).
+
+    The one thing exact containment CAN do that a long span cannot is
+    quote-mining: lifting "Redis is slow" out of "Critics claim Redis is slow,
+    but our benchmark disagrees." _span_is_hedged is the guard, and it is the
+    reason this is not simply `min_quote_len=0`.
+
+    Pure function.
+    """
+    if not claim_tokens:
+        return False
+    width = len(claim_tokens)
+    for source in sources:
+        source_tokens = _tokenize(source.text)
+        for start in range(len(source_tokens) - width + 1):
+            if source_tokens[start:start + width] != claim_tokens:
+                continue
+            if _span_is_hedged(source_tokens, start):
+                continue
+            return True
+    return False
+
+
 def t1_verbatim(
     claim: Claim,
     sources: list[RetrievedSource],
@@ -665,6 +748,15 @@ def t1_verbatim(
     # do not inflate the claim token list and prevent contiguous-span matching.
     claim_tokens = _tokenize(_strip_citations(claim.text))
     n = len(claim_tokens)
+
+    # Exact containment: the claim IS the span (OI-T2-01, ADR-006). Checked
+    # BEFORE the length floor, because the floor is precisely what this path
+    # exists to bypass — for a claim shorter than min_quote_len, this is the
+    # only way T1 can fire, and after T2's demotion it is the only way the
+    # claim can be grounded at all.
+    if _claim_contained_verbatim(claim_tokens, sources):
+        return True
+
     if n < min_quote_len:
         return False
 
@@ -2042,12 +2134,31 @@ def ground(
     if claim.kind == ClaimKind.NUMERIC and not numeric_ok(claim, verbatim):
         return Verdict.UNVERIFIED_NUMBER
 
-    cited_ids = {s.source_id for s in verbatim}
-    others = [
-        s.text for s in store.values()
-        if s.source_id not in cited_ids and s.full_text_source == "verbatim" and s.text
-    ]
-    if t1_verbatim(claim, verbatim) or t2_lexical(claim, verbatim, lex_tau, others):
+    # T2 IS NO LONGER CONSULTED HERE (ADR-006, 2026-09-02). T1 alone certifies.
+    #
+    # T2 scored lexical overlap, and overlap is not support. Two measurements
+    # ended the question. (a) Matched pairs: a true claim and a false one can be
+    # the SAME one-token delta against the same source and score an IDENTICAL
+    # t2_f1 — 5 pairs, 5 ties (tests/red_team_moat/test_moat_oi_moat_21.py), so
+    # no lex_tau orders them and none ever could. (b) Reordering: a bag of words
+    # has no word order, so reciting a source's whole vocabulary in a FALSE
+    # order scored f1=1.000 (round 5). A tier that cannot distinguish a claim
+    # from its inversion cannot be sufficient for GROUNDED.
+    #
+    # Why not the coverage repair (require the source to contain every claim
+    # token) — it measured better (Error-A 0.240 vs 0.320): it closes the
+    # argument-swap class but leaves REORDERING wide open, because a reordering
+    # introduces no new token. Verified by mutation: the round-5 tripwire still
+    # XFAILs under it. The two options are not nested, and demotion is the only
+    # one that closes both. Error-B is unrecoverable; Error-A is not.
+    #
+    # The Error-A this costs is real and measured, not waved away: honest
+    # paraphrase now reads UNGROUNDED (see tests/honest_drafts/). Recovering it
+    # needs a tier that reads MEANING rather than counting words — T3/NLI,
+    # ADR-004 — which is the only mechanism that can separate a synonym
+    # substitution from an argument substitution. Until it exists, the gate is
+    # deliberately stricter than it is smart.
+    if t1_verbatim(claim, verbatim):
         return Verdict.GROUNDED
 
     return Verdict.UNGROUNDED
@@ -2223,15 +2334,28 @@ def main() -> None:
                         help="Path to the evidence JSONL store.")
     parser.add_argument("--threshold", type=float, default=90.0, metavar="FLOAT",
                         help="Grounding score threshold (default 90.0).")
-    parser.add_argument("--lex-tau", type=float, default=_LEX_TAU_DEFAULT,
+    parser.add_argument("--lex-tau", type=float, default=None,
                         metavar="FLOAT", dest="lex_tau",
-                        help=f"T2 lexical-F1 operating point (default "
-                             f"{_LEX_TAU_DEFAULT}, per CR-001). Thresholds are "
-                             f"data: overriding this for a real run means a new "
-                             f"calibration record.")
+                        help="RETIRED (ADR-006). T2 no longer decides any "
+                             "verdict, so this value governs nothing. Passing "
+                             "it is an error rather than a no-op: a flag that "
+                             "silently does nothing is the silent-fallback "
+                             "failure this codebase forbids.")
     parser.add_argument("--json", dest="json_mode", action="store_true",
                         help="Print JSON report to stdout; skip writing YAML file.")
     args = parser.parse_args()
+
+    # Fail loud, never no-op. Before ADR-006 this flag moved the T2 operating
+    # point; T2 now decides nothing, so honouring it would be a lie and
+    # ignoring it would be a silent fallback. Both are worse than an error that
+    # says what changed.
+    if args.lex_tau is not None:
+        parser.error(
+            "--lex-tau is RETIRED (ADR-006, 2026-09-02). T2 was demoted from "
+            "sufficient-for-GROUNDED, so no verdict depends on a lexical "
+            "threshold and this value would change nothing. Re-run without it. "
+            "Paraphrase recovery is the T3/NLI tier's job (ADR-004)."
+        )
 
     # Pipeline: read → decompose → classify → score_report
     with open(args.draft, encoding="utf-8") as fh:
@@ -2239,8 +2363,7 @@ def main() -> None:
 
     store = load_store(args.store)
     claims = [classify(c) for c in decompose(draft_text)]
-    report = score_report(claims, store, threshold=args.threshold,
-                          lex_tau=args.lex_tau)
+    report = score_report(claims, store, threshold=args.threshold)
 
     gate: str = report["gate"]
 

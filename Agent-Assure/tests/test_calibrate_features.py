@@ -112,10 +112,17 @@ def test_t1_grounded_claim_row():
 
 
 def test_t2_only_grounded_claim_row():
-    """Claim 2: too short for T1 (6 content tokens < min_quote_len=8) but scores
-    high lexical F1 against an S2 window -> t1_verbatim=False, t2_f1 high enough
-    to ground, predicted_verdict=GROUNDED via the T2 path (proves the dispatcher
-    used T2, not T1, since T1 is provably False here)."""
+    """Claim 2: 6 content tokens, below T1's 8-token span floor — and grounded
+    anyway, because the claim is EXACTLY contained in S2 (ADR-006).
+
+    Before ADR-006 this row proved the dispatcher had used T2 (t1_verbatim was
+    provably False). T2 no longer grounds anything, and this claim survived the
+    demotion by a different and stronger route: the whole claim is a contiguous
+    verbatim span of its source, so there is no residual to assemble and no
+    ratio to game. The row is worth keeping precisely because it is the case
+    that distinguishes "short" from "unsupported" — 31 of the 52 calibration
+    claims are under 8 tokens, and without exact containment every one of them
+    would be unreachable."""
     rows = emit_claim_features("q1", _DRAFT, _store())
     row = rows[1]
     assert row.query_id == "q1"
@@ -123,10 +130,11 @@ def test_t2_only_grounded_claim_row():
     assert row.kind == "NUMERIC"
     assert row.cited_source_ids == ("S2",)
     assert row.citations_resolved is True
-    assert row.t1_verbatim is False
+    assert row.t1_verbatim is True, (
+        "exact containment should ground this claim via T1 (ADR-006)"
+    )
+    # t2_f1 is still EMITTED — as a diagnostic, never as a threshold.
     assert row.t2_f1 == pytest.approx(1.0)
-    # Threshold read from the constant — never a literal (thresholds are data).
-    assert row.t2_f1 >= _LEX_TAU_DEFAULT
     assert row.numeric_ok is True
     assert row.predicted_verdict == "GROUNDED"
 
@@ -238,15 +246,23 @@ def test_ungroundable_with_high_tier_signal_is_not_tier_sensitive():
     assert row.tier_sensitive is False
 
 
-def test_t2_only_grounded_row_is_tier_sensitive():
-    """A T2-only-grounded claim (t1_verbatim False, predicted_verdict GROUNDED)
-    is tier_sensitive: a higher lex_tau could push it below threshold and flip
-    it to UNGROUNDED."""
+def test_no_row_is_tier_sensitive_after_t2_demotion():
+    """tier_sensitive is now False for EVERY row (ADR-006).
+
+    The flag means "could a different lex_tau change this verdict?". Since
+    ground() no longer consults lex_tau on any path, the honest answer for
+    every row is no. Asserted across the whole draft rather than one row,
+    because the failure this guards against is a future change quietly
+    reintroducing a lexical threshold and re-enabling a sweep over verdicts
+    that cannot move — which is how a fabricated operating point gets into a
+    CR."""
     rows = emit_claim_features("q1", _DRAFT, _store())
-    row = rows[1]
-    assert row.t1_verbatim is False
-    assert row.predicted_verdict == "GROUNDED"
-    assert row.tier_sensitive is True
+    assert rows, "fixture produced no rows"
+    offenders = [(r.claim_id, r.predicted_verdict) for r in rows if r.tier_sensitive]
+    assert not offenders, (
+        f"lex_tau governs no verdict since ADR-006, but these rows claim to be "
+        f"tier_sensitive: {offenders}"
+    )
 
 
 def test_t1_grounded_row_is_not_tier_sensitive():
@@ -260,10 +276,12 @@ def test_t1_grounded_row_is_not_tier_sensitive():
     assert row.tier_sensitive is False
 
 
-def test_ungrounded_row_is_tier_sensitive():
-    """An UNGROUNDED claim (verbatim evidence exists but T1/T2 both miss) is
-    tier_sensitive: a lower lex_tau could push its t2_f1 above threshold and
-    flip it to GROUNDED."""
+def test_ungrounded_row_is_not_tier_sensitive():
+    """An UNGROUNDED claim stays UNGROUNDED at any lex_tau (ADR-006).
+
+    This test asserted the opposite until 2026-09-02: a lower lex_tau could
+    once lift such a claim to GROUNDED. That path is gone — which is the whole
+    point of the demotion, since it was also the path a fabrication took."""
     s3 = _src("S3", "Redis handles 100K operations per second on commodity hardware.")
     store = {"S3": s3}
     draft = "Elephants have large ears for cooling in the savanna [S3]."
@@ -273,7 +291,7 @@ def test_ungrounded_row_is_tier_sensitive():
     row = rows[0]
 
     assert row.predicted_verdict == "UNGROUNDED"
-    assert row.tier_sensitive is True
+    assert row.tier_sensitive is False
 
 
 # ---------------------------------------------------------------------------
@@ -327,7 +345,12 @@ def test_relational_grounded_row_is_not_tier_sensitive():
 
     assert row.kind == "RELATIONAL"
     assert row.predicted_verdict == "GROUNDED"
-    assert row.t1_verbatim is False           # two sides live in different sources
+    # t1_verbatim became True on 2026-09-02: ADR-006's exact-containment path
+    # matches "insulin resistance causes type 2 diabetes" inside S1's "Sustained
+    # insulin resistance causes type 2 diabetes to develop". Incidental to this
+    # test — the verdict here comes from ground_relational, which never consults
+    # a tier — and asserted rather than dropped so the change stays visible.
+    assert row.t1_verbatim is True
     # t2_f1 is below 0.65: if the row were (wrongly) tier_sensitive, it would be
     # a violation at lex_tau 0.65 and 0.90 -- the exact corruption being guarded.
     assert row.t2_f1 < 0.65

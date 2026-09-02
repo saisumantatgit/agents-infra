@@ -123,8 +123,23 @@ MATRIX = [
     # threshold currently sits is testing the threshold, not the tier split it
     # is named for. The assertions below now read the constant.
     # ------------------------------------------------------------------
+    # ------------------------------------------------------------------
+    # ROW 2: UNGROUNDED via the demoted T2 (was GROUNDED until ADR-006)
+    #
+    # "achieves" for "delivers" — a one-token verb synonym. The claim is TRUE
+    # and the gate now refuses it. That is the contract, not a defect: ADR-006
+    # demoted T2 from sufficient-for-GROUNDED because this row and a
+    # fabrication are the same shape. "Revenue grew 12% in the MAPPING
+    # division" against a source saying LOGISTICS is also one novel token, and
+    # scores the same t2_f1. No lexical rule separates them; T3/NLI (ADR-004)
+    # is the only thing that can.
+    #
+    # The row is kept, with its verdict flipped, rather than deleted — the
+    # matrix should record what the gate does at its edges, and this edge is
+    # now the single most important one to be able to point at.
+    # ------------------------------------------------------------------
     pytest.param(
-        "grounded_t2",
+        "ungrounded_synonym_paraphrase",
         "PostgreSQL query optimization achieves high throughput [S1].",
         lambda: _store(
             _src(
@@ -132,7 +147,7 @@ MATRIX = [
                 "PostgreSQL query optimization delivers high throughput.",
             )
         ),
-        Verdict.GROUNDED,
+        Verdict.UNGROUNDED,
         id="grounded_t2",
     ),
 

@@ -198,10 +198,21 @@ def emit_claim_features(
         # GROUNDED). Every other governed verdict — GROUNDED-via-T1
         # (lex_tau-invariant), UNCITED / UNVERIFIED_CITATION / UNVERIFIED_NUMBER /
         # UNGROUNDABLE (ground() short-circuited before the tier check) — is fixed.
-        tier_sensitive = claim.kind in _LEX_TAU_GOVERNED_KINDS and (
-            (verdict.value == "UNGROUNDED")
-            or (verdict.value == "GROUNDED" and not t1)
-        )
+        # ALWAYS FALSE since ADR-006 (2026-09-02). T2 was demoted from
+        # sufficient-for-GROUNDED, so `ground()` no longer consults lex_tau on
+        # any path — no verdict can flip when lex_tau moves, which is exactly
+        # what this flag means. It is retained (rather than deleted) because
+        # every consumer treats it as "may this row enter a lex_tau sweep?",
+        # and the honest answer is now "no row may". A sweep over an empty set
+        # is a visible no-op; silently dropping the field would instead let a
+        # future sweep re-thresholds rows whose verdicts cannot move and report
+        # a fabricated operating point.
+        #
+        # t2_f1 is still emitted above, as a DIAGNOSTIC only: "high overlap,
+        # no verbatim span" is the actionable signal behind an UNGROUNDED
+        # verdict, and it is what T3 (ADR-004) will need for its own
+        # calibration. A reported feature is not a governing threshold.
+        tier_sensitive = False
 
         rows.append(ClaimFeatureRow(
             claim_id=f"{query_id}#{claim.index}",

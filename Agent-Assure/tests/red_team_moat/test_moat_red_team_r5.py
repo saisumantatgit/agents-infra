@@ -68,15 +68,18 @@ def test_cross_entity_attribution_must_not_ground_via_t2(tmp_path: Path) -> None
     )
 
 
-@pytest.mark.parametrize("tau", ["0.65", "0.71", "0.99"])
-def test_cross_entity_attribution_blocked_at_every_lex_tau(tmp_path: Path, tau: str) -> None:
-    """lex_tau cannot fix this and never could.
+def test_cross_entity_attribution_blocked_without_any_threshold(tmp_path: Path) -> None:
+    """lex_tau could not fix this, and there is no longer a lex_tau to try.
 
-    F1 is a RATIO whose denominator includes the claim's own length, and the
-    attacker writes the claim. Round 5 produced a variant scoring F1=1.000 by
-    reciting the source's whole vocabulary in a false order. A threshold on an
-    attacker-controlled ratio is not a soundness test at ANY value — which is
-    why the fix is a subject/polarity constraint, not a retune.
+    This test was parametrized over lex_tau 0.65 / 0.71 / 0.99 to pin the
+    conclusion that a threshold on an attacker-controlled RATIO is not a
+    soundness test at any value. ADR-006 discharged that conclusion the hard
+    way: T2 was demoted from sufficient-for-GROUNDED, so no threshold exists to
+    sweep and `--lex-tau` is a hard error.
+
+    The draft is retained unparametrized because the ATTACK is still real —
+    cross-entity attribution is a base-rate LLM failure, not a red-team
+    artefact — and it must stay blocked under whatever tiers exist.
     """
     draft = (
         "In our controlled benchmark on a single node, PostgreSQL sustained "
@@ -84,7 +87,7 @@ def test_cross_entity_attribution_blocked_at_every_lex_tau(tmp_path: Path, tau: 
         "times the throughput of the disk-backed alternative under the same "
         "workload [S1].\n"
     )
-    assert _gate(tmp_path, draft, lex_tau=tau)["gate"] != "PASS"
+    assert _gate(tmp_path, draft)["gate"] != "PASS"
 
 
 def test_polarity_flip_must_not_ground(tmp_path: Path) -> None:
@@ -141,23 +144,6 @@ def test_punctuated_header_assertion_must_not_escape(tmp_path: Path) -> None:
 
 # --- OI-MOAT-21: the residue that is NOT mine to close -----------------------
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="OI-MOAT-21 (OPEN, escalated to Sai 2026-08-30): T2's soundness, "
-    "not a T2 bug. `ground()` accepts `t1_verbatim(...) OR t2_lexical(...)`, "
-    "so T2 alone is sufficient for GROUNDED — and T2 is a content-word F1 "
-    "RATIO whose denominator is the claim's own length, which the author "
-    "writes. Round 5 produced a draft scoring F1=1.000 by reciting all of S1's "
-    "vocabulary in a false order; no lex_tau rejects it. The misattribution "
-    "and polarity constraints added on 2026-08-30 close the cases where the "
-    "session retrieved the other entity or the polarity flipped; they do not "
-    "make a bag-of-words ratio a soundness test, and cannot. Round 5's "
-    "recommendation: DEMOTE T2 from sufficient-for-GROUNDED (e.g. to a "
-    "corroborating signal, or gate it behind an order/structure check). That "
-    "changes what the gate MEANS and invalidates the calibration lex_tau is "
-    "derived from — Escalation #1 and #3, Sai's call, not an agent's. "
-    "When this XPASSes, a fix has landed: remove the marker.",
-)
 def test_reordered_full_vocabulary_recitation_must_not_ground(tmp_path: Path) -> None:
     """The claim uses S1's own words, in an order that reverses its meaning.
 
@@ -178,30 +164,15 @@ def test_reordered_full_vocabulary_recitation_must_not_ground(tmp_path: Path) ->
     )
 
 
-@pytest.mark.parametrize("tau", ["0.71", "0.76", "0.83"])
-def test_oi_moat_21_is_not_closed_by_raising_lex_tau(tmp_path: Path, tau: str) -> None:
-    """Guards the CONCLUSION, not just the instance.
-
-    On 2026-09-02 the CR-002 deployment (0.71 -> 0.76) made the previous
-    OI-MOAT-21 draft XPASS, because that particular draft scored f1=0.7391 and
-    the threshold simply stepped over it. Nothing was fixed. Treating that as
-    closure would have been the exact "green test as proof" failure this repo
-    bans — a tripwire going quiet for a reason unrelated to the defect.
-
-    This test pins the real claim: the hole is threshold-INDEPENDENT. The
-    attacker adds matching vocabulary until the ratio clears whatever bar is
-    set, because F1's denominator is the claim's own length and the attacker
-    writes the claim. If this ever fails, lex_tau did NOT close OI-MOAT-21 —
-    something structural did, and that is worth checking before celebrating.
-    """
-    draft = (
-        "In our controlled benchmark on a single node, the disk-backed "
-        "alternative sustained approximately 128000 operations per second, "
-        "which was about twelve times the throughput of Redis under the same "
-        "workload [S1].\n"
-    )
-    assert _gate(tmp_path, draft, lex_tau=tau)["gate"] == "PASS", (
-        f"OI-MOAT-21 appears closed at lex_tau={tau}. If a STRUCTURAL fix "
-        "landed, delete this test and the xfail above. If only the threshold "
-        "moved, the hole is still open and this draft needs more vocabulary."
-    )
+# test_oi_moat_21_is_not_closed_by_raising_lex_tau — DELETED 2026-09-02.
+#
+# It asserted that the hole stays open at lex_tau 0.71 / 0.76 / 0.83, pinning
+# the CONCLUSION that OI-MOAT-21 was threshold-independent. Its own docstring
+# named the condition for removing it: "If a STRUCTURAL fix landed, delete this
+# test and the xfail above."
+#
+# One landed. ADR-006 demoted T2 from sufficient-for-GROUNDED, so lex_tau
+# governs no verdict and `--lex-tau` is now a hard error — the test could not
+# run even in principle. The conclusion it guarded was right and is now
+# discharged: the threshold never could have closed this, and a structural
+# change is what did.

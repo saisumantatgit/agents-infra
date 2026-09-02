@@ -135,15 +135,6 @@ def test_honest_draft_is_not_flagged(tmp_path: Path, draft: str) -> None:
 
 # --- Known false alarms: recorded, counted, and tied to an open issue --------
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="OI-T2-01 (OPEN): a 7-token verbatim sentence quote reads UNGROUNDED "
-    "— below T1's 8-token span floor, and T2's F1 penalises precision against "
-    "the long source window (f1=0.385). Fails identically at lex_tau 0.65, so "
-    "it predates the 2026-08-30 deployment. Fix options are in OPEN-ISSUES and "
-    "move the Error-A/Error-B trade-off, so the choice is Sai's. When this "
-    "XPASSes, a fix has landed: remove the marker.",
-)
 def test_short_verbatim_quotation_should_ground(tmp_path: Path) -> None:
     """The user quoted the source exactly, word for word, and was told the
     claim is ungrounded."""
@@ -153,7 +144,10 @@ def test_short_verbatim_quotation_should_ground(tmp_path: Path) -> None:
 
 @pytest.mark.xfail(
     strict=True,
-    reason="OI-T2-01 sibling (OPEN): a faithful REORDERING of a source sentence "
+    reason="ADR-006 (was OI-T2-01 sibling): a faithful REORDERING of a source "
+    "sentence is not exact containment, so T1's new whole-claim path does not "
+    "reach it and demoted T2 no longer can. Recoverable only by T3/NLI "
+    "(ADR-004). Original note follows. "
     "('... per second in a controlled benchmark on a single node' vs the "
     "source's 'In our controlled benchmark on a single node, Redis sustained "
     "... per second') breaks T1's contiguous span and scores t2_f1=0.513. Also "
@@ -202,12 +196,22 @@ T2_ONLY_HONEST = [
 ]
 
 
+@pytest.mark.xfail(
+    strict=True,
+    reason="ADR-006 (2026-09-02): T2 was demoted from sufficient-for-GROUNDED, "
+    "so a claim only T2 could ground now reads UNGROUNDED. This is the "
+    "measured Error-A price of closing OI-MOAT-21, recorded rather than "
+    "removed — the file exists to keep the false-alarm surface countable. "
+    "Note these are NOT the synonym class: they carry zero novel tokens, so no "
+    "coverage rule would reject them either. Only T3/NLI (ADR-004) recovers "
+    "them. When these XPASS, T3 has landed: remove the marker.",
+)
 @pytest.mark.parametrize("draft", T2_ONLY_HONEST)
 def test_t2_only_honest_draft_is_not_flagged(tmp_path: Path, draft: str) -> None:
-    """An honest claim that only T2 can ground must still reach PASS.
+    """An honest claim that only T2 could ground. Now flagged — by design.
 
-    This is the guard that any change to T2's sufficiency has a visible,
-    counted Error-A cost instead of a silent one.
+    This was the guard that any change to T2's sufficiency has a visible,
+    counted cost instead of a silent one. It did its job: the cost is here.
     """
     _assert_clean(_gate(tmp_path, draft, store=T2_STORE), draft)
 

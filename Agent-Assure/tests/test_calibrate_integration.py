@@ -163,11 +163,13 @@ def test_full_harness_closed_loop_produces_cr_and_guards_relational(tmp_path):
     assert [r.claim_id for r in rows] == ["q1#0", "q2#0", "q2#1", "q2#2"]
 
     # The relational claim is present, GROUNDED, and — the blocker guard —
-    # NOT tier_sensitive at emit time, despite t1_verbatim being False.
+    # NOT tier_sensitive at emit time. (t1_verbatim flipped to True on
+    # 2026-09-02 via ADR-006's exact-containment path; incidental here, since a
+    # RELATIONAL verdict comes from ground_relational and consults no tier.)
     relational_row = rows[0]
     assert relational_row.kind == "RELATIONAL"
     assert relational_row.predicted_verdict == "GROUNDED"
-    assert relational_row.t1_verbatim is False
+    assert relational_row.t1_verbatim is True
     assert relational_row.t2_f1 < min(_TAUS[1:])  # below 0.65 and 0.90
     assert relational_row.tier_sensitive is False
 

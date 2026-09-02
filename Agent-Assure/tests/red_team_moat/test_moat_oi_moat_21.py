@@ -96,12 +96,24 @@ _B_ARMS = [
 ]
 
 
+@pytest.mark.xfail(
+    strict=True,
+    reason="ADR-006 (2026-09-02) demoted T2, so a verb-synonym paraphrase is "
+    "no longer grounded — the measured Error-A price of closing OI-MOAT-21. "
+    "This is NOT a regression and NOT a bug: it is the cost, recorded per "
+    "instance so it stays countable instead of becoming folklore. These five "
+    "and the B-arms below are the same one-token delta, and no LEXICAL rule "
+    "separates them (proven: identical t2_f1, 5/5 pairs). Recovering them "
+    "needs a tier that reads meaning — T3/NLI, ADR-004. When these XPASS, T3 "
+    "has landed and is working: remove the marker.",
+)
 @pytest.mark.parametrize("draft", _A_ARMS)
 def test_verb_synonym_claim_must_still_ground(tmp_path: Path, draft: str) -> None:
-    """Error-A guard: substituting a verb for a synonym keeps the claim TRUE.
+    """The Error-A ledger: substituting a verb for a synonym keeps the claim TRUE.
 
-    A fix for the B-arms that also rejects these has not separated true from
-    false — it has stopped grounding paraphrase, which is T2's only purpose.
+    Kept as a strict xfail rather than deleted. A false alarm that is deleted
+    from the suite stops being a number anyone can quote; one that xfails is
+    counted in every run.
     """
     report = _gate(tmp_path, draft)
     assert report["gate"] == "PASS", (
@@ -112,15 +124,6 @@ def test_verb_synonym_claim_must_still_ground(tmp_path: Path, draft: str) -> Non
     )
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="OI-MOAT-21 (OPEN, escalated to Sai): a one-token ARGUMENT "
-    "substitution is certified GROUNDED. Its t2_f1 is IDENTICAL to the "
-    "verb-synonym arm of the same pair, so no lex_tau separates them. The fix "
-    "moves the Error-A/Error-B trade-off and retires lex_tau, so it is "
-    "Escalation #1 and #3, not an agent's call. When these XPASS, a fix has "
-    "landed: remove the marker and re-run the sweep.",
-)
 @pytest.mark.parametrize("draft,swapped", _B_ARMS)
 def test_argument_swap_must_not_ground(
     tmp_path: Path, draft: str, swapped: str

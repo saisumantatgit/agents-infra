@@ -29,7 +29,7 @@ AA-MOAT-001→OI-MOAT-01 … AA-MOAT-007→OI-MOAT-07; AA-MOAT-R2-001/-002/-003�
 | OI-CAL-01 | DECISION-GAP | FIXED 2026-08-30 | — |
 | OI-ENV-01 | HYGIENE | FIXED 2026-08-30 | `tests/conftest.py` guard |
 | OI-DEC-01 | DECISION-GAP | FIXED 2026-09-02 (ratified by Sai) | `tests/test_citation_propagation.py` (8) |
-| OI-T2-01 | HYGIENE | OPEN (Error-A; found by honest-draft sweep) | — |
+| OI-T2-01 | HYGIENE | **FIXED 2026-09-02 (exact-containment T1, ADR-006)** | `honest_drafts::test_short_verbatim_quotation_should_ground` |
 | OI-CAL-02 | INVARIANT | FIXED 2026-07-14 | `tests/test_labeling_overwrite_guard.py` |
 | OI-CAL-03 | INVARIANT | FIXED 2026-07-14 | `tests/test_gold_labels_separation.py` |
 | OI-MOAT-11 | INVARIANT | FIXED 2026-08-30 | `test_moat_red_team_r3.py::test_short_verbless_fragment_must_not_escape_denominator` |
@@ -44,7 +44,7 @@ AA-MOAT-001→OI-MOAT-01 … AA-MOAT-007→OI-MOAT-07; AA-MOAT-R2-001/-002/-003�
 | OI-MOAT-22 | INVARIANT | FIXED 2026-08-30 | `test_moat_red_team_r5.py::test_cross_entity_attribution_must_not_ground_via_t2` |
 | OI-MOAT-23 | INVARIANT | FIXED 2026-08-30 | `test_moat_red_team_r5.py::test_two_word_absence_subject_must_not_self_certify` |
 | OI-MOAT-24 | INVARIANT | FIXED 2026-08-30 | `test_moat_red_team_r5.py::test_punctuated_header_assertion_must_not_escape` |
-| **OI-MOAT-21** | **INVARIANT** | **OPEN (escalated: T2 soundness)** | `test_moat_red_team_r5.py::test_reordered_full_vocabulary_recitation_must_not_ground` (strict xfail) |
+| OI-MOAT-21 | INVARIANT | **FIXED 2026-09-02 (ADR-006: T2 demoted)** | `test_moat_oi_moat_21.py::test_argument_swap_must_not_ground` (5) + `test_moat_red_team_r5.py::test_reordered_full_vocabulary_recitation_must_not_ground` |
 | **OI-MOAT-20** | **INVARIANT** | **OPEN** | `test_moat_red_team_r4.py::test_verb_final_header_must_not_escape_denominator` (strict xfail) |
 | OI-NUM-02 | HYGIENE | FIXED 2026-08-30 | `tests/test_numeric.py::test_sentence_final_source_number_still_grounds` |
 
