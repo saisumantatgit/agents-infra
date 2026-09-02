@@ -26,7 +26,18 @@ Copied from the task brief + CLAUDE.md so every executor sees it before touching
 1. **Error-B (a fabrication / unsupported claim certified PASS) is UNRECOVERABLE.**
    Error-A (false alarm on a real claim) is recoverable. No change may reduce
    Error-A by raising Error-B. T3 exists **only** to cut Error-A (paraphrase
-   false-flags); it may never create an Error-B.
+   false-flags).
+
+   **CORRECTED 2026-09-02:** this clause used to end *"it may never create an
+   Error-B."* That is a RATE promise written in structural grammar, and it is
+   not one T3 can keep. A model that decides entailment will sometimes decide
+   wrongly, and every wrong entailment on a false claim is an Error-B. The
+   empirical proof already exists: T2 was a paraphrase tier feeding this exact
+   `UNGROUNDED → GROUNDED` edge, and it produced q46 — "mapping division" for
+   "logistics division", certified GROUNDED. The honest requirement is
+   **measured and bounded**, not zero: T3 must not raise held-out Error-B above
+   the value in force when it lands (CR-003: 0.074), and the calibration that
+   demonstrates this is a merge gate, not a follow-up.
 2. **The verdict is a mechanical fact about the store.** Verdict taxonomy is
    **CLOSED** — T3 invents no verdict. Its *only* permitted effect is flipping a
    single claim `UNGROUNDED → GROUNDED` when entailment ≥ `nli_tau`. Every other
@@ -56,11 +67,23 @@ the grounding path" the way a generative judge is**, and the plan must encode
   verdict stays a *reproducible mechanical fact*, which is the property calibration
   (LOO held-out) depends on. A nondeterministic tier would break the moat even if
   local.
-- **It can never CREATE a PASS.** Its output feeds exactly one branch:
-  `UNGROUNDED → GROUNDED` under `nli_tau`. It sits *after* citation resolution, the
-  verbatim filter, and the numeric gate — so it structurally cannot touch
-  `UNVERIFIED_CITATION`, `UNVERIFIED_NUMBER`, `UNGROUNDABLE`, `UNCITED`, or any
-  relational/absence verdict.
+- **It creates PASSes, and that is its whole function — CORRECTED 2026-09-02.**
+  This bullet previously read *"It can never CREATE a PASS."* **That was false.**
+  T3's one permitted effect is `UNGROUNDED → GROUNDED`; `UNGROUNDED` is a
+  violation-class verdict, and ADR-005 makes PASS mean *empty retained
+  appendix*. Flip the last `UNGROUNDED` and the appendix empties and the gate
+  returns PASS. Creating passes is not a side effect of T3 — it is the only
+  thing T3 does, and the entire reason it is worth building.
+
+  What is true, and what the bullet was reaching for: T3's reach is
+  **structurally bounded**. It sits *after* citation resolution, the verbatim
+  filter and the numeric gate, so it cannot touch `UNVERIFIED_CITATION`,
+  `UNVERIFIED_NUMBER`, `UNGROUNDABLE`, `UNCITED`, or any relational/absence
+  verdict. It can lift exactly one verdict, from exactly one starting state.
+  That is a narrow blast radius — it is not an inability to create a PASS, and
+  the difference is the whole safety argument. **Do not restore the old
+  wording**; a tier justified by a guarantee it does not have is a tier nobody
+  has actually reviewed.
 
 **Default posture: the tier ships DEFAULT-OFF.** `ground()`'s pure default
 (`model=None`) is byte-identical to today's behaviour — the "zero-model" moat holds
