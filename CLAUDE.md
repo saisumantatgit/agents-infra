@@ -45,7 +45,7 @@ Run from `Agent-Assure/` (env is `uv`; `install.sh` provisions runtime `.venv`).
 ```bash
 bash install.sh                      # provision .venv (Python >=3.11 + runtime deps)
 uv sync                              # provisions runtime deps AND pytest (dev group)
-uv run pytest                        # full suite — 472 passed + 2 skipped + 9 xfailed
+uv run pytest                        # full suite — 478 passed + 2 skipped + 9 xfailed
                                      #   (2026-09-02; the count moves with every
                                      #   red-team round, so trust the RUN, not this
                                      #   number). The 9 xfails are deliberately-open
@@ -86,8 +86,9 @@ uv run python -m calibration.run_calibration   # sweep + LOO + emit CR (module f
   rather than silently no-op'ing. T2 was demoted because a true and a false
   claim can be the same one-token delta and score an identical `t2_f1` (5/5
   matched pairs), and because a bag of words has no order (a false reordering
-  scored 1.000). **Current rates: Error-A=0.320 / Error-B=0.074, n=52 gold
-  (CR-003)** — held-out BY CONSTRUCTION, since with zero fitted parameters the
+  scored 1.000). **Current rates: Error-A=0.320 / Error-B=0.000, n=52 gold
+  (CR-004)** — 'zero' means no KNOWN violation escapes; the 95% upper bound
+  on 0/27 is ~10.5%, so never quote it as zero — held-out BY CONSTRUCTION, since with zero fitted parameters the
   in-sample bias LOO existed to remove does not arise. Supersedes CR-002
   (0.76, A=0.200/B=0.111); Error-B monotonicity holds. The 0.320 is real: honest
   paraphrase now reads UNGROUNDED, counted as strict xfails, recoverable only by
@@ -155,7 +156,8 @@ uv run python -m calibration.run_calibration   # sweep + LOO + emit CR (module f
 | `Agent-Assure/calibration/run_calibration.py` | Bootstrap sweep entry (legacy `labeling.csv`, n=12, inline labels — frozen, CR-001 depends on it) |
 | `Agent-Assure/calibration/labeling-v2.csv` | **Scaffold** — DERIVED (claim, evidence, **source_type**, candidate, rationale). No human column; regenerate freely |
 | `Agent-Assure/calibration/labels-v2.csv` | **Labels** — AUTHORED. **RATIFIED GOLD 2026-09-02** (52 rows, Sai). No generator writes it |
-| `Agent-Assure/calibration/CR-003-t2-demotion.md` | **Current CR**: T2 demoted, lex_tau RETIRED, n=52 GOLD, A=0.320 B=0.074 — deployed 2026-09-02 |
+| `Agent-Assure/calibration/CR-004-absence-scope.md` | **Current CR**: absence SCOPE rule, A=0.320 B=0.000 — deployed 2026-09-03 |
+| `Agent-Assure/calibration/CR-003-t2-demotion.md` | T2 demoted, lex_tau RETIRED (A=0.320 B=0.074) |
 | `docs/decisions/ADR-006-demote-t2.md` | Why T2 cannot be sufficient, why the coverage repair was rejected, what quote-mining costs |
 | `Agent-Assure/calibration/CR-002-gold-lex-tau.md` | Superseded by CR-003 (lex_tau=0.76, A=0.200 B=0.111) |
 | `Agent-Assure/calibration/CR-001-bootstrap-lex-tau.md` | Superseded by CR-002 (n=12 bootstrap; kept for the delta column) |
@@ -185,7 +187,7 @@ uv run python -m calibration.run_calibration   # sweep + LOO + emit CR (module f
 3. **Trading Error-B for Error-A** while tuning. → Minimize Error-A subject to
    Error-B ≤ the current held-out value; violations rejected regardless of F1.
 4. **Quoting error rates without their provenance.** → Every rate carries
-   "(n=52, single ratifier, CR-003)". The ratifier is the project owner and the
+   "(n=52, single ratifier, CR-004)". The ratifier is the project owner and the
    gold labels differ from the machine candidates on only 4/52 rows — strong,
    but NOT external ground truth. A second blind labeller is the open step.
 5. **Self-labeling calibration data.** → Claude-generated labels are `candidate`;
