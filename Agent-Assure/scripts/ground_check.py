@@ -1633,6 +1633,72 @@ def _stem(word: str) -> str:
     return word
 
 
+# Prepositions that introduce the DOMAIN an absence is asserted over, as opposed
+# to ones that introduce an argument of the subject. "no antidote FOR the toxin"
+# names what the antidote is for (subject); "no antidote ... IN current
+# guidelines" names where the looking happened (scope). Only the latter set is
+# used, deliberately: "of" and "for" attach to the subject and treating them as
+# scope would fire this rule on ordinary noun phrases.
+_ABSENCE_SCOPE_PREPS: frozenset[str] = frozenset({
+    "in", "within", "across", "throughout", "among", "amongst", "under",
+    "outside", "beyond",
+})
+
+# Quantifiers and deictics that carry no searchable content. "any regulated
+# market" is searchable as *regulated market*; "any" is not something a query
+# can be expected to contain, and requiring it would make the rule unsatisfiable.
+_ABSENCE_SCOPE_GENERIC: frozenset[str] = frozenset({
+    "any", "all", "every", "each", "some", "no", "other", "current", "such",
+    "these", "those", "this", "that", "its", "their", "our", "known", "given",
+})
+
+
+def _absence_scope_terms(text: str) -> set[str]:
+    """Return the stemmed content terms of the claim's SCOPE phrase, if any.
+
+    The scope is the trailing prepositional phrase headed by one of
+    `_ABSENCE_SCOPE_PREPS` — the domain the absence is asserted over. The LAST
+    such preposition wins, because the scope is what the sentence closes on:
+    "no mention of battery defects IN the X200 manual" scopes to the manual.
+
+    An empty result means the claim asserts no explicit scope, and the caller
+    must then leave the query rule exactly as it was. That is the fail-SAFE
+    direction for this particular check: an unscoped absence is not thereby
+    suspicious, and the corpus's only gold-GROUNDED absence ("...affecting the
+    X200 drone") is unscoped by this definition — `affecting` is a subject
+    modifier, not a domain.
+
+    Pure function.
+    """
+    tokens = _tokenize(text)
+    last = -1
+    for i, tok in enumerate(tokens):
+        if tok in _ABSENCE_SCOPE_PREPS:
+            last = i
+    if last == -1:
+        return set()
+    tail = tokens[last + 1:]
+    return {
+        _stem(w) for w in _content_words(tail)
+        if w not in _ABSENCE_SCOPE_GENERIC
+    }
+
+
+def _query_covers_scope(query: str, scope_terms: set[str]) -> bool:
+    """Return True iff *query* addresses the claim's scope.
+
+    No scope asserted → vacuously True (the rule is off). Otherwise the query
+    must carry at least one scope term, stem-matched for parity with the rest
+    of this path.
+
+    Pure function.
+    """
+    if not scope_terms:
+        return True
+    query_stems = {_stem(w) for w in _re.findall(r"\w+", _nfkc(query).casefold())}
+    return bool(scope_terms & query_stems)
+
+
 def check_absence(
     claim: Claim,
     queries: list[str],
@@ -1750,6 +1816,30 @@ def check_absence(
         if q_norm and q_norm not in seen:
             seen.add(q_norm)
             distinct.append(q_norm)
+
+    # OI-ABS-01 (2026-09-03): a query counts toward the two-search minimum ONLY
+    # if it also addresses the claim's SCOPE — the domain the absence is
+    # asserted over.
+    #
+    # Until now this path checked only the negated SUBJECT, so a writer could
+    # search narrowly and assert broadly and be certified: "no recall of the
+    # Zentara inhaler IN ANY REGULATED MARKET" was ABSENCE_SUPPORTED by two
+    # queries carrying "zentara" and "recall", one of them explicitly the FDA —
+    # a single jurisdiction standing in for all of them. Those two rows (q14,
+    # q37) were the entire remaining Error-B in the corpus after ADR-006.
+    #
+    # The principle: to establish that something is absent from a domain you
+    # must have looked in that domain. A search outside the claimed scope is
+    # not weak evidence for the claim, it is NO evidence, so it must not count
+    # toward the minimum rather than merely counting for less.
+    #
+    # Fail-closed: this can only remove queries from the count, never add them,
+    # so no absence can move TOWARD ABSENCE_SUPPORTED because of it. When the
+    # claim asserts no scope, _absence_scope_terms returns empty and every
+    # query passes — the rule is off, and the corpus's one gold-GROUNDED
+    # absence stays supported.
+    scope_terms = _absence_scope_terms(_nfkc(claim.text))
+    distinct = [q for q in distinct if _query_covers_scope(q, scope_terms)]
 
     if strong:
         match_count = sum(

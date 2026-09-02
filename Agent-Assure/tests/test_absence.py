@@ -281,14 +281,40 @@ def test_specific_entity_free_subject_needs_corroborating_word():
     assert check_absence(claim, queries) == Verdict.UNVERIFIED_ABSENCE
 
 
-def test_specific_subject_supported_when_corroborated():
-    """Error-A guard (corpus q37): a genuinely targeted absence still passes —
-    'no antidote approved for the toxin' backed by two antidote+toxin searches.
-    Also proves plural stemming ('guidelines' vs query 'guideline')."""
+def test_scoped_absence_refused_when_scope_undersearched():
+    """CORRECTED 2026-09-03. This test asserted ABSENCE_SUPPORTED and called
+    itself an Error-A guard — while its fixture is corpus row q37, which Sai
+    gold-labeled **violation**. It had been green for weeks asserting the
+    opposite of a ratified human judgment, and its name is why nobody looked.
+
+    The claim scopes to "in current guidelines". Only ONE of the two queries
+    addresses guidelines; the other is a literature review, a different corpus.
+    Two searches are required IN the claimed scope, and there was one
+    (OI-ABS-01).
+
+    A test named for a property must assert that property (INS-005). This one
+    was named for Error-A and was in fact protecting an Error-B."""
     claim = absence_claim(
         "There is no antidote approved for the toxin in current guidelines."
     )
     queries = ["toxin antidote guideline search", "antidote literature review toxin"]
+    assert check_absence(claim, queries) == Verdict.UNVERIFIED_ABSENCE
+
+
+def test_scoped_absence_supported_when_scope_searched_twice():
+    """The Error-A guard the test above was supposed to be, done properly.
+
+    Same claim; both queries now address the scope. It must still pass, or the
+    scope rule is a blanket refusal of scoped absences rather than a check.
+    Also proves plural stemming ('guidelines' in the claim vs 'guideline' in
+    the queries), which was the other property the old test carried."""
+    claim = absence_claim(
+        "There is no antidote approved for the toxin in current guidelines."
+    )
+    queries = [
+        "toxin antidote guideline search",
+        "clinical guideline antidote toxin review",
+    ]
     assert check_absence(claim, queries) == Verdict.ABSENCE_SUPPORTED
 
 
