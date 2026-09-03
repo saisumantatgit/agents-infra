@@ -10,6 +10,32 @@ Read in this order: this file → `docs/logbook/2026-09-02-to-03-t2-demotion-and
 
 ---
 
+# START HERE — the one test that unblocks the rest
+
+**The inter-rater check FAILED on 2026-09-03** (κ = 0.09 between two independent
+readers — chance). We cannot currently tell whether the readers were wrong or the
+**corpus is ambiguous**, and that fork decides everything downstream.
+
+**The cheapest decisive test is intra-rater, and it needs only Sai: re-label 20 of
+his own rows, blind and shuffled, ~20 minutes.**
+
+| outcome | meaning | next |
+|---|---|---|
+| Sai agrees with himself, κ > 0.8 | corpus is sound; the problem was reader population | recruit ONE domain-competent reader; Alpha criterion #5 is reachable |
+| Sai does not | the corpus holds genuinely ambiguous items — **no reader population fixes that** | rebuild the corpus with defensible items, or change what the product claims |
+
+Neither outcome wastes the twenty minutes, which is more than the last two
+measurement runs managed. **Do not build T3 before this resolves** — its whole
+justification is buying down an Error-A figure we can no longer defend.
+
+**Claude does regardless, no ruling needed:** fix the two review-page defects
+(deterministic shuffle; change the AI-summary question from *"does this support?"*
+to *"can this be used as proof?"* — the second is a real instruction bug that
+would corrupt every future round), and run **red-team round 7**, which is owed
+because D-15…D-20 landed after round 6.
+
+---
+
 ## The gate, in one paragraph
 
 A claim is GROUNDED only if **T1** fires: a contiguous verbatim span of ≥8 tokens

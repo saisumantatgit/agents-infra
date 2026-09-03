@@ -17,7 +17,7 @@ Last reconciled: **2026-09-03** (session `d2b27b1f`).
 | J-04 | **OI-T2-01** | **CLOSED 2026-09-02** — exact-containment T1 (whole claim verbatim in a cited source grounds at any length). Was blocking: 31/52 gold claims are under 8 tokens, and the gate's own end-to-end fixture failed. Quote-mining guard red-teamed (OI-QM-01). | done |
 | J-15 | **OI-DEC-02 — rhetorical questions and clause fragments are scored as FACTUAL claims** | Found on real prose by the base-rate run: `classify('Is he wrong?')` -> FACTUAL, scored, flagged UNGROUNDED. On 10 chapters this was the ONLY observed false-alarm source — zero were paraphrase. But exempting questions moves them OUT of the denominator, which is PASS-enabling and is exactly the smuggling hole rounds 3-4 closed: `classify("Isn't Redis capable of 128000 operations per second [S1]?")` -> NUMERIC, scored today. Escalation #1. | ~0.3M |
 | J-05 | **OI-MOAT-20 — verb-final header escapes scoring** | Deterministic closure needs either Error-A on every multi-word heading or a POS tagger — the latter is exactly what J-02 governs. | ~0.1M |
-| J-06 | **Second blind labeller** on the 52 | Only Sai can hand the review page to a person. Converts CR-002 from single-ratifier to independent. **0 tokens.** | free |
+| J-06 | **Inter-rater reliability** | **ATTEMPTED AND FAILED 2026-09-03** — κ 0.54 / 0.16 vs Sai, **0.09 between the two readers**. Two page defects were Claude's (label-sorted item order leaked the answer; the AI-summary question asked about content when the rule is provenance). **Next step is INTRA-rater, not another reader:** Sai re-labels 20 of his own rows blind, ~20 min. That fork — wrong readers vs ambiguous corpus — decides whether the 52-row corpus is salvageable. `docs/reports/INTER-RATER-2026-09-03.md` | free |
 | J-07 | **Ratify the 2026-08-30 register** (D-01…D-14) | 14 autonomous calls await ratify-or-reverse; each carries its undo. Includes the disclosed `install.sh` side effect. | free |
 | J-08 | **`docs/consulting/` visibility coupling** | Committed to the HQ repo on the stated assumption that it stays PRIVATE. It names a client and records that they have no signed paper. One settings toggle, not a property a file can enforce. | free |
 
@@ -26,7 +26,8 @@ Last reconciled: **2026-09-03** (session `d2b27b1f`).
 | id | Thread | Waits on |
 |---|---|---|
 | J-09 | Red-team round 6 against the CR-002 deployment + any J-01 rework | J-01 |
-| J-10 | Ingest the second labeller's set: agreement stats, adjudicate disagreements, amend CR-002's independence caveat | J-06 |
+| J-10 | ~~Ingest the second labeller's set~~ **DONE 2026-09-03** — stats computed, CR-004 and RESUME-HERE amended with the κ figures. Raw sets in `calibration/second-reader/`; nothing written to `labels-v2.csv`. | — |
+| J-16 | Fix the review page (deterministic shuffle + provenance question) and run red-team round 7 | nothing — Claude, no ruling needed |
 | J-11 | OI-BUILD-01 — two reference worktrees still cut from the wrong base; rebase or discard | nothing (low value) |
 | J-12 | Batch ingestion is built but **never exercised on real data** — cpc-book has sent no batch yet | cpc-book |
 
