@@ -93,3 +93,41 @@ conflicts. Re-evaluate if a second lane ever opens.
 
 `RESUME-HERE.md` and `docs/jobs/REGISTER.md`. Five items are Sai's; the second
 blind labeller is the one that matters.
+
+---
+
+## Addendum, same day — the inter-rater test ran, and FAILED
+
+Two readers (Pravallika 52/52, Nandu 50/52) labelled the corpus independently.
+
+| pair | κ |
+|---|---|
+| Pravallika vs Sai | +0.543 |
+| Nandu vs Sai | +0.160 |
+| **Pravallika vs Nandu** | **+0.092 — chance** |
+
+**Two defects in my review page, both found during the analysis and both mine:**
+the item order leaked the answer (`labeling-v2.csv` is sorted by label — 22
+grounded, then violations), which *inflates* every figure above; and the
+AI-summary question asked *"does this summary support the statement?"* when the
+gold rule is about **provenance**, not content — both readers marked both such
+rows the same wrong way, which is systematic, not noise.
+
+I initially read Pravallika's 21-yes opening run as carelessness. It was
+**correct**, and tracked the real structure of a file I ordered badly.
+
+**What this does and does not touch.** The gate's design findings — matched
+pairs, reordering, absence scope, decomposition — were established by
+construction and direct trace, not by labels, and stand. Every quoted RATE now
+carries the κ figures. Alpha criterion #5 moves from *not attempted* to
+**FAILED**, which is worse and is the honest state.
+
+**The finding that outranks the statistics:** if two capable adults agree only at
+chance on *"does this source support this claim"*, the gate is automating a
+judgement humans do not reliably share. That is either the wrong reader
+population or a genuinely ambiguous corpus, and the data cannot distinguish them.
+The next test can: one lay reader plus one domain-competent reader.
+
+Full analysis: `Agent-Assure/docs/reports/INTER-RATER-2026-09-03.md`.
+Raw submissions: `Agent-Assure/calibration/second-reader/` — **not** written to
+`labels-v2.csv`; they are not gold.

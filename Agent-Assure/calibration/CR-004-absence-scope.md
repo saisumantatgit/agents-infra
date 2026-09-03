@@ -61,8 +61,13 @@ rounds 3–5 found 65 wrongful PASSes across 12 mechanisms, none of them corpus
 rows. The honest statement is *"no remaining Error-B among the 52 ratified
 rows"*, and the next round will very likely add some.
 
-Quote as *(n=52, single ratifier, CR-004)*. Second blind labeller still open
-(J-06).
+Quote as *(n=52, single ratifier, CR-004)* **plus the inter-rater result**: two
+independent readers (2026-09-03) reproduced these labels at Cohen's κ = **0.54**
+and **0.16**, and agreed with **each other** at κ = **0.09** — chance. The
+independence check FAILED. Only 22 of 50 rows are unanimous across all three
+people, and on that core Error-A is *worse* (0.417); Error-B holds at 0.000 on
+every subset. See `docs/reports/INTER-RATER-2026-09-03.md` — including two
+defects in the review page that were mine, and which inflate the figures above.
 
 ## Scope of the rule, stated so it can be attacked
 

@@ -24,7 +24,11 @@ appendix, not a score (ADR-005).
 Never quote the zero bare — on 0 misses of 27, the 95% upper bound is **~10.5%**,
 and rounds 3–5 found 65 wrongful PASSes in classes the corpus does not contain.
 Say *"no remaining Error-B among the 52 ratified rows"*, and attach
-*(n=52, single ratifier, CR-004)*.
+*(n=52, single ratifier, CR-004)*. **Since 2026-09-03 also attach the inter-rater
+result:** two independent readers reproduced those labels at κ 0.54 and 0.16 and
+agreed with each other at κ **0.09**. The labels are NOT established as
+reproducible. The gate's DESIGN findings are unaffected (established by
+construction, not by labels); every quoted RATE is.
 
 ---
 
@@ -76,7 +80,7 @@ stated honestly.* Eight criteria; **four met.**
 | 2 | Thresholds are data, with a current CR, and no fitted parameter is undocumented | ✅ CR-004; grounding path has **zero** fitted parameters | — |
 | 3 | Installs and runs standalone from a clean clone, zero cross-plugin imports | ✅ `install.sh`, `uv sync` | — |
 | 4 | Every open moat item is either CLOSED or accepted **in writing** by its owner | ⚠️ 9 strict xfails are recorded and accepted; **J-15 and J-05 are neither** | Sai |
-| 5 | Error rates from **≥2 independent labellers**, not the project owner alone | ❌ single ratifier | **Sai — free, 40 min** |
+| 5 | Error rates from **≥2 independent labellers**, not the project owner alone | ❌ **FAILED 2026-09-03**, not merely unattempted — two readers reproduced the labels at κ 0.54 / 0.16 and agreed with each other at κ **0.09**. `docs/reports/INTER-RATER-2026-09-03.md` | Sai + Claude |
 | 6 | Error-A either tolerable for the intended user, or measured on **real** drafts | ❌ unmeasured; two attempts failed (`docs/reports/BASE-RATE-*`) | — |
 | 7 | One adversarial round whose every finding is closed or accepted, run **after** the last moat change | ❌ round 7 not run — D-15…D-20 landed after round 6 | Claude |
 | 8 | AAR-004 written and `v0.9.0-alpha` tagged | ❌ | Claude |
@@ -92,7 +96,7 @@ Error-A honestly.
 
 | | Item | Cost |
 |---|---|---|
-| 1 | **Second blind labeller.** Page rebuilt (the original was deleted): https://claude.ai/code/artifact/ebff57c8-cc42-4396-8059-d1375672dee1 — share it, send me the block. Two readers is better than one; they must not compare notes. | free |
+| 1 | **Re-run the inter-rater test.** The first attempt FAILED (κ 0.09 between readers). Two page defects were mine and are fixable: item order leaked the answer (corpus is sorted by label), and the AI-summary question asked about content when the rule is about provenance. **Decide the population**: one lay reader + one domain-competent reader is the test that distinguishes "wrong readers" from "ambiguous corpus". | ~0.2M + 2×40 min |
 | 2 | **J-15 / OI-DEC-02** — score rhetorical questions or not? Exempting them removes them from the denominator, and `Isn't Redis capable of 128000 ops/sec [S1]?` is scored today. | ~0.3M |
 | 3 | **D-07** — `install.sh` now provisions pytest for END USERS. Keep, or `uv sync --no-dev`? | free |
 | 4 | **D-01** — park-list reading (named items live in iVal 2.0; general clause applied). | free |
