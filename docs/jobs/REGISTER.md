@@ -2,7 +2,8 @@
 
 Per ADR-045: one entry per open thread, **every entry with a named owner**.
 `owner: Sai` entries carry the reason they cannot move without him.
-Last reconciled: **2026-09-02** (session `d2b27b1f`, α2 close).
+Last reconciled: **2026-09-03** (session `d2b27b1f`).
+**Demo and Alpha readiness are DEFINED as criteria in `RESUME-HERE.md` — read that first.**
 
 ---
 
@@ -38,7 +39,13 @@ Last reconciled: **2026-09-02** (session `d2b27b1f`, α2 close).
 
 ---
 
-## Closed this session (do NOT redo)
+## Closed 2026-09-02/03 (do NOT redo)
+
+OI-MOAT-21 (T2 demoted, `lex_tau` retired — ADR-006/CR-003) · OI-T2-01 (exact-containment T1) · OI-DEC-01 (citation propagation, both paths) · OI-ABS-01 (absence scope — Error-B 0.074→0.000, CR-004) · OI-QM-01 (quote-mining guard) · OI-DEC-03…06 (HTML comments, splitter punctuation, zero-content NON_CLAIM, underscore tokenizing — real-prose artifacts 31.3%→3.2%). Red-team round 6 (matched pairs). Second-reader page rebuilt.
+
+**Round 7 is OWED:** D-15…D-20 landed AFTER round 6, so the current tree has never been attacked. Alpha criterion #7.
+
+## Closed in the α2 session (do NOT redo)
 
 α2 — 52 gold labels ratified, CR-002 emitted (lex_tau 0.76, held-out
 Error-A 0.200 / Error-B 0.111, n=52), 0.76 deployed measurement-neutrally.
@@ -46,3 +53,12 @@ Error-A 0.200 / Error-B 0.111, n=52), 0.76 deployed measurement-neutrally.
 exposed. Red-team rounds 3, 4 and 5 (65 wrongful PASSes found, 11 of 12
 mechanisms closed). Error-A harness built. OI-CAL-01, OI-ENV-01, OI-NUM-02,
 OI-MOAT-03/-05/-07/-11…-19/-22/-23/-24 all closed.
+
+## Environment note (2026-09-03 close)
+
+`.claude/worktrees/agent-a60c96d40d924ec2c` was **left in place**: it is LOCKED by
+a live `claude` process (pid 55364, 26h uptime), and the dead-run rule says prove
+death before acting. Nothing is at risk — its artifacts (base-rate v1 report,
+probe script, results JSON) were copied into `Agent-Assure/docs/reports/` before
+the close. Remove with `git worktree remove --force` once that process exits.
+The two `wf_*` worktrees belong to another session and were not touched.

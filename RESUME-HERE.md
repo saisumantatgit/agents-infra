@@ -1,81 +1,124 @@
-# RESUME HERE — Agent-Assure Calibration Workspace
+# RESUME HERE — Agent-Assure
 
-**Last session:** 2026-08-30 → 09-02 (autonomous close-out; **α2 CLOSED — gold labels ratified, CR-002 emitted**).
-**Authoritative handoff:** `docs/logbook/2026-08-30-autonomous-closeout.md`, then `docs/decisions/RATIFICATION-REGISTER-2026-08-30.md` (every autonomous call + its undo). This file is the quick-start pointer, not the record.
-**Branch:** `agent-assure-calibration-run` — **pushed and in sync.** Suite: 455 passed, 2 skipped, 4 xfailed.
-**The 10M plan:** `docs/plans/BUDGET-PLAN-10M-2026-09-02.md`. **Open threads + owners:** `docs/jobs/REGISTER.md`.
+**Last session:** `d2b27b1f`, closed 2026-09-03.
+**Branch:** `agent-assure-calibration-run` · clean, pushed.
+**Suite:** `cd Agent-Assure && uv run pytest -q` → **489 passed, 2 skipped, 9 xfailed.**
+Trust the RUN, not this number.
 
-## What changed on 2026-08-30
+Read in this order: this file → `docs/logbook/2026-09-02-to-03-t2-demotion-and-real-prose.md`
+→ `docs/jobs/REGISTER.md`. Memory files are supplementary and go stale fastest.
 
-Every item parked behind "Sai must rule" was re-examined against one question:
-*does this need a human ruling, or was it merely unresolved?* The separator
-turned out to be **reversibility, not importance** — a fail-closed change cannot
-manufacture the unrecoverable error. Three July deferrals were mine; the rest
-stayed yours. Then the red team ran three times and reshaped the day.
+---
 
-| Was | Now |
-|---|---|
-| OI-MOAT-03 / -05 / -07 (open since July) | **FIXED** (D-03/-04/-05) |
-| OI-CAL-01 (gate ran 0.65 while docs said 0.71) | **RESOLVED** — 0.71 deployed + `--lex-tau` (D-06) |
-| OI-ENV-01, OI-NUM-02 | **FIXED** (D-07, D-12) |
-| AA-MOAT-* IDs | **renamed** OI-MOAT-{NN} per HQ ADR-039 (D-08) |
-| cpc-book ask (open since 07-19) | **answered** + batch ingestion built (D-09) |
-| Red-team rounds **3, 4, 5** | **65 wrongful PASSes found**; OI-MOAT-11…19, 22/23/24 closed |
-| Error-A never measured | `tests/honest_drafts/` harness added (D-13) |
-| **Gold labels — the long pole since 07-08** | **RATIFIED 2026-09-02.** 52 gold, 25 grounded / 27 violation |
-| **CR-002** | **lex_tau 0.76, held-out Error-A 0.200 / Error-B 0.111 (n=52).** Deployed. Supersedes CR-001 |
-| Corpus defect (source type hidden from labellers) | `source_type` scaffold column added |
+## The gate, in one paragraph
 
-## Orientation (5 minutes)
+A claim is GROUNDED only if **T1** fires: a contiguous verbatim span of ≥8 tokens
+from the claim appears in a cited source, **or** the whole claim is a contiguous
+span of a cited source (exact containment, any length, refused when the span sits
+under an attribution or denial). **T2 was demoted 2026-09-02 and decides nothing**
+(ADR-006); `lex_tau` is retired and `--lex-tau` raises. Absence claims need two
+searches that address the claim's own **scope**. PASS means an EMPTY retained
+appendix, not a score (ADR-005).
 
-1. `cd Agent-Assure && uv sync && uv run pytest` → **453 passed + 1 skipped + 4 xfailed**
-   (the count moves every red-team round — trust the run). The 4 xfails are
-   deliberately-open items: OI-MOAT-20, OI-MOAT-21, and OI-T2-01 (two cases).
-   `--extra dev` is no longer needed (OI-ENV-01 fixed).
-2. `CLAUDE.md` (root) — the operating manual. **`lex_tau` now RUNS at 0.71.**
-3. `docs/decisions/RATIFICATION-REGISTER-2026-08-30.md` — the 14 autonomous calls.
-4. `Agent-Assure/docs/plans/reports/RED-TEAM-R{3,4,5}-2026-08-30.md` — **read R5's
-   convergence assessment before trusting any of the fixes.**
-5. `ls inbox/pending/` — one P1 item still waits on **you**.
+**Current rates: Error-A 0.320 / Error-B 0.000, n=52 gold (CR-004).**
+Never quote the zero bare — on 0 misses of 27, the 95% upper bound is **~10.5%**,
+and rounds 3–5 found 65 wrongful PASSes in classes the corpus does not contain.
+Say *"no remaining Error-B among the 52 ratified rows"*, and attach
+*(n=52, single ratifier, CR-004)*.
 
-## Waiting on you
+---
 
-| # | Decision | Where | One-line context |
+# DEMO READINESS — defined
+
+Two different things get called "a demo". They have different bars.
+
+## D-1 · Scripted offline demo — **READY**
+
+*You drive, on frozen fixtures, showing the moat.*
+
+| # | Criterion | State |
+|---|---|---|
+| 1 | Runs from a clean checkout with documented commands | ✅ `demo/DEMO-SCRIPT.md` |
+| 2 | Honest draft → PASS; draft citing a fabricated `[S3]` → FAIL | ✅ tested (`-k demo`, 5 tests) |
+| 3 | Deterministic — same verdict every run, every machine | ✅ frozen store, no RNG |
+| 4 | Zero network and zero model calls in the verdict path | ✅ enforced by moat tests |
+| 5 | A non-engineer can follow the script | ✅ |
+
+**Verify before showing:** `cd Agent-Assure && uv run pytest -q -k demo` → 5 passed.
+
+**What it proves:** a fabrication cannot argue its way to a pass, because nothing
+in the verdict path can be persuaded. That is the differentiated half of the
+product and it is true today.
+
+## D-2 · Live demo on a visitor's own document — **NOT READY**
+
+| # | Criterion | State |
+|---|---|---|
+| 1 | False alarms rare enough that a real page is not a third flagged | ❌ **Error-A 0.320** |
+| 2 | Rhetorical questions and prose furniture not scored as claims | ❌ 9.4% of real-prose claims are questions (J-15) |
+| 3 | An interface a visitor can look at | ❌ CLI + a YAML file. Slice 2a unbuilt |
+| 4 | Capture hook works live in the visitor's own session | ⚠️ built and live-validated; never exercised by a stranger |
+
+**Do not attempt D-2.** One flagged sentence in three reads as "broken", not
+"strict", and there is nothing to look at. **Blockers in order: J-15 → Error-A →
+2a front-end.**
+
+---
+
+# ALPHA READINESS — defined
+
+Alpha = *the gate can be handed to a friendly external user with its error rates
+stated honestly.* Eight criteria; **four met.**
+
+| # | Criterion | State | Owner |
 |---|---|---|---|
-| 1 | **Ratify gold labels** (30–45 min) | inbox P1 + `calibration/RATIFICATION-BRIEF-v2.md` | STILL THE LONG POLE. **Edit `labels-v2.csv`.** Nothing this session touched them; all 52 remain `candidate`. |
-| 2 | **Second blind labeller** (0 tokens) | link in the logbook | The ONE step that makes CR-002 independent. You were both ratifier and project owner, and had seen 9 candidates; final labels differ from mine on only 4/52. 40 min of someone else's time. |
-| 3 | **Ratify or reverse the 14 autonomous calls** | the register | Each row carries its undo. Includes a self-disclosed side effect: the pytest change altered what `install.sh` does for END USERS. |
-| 4 | **OI-MOAT-21 — T2 is not sound** | OPEN-ISSUES | **The most consequential open item.** T2 alone suffices for GROUNDED, and T2 is an F1 *ratio* over the claim's own length. Round 5 hit F1=1.000 with a false-order recitation; it PASSes at lex_tau **0.99**. Demoting T2 changes the gate's meaning and invalidates the calibration — Escalation #1+#3. |
-| 5 | **OI-DEC-01** | OPEN-ISSUES | The first PASS-*enabling* fix in the cohort ⇒ yours. |
-| 6 | **OI-T2-01** | OPEN-ISSUES | A **verbatim** short quote reads UNGROUNDED. Pre-existing; found by the new Error-A harness, invisible to red-teaming by construction. |
-| 7 | **OI-MOAT-20** | OPEN-ISSUES | Verb-final header escapes scoring. Closing it deterministically needs a POS tagger ⇒ ADR-004 Q3 territory. |
-| 8 | **ADR-004 / Phase-2b** | `docs/plans/ADR-004-DECISION-PACKAGE.md` | **Read the 2026-08-30 addendum**: T3's case has *inverted*, not shrunk. |
+| 1 | Zero known Error-B on the ratified corpus, each closed class carrying a tripwire | ✅ CR-004; `tests/red_team_moat/` | — |
+| 2 | Thresholds are data, with a current CR, and no fitted parameter is undocumented | ✅ CR-004; grounding path has **zero** fitted parameters | — |
+| 3 | Installs and runs standalone from a clean clone, zero cross-plugin imports | ✅ `install.sh`, `uv sync` | — |
+| 4 | Every open moat item is either CLOSED or accepted **in writing** by its owner | ⚠️ 9 strict xfails are recorded and accepted; **J-15 and J-05 are neither** | Sai |
+| 5 | Error rates from **≥2 independent labellers**, not the project owner alone | ❌ single ratifier | **Sai — free, 40 min** |
+| 6 | Error-A either tolerable for the intended user, or measured on **real** drafts | ❌ unmeasured; two attempts failed (`docs/reports/BASE-RATE-*`) | — |
+| 7 | One adversarial round whose every finding is closed or accepted, run **after** the last moat change | ❌ round 7 not run — D-15…D-20 landed after round 6 | Claude |
+| 8 | AAR-004 written and `v0.9.0-alpha` tagged | ❌ | Claude |
 
-## State snapshot
+**Shortest honest path to Alpha:** #5 (free) → #4 (two rulings) → #7 (~0.4M) →
+#6 or an explicit written acceptance of 0.320 → #8 (~0.4M).
+**T3 is not on this list.** It buys Error-A down; it is not required to *state*
+Error-A honestly.
 
-| Thing | State |
-|---|---|
-| Phase 1 (gate + capture + plugin) | COMPLETE |
-| Demo | READY — re-verified after every fix today (honest PASS 100.0, fabricated FAIL 50.0) |
-| Moat | Rounds 1–5 done. **Each round found holes in the previous round's fixes.** R5 convergence: drafts/mechanism 7.4→10.3→12.5, every R4 fix attacked directly held, but surviving attacks are *more* natural. Verdict: **the process is converging; the T2 design is not.** |
-| Calibration | **CR-002 (n=52 gold) is current**; CR-001 superseded. Batch ingestion built but never exercised on real data (J-12) |
-| α2 / CR-002 | **CLOSED 2026-09-02.** lex_tau 0.76 deployed; CR-002 carries an explicit independence caveat |
-| α5 sign-off | Gated on ratification + **OI-MOAT-21**, which is a live Error-B hole |
+---
 
-## Standing discipline (each learned by being burned)
+## Blocked on Sai — nothing else is
 
-- **Regenerate the corpus and diff it after ANY classify/tiers/score change** —
-  `uv run python -m calibration.build_corpus_v2 --features-only`. It has caught a
-  bad fix in **four** sessions running, including one a 446-test green suite waved through.
-- **Never tune a constant to make one corpus row pass.** Change the rule's meaning.
-- **Re-run the red team after every remediation.** Five rounds; every one found
-  holes in the last, twice within hours.
-- **Never key a defence on a property the author controls** — a token count was
-  walked under, its proper-noun replacement was beaten by the Shift key.
-- **Every "I don't know" must point AWAY from PASS.** `NON_CLAIM`, `None`, and an
-  empty set were all catch-alls pointing toward it.
-- **Fix BOTH branches.** Three of round 5's four findings were one fix applied to
-  one side of a two-branch decision (T1 not T2; query side not contradiction side).
-- **Measure both directions.** Red-teaming cannot find a wrongful FAIL by
-  construction; `tests/honest_drafts/` exists for that half.
-- **Green-on-first-run is not evidence.** Mutation-check new guards.
+| | Item | Cost |
+|---|---|---|
+| 1 | **Second blind labeller.** Page rebuilt (the original was deleted): https://claude.ai/code/artifact/ebff57c8-cc42-4396-8059-d1375672dee1 — share it, send me the block. Two readers is better than one; they must not compare notes. | free |
+| 2 | **J-15 / OI-DEC-02** — score rhetorical questions or not? Exempting them removes them from the denominator, and `Isn't Redis capable of 128000 ops/sec [S1]?` is scored today. | ~0.3M |
+| 3 | **D-07** — `install.sh` now provisions pytest for END USERS. Keep, or `uv sync --no-dev`? | free |
+| 4 | **D-01** — park-list reading (named items live in iVal 2.0; general clause applied). | free |
+| 5 | **Ratify D-15…D-20** — six autonomous fail-closed calls, each with its undo. | free |
+| 6 | **`docs/consulting/` stays private** — it names a client and records that they have no signed paper. | free |
+
+---
+
+## Already done — do NOT redo
+
+α2 · CR-002 → **CR-003** (T2 demoted, `lex_tau` retired) → **CR-004** (absence
+scope). OI-MOAT-21, OI-T2-01, OI-DEC-01, OI-ABS-01, OI-QM-01, OI-DEC-03…06 all
+CLOSED. Red-team rounds 3–6. The Error-A harness, the T2-discrimination batch,
+the quote-mining guard.
+
+**Two things that look undone but are deliberate:**
+- **The paraphrase base rate is unmeasured and two runs failed.** v1's filter
+  discarded the population it was counting; v2 fixed that but only ~4 sentences
+  are genuinely eligible. **Do not quote 10.1%, 1.2% or 14.3%.** A third attempt
+  on this corpus will fail the same way — it needs sampled real drafts.
+- **9 strict xfails are the recorded Error-A price**, not regressions. They
+  XPASS when T3 lands.
+
+## The standing trap
+
+Ask of any new metric: **what could it not have detected?** Three instruments
+were blind this session, each to exactly the case that would have decided the
+question, and each produced a plausible number. The tell was always a
+suspiciously clean result.
