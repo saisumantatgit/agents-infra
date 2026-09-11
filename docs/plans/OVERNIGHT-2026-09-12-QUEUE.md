@@ -32,18 +32,34 @@ register (D-21…) with their undo.
 2026-08-30 session). Commits are local on `agent-assure-calibration-run`.
 Not routed to another session — that would launder the denial. Sai must push or
 grant the permission.
-- [ ] **2. Red-team round 7 — STPA-targeted.** Hazard: a fabrication certified
+- [x] **2. Red-team round 7 — STPA-targeted.** DONE. 3 Opus adversaries, one
+      per control path. ~22 wrongful PASSes over 11 mechanisms; I re-verified
+      every headline finding by hand. 2 FIXED (OI-MOAT-26 NFKC-manufactured
+      comment delimiters — it certified the OPPOSITE of the author's sentence;
+      + a SyntaxWarning). 7 classes TRIPWIRED as strict xfails, deliberately
+      not patched. 2 escalated to Sai with written recommendations. My recorded
+      prediction (path B) was REFUTED and the refutation is the better finding.
+      Report: docs/plans/reports/RED-TEAM-R7-2026-09-12.md
+  ~~old:**2. Red-team round 7**~~ Hazard: a fabrication certified
       PASS. Three NEW PASS-enabling control paths have never been attacked:
       (a) decomposition rewrites the claim text (D-17..D-20),
       (b) citation propagation attaches a citation the author never wrote (OI-DEC-01),
       (c) exact containment grounds a claim whose hedge was stripped upstream.
       Attack those three by name, not by imagination. ~1.5M incl. fixes
-- [ ] **3. Corpus regenerate + byte-diff** after any round-7 fix; adjudicate every
+- [x] **3. Corpus regenerate + byte-diff** DONE as part of D-24: regenerated
+      **BYTE-IDENTICAL**, so CR-004's rates stand and no new CR is due (ADR-025).
+      52 gold rows load, zero stale.
+  ~~old:**3. Corpus regenerate**~~ after any round-7 fix; adjudicate every
       drifted row against its label; CR-005 only if a rate actually moves. ~0.4M
 - [ ] **4. Round-7 re-attack on the fixed tree.** Alpha #7 requires a clean round
       AFTER the last moat change; a round that found and fixed does not satisfy
       it. ~0.5M
-- [ ] **5. J-15 decision brief** — the counts that make Sai's ruling one word. ~0.2M
+- [x] **5. J-15 decision brief** DONE. `docs/reports/J15-BRIEF-2026-09-12.md`.
+      Measured 1,337 real-prose claims: 7.9% are question-form and **0 of them
+      carry a citation** — they are all UNCITED, not UNGROUNDED. The smuggling
+      form that drove the debate occurs ZERO times. Recommendation: no
+      exemption; fix the report's conflation instead.
+  ~~old:**5. J-15 brief**~~ — the counts that make Sai's ruling one word. ~0.2M
 - [ ] **6. Close** — register D-21+, logbook, RESUME-HERE, push. ~0.3M
 
 ## Stop conditions
