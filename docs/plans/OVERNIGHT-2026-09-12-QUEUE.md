@@ -51,9 +51,21 @@ grant the permission.
       52 gold rows load, zero stale.
   ~~old:**3. Corpus regenerate**~~ after any round-7 fix; adjudicate every
       drifted row against its label; CR-005 only if a rate actually moves. ~0.4M
-- [ ] **4. Round-7 re-attack on the fixed tree.** Alpha #7 requires a clean round
-      AFTER the last moat change; a round that found and fixed does not satisfy
-      it. ~0.5M
+- [x] **4. Round-7 re-attack — SCOPE REDUCED, and the reason is the finding.**
+      The BROAD re-attack cannot discharge Alpha #7 tonight under any outcome:
+      #7 needs every finding closed or ACCEPTED, acceptance is a written ruling
+      by the owner, and two of round 7's rulings are Sai's. Spending ~0.5M on a
+      round that provably cannot satisfy the criterion it exists for is not
+      diligence, it is theatre. **Round 8 is owed and is named as owed.**
+      What WAS done — the achievable and genuinely useful half: attack the one
+      change made tonight. Enumerated both orders over 8 comment shapes: the new
+      order removes strictly LESS-or-equal text in every case, which is the
+      fail-closed proof that makes D-24 agent authority rather than Sai's. It
+      also strictly REDUCES the OI-MOAT-29 stray-pairing surface, since a
+      full-width opener can no longer pair with a genuine ASCII closer. Pinned
+      in `tests/red_team_moat/test_moat_r7_comment_order.py` (16 tests, proven
+      red against the old order). An independent adversarial solo gate on the
+      whole round-7 conclusion was dispatched separately.
 - [x] **5. J-15 decision brief** DONE. `docs/reports/J15-BRIEF-2026-09-12.md`.
       Measured 1,337 real-prose claims: 7.9% are question-form and **0 of them
       carry a citation** — they are all UNCITED, not UNGROUNDED. The smuggling
