@@ -1,11 +1,11 @@
 # RESUME HERE — Agent-Assure
 
-**Last session:** `d2b27b1f`, closed 2026-09-03.
+**Last session:** `d2b27b1f`, closed 2026-09-12 (overnight round-7 run).
 **Branch:** `agent-assure-calibration-run` · clean, pushed.
-**Suite:** `cd Agent-Assure && uv run pytest -q` → **489 passed, 2 skipped, 9 xfailed.**
+**Suite:** `cd Agent-Assure && uv run pytest -q` → **510 passed, 2 skipped, 22 xfailed.**
 Trust the RUN, not this number.
 
-Read in this order: this file → `docs/logbook/2026-09-02-to-03-t2-demotion-and-real-prose.md`
+Read in this order: this file → `docs/logbook/2026-09-12-round-7-and-the-intra-rater-instrument.md`
 → `docs/jobs/REGISTER.md`. Memory files are supplementary and go stale fastest.
 
 ---
@@ -18,6 +18,18 @@ readers — chance). We cannot currently tell whether the readers were wrong or 
 
 **The cheapest decisive test is intra-rater, and it needs only Sai: re-label 20 of
 his own rows, blind and shuffled, ~20 minutes.**
+
+**IT IS BUILT AND WAITING:**
+https://claude.ai/code/artifact/170c9801-14fa-4231-9468-1fa2371f5319
+Paste the block it gives you; `Agent-Assure/calibration/intra-rater/score.py`
+returns the branch. Four branches, all dry-run verified.
+
+**The fork has THREE outcomes, not two.** `init_labels.py` seeds every row with
+Claude's `candidate_verdict` and the ratifier corrects it, so on 48 of 52 rows
+gold == candidate — and on those rows "Sai agrees with himself" and "Sai agrees
+with the machine" are the SAME observation. Only 4 rows (q14, q16, q37, q49)
+separate them, so the sample is stratified to contain all four. A plain random
+draw of 20 missed every one of them (p=0.133) and would have measured nothing.
 
 | outcome | meaning | next |
 |---|---|---|
@@ -108,7 +120,7 @@ stated honestly.* Eight criteria; **four met.**
 | 4 | Every open moat item is either CLOSED or accepted **in writing** by its owner | ⚠️ 9 strict xfails are recorded and accepted; **J-15 and J-05 are neither** | Sai |
 | 5 | Error rates from **≥2 independent labellers**, not the project owner alone | ❌ **FAILED 2026-09-03**, not merely unattempted — two readers reproduced the labels at κ 0.54 / 0.16 and agreed with each other at κ **0.09**. `docs/reports/INTER-RATER-2026-09-03.md` | Sai + Claude |
 | 6 | Error-A either tolerable for the intended user, or measured on **real** drafts | ❌ unmeasured; two attempts failed (`docs/reports/BASE-RATE-*`) | — |
-| 7 | One adversarial round whose every finding is closed or accepted, run **after** the last moat change | ❌ round 7 not run — D-15…D-20 landed after round 6 | Claude |
+| 7 | One adversarial round whose every finding is closed or accepted, run **after** the last moat change | ❌ **round 7 RAN 2026-09-12: 22 wrongful PASSes, 11 mechanisms. 3 closed, 19 open and tripwired.** Recorded is not accepted — 2 of the acceptances are Sai's rulings. **Round 8 is owed.** `docs/plans/reports/RED-TEAM-R7-2026-09-12.md` | Claude + Sai |
 | 8 | AAR-004 written and `v0.9.0-alpha` tagged | ❌ | Claude |
 
 **Shortest honest path to Alpha:** #5 (free) → #4 (two rulings) → #7 (~0.4M) →
@@ -122,6 +134,9 @@ Error-A honestly.
 
 | | Item | Cost |
 |---|---|---|
+| 0 | **Ratify or reverse D-24** — I shipped a moat change on a fail-closed claim that the solo gate proved FALSE. The change stays (reverting reinstates a worse hole) but its basis is retracted and the authority call is yours. `git revert aad2ee1` is the undo. | free |
+| 0b | **OI-MOAT-27 — the quote-mining class.** Recommendation CORRECTED: a **factive-verb whitelist + negation conjunct**, not the large-Error-A refusal I first proposed. Unlisted verbs refuse, so the attacker is off the enumerating side of the rule. Needs calibration on the n=52 gold set, and must compose with OI-MOAT-25's tokenizer repair. | ~0.5M |
+| 0c | **PUSH IS DENIED** — 13 commits local. Not routed to another session; that would launder the denial. | free |
 | 1 | **Re-run the inter-rater test.** The first attempt FAILED (κ 0.09 between readers). Two page defects were mine and are fixable: item order leaked the answer (corpus is sorted by label), and the AI-summary question asked about content when the rule is about provenance. **Decide the population**: one lay reader + one domain-competent reader is the test that distinguishes "wrong readers" from "ambiguous corpus". | ~0.2M + 2×40 min |
 | 2 | **J-15 / OI-DEC-02** — score rhetorical questions or not? Exempting them removes them from the denominator, and `Isn't Redis capable of 128000 ops/sec [S1]?` is scored today. | ~0.3M |
 | 3 | **D-07** — `install.sh` now provisions pytest for END USERS. Keep, or `uv sync --no-dev`? | free |
