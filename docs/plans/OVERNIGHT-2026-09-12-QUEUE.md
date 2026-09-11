@@ -19,10 +19,19 @@ register (D-21…) with their undo.
 
 ## Queue
 
-- [ ] **1. Intra-rater instrument** — 20 rows, seed 20260912, deterministic
-      shuffle, machine verdict and rationale withheld, answers copy-pasteable.
-      Must exist before Sai wakes. The ONE thing that converts his 20 minutes
-      into a decisive result. ~0.3M
+- [x] **1. Intra-rater instrument** — **DONE.** Page:
+      https://claude.ai/code/artifact/170c9801-14fa-4231-9468-1fa2371f5319
+      `Agent-Assure/calibration/intra-rater/` holds the items, the withheld key
+      and `score.py`. The first plain-random draw of 20 contained NONE of the 4
+      rows where Sai overruled the machine (p=0.133), so it could not have
+      detected the anchoring branch: sample is now STRATIFIED (D-21), strata are
+      never pooled (D-22), and a fourth INDETERMINATE branch was added (D-23).
+      All four branches dry-run verified end to end.
+
+**PUSH DENIED** by the permission classifier on this tick (same boundary as the
+2026-08-30 session). Commits are local on `agent-assure-calibration-run`.
+Not routed to another session — that would launder the denial. Sai must push or
+grant the permission.
 - [ ] **2. Red-team round 7 — STPA-targeted.** Hazard: a fabrication certified
       PASS. Three NEW PASS-enabling control paths have never been attacked:
       (a) decomposition rewrites the claim text (D-17..D-20),
