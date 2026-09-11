@@ -7,7 +7,7 @@ priority: P1
 created: 2026-07-08
 ack_required: true
 acceptance_criteria: labels-v2.csv rows corrected/ratified and label_status flipped to gold
-updated: 2026-07-14
+updated: 2026-09-12
 ---
 
 # Ask: Ratify the v2 gold labels (Phase α1 → unblocks α2)
@@ -65,3 +65,11 @@ differs, flag that first — it changes every threshold α2 derives.
 - `labeling-v2.csv` rows ratified/corrected and `label_status` is `gold` on all
   52 rows.
 - Ack back (reply here or drop an `ack` in `outbox/`) so α2 kicks off.
+
+---
+
+## Closed 2026-09-12
+
+**Acceptance criteria met.** All 52 rows of `labels-v2.csv` carry `label_status: gold`, ratified by Sai 2026-09-02 (CR-002 → CR-003 → CR-004).
+
+**Carried forward, because closing this ask does not close the question it was really about:** the gold labels are not established as REPRODUCIBLE. The inter-rater check failed on 2026-09-03 (κ 0.54 / 0.16 vs Sai, **0.09 between the two readers**), and the labels were produced by correcting machine candidates rather than by blind labelling. The open thread is J-06 in `docs/jobs/REGISTER.md`, and the next step is the intra-rater instrument built 2026-09-12.
