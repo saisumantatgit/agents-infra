@@ -2,7 +2,7 @@
 
 Per ADR-045: one entry per open thread, **every entry with a named owner**.
 `owner: Sai` entries carry the reason they cannot move without him.
-Last reconciled: **2026-09-03** (session `d2b27b1f`).
+Last reconciled: **2026-09-12** (session `d2b27b1f`, overnight round-7 run).
 **Demo and Alpha readiness are DEFINED as criteria in `RESUME-HERE.md` — read that first.**
 
 ---
@@ -19,6 +19,8 @@ Last reconciled: **2026-09-03** (session `d2b27b1f`).
 | J-05 | **OI-MOAT-20 — verb-final header escapes scoring** | Deterministic closure needs either Error-A on every multi-word heading or a POS tagger — the latter is exactly what J-02 governs. | ~0.1M |
 | J-06 | **Inter-rater reliability** | **ATTEMPTED AND FAILED 2026-09-03** — κ 0.54 / 0.16 vs Sai, **0.09 between the two readers**. Two page defects were Claude's (label-sorted item order leaked the answer; the AI-summary question asked about content when the rule is provenance). **Next step is INTRA-rater, not another reader:** Sai re-labels 20 of his own rows blind, ~20 min. That fork — wrong readers vs ambiguous corpus — decides whether the 52-row corpus is salvageable. `docs/reports/INTER-RATER-2026-09-03.md` | free |
 | J-07 | **Ratify the 2026-08-30 register** (D-01…D-14) | 14 autonomous calls await ratify-or-reverse; each carries its undo. Includes the disclosed `install.sh` side effect. | free |
+| J-18 | **Ratify or reverse D-24** | I shipped a moat change justifying it as fail-closed; the solo gate proved that claim FALSE on a mixed-delimiter shape my enumeration never contained. The change stays because reverting reinstates the worse hole (OI-MOAT-26 certified the OPPOSITE of the author's sentence), but the authority call is yours. Undo: `git revert aad2ee1`. | free |
+| J-19 | **OI-MOAT-27 — the quote-mining class** | Recommendation CORRECTED after the solo gate: a **factive-verb whitelist + negation conjunct**, not the large-Error-A `that`-complement refusal I first proposed. Unlisted verbs refuse, so the attacker is off the enumerating side. Needs calibration on n=52 and must compose with J-20. | ~0.5M |
 | J-08 | **`docs/consulting/` visibility coupling** | Committed to the HQ repo on the stated assumption that it stays PRIVATE. It names a client and records that they have no signed paper. One settings toggle, not a property a file can enforce. | free |
 
 ## owner: Claude — buildable, sequenced behind the rulings above
@@ -27,7 +29,9 @@ Last reconciled: **2026-09-03** (session `d2b27b1f`).
 |---|---|---|
 | J-09 | Red-team round 6 against the CR-002 deployment + any J-01 rework | J-01 |
 | J-10 | ~~Ingest the second labeller's set~~ **DONE 2026-09-03** — stats computed, CR-004 and RESUME-HERE amended with the κ figures. Raw sets in `calibration/second-reader/`; nothing written to `labels-v2.csv`. | — |
-| J-16 | Fix the review page (deterministic shuffle + provenance question) and run red-team round 7 | nothing — Claude, no ruling needed |
+| J-16 | ~~Fix the review page + run red-team round 7~~ **DONE 2026-09-12.** Page defects fixed in the new intra-rater instrument; round 7 ran (22 findings / 11 mechanisms / 3 closed / 19 tripwired). | — |
+| J-17 | **Red-team round 8** — owed. Round 7's 19 open findings are *recorded*, not *accepted*, and D-24/OI-MOAT-27 need Sai first. Alpha #7. | J-18, J-19 |
+| J-20 | **OI-MOAT-25 tokenizer repair** — expand the `n't` suffix before tokenizing, one rule covering every contracted negation. Fail-closed. Must land BEFORE the OI-MOAT-27 whitelist, which needs a negation conjunct that cannot see `haven't` today. | nothing — sequenced |
 | J-11 | OI-BUILD-01 — two reference worktrees still cut from the wrong base; rebase or discard | nothing (low value) |
 | J-12 | Batch ingestion is built but **never exercised on real data** — cpc-book has sent no batch yet | cpc-book |
 

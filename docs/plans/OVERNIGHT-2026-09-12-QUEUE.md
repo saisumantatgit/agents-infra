@@ -72,7 +72,12 @@ grant the permission.
       form that drove the debate occurs ZERO times. Recommendation: no
       exemption; fix the report's conflation instead.
   ~~old:**5. J-15 brief**~~ — the counts that make Sai's ruling one word. ~0.2M
-- [ ] **6. Close** — register D-21+, logbook, RESUME-HERE, push. ~0.3M
+- [x] **6. Close** — DONE. Register D-21…D-27 (incl. a RETRACTION of D-24's
+      basis), logbook with 5 withdrawals, RESUME-HERE rewritten with the
+      three-outcome fork, REGISTER reconciled (J-16 closed; J-17/J-18/J-19/J-20
+      opened), memory synced, temp files cleared, worktree pruned.
+      **PUSH DENIED — not routed elsewhere.** Suite 510/2/22, corpus
+      byte-identical, 52 gold rows load with zero stale.
 
 ## Stop conditions
 
