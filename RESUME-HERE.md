@@ -1,7 +1,8 @@
 # RESUME HERE — Agent-Assure
 
 **Last session:** `d2b27b1f`, closed 2026-09-12 (overnight round-7 run).
-**Branch:** `agent-assure-calibration-run` · clean, pushed.
+**Branch:** `agent-assure-calibration-run` · clean, **NOT pushed — push is DENIED**
+by the permission classifier. 13 commits are local. Sai must push or grant it.
 **Suite:** `cd Agent-Assure && uv run pytest -q` → **510 passed, 2 skipped, 22 xfailed.**
 Trust the RUN, not this number.
 
@@ -35,16 +36,16 @@ draw of 20 missed every one of them (p=0.133) and would have measured nothing.
 |---|---|---|
 | Sai agrees with himself, κ > 0.8 | corpus is sound; the problem was reader population | recruit ONE domain-competent reader; Alpha criterion #5 is reachable |
 | Sai does not | the corpus holds genuinely ambiguous items — **no reader population fixes that** | rebuild the corpus with defensible items, or change what the product claims |
+| **He re-labels the 4 probe rows onto the MACHINE's original call** | **the labels are anchored on the gate's own output** — the gate was calibrated against a mirror | worse than ambiguity: the corpus is not ground truth at all, and every rate built on it is partly circular |
 
 Neither outcome wastes the twenty minutes, which is more than the last two
 measurement runs managed. **Do not build T3 before this resolves** — its whole
 justification is buying down an Error-A figure we can no longer defend.
 
-**Claude does regardless, no ruling needed:** fix the two review-page defects
-(deterministic shuffle; change the AI-summary question from *"does this support?"*
-to *"can this be used as proof?"* — the second is a real instruction bug that
-would corrupt every future round), and run **red-team round 7**, which is owed
-because D-15…D-20 landed after round 6.
+**Both of those are DONE (2026-09-12).** The page defects are fixed in the new
+instrument (deterministic shuffle; provenance stated on every row). Round 7 ran:
+**22 wrongful PASSes over 11 mechanisms, 3 closed, 19 open and tripwired.**
+**Round 8 is now what is owed.**
 
 ---
 
@@ -97,7 +98,7 @@ product and it is true today.
 | # | Criterion | State |
 |---|---|---|
 | 1 | False alarms rare enough that a real page is not a third flagged | ❌ **Error-A 0.320** |
-| 2 | Rhetorical questions and prose furniture not scored as claims | ❌ 9.4% of real-prose claims are questions (J-15) |
+| 2 | Rhetorical questions and prose furniture not scored as claims | ❌ **7.9%** of real-prose claims are question-form (1,337 claims, 10 chapters, measured 2026-09-12) — and **zero carry a citation**, so they read UNCITED, not UNGROUNDED. `docs/reports/J15-BRIEF-2026-09-12.md` |
 | 3 | An interface a visitor can look at | ❌ CLI + a YAML file. Slice 2a unbuilt |
 | 4 | Capture hook works live in the visitor's own session | ⚠️ built and live-validated; never exercised by a stranger |
 
@@ -110,11 +111,12 @@ product and it is true today.
 # ALPHA READINESS — defined
 
 Alpha = *the gate can be handed to a friendly external user with its error rates
-stated honestly.* Eight criteria; **four met.**
+stated honestly.* Eight criteria; **three met** (criterion 1 was downgraded by
+round 7 — the corpus is still clean, the gate is not).
 
 | # | Criterion | State | Owner |
 |---|---|---|---|
-| 1 | Zero known Error-B on the ratified corpus, each closed class carrying a tripwire | ✅ CR-004; `tests/red_team_moat/` | — |
+| 1 | Zero known Error-B on the ratified corpus, each closed class carrying a tripwire | ⚠️ **still true of the CORPUS, but round 7 found 19 open Error-B classes the corpus does not contain.** Each is tripwired. Never quote criterion 1 without this line. | Claude |
 | 2 | Thresholds are data, with a current CR, and no fitted parameter is undocumented | ✅ CR-004; grounding path has **zero** fitted parameters | — |
 | 3 | Installs and runs standalone from a clean clone, zero cross-plugin imports | ✅ `install.sh`, `uv sync` | — |
 | 4 | Every open moat item is either CLOSED or accepted **in writing** by its owner | ⚠️ 9 strict xfails are recorded and accepted; **J-15 and J-05 are neither** | Sai |
