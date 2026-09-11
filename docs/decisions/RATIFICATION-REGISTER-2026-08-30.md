@@ -68,3 +68,16 @@ genuine claims my crude <4-content-token metric miscounts, not a defect.
 
 **Nothing in the moat was touched by D-21…D-23.** `ground_check.py` is byte-identical;
 the suite is unaffected. These are calibration-instrument decisions only.
+
+| id | Decision | Basis | Undo | Status |
+|---|---|---|---|---|
+| D-24 | **OI-MOAT-26: HTML comments are stripped from the RAW text, BEFORE NFKC.** One-line reorder in `_iter_raw_sentences`. | NFKC folds `＜！－－` and `－－＞` into `<!--` and `-->`, so an author could MANUFACTURE a comment delimiter out of characters no renderer hides. The demonstrated attack welded a pair into mid-sentence and **reversed** the claim: draft `"The appliance ships with ＜！－－at most one, and never with－－＞ dual power supplies [S6]"` → judged `"The appliance ships with dual power supplies"` → **GROUNDED, PASS, 100.0**, with the rewritten sentence printed back to the author as theirs. Fail-closed after the fix (the lookalike stays in the text and is scored): attack now **FAIL**. Genuine ASCII comments still strip (D-17 verified intact). Suite 492 passed / 2 skipped / 11 xfailed; calibration corpus regenerated **BYTE-IDENTICAL**, so CR-004's rates stand and no new CR is due (ADR-025). | revert commit | DONE |
+| D-25 | **`_content_words`' docstring made a raw string.** | It contained `\w`, raising `SyntaxWarning: invalid escape sequence` on every single run of the gate — and becoming a hard error in a future Python. Zero behaviour change; verified under `-W error::SyntaxWarning`. | revert commit | DONE |
+
+**Not fixed tonight, deliberately — and this is the important half of round 7.**
+Round 7 found **~22 wrongful PASSes over 11 mechanisms**. Rounds 3 and 4 are on
+record closing the fixture they were written against and leaving the class open,
+*every time*. Shipping eleven narrow rules into the moat at 3am, with no
+adversarial round against them, is that failure by appointment. Everything not
+listed above is **tripwired as a strict xfail and counted**, with the two
+class-level calls escalated with a written recommendation.

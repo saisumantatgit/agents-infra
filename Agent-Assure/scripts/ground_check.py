@@ -290,10 +290,33 @@ def _strip_html_comments(text: str) -> str:
 
 
 def _iter_raw_sentences(text: str) -> Iterator[str]:
-    """Yield NFKC-normalized sentence strings from *text* using syntok."""
+    """Yield NFKC-normalized sentence strings from *text* using syntok.
+
+    ORDER IS LOAD-BEARING: comments are stripped from the RAW text, BEFORE
+    NFKC (OI-MOAT-26, round 7). NFKC folds compatibility variants, and the
+    full-width forms "＜！－－" / "－－＞" fold to "<!--" / "-->". Stripping
+    after NFKC therefore let an author MANUFACTURE a comment delimiter out of
+    characters that no renderer hides — deleting reader-visible prose from the
+    text being judged. The demonstrated attack welded a delimiter pair into the
+    middle of a sentence and reversed it:
+
+        draft   "The appliance ships with ＜！－－at most one, and never
+                 with－－＞ dual power supplies [S6]."
+        judged  "The appliance ships with   dual power supplies [S6]."
+        verdict GROUNDED, gate PASS, score 100.0
+
+    The gate certified the OPPOSITE of the sentence the author wrote, and
+    printed the rewritten sentence back to them as if it were theirs. Stripping
+    first means only genuine ASCII comment syntax is removed, and a full-width
+    lookalike stays in the text and gets scored — fail-closed, and it is also
+    the only reading under which the gate quotes the author faithfully.
+
+    This is why CLAUDE.md bars NFKC from content paths: it silently rewrites
+    authored characters. Here the rewrite was load-bearing for a moat rule.
+    """
     import syntok.segmenter as segmenter  # lazy import — keeps top-level pure
 
-    normalized = _strip_html_comments(_nfkc(text))
+    normalized = _nfkc(_strip_html_comments(text))
     for paragraph in segmenter.process(normalized):
         for sentence_tokens in paragraph:
             yield _reconstruct_sentence(sentence_tokens)
@@ -920,7 +943,7 @@ _STOP_WORDS: frozenset[str] = frozenset({
 
 
 def _content_words(tokens: list[str]) -> list[str]:
-    """Return tokens that are not stop words and carry at least one letter or digit.
+    r"""Return tokens that are not stop words and carry at least one letter or digit.
 
     The alphanumeric requirement is a 2026-09-03 correction. The tokenizer is
     `\w+`, and in Python `\w` includes the UNDERSCORE — so a Markdown
