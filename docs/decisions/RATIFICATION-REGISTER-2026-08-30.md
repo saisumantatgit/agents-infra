@@ -55,3 +55,16 @@ decomposition artifacts fell from **31.3% to 3.2%**. What remains is
 **9.4% rhetorical questions — J-15/OI-DEC-02, still Sai's** because exempting
 them is PASS-enabling — and a 9.7% "short sentence" bucket that is mostly
 genuine claims my crude <4-content-token metric miscounts, not a defect.
+
+---
+
+## Addendum — 2026-09-12 overnight run (session `d2b27b1f`)
+
+| id | Decision | Basis | Undo | Status |
+|---|---|---|---|---|
+| D-21 | **The intra-rater sample is STRATIFIED, not random: all 4 divergent rows (q14, q16, q37, q49) + 16 random from the other 48.** Seed 20260912. | `init_labels.py` seeds every row with Claude's `candidate_verdict`; the ratifier corrects it. On 48 of 52 rows gold == candidate, so on those rows *"Sai agrees with himself"* and *"Sai agrees with the machine"* are the same observation. Only the 4 overruled rows separate them. The first, plain-random draw of 20 contained **none** of the four (p = 0.133 — it rolled that 13%), so the instrument would have been blind to the anchoring branch it exists to detect. This is the standing trap again: the filter and the measurement were the same operation. | Delete `calibration/intra-rater/`; nothing else reads it. No moat code touched. | DONE |
+| D-22 | **Nothing is pooled across the two strata.** κ is computed on the 16 random rows alone; the 4 probe rows are printed individually with the machine's original call beside each. | The enrichment is deliberate, so any pooled statistic is biased by construction. Reporting one number over 20 would be a fabricated operating point — the exact failure CR-003 records for `tier_sensitive`. Verified by dry-run: an anchored respondent scores **κ = +1.000** on the random stratum, so a pooled figure would have certified "corpus sound" on the one result that means the corpus is not ground truth at all. | n/a — a reporting rule, not a code path | DONE |
+| D-23 | **`score.py` has an explicit INDETERMINATE branch** for high κ with 2 of 4 probe rows moved. | A catch-all that reports a confident conclusion is the `claim_rate=None` bug in prose form: every "I don't know" must point away from a verdict. 2 of 4 is too few for anchoring and too many for clean, and saying so is the only honest output. | n/a | DONE |
+
+**Nothing in the moat was touched by D-21…D-23.** `ground_check.py` is byte-identical;
+the suite is unaffected. These are calibration-instrument decisions only.
