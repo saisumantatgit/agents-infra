@@ -77,16 +77,61 @@ def test_genuine_ascii_comments_still_strip(text: str, expected: str) -> None:
     assert _pipeline(text) == expected
 
 
+MIXED_DELIMITERS = [
+    pytest.param(
+        "A <!-- note －－＞ FABRICATED --> B",
+        id="ascii-opener-fullwidth-then-ascii-closer",
+    ),
+]
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="OI-MOAT-33 OPEN: the reorder is NOT strictly conservative. With an "
+    "ASCII opener, a full-width closer and then a real ASCII closer, the OLD "
+    "order stripped to the full-width closer and left 'FABRICATED' scored; the "
+    "NEW order strips to the ASCII closer and deletes it from the denominator. "
+    "Text leaving scoring points TOWARD PASS. Found by the round-7 solo gate, "
+    "against my own claim that D-24 was fail-closed.",
+)
+@pytest.mark.parametrize("text", MIXED_DELIMITERS)
+def test_reorder_does_not_delete_more_than_it_used_to(text: str) -> None:
+    """The claim D-24 was justified on, stated honestly and failing.
+
+    D-24 was taken as an agent-authority change because a reorder that only ever
+    removes LESS text cannot shrink the denominator, and a change that cannot
+    shrink the denominator cannot manufacture a PASS. **That reasoning was wrong,
+    and this test is the evidence.** The enumeration behind it covered eight
+    comment shapes and no MIXED-delimiter shape, so it confirmed exactly what it
+    was built to confirm — the standing trap, in my own test file.
+
+    The change stays in place regardless, because reverting it reinstates
+    OI-MOAT-26, which is strictly worse: that one certified the OPPOSITE of the
+    author's sentence. But the justification is not fail-closure. It is
+    **renderer-faithfulness** — a Markdown renderer treats the ASCII "-->" as
+    the closer and really does hide "FABRICATED", so the new order judges what
+    the reader sees. That is a sound defence and a DIFFERENT one, and it holds
+    only while OI-MOAT-29 is closed, which it is not: a "<!--" sitting in
+    visible text (inside a code span, say) is not a comment to any renderer, yet
+    still pairs with a real closer here.
+
+    So D-24 is correct on its merits and its recorded basis was wrong, which
+    moves it out of settled agent authority and into Sai's ratification queue.
+    """
+    assert "FABRICATED" in _pipeline(text), (
+        f"the new order deleted text the old order scored: {text!r} -> "
+        f"{_pipeline(text)!r}"
+    )
+
+
 @pytest.mark.parametrize("text", [p.values[0] for p in MANUFACTURED]
                                  + [p.values[0] for p in GENUINE])
-def test_reorder_is_strictly_conservative(text: str) -> None:
-    """The fail-closed proof: the new order never removes MORE than the old.
+def test_reorder_is_conservative_on_uniform_delimiters(text: str) -> None:
+    """Narrowed to what is actually true: uniform-delimiter shapes.
 
-    This is the test that makes OI-MOAT-26 an agent-authority change rather than
-    Sai's. A reorder that removed more text somewhere would be shrinking the
-    denominator — claims leaving scoring — which points TOWARD PASS and would be
-    Escalation #1's. Comparing the two orders directly is the only way to assert
-    that, and it is why the old order is reconstructed here rather than deleted.
+    Was `test_reorder_is_strictly_conservative` and asserted the property over
+    all inputs. It never covered a mixed-delimiter shape, so it passed while the
+    general claim was false. Kept, narrowed, and renamed to say what it checks.
     """
     old_order = _strip_html_comments(_nfkc(text))
     new_order = _pipeline(text)

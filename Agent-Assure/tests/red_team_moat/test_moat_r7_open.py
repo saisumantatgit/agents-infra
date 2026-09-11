@@ -175,7 +175,11 @@ def test_inverted_modifier_must_not_ground(tmp_path: Path) -> None:
     "genuine later comment's '-->' and swallows every sentence between them. "
     "D-17 reasoned about an unterminated '<!--' running to EOF and restricted "
     "stripping to well-formed pairs; it did not consider a stray opener finding "
-    "a real closer downstream, which is well-formed by construction.",
+    "a real closer downstream, which is well-formed by construction. "
+    "ASSERTION CORRECTED 2026-09-12 by the round-7 solo gate: this checked "
+    "`per_claim`, which includes NON_CLAIM, so it was satisfiable while the "
+    "hole stayed open — a test asserting something weaker than its own reason. "
+    "It now checks the SCORED claims, which is what 'never flagged' means.",
 )
 def test_stray_comment_opener_must_not_swallow_prose(tmp_path: Path) -> None:
     draft = (
@@ -184,10 +188,9 @@ def test_stray_comment_opener_must_not_swallow_prose(tmp_path: Path) -> None:
         "MongoDB lost all data under sustained write load.\n\n"
         "<!-- reviewer note -->\n"
     )
-    texts = " ".join(c["text"] for c in _gate(tmp_path, draft)["per_claim"])
-    assert "MongoDB" in texts, (
-        "the MongoDB sentence vanished from the report entirely — it was never "
-        "scored, so it could never be flagged"
+    scored = " ".join(c["text"] for c in _scored(_gate(tmp_path, draft)))
+    assert "MongoDB" in scored, (
+        "the MongoDB sentence was not SCORED, so it could never be flagged"
     )
 
 

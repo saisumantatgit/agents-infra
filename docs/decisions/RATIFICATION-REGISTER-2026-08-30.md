@@ -71,7 +71,7 @@ the suite is unaffected. These are calibration-instrument decisions only.
 
 | id | Decision | Basis | Undo | Status |
 |---|---|---|---|---|
-| D-24 | **OI-MOAT-26: HTML comments are stripped from the RAW text, BEFORE NFKC.** One-line reorder in `_iter_raw_sentences`. | NFKC folds `＜！－－` and `－－＞` into `<!--` and `-->`, so an author could MANUFACTURE a comment delimiter out of characters no renderer hides. The demonstrated attack welded a pair into mid-sentence and **reversed** the claim: draft `"The appliance ships with ＜！－－at most one, and never with－－＞ dual power supplies [S6]"` → judged `"The appliance ships with dual power supplies"` → **GROUNDED, PASS, 100.0**, with the rewritten sentence printed back to the author as theirs. Fail-closed after the fix (the lookalike stays in the text and is scored): attack now **FAIL**. Genuine ASCII comments still strip (D-17 verified intact). Suite 492 passed / 2 skipped / 11 xfailed; calibration corpus regenerated **BYTE-IDENTICAL**, so CR-004's rates stand and no new CR is due (ADR-025). | revert commit | DONE |
+| D-24 | **OI-MOAT-26: HTML comments are stripped from the RAW text, BEFORE NFKC.** One-line reorder in `_iter_raw_sentences`. | NFKC folds `＜！－－` and `－－＞` into `<!--` and `-->`, so an author could MANUFACTURE a comment delimiter out of characters no renderer hides. The demonstrated attack welded a pair into mid-sentence and **reversed** the claim: draft `"The appliance ships with ＜！－－at most one, and never with－－＞ dual power supplies [S6]"` → judged `"The appliance ships with dual power supplies"` → **GROUNDED, PASS, 100.0**, with the rewritten sentence printed back to the author as theirs. Fail-closed after the fix (the lookalike stays in the text and is scored): attack now **FAIL**. Genuine ASCII comments still strip (D-17 verified intact). Suite 492 passed / 2 skipped / 11 xfailed; calibration corpus regenerated **BYTE-IDENTICAL**, so CR-004's rates stand and no new CR is due (ADR-025). | revert commit | **DONE, BUT ITS BASIS WAS WRONG — SEE BELOW** |
 | D-25 | **`_content_words`' docstring made a raw string.** | It contained `\w`, raising `SyntaxWarning: invalid escape sequence` on every single run of the gate — and becoming a hard error in a future Python. Zero behaviour change; verified under `-W error::SyntaxWarning`. | revert commit | DONE |
 
 **Not fixed tonight, deliberately — and this is the important half of round 7.**
@@ -81,3 +81,34 @@ record closing the fixture they were written against and leaving the class open,
 adversarial round against them, is that failure by appointment. Everything not
 listed above is **tripwired as a strict xfail and counted**, with the two
 class-level calls escalated with a written recommendation.
+
+### D-24's basis is retracted (2026-09-12, same night, by the round-7 solo gate)
+
+**I justified D-24 as fail-closed and that justification is false.** I claimed
+the reorder removes strictly less-or-equal text in every case, and used it to
+place the change inside agent authority. An independent reviewer found the
+mixed-delimiter shape my eight-case enumeration never contained:
+
+```
+"A <!-- note －－＞ FABRICATED --> B"
+  OLD -> 'A   FABRICATED --> B'   (scored)
+  NEW -> 'A   B'                  (deleted from the denominator)
+```
+
+Text leaving the denominator points TOWARD PASS, so the change is not
+fail-closed and was not mine to take on that reasoning.
+
+**The change stays in place** — reverting reinstates OI-MOAT-26, which certified
+the OPPOSITE of the author's own sentence, and that is strictly worse. Its real
+defence is **renderer-faithfulness**: a Markdown renderer treats the ASCII
+`-->` as the closer and does hide `FABRICATED`, so the new order judges the text
+the reader actually sees. Sound — but it holds only while **OI-MOAT-29 is
+closed, and it is open.**
+
+| id | Decision | Basis | Undo | Status |
+|---|---|---|---|---|
+| D-26 | **Keep D-24 in place but move it to Sai's ratification queue, with its fail-closed claim retracted in writing and the mixed-delimiter case tripwired as OI-MOAT-33.** | Reverting costs more than keeping (OI-MOAT-26 is the worse hole). Silently keeping it under a justification now known false is the thing the register exists to prevent: the undo stays available, the reasoning is corrected in public, and the authority question goes to the person whose call it actually is. | `git revert aad2ee1` — reinstates OI-MOAT-26, so do it only deliberately | **AWAITING SAI** |
+| D-27 | **Corrected the OI-MOAT-27 recommendation from a `that`-complement refusal to a factive-verb whitelist + negation conjunct.** | My stated reason — "no deterministic rule separates the attack from the honest case" — was false. The discriminator is the VERB's factivity, not the subject, proved by a subject-swap control. A whitelist also has the right polarity (unlisted verbs REFUSE) and satisfies CLAUDE.md's law: to ground a mined span the attacker must find a source using a factive verb, and a factive verb means the source asserts the claim. My rule additionally left 3 of my own 5 tripwires uncovered — I had silently narrowed the Path C agent's broader proposal and inherited an undisclosed gap. | n/a — a recommendation, not a code change; nothing shipped | **RECOMMENDATION ONLY** |
+
+**Corrected round-7 count:** 22 found · **3 closed** (all by D-24; D-25 closed
+zero) · **19 open** · 7 tripwired classes. The earlier "closed 2" was wrong.
