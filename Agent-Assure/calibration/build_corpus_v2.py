@@ -983,7 +983,7 @@ def write_labeling_v2_csv(
         writer = csv.writer(fh, quoting=csv.QUOTE_MINIMAL)
         writer.writerow([
             "claim_id", "query_id", "claim_text", "evidence",
-            "source_type", "candidate_verdict", "rationale",
+            "source_type", "label_basis", "candidate_verdict", "rationale",
         ])
         for row in rows:
             cc = cases_by_query[row.query_id]
@@ -993,6 +993,7 @@ def write_labeling_v2_csv(
                 row.claim_text,
                 _evidence_text(row, cc.case.store),
                 _source_type(row, cc.case.store),
+                _label_basis(_source_type(row, cc.case.store)),
                 cc.candidate_label,
                 cc.rationale,
             ])
@@ -1025,6 +1026,51 @@ def _source_type(row, store) -> str:
         kinds.append(src.full_text_source if src is not None else "unresolved")
     uniq = sorted(set(kinds))
     return uniq[0] if len(uniq) == 1 else "mixed"
+
+
+# Source types whose gold label follows a GATE POLICY rather than the content of
+# the evidence shown.
+_POLICY_SOURCE_TYPES: frozenset = frozenset({"haiku_summary"})
+
+
+def _label_basis(source_type: str) -> str:
+    """Return "policy" or "evidence" — what the row's gold label rests on.
+
+    WHY THIS COLUMN EXISTS (2026-09-12, INTRA-RATER-2026-09-12).
+
+    Two rows, q24 and q44, cite `haiku_summary` sources. Their evidence supports
+    their claim word for word; gold says violation for a reason that is not in
+    the item at all — an AI summary cannot ground anything, whoever wrote it,
+    because it is a paraphrase nobody verified. That is correct AS POLICY and is
+    not DERIVABLE from what the labeller is shown.
+
+    Three raters have now judged those two rows and all three disagreed with
+    gold, in the same direction:
+
+        Pravallika 2026-09-03   0/2
+        Nandu      2026-09-03   0/2
+        Sai        2026-09-12   0/2   <- the author of the gold labels, blind
+
+    The 2026-09-03 diagnosis blamed the review page's wording. That diagnosis is
+    RETRACTED: the rebuilt page stated the provenance outright — "AI-generated
+    summary of the page, not the page text" — and the answer did not move. The
+    item is unlabelable from its own contents, and adding `source_type` as a
+    column (the 2026-09-02 remedy) did not make it labelable either.
+
+    THE DISTINCTION THIS COLUMN DRAWS, AND THE ONE IT MUST NOT:
+
+    * **Reliability (κ) excludes policy rows.** Agreement on such a row measures
+      whether the rater memorised a rule, not whether they can judge evidence.
+      Including them dragged the intra-rater κ from +0.857 to +0.636 and was a
+      large part of why the inter-rater round read as total failure.
+    * **Error-A / Error-B INCLUDE them, always.** The gate must still be right
+      about these claims. Dropping them from the error rates would be scoring
+      the gate only on the questions it finds easy — which is the exact failure
+      this project has now found in three separate measuring instruments.
+
+    Pure function.
+    """
+    return "policy" if source_type in _POLICY_SOURCE_TYPES else "evidence"
 
 
 def _print_summary(

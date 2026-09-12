@@ -39,7 +39,12 @@ gate — a gold label is never Claude's to set).
       = Escalation #1. Also D-33: hoisted `import re as _re` to the top — three
       NameErrors in this file have had that one cause, one of them today.
       Suite 527/2/14, corpus byte-identical. Open Error-B classes 15 -> 12.
-- [ ] **4. Segregate POLICY-labelled rows from EVIDENCE-DERIVABLE rows.**
+- [x] **4. DONE (D-34).** `label_basis` column on the scaffold (DERIVED) +
+      `reliability_eligible()` in calibrate.py. κ excludes policy rows; **error
+      rates include them, pinned by a source-inspection test** so nobody later
+      "helpfully" drops them from the rates too. 52 labels still gold, zero
+      stale — a new column does not change `claim_sha`. Suite 532/2/14.
+  ~~old: **4. Segregate POLICY-labelled rows**~~
       Tonight's finding: 3 raters × 2 `haiku_summary` rows = 0/6 agreement with
       gold, because the label follows a RULE not the evidence. Reliability on
       such items measures rule-memorisation. Scaffold-side ONLY — **no generator

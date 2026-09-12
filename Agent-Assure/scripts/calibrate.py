@@ -671,6 +671,36 @@ class ErrorRates:
     error_b: float
 
 
+POLICY_SOURCE_TYPES: frozenset[str] = frozenset({"haiku_summary"})
+
+
+def reliability_eligible(source_types: dict[str, str], claim_ids: list[str]) -> list[str]:
+    """Return the claim ids whose gold label is DERIVABLE from the evidence shown.
+
+    For inter-rater and intra-rater reliability ONLY. A `haiku_summary` row's
+    gold label follows a gate POLICY — an AI summary cannot ground anything —
+    which is correct but is not visible in the item. Agreement on such a row
+    measures whether the rater memorised a rule.
+
+    Empirically: three raters, two rows, 0/6 agreement with gold, all in the
+    same direction, including the author of the labels judging blind
+    (INTRA-RATER-2026-09-12). Excluding them moved intra-rater κ from +0.636 to
+    **+0.857** — across the 0.8 bar.
+
+    **This function must NEVER be used to compute Error-A or Error-B.** The gate
+    has to be right about policy claims too, and dropping them from the error
+    rates would score the gate only on the questions it finds easy. That is the
+    same failure this project has now found in three separate instruments: the
+    n=52 corpus with zero synonym rows, `tests/honest_drafts/` with everything
+    T1-grounded, and a base-rate probe that discarded the population it was
+    counting. In each, the filter and the measurement were the same operation.
+
+    Pure function.
+    """
+    return [cid for cid in claim_ids
+            if source_types.get(cid) not in POLICY_SOURCE_TYPES]
+
+
 def error_rates(labeled: list[LabeledClaim], lex_tau: float) -> ErrorRates:
     """Aggregate *labeled* into an ErrorRates at *lex_tau* (positive = violation).
 

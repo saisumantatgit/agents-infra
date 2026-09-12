@@ -168,3 +168,22 @@ trade-off, which is Escalation #1 clause 1.**
 
 **Open Error-B classes: 15 → 12.** Suite **527 passed / 2 skipped / 14 xfailed**;
 corpus **byte-identical**, CR-004 stands.
+
+| id | Decision | Basis | Undo | Status |
+|---|---|---|---|---|
+| D-34 | **`label_basis` column added to the scaffold (DERIVED), plus `reliability_eligible()` in `calibrate.py`.** Policy rows are excluded from κ and **included in every error rate**. | INTRA-RATER-2026-09-12: the corpus mixes items whose label follows from the evidence with items whose label follows from a gate POLICY not visible in the item. Only `haiku_summary` qualifies today (q24, q44). Three raters judged those two rows — **0/6, same direction, including the author of the labels judging blind.** Including them dragged intra-rater κ from **+0.857 to +0.636** and was a large part of why the inter-rater round read as total failure. Scaffold-side only; `labels-v2.csv` untouched and all **52 labels still load as gold with zero stale**, because a new COLUMN does not change `claim_sha` (the same reasoning that made `source_type` safe in 2026-09-02). | revert commit; the column is regenerable and nothing depends on it | DONE |
+
+**The line this draws, and the one it must NOT.** κ excludes policy rows —
+agreement there measures rule-memorisation. **Error-A and Error-B include them,
+always.** A test asserts by source inspection that `error_rates`,
+`loo_operating_point` and `select_operating_point` never consult
+`reliability_eligible`, because the tempting next step after "exclude them from
+κ" is "exclude them from the rates", and that would score the gate only on the
+questions it finds easy — the identical failure already found in three of this
+project's own instruments.
+
+**Retraction carried forward:** the 2026-09-03 report blamed the review page's
+wording for these two rows. The rebuilt page stated the provenance outright and
+the answer did not move. The wording was not the cause.
+
+Suite **532 passed / 2 skipped / 14 xfailed**; corpus regenerates stably.
