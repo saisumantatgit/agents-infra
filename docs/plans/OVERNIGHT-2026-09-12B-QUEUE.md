@@ -63,7 +63,12 @@ gate — a gold label is never Claude's to set).
       attempted tonight, because a third leftward-scan patch is the shape with
       a 100% failure record here. Whitelist additions escalated to Sai
       (PASS-enabling). Suite 563/2/56. Corpus byte-identical.
-- [ ] **7. Close** — register, logbook, RESUME-HERE, CR if due, push. ~0.4M
+- [x] **7. CLOSED 2026-09-12.** 7-step close run in order: memory synced (the
+      2026-09-03 inter-rater entry corrected — that fork is resolved), tree
+      audited, logbook entry with all four withdrawals and a reflection,
+      RESUME-HERE rewritten to lead with "round 8 closed nothing", J-21/22/23
+      registered with owners, temp scripts removed, pushed, verified clean.
+      No CR due — corpus byte-identical all session. Cron deleted.
 
 ## Stop conditions
 - Any PASS-enabling change -> tripwire, do not fix.
