@@ -46,13 +46,13 @@ outward-facing. **Do NOT build T3. Do NOT change any gold label.**
       round is winnable** because the class is closed — which is exactly why
       it is worth running before a launch that stakes the product on it.
       Entailment findings are OUT OF SCOPE; record and discard. ~0.5M
-- [ ] **3. Close — at 01:20 IST regardless of 1 and 2.** Register, logbook,
+- [ ] **3. Close — at 01:30 IST via `/sg close` (Sai, 00:30), regardless of 1 and 2.** Register, logbook,
       RESUME-HERE, push, CronDelete. A half-finished round 9 with no handoff is
       worse than no round 9.
 
 ## Stop conditions
 
-- **01:20 IST or later on any tick → run item 3 immediately, then CronDelete.**
+- **The close is its own job at 01:30 (`/sg close`). Earlier ticks must not run it.**
   Hard stop is 01:30; the close needs its ten minutes.
 - Any PASS-enabling change → tripwire, do not fix.
 - A gold label needs changing → STOP, Sai's.
