@@ -256,3 +256,50 @@ a field should cost one deliberate edit.
 Suite **545 passed / 2 skipped / 14 xfailed** (was 532). Corpus
 **byte-identical**; 52 labels still gold, zero stale — `evidence` is untouched,
 so no `claim_sha` moves. CR-001 regenerates byte-identical. No CR is due.
+
+---
+
+## D-36 — R8A-01/02: the endorsement guards reach BOTH T1 paths
+
+| id | Decision | Basis | Undo | Status |
+|---|---|---|---|---|
+| D-36 | **`t1_verbatim`'s span path now applies `_span_is_hedged` and `_span_under_nonfactive_complement`**, via per-source n-gram **positions** instead of a set; and `_span_under_nonfactive_complement` skips leading **determiners** when looking left for the complementizer. | Round 8. Both guards were called from exactly ONE site — `_claim_contained_verbatim`. The ≥8-token span path applied neither, so the moat's endorsement check fired below 8 tokens and was **silent above it**. Reproduced, then independently re-reproduced by me before acceptance: source *"It is not true that the Redis cache silently loses acknowledged writes on restart under default settings"*, claim with the frame stripped → **GROUNDED, gate PASS, score 100.0.** The gate asserted the exact negation of its own source. | `git revert` the commit; both changes are additive refusals, and reverting reinstates the hole | DONE |
+
+**Why this is inside agent authority.** Both changes can only move claims AWAY
+from PASS — they add refusals and grant none. Under the ratified reading of
+Escalation #1 (fail-closed = agent authority, PASS-enabling = Sai's) this is
+mine. It does not move the Error-A/Error-B trade-off in the direction that
+requires a ruling.
+
+**Evidence.** 6 attack tests **proven RED** against pre-fix code; 4 honest
+mirrors green on **both** sides of the fix (an attributed claim that keeps its
+attribution still grounds; a factive source still grounds an unattributed
+claim; a source that both attributes AND independently asserts still grounds).
+Suite **555 passed / 2 skipped / 14 xfailed**. Corpus **byte-identical**, so no
+CR is due.
+
+**The honest limit of that last sentence:** byte-identical means the 52-row
+corpus contains **no instance of this shape**. It is evidence that no *known*
+row moved, NOT evidence that the change is Error-A-free on real prose. The
+solo gate was asked to attack exactly that inference.
+
+**The law this breaks, for the third time.** *Never key a moat rule on a
+surface property the author controls.* Round 3 killed a token-count rule.
+Round 4 killed a capitalisation rule. This was **claim length** — and it was
+found on J-19, the whitelist written to escape that very failure mode, **the
+same day J-19 shipped.** J-19's polarity was sound; its wiring was half-done.
+
+**The new lesson, stated so it can be tested:** *when you add a guard,
+enumerate its CALL SITES, not its cases.* Every red-team round in this project
+has asked whether a rule is correct. **None had asked whether it is reached.**
+The solo gate was tasked with finding other guards currently sitting on
+unreached call sites; if it finds one, this lesson is load-bearing rather than
+tidy.
+
+**Correction carried on the record (R8C-11).** `evidence_basis`'s docstring, as
+shipped in D-35 this morning, claimed its branch order "mirrors `ground`'s
+exactly, so the basis can never describe a path the verdict did not take."
+**That was false when written** — there is no RELATIONAL branch. The guarantee
+has been withdrawn from the docstring and the known-wrong outputs are listed
+there instead. D-35's *decision* stands; the *guarantee* in its documentation
+does not.
