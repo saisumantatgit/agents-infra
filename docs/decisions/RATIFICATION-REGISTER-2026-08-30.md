@@ -112,3 +112,18 @@ closed, and it is open.**
 
 **Corrected round-7 count:** 22 found · **3 closed** (all by D-24; D-25 closed
 zero) · **19 open** · 7 tripwired classes. The earlier "closed 2" was wrong.
+
+---
+
+## SAI'S RULINGS — 2026-09-12
+
+**"ratify, yes"** — in response to the two asks put to him at the close.
+
+| id | Ruling | Effect |
+|---|---|---|
+| **D-24** | **RATIFIED.** Comment-stripping stays before NFKC. | The change is now Sai's decision, not an agent call taken on a justification that turned out false. D-26 closes. `git revert aad2ee1` remains the undo, but it is no longer *my* undo to reach for. **The retraction stands on the record** — the change is right, my stated reason for taking it alone was not, and ratification does not erase that. |
+| **OI-MOAT-27** | **APPROVED — build the factive-verb whitelist + negation conjunct.** | J-19 unblocked. **J-20 lands FIRST** (the `n't` tokenizer repair): the whitelist's negation conjunct cannot see `haven't` today, so shipping the whitelist alone would ground `Critics haven't shown that P`. Neither fix is sufficient alone and the order is not a preference. |
+
+**Still open and NOT covered by this ruling:** J-15 (rhetorical questions),
+D-07 (`install.sh` shipping pytest to end users), `docs/consulting/` privacy,
+D-01 (park-list reading), and the D-15…D-20 cohort.
