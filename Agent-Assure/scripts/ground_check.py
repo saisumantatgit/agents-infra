@@ -809,6 +809,100 @@ def _span_is_hedged(source_tokens: list[str], start: int) -> bool:
     return any(tok in _SPAN_HEDGE_TOKENS for tok in window)
 
 
+# --- OI-MOAT-27 / J-19: factivity, not a longer blacklist -------------------
+#
+# Round 7 defeated _SPAN_HEDGE_TOKENS five ways: a hedge beyond the 5-token
+# window, an unlisted reporting verb, a Cyrillic confusable, a structural hedge,
+# and a hedge AFTER the span. The reviewer's diagnosis of WHY is the part worth
+# keeping: every rule that has failed in this project was a BLACKLIST over a
+# class the attacker draws from. Length, capitalisation, a noun's final letter,
+# an apostrophe, one keystroke of punctuation — and a list of reporting verbs.
+# The defect is not surface properties. It is putting the attacker on the
+# enumerating side of the rule.
+#
+# Factivity inverts that. A factive verb PRESUPPOSES its complement:
+#
+#     "X has shown that P"   entails P      -- factive      -> may ground
+#     "X argued that P"      does not       -- non-factive  -> refuse
+#
+# and crucially it is a WHITELIST, so an unlisted verb refuses. `maintain`,
+# `posit`, `insist`, `hold` all refuse without ever being enumerated. It also
+# satisfies CLAUDE.md's actual requirement — a property the attacker cannot set
+# without giving up the attack — because to ground a mined span he must find a
+# source whose verb asserts the claim, and at that point grounding it is
+# CORRECT. The gate certifies source-support, not truth.
+#
+# The decisive control, from the solo gate: swap the subjects and the
+# endorsement follows the VERB, not who is speaking.
+#
+#     REFUSE   Critics have argued ...         that Redis loses data on restart
+#     GROUND   Our own benchmark has shown ... that Redis loses data on restart
+#     GROUND   Critics have shown ...          that Redis loses data on restart
+#     REFUSE   Our own benchmark has argued ... that Redis loses data on restart
+#
+# SCOPE, STATED HONESTLY. This closes the `that`-COMPLEMENT family only. A
+# zero-complementizer complement ("The vendor claims the array rebuilds ...")
+# and a retraction AFTER the span ("..., which is simply not the case") are
+# different mechanisms and stay open and tripwired. Claiming this closes
+# OI-MOAT-27 entirely would repeat the narrowing the solo gate caught.
+#
+# NEGATION IS A REQUIRED CONJUNCT, and it is why J-20 had to land first:
+# "Critics haven't shown that P" is a NEGATED factive, and before the tokenizer
+# repair "haven't" tokenized to ["haven","t"] and the negation was invisible.
+# Neither fix is sufficient alone.
+_COMPLEMENTIZERS: frozenset[str] = frozenset({"that"})
+
+_FACTIVE_VERBS: frozenset[str] = frozenset({
+    "show", "shows", "showed", "shown",
+    "demonstrate", "demonstrates", "demonstrated",
+    "prove", "proves", "proved", "proven",
+    "establish", "establishes", "established",
+    "reveal", "reveals", "revealed",
+    "confirm", "confirms", "confirmed",
+    "find", "finds", "found",
+    "discover", "discovers", "discovered",
+    "observe", "observes", "observed",
+    "measure", "measures", "measured",
+    "verify", "verifies", "verified",
+    "document", "documents", "documented",
+})
+
+_NEGATION_TOKENS: frozenset[str] = frozenset({
+    "not", "no", "never", "nor", "neither", "without",
+})
+
+
+def _span_under_nonfactive_complement(
+    source_tokens: list[str], start: int
+) -> bool:
+    """Return True iff the span at *start* is a complement the source does not assert.
+
+    The span is treated as a complement clause when a complementizer ("that")
+    sits immediately before it. The governing predicate is then whatever verb
+    precedes the complementizer, and the span may ground only if that verb is
+    factive AND is not negated.
+
+    Fail-closed at every branch:
+
+    * complementizer present, NO factive verb before it  -> True (refuse).
+      This is the whitelist's whole point — an unlisted verb refuses.
+    * complementizer present, factive verb, but negated  -> True (refuse).
+    * no complementizer                                  -> False here, and the
+      blacklist in _span_is_hedged still applies. This function only ADDS
+      refusals; it never grants a grounding the old rule denied.
+
+    Pure function.
+    """
+    if start == 0 or source_tokens[start - 1] not in _COMPLEMENTIZERS:
+        return False
+    prefix = source_tokens[:start - 1]
+    if not prefix:
+        return True
+    if any(tok in _NEGATION_TOKENS for tok in prefix):
+        return True
+    return not any(tok in _FACTIVE_VERBS for tok in prefix)
+
+
 def _claim_contained_verbatim(
     claim_tokens: list[str], sources: list[RetrievedSource]
 ) -> bool:
@@ -842,7 +936,8 @@ def _claim_contained_verbatim(
         for start in range(len(source_tokens) - width + 1):
             if source_tokens[start:start + width] != claim_tokens:
                 continue
-            if _span_is_hedged(source_tokens, start):
+            if (_span_is_hedged(source_tokens, start)
+                    or _span_under_nonfactive_complement(source_tokens, start)):
                 continue
             return True
     return False

@@ -134,3 +134,15 @@ D-01 (park-list reading), and the D-15…D-20 cohort.
 
 **OI-MOAT-25's two strict xfails XPASSED and their markers are removed.** The
 tests stay as permanent guards. Open Error-B classes: **19 → 18.**
+
+| id | Decision | Basis | Undo | Status |
+|---|---|---|---|---|
+| D-29 | **J-19 / OI-MOAT-27 (partial): `_span_under_nonfactive_complement` — a factive-verb WHITELIST + negation conjunct.** Purely additive to `_span_is_hedged`; it only ever adds refusals. | Approved by Sai ("ratify, yes"). **The first rule here keyed on a whitelist, and the inversion is the point:** every moat rule that has failed in this project was a blacklist over a class the attacker draws from. An unlisted verb now REFUSES — `posit` fails without being enumerated anywhere. It satisfies CLAUDE.md's actual test (a property the attacker cannot set without giving up the attack): to ground a mined span he must find a source whose verb *asserts* the claim, at which point grounding is correct. Subject-swap control verified end to end — endorsement follows the VERB, not the subject. Honest-attribution mirror stays GREEN, so OI-T2-01 does not return. Suite **524 passed / 2 skipped / 17 xfailed**; corpus **byte-identical**, CR-004 stands. | revert commit | DONE |
+
+**Scope stated, not implied.** J-19 closes the `that`-COMPLEMENT family only —
+round-7 tripwires c1, c2, c4 XPASSED and are now permanent guards. **c3
+(zero-complementizer complement) and c5 (retraction AFTER the span) remain OPEN
+and tripwired.** The solo gate caught an earlier version of this work silently
+narrowing its own claim; the scope line exists so that cannot recur.
+
+**Open Error-B classes: 18 → 15.**

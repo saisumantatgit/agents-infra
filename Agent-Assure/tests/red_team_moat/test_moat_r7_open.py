@@ -83,29 +83,43 @@ def _only_verdict(report: dict) -> str:
 # rule each fail on that pair. See docs/plans/reports/RED-TEAM-R7-2026-09-12.md.
 # ---------------------------------------------------------------------------
 
-MINED = [
+# CLOSED 2026-09-12 by J-19 (factive whitelist). These three were `that`-
+# complements of a non-factive verb, and they XPASSED when the rule landed.
+MINED_CLOSED = [
     pytest.param("Redis loses data on restart [S3].\n",
                  id="c1-hedge-beyond-the-5-token-lookback"),
     pytest.param("The scheduler starves low-priority jobs [S5].\n",
                  id="c2-reporting-verb-not-in-the-token-list"),
-    pytest.param("The array rebuilds in place without downtime [S6].\n",
-                 id="c3-hedge-spelled-with-a-cyrillic-confusable"),
     pytest.param("The gateway drops every packet [S8].\n",
                  id="c4-hedge-carried-by-structure-not-a-token"),
-    pytest.param("The proxy terminates TLS at the edge [S7].\n",
-                 id="c5-hedge-sits-after-the-span-never-inspected"),
 ]
+
+# STILL OPEN. Neither has a complementizer, so J-19 does not reach them, and
+# saying so here is the point — the solo gate caught an earlier version of this
+# work presenting a `that`-scoped rule as closing the whole class.
+MINED_OPEN = [
+    pytest.param("The array rebuilds in place without downtime [S6].\n",
+                 id="c3-zero-complementizer-complement-cyrillic-confusable"),
+    pytest.param("The proxy terminates TLS at the edge [S7].\n",
+                 id="c5-retraction-AFTER-the-span-never-inspected"),
+]
+
+
+@pytest.mark.parametrize("draft", MINED_CLOSED)
+def test_mined_that_complement_does_not_ground(tmp_path: Path, draft: str) -> None:
+    """Closed by J-19. Permanent guards now, not tripwires."""
+    assert _only_verdict(_gate(tmp_path, draft)) != "GROUNDED"
 
 
 @pytest.mark.xfail(
     strict=True,
-    reason="OI-MOAT-27 OPEN: the cited source attributes, denies, hypothesises "
-    "or retracts the claim, and the mined span grounds anyway. Five mechanisms, "
-    "one unsound premise (token blacklist over a fixed window). The sound repair "
-    "is fail-closed and costs Error-A on honest attributed quotes — ADR-level, "
-    "escalated to Sai under Escalation #1 clause 1.",
+    reason="OI-MOAT-27 PARTIALLY OPEN: J-19's factive whitelist is scoped to "
+    "`that`-complements. c3 is a zero-complementizer complement ('The vendor "
+    "claims the array rebuilds …') and c5 is a retraction AFTER the span "
+    "('…, which is simply not the case'), which no prefix rule can see. "
+    "Different mechanisms, still Error-B, still counted.",
 )
-@pytest.mark.parametrize("draft", MINED)
+@pytest.mark.parametrize("draft", MINED_OPEN)
 def test_mined_span_must_not_ground(tmp_path: Path, draft: str) -> None:
     assert _only_verdict(_gate(tmp_path, draft)) != "GROUNDED"
 

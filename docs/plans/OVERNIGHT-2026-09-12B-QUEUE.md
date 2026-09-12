@@ -23,9 +23,13 @@ gate — a gold label is never Claude's to set).
       κ=+0.857 on evidence-derivable items, 0/2 on policy items — and the
       2026-09-03 "my page's wording caused it" diagnosis is RETRACTED, because
       the rebuilt page stated provenance outright and the answer did not change.
-- [ ] **2. J-19 — factive-verb whitelist + negation conjunct.** Approved.
-      Unlisted verbs REFUSE. Calibrate on n=52, corpus diff, CR if a rate moves.
-      Must keep the honest-attribution mirror GREEN (else OI-T2-01 returns). ~1M
+- [x] **2. J-19 DONE (partial, scope stated).** Factive whitelist + negation
+      conjunct, purely additive. Round-7 c1/c2/c4 XPASSED -> permanent guards;
+      **c3 and c5 stay OPEN** (no complementizer — J-19 cannot reach them).
+      Subject-swap control verified: endorsement follows the VERB, not the
+      subject. Honest mirror GREEN. `posit` refuses without being enumerated —
+      the whitelist polarity working. Suite 524/2/17, corpus byte-identical, so
+      no CR is due. Open Error-B classes 18 -> 15.
 - [ ] **3. OI-MOAT-29/30/31/32** — the four decomposition holes. Fail-closed,
       agent authority. Each needs its own mirror test. ~1M
 - [ ] **4. Segregate POLICY-labelled rows from EVIDENCE-DERIVABLE rows.**
