@@ -98,3 +98,78 @@ Agent-Assure was **not** conceived as a STORM clone. It was conceived as a two-p
 ### The sharpest original-intent-vs-today gap
 
 The spec set out to ship a full "ask a question → grounded report" product (STORM-shaped front-end + verification gate); what exists today is only the verification gate, calibrated against a corpus of *hand-written* adversarial and gold-labeled drafts rather than against the output of any research pipeline — so Agent-Assure has never yet graded a single claim that its own system produced end-to-end, only claims fed to it by hand.
+
+---
+
+# CORRECTION, 2026-09-13 — the design spec EXISTS
+
+**This report and a commit message both state that
+`2026-06-20-agent-assure-design.md` does not exist anywhere on disk or in git
+history. That is FALSE.** It is at:
+
+`~/vibe-coding/Agents/Claude/docs/superpowers/specs/2026-06-20-agent-assure-design.md`
+— 474 lines, in the **HQ repo**. The path quoted in `PHASE2-SEQUENCING.md` is
+relative to HQ, not to this repo. The search covered this repo's tree and git
+history, found nothing, and I repeated "does not exist" as fact instead of
+"not in this repo". A negative result is only as wide as where you looked.
+
+## What the founding spec actually says — three findings that matter
+
+### 1. The spec's stated identity is PROVENANCE, not entailment
+
+> *Agent-Assure is the first plugin in `agents-infra` to guarantee that every
+> claim in a research report can be **mechanically traced to a source that was
+> actually retrieved this session** — proven by a deterministic gate, not
+> asserted by the model that wrote the claim.* (§1)
+
+**Traced to a source that was actually retrieved.** That is the provenance
+product, verbatim, in the founding document's one-sentence identity. The
+narrow launch recommended on 2026-09-12 is **not a retreat from the original
+vision — it is the original vision.** Entailment (T1/T2/T3) is machinery the
+spec introduces in §4.3 as the *means*; traceability is what it promises.
+
+### 2. The spec already ruled on the LLM-pass question, and the diagnostic
+now updates its ruling
+
+> *the only learned component is a fail-closed, single-purpose NLI
+> classifier — **never a generative "is this well-cited?" judge**.* (§1)
+
+> *T3 is the **only** learned step, and it is an NLI discriminative
+> classifier, not a generative judge — a closed yes/no entailment task,
+> fixed/versioned/offline/pinned (record `model_sha`), **fail-closed** (below
+> threshold → UNGROUNDED, no benefit of doubt). It cannot see the research
+> goal — only `(span, claim)`.* (§4.3)
+
+The 2026-09-12 analysis reached the same architecture independently —
+asymmetric authority, local classifier over API judge — which is mild evidence
+the reasoning is sound rather than novel. **But the spec assumed a fail-closed
+NLI tier would WORK.** The diagnostic measured it: on the 17 open attack
+classes, HHEM-2.1-Open caught 3, all 3 already caught by the deterministic
+gate — **union gain zero**. Its real skill showed up only where it would have
+to *lift* a flag, which §4.3's fail-closed rule forbids by design.
+
+So §4.3's T3 is not merely unbuilt. **As specified — fail-closed, no benefit
+of the doubt — it is measured to add nothing.** That is new information the
+spec could not have had, and it should be recorded against ADR-004.
+
+### 3. The spec's own named #1 risk has never been closed
+
+> *§7.5 The single biggest risk … **The gate is only as truthful as the
+> EvidenceStore, and the store is complete only if every retrieval flows
+> through an instrumented tool that captures verbatim full text.** … Sub-risk
+> (i) [un-hooked retrieval] is the genuinely hard one and is a harness
+> guarantee, not a skill-logic guarantee … **Get this wrong and the score is
+> theater. This is the top implementation-plan risk to close.***
+
+The capture hook was live-validated once by its author and **has never been
+exercised by a stranger** (`RESUME-HERE.md`, demo criterion 4, still ⚠️).
+
+**The spec named the top risk. Two months went to the entailment tier
+instead** — the component §4.3 calls "the only learned step" and the
+diagnostic now shows contributes nothing as specified. Meanwhile the risk the
+spec said turns the whole score into theater is exactly as open as it was on
+day one.
+
+**This sharpens the launch recommendation rather than changing it.** Ship
+provenance — the spec's own identity — and close §7.5, which is the one thing
+that can make provenance itself untrue.
