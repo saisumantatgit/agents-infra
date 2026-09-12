@@ -52,7 +52,17 @@ gate — a gold label is never Claude's to set).
 - [x] **5. DONE (D-35, OI-UX-01).** Sai stalled on 6/20 rows, all of them
       evidence-reads-as-absent. If the gate's author can't tell "nothing found"
       from "page broken", a stranger reading a report can't either. ~0.3M
-- [ ] **6. Round 8** against the repaired tree. ~1M
+- [x] **6. Round 8 RAN — 21 findings, 12 Error-B, 0 classes closed.** Three
+      Opus adversaries + a solo gate. The gate REFUTED my own headline: D-36
+      closed `that the <span>` and left `that <any other function word>
+      <span>` open, denial included, at PASS/100.0 — so R8A-01/02 are
+      REOPENED and the round closed nothing. 20 findings tripwired (43 strict
+      xfails). D-36 kept (fail-closed, closes a real shape) with its "CLOSED"
+      claim retracted and a NEW unmeasured Error-A recorded. New job J-21:
+      sentence-bounded complement detection via syntok — deliberately not
+      attempted tonight, because a third leftward-scan patch is the shape with
+      a 100% failure record here. Whitelist additions escalated to Sai
+      (PASS-enabling). Suite 563/2/56. Corpus byte-identical.
 - [ ] **7. Close** — register, logbook, RESUME-HERE, CR if due, push. ~0.4M
 
 ## Stop conditions

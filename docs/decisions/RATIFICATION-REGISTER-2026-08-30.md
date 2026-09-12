@@ -303,3 +303,92 @@ exactly, so the basis can never describe a path the verdict did not take."
 has been withdrawn from the docstring and the known-wrong outputs are listed
 there instead. D-35's *decision* stands; the *guarantee* in its documentation
 does not.
+
+---
+
+## D-36 — AMENDED THE SAME DAY. The "CLOSED" claim is RETRACTED.
+
+**The solo gate refuted C1 and C3 within the hour, and I reproduced both
+before accepting them.**
+
+### R8A-01/02 are NOT closed. The class is OPEN.
+
+D-36 closed `<non-factive verb> that THE <span>`. It left open
+`<non-factive verb> that <any other function word> <span>`:
+
+```
+source:  A blogger speculated that at least three Redis nodes silently lose
+         acknowledged writes on restart under default settings.
+claim:   At least three Redis nodes silently lose acknowledged writes on
+         restart under default settings [S1].
+verdict: GROUNDED    gate: PASS    score: 100.0
+
+source:  It is simply not true, whatever the vendor documentation may say,
+         that at least three Redis nodes silently lose acknowledged writes...
+verdict: GROUNDED    gate: PASS    score: 100.0
+```
+
+The leftward scan skips only `_SPAN_LEADING_DETERMINERS`; `at`, `in`, `of`,
+`as`, `about`, a numeral — anything else — and both guards stay silent. The
+length asymmetry D-36 claimed to remove **is still live for this shape.**
+
+**Why I did not see it: every fixture in
+`test_moat_r8_span_endorsement.py` uses `that the …`.** The fix and the test
+that certified it share one blind spot. That is the standing trap, in my own
+test file, for the second time in two sessions — and I *predicted* it in the
+gate's own dispatch prompt, then walked into it anyway.
+
+**This is the convention proving itself twice in one round:** *a narrow fix
+closes the fixture it was written against and leaves the class open — every
+time so far.* R8A-01 was itself the fix for round 7's quote-mining class. Its
+fix is now the third instance.
+
+### NEW: D-36 introduced an unmeasured Error-A
+
+Proven by diffing the two commits on one input: a source endorsing with a verb
+that is **not on the factive whitelist** now refuses where it grounded before.
+
+```
+source:  Our benchmark concluded that the Redis cache silently loses
+         acknowledged writes on restart.
+before: PASS      after: FAIL          (same for "indicates that", "reported that")
+```
+
+**"Corpus byte-identical" was never evidence of no Error-A** — only that the
+52 rows contain no instance of this shape. I wrote that limit into D-36 and
+the gate confirmed the stronger claim in the commit message was wrong. The
+deployed A=0.320 **does not bound this class.**
+
+**The remedy is PASS-ENABLING and therefore Sai's (Escalation #1).** Adding
+`concluded` / `indicates` to `_FACTIVE_VERBS` would ground things that are
+refused today. Note `reported` must NOT be added — "The blog reported that X"
+is attribution, and adding it opens Error-B. **A whitelist growing is normal
+maintenance; it is still a PASS-enabling change and not mine to make.**
+
+### Disposition
+
+| | |
+|---|---|
+| D-36 | **KEPT, not reverted** — it is fail-closed (C2 UPHELD by the gate) and it does close a real shape; reverting reinstates that hole |
+| R8A-01, R8A-02 | **REOPENED**, tripwired in `test_moat_r8_span_endorsement_open.py` (3 strict xfails + 1 green test pinning what D-36 did close) |
+| Round 8 tally | **0 classes fully closed**, not 2 |
+| New job | **J-21** |
+
+### J-21 — the sound fix, deliberately NOT attempted tonight
+
+Bound the complementizer search **and** the factive prefix to the **source
+sentence** containing the span, using the `syntok` segmenter `decompose`
+already depends on. One structurally-correct rule closes this residue **and**
+R8A-03 (the unbounded prefix window, where a factive verb anywhere earlier in
+the document licenses every later complement).
+
+**Not attempted tonight on purpose.** It is a design change to the moat's
+endorsement logic, it needs its own adversarial round, and I have today
+shipped two patches for this class and called one of them closed. A third
+leftward-scan patch at this hour is precisely the shape with a 100% failure
+record in this repo.
+
+**C2, C4 and C5 were UPHELD by the gate.** C4 with a sharpening I am adopting:
+no helper here is fully unreached, so the lesson is not "find unreached
+guards" but **"enumerate call sites AND the input shapes that reach them"** —
+D-36 is a guard that is called and still does not fire.

@@ -67,3 +67,11 @@ death before acting. Nothing is at risk — its artifacts (base-rate v1 report,
 probe script, results JSON) were copied into `Agent-Assure/docs/reports/` before
 the close. Remove with `git worktree remove --force` once that process exits.
 The two `wf_*` worktrees belong to another session and were not touched.
+
+## Added 2026-09-12 (round 8)
+
+| id | Thread | Owner | Blocking reason / waits on |
+|---|---|---|---|
+| J-21 | **Sentence-bounded complement detection.** Bound the complementizer search AND the factive prefix to the SOURCE SENTENCE containing the matched span, using the `syntok` segmenter `decompose` already depends on. Closes the R8A-01/02 residue (attribution and denial certify at PASS/100.0 whenever any non-determiner function word sits between `that` and the span) **and** R8A-03 (the factive prefix window is currently the whole document). One structurally-correct rule instead of a third leftward-scan patch. **Needs its own adversarial round before it can be called closed** — two patches for this class shipped on 2026-09-12 and one was wrongly reported CLOSED. | Claude | nothing — sequenced after round 8 |
+| J-22 | **Whitelist additions are Sai's (Escalation #1).** D-36 newly refuses honest sources that endorse with a verb not on `_FACTIVE_VERBS` — `concluded that`, `indicates that` grounded before and FAIL now. Adding them is **PASS-enabling**. `reported` must NOT be added: "The blog reported that X" is attribution and adding it opens Error-B. The class is absent from the n=52 corpus, so the deployed **A=0.320 does not bound it** — it is unmeasured, not small. | **Sai** | a ruling; ~free once ruled |
+| J-23 | **19 open round-8 findings**, tripwired as 43 strict xfails across four files in `tests/red_team_moat/`. Recorded is not accepted (Alpha #7). Includes 3 absence-path Error-B (R8C-01/02/03), 2 preprocessing Error-B (R8B-01/02), a 4-trigger denominator escape (R8B-03), and 7 lying-display findings against D-35 (R8C-04…09, R8C-11). | Claude + Sai | J-21 first |
