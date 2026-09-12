@@ -53,7 +53,7 @@ outward-facing. **Do NOT build T3. Do NOT change any gold label.**
       round is winnable** because the class is closed — which is exactly why
       it is worth running before a launch that stakes the product on it.
       Entailment findings are OUT OF SCOPE; record and discard. ~0.5M
-- [ ] **3. Close — at 01:30 IST via `/sg close` (Sai, 00:30), regardless of 1 and 2.** Register, logbook,
+- [x] **3. CLOSED 01:30 via `/sg close`.** Items 1 and 2 were already complete; nothing unfinished to record. ~~original:~~ **3. Close — at 01:30 IST via `/sg close`.** Register, logbook,
       RESUME-HERE, push, CronDelete. A half-finished round 9 with no handoff is
       worse than no round 9.
 

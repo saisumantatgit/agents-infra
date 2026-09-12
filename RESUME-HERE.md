@@ -1,19 +1,67 @@
 # RESUME HERE — Agent-Assure
 
-**Last session:** `d2b27b1f`, closed 2026-09-12 (overnight round-7 run + an
-afternoon session-B run through round 8).
+**Last session:** `d2b27b1f`, closed **2026-09-13 01:30 IST** (overnight after the
+launch analysis; round 9).
 **Branch:** `agent-assure-calibration-run` · clean, **pushed, 0 ahead.**
-*(The earlier "push is denied" note was wrong: the classifier blocked the compound
-`add && commit && push`, never `git push` alone.)*
-**Suite:** `cd Agent-Assure && uv run pytest -q` → **563 passed, 2 skipped, 56 xfailed.**
+**Suite:** `cd Agent-Assure && uv run pytest -q` → **564 passed, 2 skipped, 60 xfailed.**
 Trust the RUN, not this number.
 
-Read in this order: this file → `docs/logbook/2026-09-12-round-7-and-the-intra-rater-instrument.md`
-→ `docs/jobs/REGISTER.md`. Memory files are supplementary and go stale fastest.
+Read in this order: this file → `docs/logbook/2026-09-13-the-launch-question-and-what-provenance-actually-is.md`
+→ `docs/jobs/REGISTER.md`.
 
 ---
 
-# START HERE — round 8 closed NOTHING, and that is the honest headline
+# START HERE — one decision is Sai's, and everything waits on it
+
+**Ship PROVENANCE-only, or fund ENTAILMENT?** Not made. Do not presume it.
+
+| | provenance | entailment |
+|---|---|---|
+| what it answers | is every citation a source actually retrieved this session, verbatim? | does the source support the claim? |
+| the founding spec | **its one-sentence identity** — "mechanically traced to a source that was actually retrieved this session" (HQ repo, `docs/superpowers/specs/2026-06-20-agent-assure-design.md` §1) | the means (§4.3 T1/T2/T3), not the promise |
+| state | **NOT yet true** — round 9 found 2 ERROR-B; fix list is 4 items, all fail-closed | ~31 open ERROR-B classes; nothing measured fixes them |
+| human blockers | none | q25, J-22, second reader, calibration |
+
+## Why entailment is not buyable right now — measured, not argued
+
+- STORM verifies its own citations with an LLM at ~85%, and names "red herrings"
+  (q25's shape) as its unsolved failure.
+- Nothing on the standard benchmark clears 80%. An API judge buys 0.6pp over a
+  770M local checker at 446× the cost, is non-deterministic at temperature 0,
+  and is prompt-injectable ~91% of the time.
+- **Our own diagnostic:** HHEM-2.1-Open catches 3 of 17 open attacks, **all 3
+  already caught by the gate — union gain zero.** It is right only where it
+  would have to *lift* a flag, which the moat forbids.
+  `docs/research/diagnostic/RESULTS-2026-09-12.md`
+
+## If provenance — the launch fix list (all fail-closed)
+
+1. **Run the unresolved-citation check in `ground()` BEFORE the kind dispatch.**
+   Today RELATIONAL and ABSENCE claims skip it: `[S2][S3][S99]` and
+   `[S99] We found no evidence…` both certify **PASS 100.0**. Fixing either
+   checker alone leaves the other open.
+2. **`load_store` must raise** on a duplicate normalised id, duplicate JSON keys,
+   wrong types, and a `tool`/`full_text_source` mismatch. Today a duplicate
+   `source_id` launders a summary to verbatim by line order.
+3. **Comment stripping must detect code the way CommonMark does** (tilde fences,
+   indented blocks, escaped openers) — or stop stripping comments. One family:
+   R8B-01/02, R9P2-05/06/07.
+4. **Spec §7.5 — absence claims fail OPEN on an incomplete store.** The hook
+   does not capture WebSearch, search tools, Bash, Grep/Glob or most MCP
+   readers, and auto mode routes file reads through Bash. **Remedy touches hook
+   registration → Sai.** Launch option: exclude absence claims.
+   `Agent-Assure/docs/reports/SPEC-7.5-STORE-COMPLETENESS-2026-09-13.md`
+
+Then **round 10, provenance only**, against the repaired tree.
+
+## Withdrawn — do not repeat these
+
+- "The founding spec does not exist." It is in the HQ repo.
+- "Provenance cannot lose a red-team round." It lost round 9.
+
+---
+
+# Round 8 (2026-09-12) — closed nothing; the endorsement-guard lesson
 
 **Round 8 ran 2026-09-12** (`docs/plans/reports/RED-TEAM-R8-2026-09-12.md`):
 **21 findings, 12 Error-B, over three surfaces. Zero classes closed.**

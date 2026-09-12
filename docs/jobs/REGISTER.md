@@ -75,3 +75,15 @@ The two `wf_*` worktrees belong to another session and were not touched.
 | J-21 | **Sentence-bounded complement detection.** Bound the complementizer search AND the factive prefix to the SOURCE SENTENCE containing the matched span, using the `syntok` segmenter `decompose` already depends on. Closes the R8A-01/02 residue (attribution and denial certify at PASS/100.0 whenever any non-determiner function word sits between `that` and the span) **and** R8A-03 (the factive prefix window is currently the whole document). One structurally-correct rule instead of a third leftward-scan patch. **Needs its own adversarial round before it can be called closed** — two patches for this class shipped on 2026-09-12 and one was wrongly reported CLOSED. | Claude | nothing — sequenced after round 8 |
 | J-22 | **Whitelist additions are Sai's (Escalation #1).** D-36 newly refuses honest sources that endorse with a verb not on `_FACTIVE_VERBS` — `concluded that`, `indicates that` grounded before and FAIL now. Adding them is **PASS-enabling**. `reported` must NOT be added: "The blog reported that X" is attribution and adding it opens Error-B. The class is absent from the n=52 corpus, so the deployed **A=0.320 does not bound it** — it is unmeasured, not small. | **Sai** | a ruling; ~free once ruled |
 | J-23 | **19 open round-8 findings**, tripwired as 43 strict xfails across four files in `tests/red_team_moat/`. Recorded is not accepted (Alpha #7). Includes 3 absence-path Error-B (R8C-01/02/03), 2 preprocessing Error-B (R8B-01/02), a 4-trigger denominator escape (R8B-03), and 7 lying-display findings against D-35 (R8C-04…09, R8C-11). | Claude + Sai | J-21 first |
+
+## Added 2026-09-13
+
+| id | Thread | Owner | Blocking reason / waits on |
+|---|---|---|---|
+| J-24 | **THE PRODUCT CALL — ship provenance-only, or fund entailment.** Evidence: STORM genesis + LLM-judge research + HHEM diagnostic (`docs/research/`). Recommendation: provenance. | **Sai** | a decision; everything below is sequenced on it |
+| J-25 | **R9P1-01/02 — fabricated citation certifies PASS 100.0 on RELATIONAL and ABSENCE claims.** Move the unresolved-citation check in `ground()` ahead of the kind dispatch. Fail-closed. Tripwired. | Claude | J-24 (useful either way; do first if provenance) |
+| J-26 | **R9P2-01…04 — `load_store` silently repairs a self-contradicting store.** Raise on duplicate normalised ids, duplicate keys, wrong types, tool/source-type mismatch. Fail-closed. -01 tripwired. | Claude | J-24 |
+| J-27 | **Comment-stripper code detection** — tilde fences, indented code, escaped openers delete visible prose from the denominator. R8B-01/02 + R9P2-05/06/07. -06 tripwired. | Claude | J-24 |
+| J-28 | **Spec §7.5 — absence claims fail OPEN on an incomplete store.** Remedy (session taint on uncaptured retrieval, or wider matcher) is hook registration. | **Sai** | Escalation #4 |
+| J-29 | **Round 10, provenance only**, after J-25…J-27. | Claude | J-25, J-26, J-27 |
+| J-30 | **MiniCheck diagnostic** — harness ready (`docs/research/diagnostic/`), download failed twice on network. Confirmation, not decision-relevant. | Claude | a stable connection |
