@@ -17,8 +17,12 @@ gate — a gold label is never Claude's to set).
 
 ## Queue
 
-- [ ] **1. Fix `score.py`'s catch-all.** It printed "the divergent rows move
-      without a pattern" when they went 4/4 the same way. Owed. ~0.05M
+- [x] **1. `score.py` catch-all fixed + the round written up.** 2 branches -> 5;
+      none now asserts a pattern it has not checked. Report:
+      `docs/reports/INTRA-RATER-2026-09-12.md`. Headline: anchoring REFUTED 4/4;
+      κ=+0.857 on evidence-derivable items, 0/2 on policy items — and the
+      2026-09-03 "my page's wording caused it" diagnosis is RETRACTED, because
+      the rebuilt page stated provenance outright and the answer did not change.
 - [ ] **2. J-19 — factive-verb whitelist + negation conjunct.** Approved.
       Unlisted verbs REFUSE. Calibrate on n=52, corpus diff, CR if a rate moves.
       Must keep the honest-attribution mirror GREEN (else OI-T2-01 returns). ~1M

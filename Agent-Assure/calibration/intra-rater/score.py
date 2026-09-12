@@ -143,12 +143,22 @@ def report(rows: tuple[Row, ...]) -> str:
             "corpus can supply, or accept that this instrument cannot separate "
             "the branches at n=4."
         )
+    elif not toward_machine:
+        lines.append(
+            f"**Anchoring refuted; self-agreement below the bar.** All "
+            f"{len(div)} probe rows landed on his own gold, AGAINST the machine "
+            f"— the labels are not a mirror of the gate's output. But κ = "
+            f"{k:+.3f} on the unbiased stratum is under 0.8, so some items are "
+            "not being judged consistently. **Do not stop at the κ: find out "
+            "WHICH rows moved and whether they share a property.** If they do, "
+            "the corpus is mixed rather than ambiguous, and mixed is fixable."
+        )
     else:
         lines.append(
-            f"**Corpus is ambiguous.** κ = {k:+.3f} on the unbiased stratum, and "
-            "the divergent rows move without a pattern. No reader population "
-            "fixes this. Next: rebuild the corpus from items whose label is "
-            "defensible from a written rule, or narrow what the product claims."
+            f"**Indeterminate.** κ = {k:+.3f} and {len(toward_machine)} of "
+            f"{len(div)} probe rows moved toward the machine. Neither the "
+            "anchoring nor the ambiguity reading is supported. Report the rows "
+            "individually and do not summarise."
         )
     return "\n".join(lines)
 
