@@ -1,0 +1,506 @@
+[
+  {
+    "id": "R8A-01",
+    "population": "attack",
+    "finding": "R8A-01",
+    "premise": "Critics argued that the Redis cache silently loses acknowledged writes on restart under default settings.",
+    "hypothesis": "The Redis cache silently loses acknowledged writes on restart under default settings.",
+    "gold": "unsupported"
+  },
+  {
+    "id": "R8A-02",
+    "population": "attack",
+    "finding": "R8A-02",
+    "premise": "It is not true that the Redis cache silently loses acknowledged writes on restart under default settings.",
+    "hypothesis": "The Redis cache silently loses acknowledged writes on restart under default settings.",
+    "gold": "unsupported"
+  },
+  {
+    "id": "R8A-01r",
+    "population": "attack",
+    "finding": "R8A-01r",
+    "premise": "A blogger speculated that at least three Redis nodes silently lose acknowledged writes on restart under default settings.",
+    "hypothesis": "At least three Redis nodes silently lose acknowledged writes on restart under default settings.",
+    "gold": "unsupported"
+  },
+  {
+    "id": "R8A-02r",
+    "population": "attack",
+    "finding": "R8A-02r",
+    "premise": "It is simply not true, whatever the vendor documentation may say, that at least three Redis nodes silently lose acknowledged writes on restart under default settings.",
+    "hypothesis": "At least three Redis nodes silently lose acknowledged writes on restart under default settings.",
+    "gold": "unsupported"
+  },
+  {
+    "id": "R8A-03",
+    "population": "attack",
+    "finding": "R8A-03",
+    "premise": "Our benchmark showed that the cluster stayed stable. A blogger speculated that Redis loses data.",
+    "hypothesis": "Redis loses data.",
+    "gold": "unsupported"
+  },
+  {
+    "id": "R8A-05a",
+    "population": "attack",
+    "finding": "R8A-05a",
+    "premise": "The vendor failed to show that the Redis cache silently loses acknowledged writes on restart under default settings.",
+    "hypothesis": "The Redis cache silently loses acknowledged writes on restart under default settings.",
+    "gold": "unsupported"
+  },
+  {
+    "id": "R8A-05b",
+    "population": "attack",
+    "finding": "R8A-05b",
+    "premise": "The team was unable to demonstrate that the Redis cache silently loses acknowledged writes on restart under default settings.",
+    "hypothesis": "The Redis cache silently loses acknowledged writes on restart under default settings.",
+    "gold": "unsupported"
+  },
+  {
+    "id": "R8A-05c",
+    "population": "attack",
+    "finding": "R8A-05c",
+    "premise": "Nobody has established that the Redis cache silently loses acknowledged writes on restart under default settings.",
+    "hypothesis": "The Redis cache silently loses acknowledged writes on restart under default settings.",
+    "gold": "unsupported"
+  },
+  {
+    "id": "R8A-05d",
+    "population": "attack",
+    "finding": "R8A-05d",
+    "premise": "The auditor declined to confirm that the Redis cache silently loses acknowledged writes on restart under default settings.",
+    "hypothesis": "The Redis cache silently loses acknowledged writes on restart under default settings.",
+    "gold": "unsupported"
+  },
+  {
+    "id": "R8A-07",
+    "population": "attack",
+    "finding": "R8A-07",
+    "premise": "He claimed the the Redis cache silently loses acknowledged writes on restart under default settings.",
+    "hypothesis": "The Redis cache silently loses acknowledged writes on restart under default settings.",
+    "gold": "unsupported"
+  },
+  {
+    "id": "R7-qm1",
+    "population": "attack",
+    "finding": "R7-qm1",
+    "premise": "The vendor asserts that its inhaler was never recalled in any regulated market.",
+    "hypothesis": "The inhaler was never recalled in any regulated market.",
+    "gold": "unsupported"
+  },
+  {
+    "id": "R7-qm2",
+    "population": "attack",
+    "finding": "R7-qm2",
+    "premise": "It is a common misconception that the X200 drone dominates the commercial mapping market.",
+    "hypothesis": "The X200 drone dominates the commercial mapping market.",
+    "gold": "unsupported"
+  },
+  {
+    "id": "NEG-1",
+    "population": "attack",
+    "finding": "NEG-1",
+    "premise": "Redis does not lose acknowledged writes on restart under default settings.",
+    "hypothesis": "Redis loses acknowledged writes on restart under default settings.",
+    "gold": "unsupported"
+  },
+  {
+    "id": "NEG-2",
+    "population": "attack",
+    "finding": "NEG-2",
+    "premise": "The audit found no evidence that the segment margin reached 25 percent in the fourth quarter.",
+    "hypothesis": "The segment margin reached 25 percent in the fourth quarter.",
+    "gold": "unsupported"
+  },
+  {
+    "id": "REDHERRING-1",
+    "population": "attack",
+    "finding": "REDHERRING-1",
+    "premise": "Marketing spend increased twenty percent quarter over quarter according to the finance team. Customer signups rose sharply in the weeks following the campaign launch.",
+    "hypothesis": "Increased marketing spend drives higher customer signups.",
+    "gold": "unsupported"
+  },
+  {
+    "id": "REDHERRING-2",
+    "population": "attack",
+    "finding": "REDHERRING-2",
+    "premise": "Median API latency rose noticeably after the last infrastructure change. Customer churn increased in the same quarter across several segments.",
+    "hypothesis": "Higher API latency causes increased customer churn.",
+    "gold": "unsupported"
+  },
+  {
+    "id": "SWAP-1",
+    "population": "attack",
+    "finding": "SWAP-1",
+    "premise": "Redis sustained 128000 operations per second, twelve times the throughput of the disk-backed alternative.",
+    "hypothesis": "The disk-backed alternative sustained 128000 operations per second, twelve times the throughput of Redis.",
+    "gold": "unsupported"
+  },
+  {
+    "id": "M-factive",
+    "population": "mirror",
+    "finding": "M-factive",
+    "premise": "Our benchmark showed that the Redis cache silently loses acknowledged writes on restart under default settings.",
+    "hypothesis": "The Redis cache silently loses acknowledged writes on restart under default settings.",
+    "gold": "supported"
+  },
+  {
+    "id": "M-plain",
+    "population": "mirror",
+    "finding": "M-plain",
+    "premise": "The the Redis cache silently loses acknowledged writes on restart under default settings, per our testing.",
+    "hypothesis": "The Redis cache silently loses acknowledged writes on restart under default settings.",
+    "gold": "supported"
+  },
+  {
+    "id": "M-attrib-kept",
+    "population": "mirror",
+    "finding": "M-attrib-kept",
+    "premise": "Critics argued that the Redis cache silently loses acknowledged writes on restart under default settings.",
+    "hypothesis": "Critics argued that the Redis cache silently loses acknowledged writes on restart under default settings.",
+    "gold": "supported"
+  },
+  {
+    "id": "M-both",
+    "population": "mirror",
+    "finding": "M-both",
+    "premise": "Critics argued that the Redis cache silently loses acknowledged writes on restart under default settings. Our own benchmark showed that the Redis cache silently loses acknowledged writes on restart under default settings.",
+    "hypothesis": "The Redis cache silently loses acknowledged writes on restart under default settings.",
+    "gold": "supported"
+  },
+  {
+    "id": "M-paraphrase",
+    "population": "mirror",
+    "finding": "M-paraphrase",
+    "premise": "The upgraded rotor motor delivers a longer flight time than the previous model in repeated bench testing.",
+    "hypothesis": "The upgraded rotor motor provides more flight time than the earlier model.",
+    "gold": "supported"
+  },
+  {
+    "id": "M-demonstrated",
+    "population": "mirror",
+    "finding": "M-demonstrated",
+    "premise": "Independent testing demonstrated that at least three Redis nodes silently lose acknowledged writes on restart under default settings.",
+    "hypothesis": "At least three Redis nodes silently lose acknowledged writes on restart under default settings.",
+    "gold": "supported"
+  },
+  {
+    "id": "M-subset",
+    "population": "mirror",
+    "finding": "M-subset",
+    "premise": "Pilot production of the NovaChip process reached a 78% yield in the most recent quarter.",
+    "hypothesis": "The NovaChip process reached a 78% yield in pilot production.",
+    "gold": "supported"
+  },
+  {
+    "id": "M-neg-honest",
+    "population": "mirror",
+    "finding": "M-neg-honest",
+    "premise": "Redis does not lose acknowledged writes on restart under default settings.",
+    "hypothesis": "Redis does not lose acknowledged writes on restart under default settings.",
+    "gold": "supported"
+  },
+  {
+    "id": "q01#0",
+    "population": "gold52",
+    "finding": "q01",
+    "premise": "The aluminum chassis reduces overall unit weight by twelve percent compared to steel used in the legacy design.",
+    "hypothesis": "The aluminum chassis reduces overall unit weight by twelve percent compared to steel [S1].",
+    "gold": "supported"
+  },
+  {
+    "id": "q02#0",
+    "population": "gold52",
+    "finding": "q02",
+    "premise": "The X200 drone uses a carbon-fiber frame rated for extended field operation in harsh environments.",
+    "hypothesis": "The X200 drone uses a carbon-fiber frame rated for extended field operation [S2].",
+    "gold": "supported"
+  },
+  {
+    "id": "q03#0",
+    "population": "gold52",
+    "finding": "q03",
+    "premise": "According to the engineering team, the new battery pack lasts through extended field tests without failure under a range of temperatures.",
+    "hypothesis": "According to the engineering team, the new battery pack lasts through extended field tests without failure [S3].",
+    "gold": "supported"
+  },
+  {
+    "id": "q04#0",
+    "population": "gold52",
+    "finding": "q04",
+    "premise": "Quorum DB maintains strong consistency across all replicated partitions by default, even under network partition.",
+    "hypothesis": "Quorum DB maintains strong consistency across all replicated partitions by default [S4].",
+    "gold": "supported"
+  },
+  {
+    "id": "q05#0",
+    "population": "gold52",
+    "finding": "q05",
+    "premise": "In the third quarter, Meridian Robotics shipped 4,200 units to distributors across North America and Europe.",
+    "hypothesis": "Meridian Robotics shipped 4,200 units in the third quarter [S5].",
+    "gold": "supported"
+  },
+  {
+    "id": "q06#0",
+    "population": "gold52",
+    "finding": "q06",
+    "premise": "Company filings show that revenue grew 12% year over year across the segment during the reporting period.",
+    "hypothesis": "Revenue grew 12% year over year across the segment [S6].",
+    "gold": "supported"
+  },
+  {
+    "id": "q07#0",
+    "population": "gold52",
+    "finding": "q07",
+    "premise": "Quorum DB sustains 100,000 writes per second on commodity hardware in independent benchmark tests.",
+    "hypothesis": "Quorum DB sustains 100,000 writes per second on commodity hardware [S7].",
+    "gold": "supported"
+  },
+  {
+    "id": "q08#0",
+    "population": "gold52",
+    "finding": "q08",
+    "premise": "Pilot production of the NovaChip process reached a 78% yield in the most recent quarter.",
+    "hypothesis": "The NovaChip process reached a 78% yield in pilot production [S8].",
+    "gold": "supported"
+  },
+  {
+    "id": "q31#0",
+    "population": "gold52",
+    "finding": "q31",
+    "premise": "The acquisition closed at $4,000,000 in total consideration according to the disclosed filings.",
+    "hypothesis": "The acquisition closed at $4M in total consideration [S31].",
+    "gold": "supported"
+  },
+  {
+    "id": "q33#0",
+    "population": "gold52",
+    "finding": "q33",
+    "premise": "The fleet logged 1.2 million flight hours last year across all operating regions.",
+    "hypothesis": "The fleet logged 1.2 million flight hours last year [S33].",
+    "gold": "supported"
+  },
+  {
+    "id": "q38#0",
+    "population": "gold52",
+    "finding": "q38",
+    "premise": "Adverse events occurred in 3% of the treatment arm during the study period.",
+    "hypothesis": "Adverse events occurred in 3% of the treatment arm [S38].",
+    "gold": "supported"
+  },
+  {
+    "id": "q52#0",
+    "population": "gold52",
+    "finding": "q52",
+    "premise": "The trial enrolled 1,050 participants across twelve sites in three countries.",
+    "hypothesis": "The trial enrolled 1,050 participants across twelve sites [S52].",
+    "gold": "supported"
+  },
+  {
+    "id": "q09#0",
+    "population": "gold52",
+    "finding": "q09",
+    "premise": "The upgraded rotor motor delivers a longer flight time than the previous model in repeated bench testing.",
+    "hypothesis": "The upgraded rotor motor delivers longer flight time than the previous model [S9].",
+    "gold": "supported"
+  },
+  {
+    "id": "q10#0",
+    "population": "gold52",
+    "finding": "q10",
+    "premise": "The new onboarding flow at Larkspur reduced the average onboarding time for new accounts substantially this quarter.",
+    "hypothesis": "Larkspur reduced the average onboarding time for new accounts substantially [S10].",
+    "gold": "supported"
+  },
+  {
+    "id": "q35#0",
+    "population": "gold52",
+    "finding": "q35",
+    "premise": "Before acknowledging a write, Quorum DB replicates it to a majority of nodes in the cluster.",
+    "hypothesis": "Quorum DB replicates every write to a majority of nodes before acknowledging it [S35].",
+    "gold": "supported"
+  },
+  {
+    "id": "q51#0",
+    "population": "gold52",
+    "finding": "q51",
+    "premise": "The onboarding redesign shipped to all enterprise customers this quarter after a staged rollout.",
+    "hypothesis": "The onboarding redesign shipped to all enterprise customers this quarter [S51].",
+    "gold": "supported"
+  },
+  {
+    "id": "q11#0",
+    "population": "gold52",
+    "finding": "q11",
+    "premise": "According to the safety team, the X200 passed all mandated crash tests conducted this year.",
+    "hypothesis": "According to the safety team, the X200 passed all mandated crash tests [S11].",
+    "gold": "supported"
+  },
+  {
+    "id": "q32#0",
+    "population": "gold52",
+    "finding": "q32",
+    "premise": "Solar panels reduce carbon emissions across the regional grid over time as deployment scales.",
+    "hypothesis": "Solar panels reduce carbon emissions across the regional grid over time [S32].",
+    "gold": "supported"
+  },
+  {
+    "id": "q34#0",
+    "population": "gold52",
+    "finding": "q34",
+    "premise": "According to the finance team, quarterly bookings exceeded internal targets by a wide margin.",
+    "hypothesis": "According to the finance team, quarterly bookings exceeded internal targets [S34].",
+    "gold": "supported"
+  },
+  {
+    "id": "q12#0",
+    "population": "gold52",
+    "finding": "q12",
+    "premise": "Insulin resistance impairs glucose uptake and is a central mechanism that causes type 2 diabetes to develop. Type 2 diabetes develops when insulin resistance progresses and the pancreas can no longer compensate.",
+    "hypothesis": "Insulin resistance causes type 2 diabetes [S121][S122].",
+    "gold": "supported"
+  },
+  {
+    "id": "q36#0",
+    "population": "gold52",
+    "finding": "q36",
+    "premise": "Elevated cortisol leads to impaired sleep by delaying sleep onset and fragmenting the night. Impaired sleep is commonly observed together with elevated cortisol in stress studies.",
+    "hypothesis": "Elevated cortisol leads to impaired sleep [S361][S362].",
+    "gold": "supported"
+  },
+  {
+    "id": "q15#0",
+    "population": "gold52",
+    "finding": "q15",
+    "premise": "In the third quarter, Meridian Robotics shipped 4,200 units to distributors across North America and Europe.",
+    "hypothesis": "Meridian Robotics shipped 9,800 units in the third quarter [S15].",
+    "gold": "unsupported"
+  },
+  {
+    "id": "q41#0",
+    "population": "gold52",
+    "finding": "q41",
+    "premise": "The compound showed a 48% response rate in phase II of the study.",
+    "hypothesis": "The compound showed a 62% response rate in phase II [S41].",
+    "gold": "unsupported"
+  },
+  {
+    "id": "q16#0",
+    "population": "gold52",
+    "finding": "q16",
+    "premise": "Company filings list the segment margin as 25 for the fourth quarter.",
+    "hypothesis": "The segment margin was 25% in the fourth quarter [S16].",
+    "gold": "supported"
+  },
+  {
+    "id": "q17#0",
+    "population": "gold52",
+    "finding": "q17",
+    "premise": "Quorum DB sustains 10,000 writes per second on commodity hardware in benchmark tests.",
+    "hypothesis": "Quorum DB sustains 100,000 writes per second on commodity hardware [S17].",
+    "gold": "unsupported"
+  },
+  {
+    "id": "q50#0",
+    "population": "gold52",
+    "finding": "q50",
+    "premise": "The chip runs at 3.2 GHz base clock in standard operating mode.",
+    "hypothesis": "The chip runs at 3.5 GHz base clock [S50].",
+    "gold": "unsupported"
+  },
+  {
+    "id": "q21#0",
+    "population": "gold52",
+    "finding": "q21",
+    "premise": "The X200 drone includes an upgraded GPS module for improved positioning accuracy.",
+    "hypothesis": "The X200 drone dominates the entire commercial mapping market [S21].",
+    "gold": "unsupported"
+  },
+  {
+    "id": "q42#0",
+    "population": "gold52",
+    "finding": "q42",
+    "premise": "Larkspur released a new workflow automation feature this quarter.",
+    "hypothesis": "Larkspur is the market leader in workflow automation [S42].",
+    "gold": "unsupported"
+  },
+  {
+    "id": "q23#0",
+    "population": "gold52",
+    "finding": "q23",
+    "premise": "The new onboarding flow reduced time-to-first-value for new accounts.",
+    "hypothesis": "Faster onboarding leads to higher retention [S23].",
+    "gold": "unsupported"
+  },
+  {
+    "id": "q43#0",
+    "population": "gold52",
+    "finding": "q43",
+    "premise": "The new engine roughly doubled sustained query throughput.",
+    "hypothesis": "Higher throughput results in lower per-query cost [S43].",
+    "gold": "unsupported"
+  },
+  {
+    "id": "q25#0",
+    "population": "gold52",
+    "finding": "q25",
+    "premise": "Marketing spend increased twenty percent quarter over quarter according to the finance team. Customer signups rose sharply in the weeks following the campaign launch.",
+    "hypothesis": "Increased marketing spend drives higher customer signups [S251][S252].",
+    "gold": "unsupported"
+  },
+  {
+    "id": "q26#0",
+    "population": "gold52",
+    "finding": "q26",
+    "premise": "Median API latency rose noticeably after the last infrastructure change. Customer churn increased in the same quarter across several segments.",
+    "hypothesis": "Higher API latency causes increased customer churn [S261][S262].",
+    "gold": "unsupported"
+  },
+  {
+    "id": "q48#0",
+    "population": "gold52",
+    "finding": "q48",
+    "premise": "The company expanded remote work eligibility to most roles last year. Operating costs declined compared with the prior fiscal year.",
+    "hypothesis": "Remote work leads to lower operating costs [S481][S482].",
+    "gold": "unsupported"
+  },
+  {
+    "id": "q28#0",
+    "population": "gold52",
+    "finding": "q28",
+    "premise": "The battery pack lasted through extended field tests without failure.",
+    "hypothesis": "The battery pack failed repeatedly during extended field tests [S28].",
+    "gold": "unsupported"
+  },
+  {
+    "id": "q46#0",
+    "population": "gold52",
+    "finding": "q46",
+    "premise": "Revenue grew 12% year over year in the logistics division.",
+    "hypothesis": "Revenue grew 12% year over year in the mapping division [S46].",
+    "gold": "unsupported"
+  },
+  {
+    "id": "q27#0",
+    "population": "gold52",
+    "finding": "q27",
+    "premise": "Engineers reported the new motor lets this drone remain in flight considerably longer than before.",
+    "hypothesis": "The rotor upgrade extends how long the drone can stay airborne [S27].",
+    "gold": "supported"
+  },
+  {
+    "id": "q47#0",
+    "population": "gold52",
+    "finding": "q47",
+    "premise": "Field reports indicate the redesigned motor extends the drone's airborne duration per charge.",
+    "hypothesis": "The new motor keeps the drone flying longer between charges [S47].",
+    "gold": "supported"
+  },
+  {
+    "id": "q29#0",
+    "population": "gold52",
+    "finding": "q29",
+    "premise": "In the third quarter, Meridian Robotics shipped 4,200 units to distributors.",
+    "hypothesis": "The Zentara trial enrolled 4,200 patients [S29].",
+    "gold": "unsupported"
+  }
+]
