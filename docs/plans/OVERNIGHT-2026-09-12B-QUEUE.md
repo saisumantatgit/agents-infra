@@ -49,7 +49,7 @@ gate — a gold label is never Claude's to set).
       gold, because the label follows a RULE not the evidence. Reliability on
       such items measures rule-memorisation. Scaffold-side ONLY — **no generator
       may touch `labels-v2.csv`** (PIR-002). ~0.4M
-- [ ] **5. Absence-presentation defect.** Sai stalled on 6/20 rows, all of them
+- [x] **5. DONE (D-35, OI-UX-01).** Sai stalled on 6/20 rows, all of them
       evidence-reads-as-absent. If the gate's author can't tell "nothing found"
       from "page broken", a stranger reading a report can't either. ~0.3M
 - [ ] **6. Round 8** against the repaired tree. ~1M

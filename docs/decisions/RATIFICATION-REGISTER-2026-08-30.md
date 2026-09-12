@@ -187,3 +187,72 @@ wording for these two rows. The rebuilt page stated the provenance outright and
 the answer did not move. The wording was not the cause.
 
 Suite **532 passed / 2 skipped / 14 xfailed**; corpus regenerates stably.
+
+---
+
+## D-35 — OI-UX-01: the absence of evidence must be ASSERTED, never shown as nothing
+
+| id | Decision | Basis | Undo | Status |
+|---|---|---|---|---|
+| D-35 | **`evidence_basis(claim, store)` added to `ground_check.py`, emitted on every `per_claim` and `retained_appendix` entry.** One prose sentence naming what the gate consulted and what it found, branch-ordered to mirror `ground()` exactly. | Sai stalled on **6 of 20** intra-rater rows on 2026-09-12 and asked *"nothing here?"*. Every one of the six was a row whose evidence reads as absent. The gate's own author could not tell **"the tool looked and there was nothing"** from **"the tool broke"** — and those are opposite verdicts on the gate's trustworthiness. A stranger reading a grounding report has strictly less context than he did. | `git revert <this commit>`; the field is additive and no verdict consults it | DONE |
+
+**The law, stated so the next surface inherits it:** *never render the absence
+of a thing by showing nothing.* State what was consulted and what was found, as
+an assertion.
+
+**Three surfaces broke the same law three ways**, and the middle one is the
+moat's flagship case rendered as a template failure:
+
+| state | rendered as | read as |
+|---|---|---|
+| claim cites nothing | `""` | the generator broke |
+| cited id never retrieved (**fabrication**) | `S19: [NOT IN STORE]` | a placeholder that failed to fill |
+| absence claim | a bare query list joined by `\|\|\|` | an internal dump |
+
+**Chesterton's Fence — the fence was mine, and it was a case resolution.**
+`build_corpus._evidence_text`'s docstring already records this exact bug being
+fixed *once*, for the ABSENCE branch only ("Showing `""` for these rows — the
+original bug this function replaces"). The systemic issue was never named, so
+the other two branches kept it, **and the patched branch still stalled him** —
+showing the queries was not enough, because it never asserts that the list is
+complete and that this is what an absence is checked against. A case fix that
+does not name its class buys one row and leaves the law unwritten.
+
+**Why the product surface and not the calibration scaffold.** Changing the
+scaffold's `evidence` column changes `claim_sha = hash(claim_text, evidence)`
+and marks the affected **gold labels STALE** — re-ratification is Sai's
+(standing gate), so that path is blocked, and it is the *less* important one
+anyway. **Detectability (FMEA):** the scaffold defect is highly detectable — a
+human hit it on first read, twice. The grounding report's version is
+*undetectable by the current process*: `per_claim` carried **no evidence field
+at all**, and no test asserted that a report explains itself. High severity ×
+low detectability is the one to fix, and it is the surface a customer actually
+reads.
+
+**Deliberately NOT one shared renderer.** The report's summary branch states
+the governing policy outright ("Agent-Assure never grounds a claim on a summary,
+whatever the summary says") because a user acting on a verdict needs the reason.
+The labelling instrument must **not** say it: a display that tells the rater the
+answer makes reliability measure rule-reading — **Goodhart**, and the very
+contamination D-34 avoided by quarantining those rows out of κ rather than
+explaining them. Two surfaces, opposite requirements; the divergence is recorded
+in the function's own docstring so it is not "simplified" later.
+
+**Fail-closed by construction.** `evidence_basis` is a display function. It adds
+no branch to `ground()`, alters no verdict, and a source-inspection test asserts
+that `ground`, `check_absence`, `ground_relational` and `classify` never consult
+it — so it cannot become a decision path. Not Escalation #1: nothing moves the
+Error-A/Error-B trade-off.
+
+**Evidence.** `tests/test_evidence_basis.py`, 13 tests, **12 proven RED against
+pre-fix `ground_check.py`** (`AttributeError: no attribute 'evidence_basis'`).
+The 13th — the source-inspection guard — passed pre-fix *vacuously*, because a
+function that does not exist is consulted by nothing; it is a standing guard,
+not a regression test, and is reported as such rather than counted as 13/13.
+`test_score.py::test_per_claim_fields` was kept an **exact** field-set
+assertion rather than relaxed to a subset: the report is of-record, and adding
+a field should cost one deliberate edit.
+
+Suite **545 passed / 2 skipped / 14 xfailed** (was 532). Corpus
+**byte-identical**; 52 labels still gold, zero stale — `evidence` is untouched,
+so no `claim_sha` moves. CR-001 regenerates byte-identical. No CR is due.

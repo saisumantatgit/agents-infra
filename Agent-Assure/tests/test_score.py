@@ -386,13 +386,20 @@ def test_threshold_parameter_consulted():
 # ---------------------------------------------------------------------------
 
 def test_per_claim_fields():
-    """per_claim entries carry exact field names: index, text, kind, verdict."""
+    """per_claim entries carry exact field names.
+
+    Kept EXACT rather than relaxed to a subset when ``evidence_basis`` was
+    added (OI-UX-01, 2026-09-12): the report is an of-record artifact, and a
+    subset check would let a field appear or vanish unnoticed. Adding a field
+    is meant to cost one deliberate edit here.
+    """
     s1 = _src("S1", _GROUNDED_TEXT)
     store = _store(s1)
     c0 = _grounded_claim(0, "S1")
     rep = score_report([c0], store)
     entry = rep["per_claim"][0]
-    assert set(entry.keys()) == {"index", "text", "kind", "verdict"}
+    assert set(entry.keys()) == {"index", "text", "kind", "verdict",
+                                 "evidence_basis"}
     assert entry["index"] == 0
     assert entry["text"] == c0.text
     assert entry["kind"] == c0.kind.value

@@ -2576,6 +2576,122 @@ _NUMERATOR_VERDICTS: frozenset[Verdict] = frozenset({
 _FAIL_FLOOR: float = 60.0
 
 
+# ---------------------------------------------------------------------------
+# Evidence basis — what the gate consulted, in a sentence (OI-UX-01)
+# ---------------------------------------------------------------------------
+
+def _plural(n: int, one: str, many: str) -> str:
+    """Return *one* when n == 1 else *many*. Pure."""
+    return one if n == 1 else many
+
+
+def evidence_basis(claim: Claim, store: dict[str, RetrievedSource]) -> str:
+    """Return a plain sentence naming what the gate CONSULTED for *claim*.
+
+    This is a display function, not a decision function. It reports the
+    inputs a verdict was computed over; it never computes, alters or implies
+    a verdict, and nothing in ``ground``'s call tree consults it.
+
+    **The defect it closes (OI-UX-01).** Every surface in this project that
+    showed evidence rendered the ABSENCE of evidence as either an empty cell
+    or an internal token — ``""`` for an uncited claim, ``[NOT IN STORE]``
+    for a fabricated citation, a bare query list for an absence claim. All
+    three read as *the tool broke*, not as *the tool looked and there was
+    nothing there*, and those two readings are opposite verdicts on the
+    gate's trustworthiness. The project's own author stalled on 6 of 20
+    calibration rows on 2026-09-12 — every one of them a row whose evidence
+    reads as absent — and asked "nothing here?". A stranger reading a
+    grounding report has strictly less context than he did.
+
+    The rule this function applies, and which every future evidence surface
+    must apply: **state what was consulted and what was found, as an
+    assertion.** Never render the absence of a thing by showing nothing.
+
+    Branch order mirrors ``ground``'s exactly, so the basis can never
+    describe a path the verdict did not take.
+
+    **Deliberately NOT shared with the calibration scaffold**
+    (``build_corpus._evidence_text``). The haiku_summary branch below states
+    the governing POLICY outright, which is right for a user who must act on
+    a verdict and wrong for a labeller whose agreement is being measured: a
+    display that tells the rater the answer makes reliability measure
+    rule-reading (Goodhart). Two surfaces, opposite requirements. See D-34,
+    which quarantined those same rows out of kappa rather than explaining
+    them.
+
+    Pure function — no LLM, no network, no random, no wall-clock; does not
+    mutate *claim* or *store*.
+    """
+    if claim.kind == ClaimKind.NON_CLAIM:
+        return ("Not scored: this line was not classified as a factual claim, "
+                "so no evidence was sought for it.")
+
+    if claim.kind == ClaimKind.ABSENCE:
+        queries = _session_queries(store)
+        n_src = sum(1 for s in store.values() if s.text)
+        if not queries:
+            return ("The evidence store recorded NO search queries this "
+                    "session. An absence claim is substantiated by searches "
+                    "that were actually run, and there are none to show.")
+        listed = "; ".join(f'"{q}"' for q in queries)
+        return (f"An absence claim is checked against what was SEARCHED, not "
+                f"what was cited. Complete record consulted: "
+                f"{len(queries)} distinct search "
+                f"{_plural(len(queries), 'query', 'queries')} and the text of "
+                f"{n_src} retrieved {_plural(n_src, 'source', 'sources')}. "
+                f"The {_plural(len(queries), 'query was', 'queries were')}: "
+                f"{listed}.")
+
+    if not claim.citations:
+        n_src = len(store)
+        return (f"No source is cited, so the gate had nothing to check this "
+                f"claim against. The store holds {n_src} retrieved "
+                f"{_plural(n_src, 'source', 'sources')}; none was named by "
+                f"this claim. This is an uncited claim, NOT a retrieval "
+                f"failure.")
+
+    missing = [_nfkc(c).strip().strip("[]")
+               for c in claim.citations if resolve(c, store) is None]
+    if missing:
+        n_src = len(store)
+        return (f"{', '.join(missing)} "
+                f"{_plural(len(missing), 'is', 'are')} cited but "
+                f"{_plural(len(missing), 'was', 'were')} NEVER RETRIEVED this "
+                f"session. The store holds {n_src} "
+                f"{_plural(n_src, 'source', 'sources')} and does not contain "
+                f"{_plural(len(missing), 'it', 'them')}, so nothing exists to "
+                f"check the claim against.")
+
+    sources = [resolve(c, store) for c in claim.citations]
+    empty = [s.source_id for s in sources if not s.text]
+    if empty:
+        return (f"{', '.join(empty)} "
+                f"{_plural(len(empty), 'was', 'were')} retrieved but captured "
+                f"no full text (snippet only), so there is no text to match "
+                f"the claim against.")
+
+    summaries = [s.source_id for s in sources
+                 if s.full_text_source != "verbatim"]
+    verbatim = [s for s in sources if s.full_text_source == "verbatim"]
+    if not verbatim:
+        return (f"{', '.join(summaries)} "
+                f"{_plural(len(summaries), 'was', 'were')} captured as an "
+                f"AI-generated SUMMARY, not the source's own words. "
+                f"Agent-Assure never grounds a claim on a summary, whatever "
+                f"the summary says — the words checked would be the "
+                f"summariser's, not the source's.")
+
+    checked = ", ".join(f"{s.source_id} ({len(s.text)} chars)"
+                        for s in verbatim)
+    note = ""
+    if summaries:
+        note = (f" {', '.join(summaries)} "
+                f"{_plural(len(summaries), 'was', 'were')} also cited but is "
+                f"an AI summary and was excluded.")
+    return (f"Checked verbatim against {len(verbatim)} cited "
+            f"{_plural(len(verbatim), 'source', 'sources')}: {checked}.{note}")
+
+
 def score_report(
     claims: list[Claim],
     store: dict[str, RetrievedSource],
@@ -2624,10 +2740,12 @@ def score_report(
           "scored_claims": int,                # |S|
           "vacuous": bool,                     # True iff scored_claims == 0
           "per_claim": [                       # ALL claims, in input order
-              {"index": int, "text": str, "kind": str, "verdict": str}, ...
+              {"index": int, "text": str, "kind": str, "verdict": str,
+               "evidence_basis": str}, ...
           ],
           "retained_appendix": [               # non-grounded SCORED claims only
-              {"index": int, "text": str, "verdict": str}, ...
+              {"index": int, "text": str, "verdict": str,
+               "evidence_basis": str}, ...
           ],
         }
 
@@ -2650,6 +2768,7 @@ def score_report(
             "text": claim.text,
             "kind": claim.kind.value,
             "verdict": verdict.value,
+            "evidence_basis": evidence_basis(claim, store),
         })
 
         if verdict == Verdict.UNVERIFIED_CITATION:
@@ -2668,6 +2787,7 @@ def score_report(
                 "index": claim.index,
                 "text": claim.text,
                 "verdict": verdict.value,
+                "evidence_basis": evidence_basis(claim, store),
             })
 
     vacuous = scored_count == 0
