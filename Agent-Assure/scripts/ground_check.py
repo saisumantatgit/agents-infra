@@ -916,6 +916,15 @@ def _span_is_hedged(source_tokens: list[str], start: int) -> bool:
 # Neither fix is sufficient alone.
 _COMPLEMENTIZERS: frozenset[str] = frozenset({"that"})
 
+# Determiners that may sit between a complementizer and the start of a matched
+# span ("... that THE Redis cache ..."). A CLOSED function-word class on
+# purpose: unlike a token count or a capitalisation, an author cannot pad this
+# to escape the guard without changing the sentence a reader sees.
+_SPAN_LEADING_DETERMINERS: frozenset[str] = frozenset({
+    "the", "a", "an", "this", "these", "those", "its", "their", "his", "her",
+    "our", "my", "your", "such", "said",
+})
+
 _FACTIVE_VERBS: frozenset[str] = frozenset({
     "show", "shows", "showed", "shown",
     "demonstrate", "demonstrates", "demonstrated",
@@ -957,9 +966,21 @@ def _span_under_nonfactive_complement(
 
     Pure function.
     """
-    if start == 0 or source_tokens[start - 1] not in _COMPLEMENTIZERS:
+    # R8A-01 follow-on (round 8, 2026-09-12): the complementizer is rarely
+    # the token IMMEDIATELY before the span. On the contiguous-span path the
+    # window is anchored to the claim's first CONTENT word, so "that the
+    # Redis cache ..." puts a determiner between "that" and the span start and
+    # the guard silently declined to fire — "A blogger speculated that the
+    # <13-token span>" grounded. Skip leading DETERMINERS only (a closed
+    # function-word class), never content words: a determiner cannot be added
+    # or removed without changing the sentence a reader sees, so this is not a
+    # surface the author can use to switch the rule off.
+    cursor = start
+    while cursor > 0 and source_tokens[cursor - 1] in _SPAN_LEADING_DETERMINERS:
+        cursor -= 1
+    if cursor == 0 or source_tokens[cursor - 1] not in _COMPLEMENTIZERS:
         return False
-    prefix = source_tokens[:start - 1]
+    prefix = source_tokens[:cursor - 1]
     if not prefix:
         return True
     if any(tok in _NEGATION_TOKENS for tok in prefix):
@@ -1073,10 +1094,16 @@ def t1_verbatim(
         m = len(source_tokens)
         if m < min_quote_len:
             continue
-        # Build a set of source n-grams of length min_quote_len.
-        source_ngrams: set[tuple[str, ...]] = set()
+        # Map each source n-gram to EVERY position it occurs at, not merely to
+        # the fact that it occurs (R8A-01, 2026-09-12). The position is what
+        # the endorsement guards below need: "does this span appear in the
+        # source" and "does the source ASSERT it" are different questions, and
+        # a set of n-grams can only answer the first.
+        source_ngram_starts: dict[tuple[str, ...], list[int]] = {}
         for i in range(m - min_quote_len + 1):
-            source_ngrams.add(tuple(source_tokens[i : i + min_quote_len]))
+            source_ngram_starts.setdefault(
+                tuple(source_tokens[i : i + min_quote_len]), []).append(i)
+        source_ngrams = source_ngram_starts.keys()
         # Check each claim window of length min_quote_len.
         span_matched = False
         for j in range(n - min_quote_len + 1):
@@ -1111,13 +1138,46 @@ def t1_verbatim(
         subject_positions = [
             i for i, tok in enumerate(claim_tokens) if tok == subject
         ]
+        # R8A-01/R8A-02 (round 8, 2026-09-12) — THE ENDORSEMENT GUARDS APPLY
+        # HERE TOO.
+        #
+        # _span_is_hedged and _span_under_nonfactive_complement were called
+        # from exactly one place: _claim_contained_verbatim, the EXACT-
+        # containment path. This span path applied neither. The guards
+        # therefore fired for claims SHORTER than min_quote_len and were
+        # silent for longer ones, which put the moat's endorsement check
+        # behind a threshold the draft's author sets by typing more words.
+        #
+        # Reproduced: source "It is not true that the Redis cache silently
+        # loses acknowledged writes on restart under default settings",
+        # claim "The Redis cache silently loses acknowledged writes on
+        # restart under default settings [S1]" -> GROUNDED, gate PASS,
+        # score 100.0. The gate asserted the exact opposite of its source.
+        # Shorten the same shape below 8 tokens and it correctly FAILED.
+        #
+        # This is the project's own standing law broken by the fix written
+        # to uphold it: NEVER KEY A MOAT RULE ON A SURFACE PROPERTY THE
+        # AUTHOR CONTROLS. Round 3 killed a token-count rule; round 4 killed
+        # a capitalisation rule; this is claim length, found on the J-19
+        # whitelist the same day it shipped.
+        #
+        # "At least one clean occurrence" mirrors _claim_contained_verbatim
+        # deliberately: a source that BOTH reports an attributed claim and
+        # independently asserts it does endorse it, and the two paths must
+        # not disagree about what endorsement means.
         anchored = False
         for start in subject_positions:
             if start + min_quote_len > n:
                 continue
             window = tuple(claim_tokens[start : start + min_quote_len])
-            if window in source_ngrams:
+            for src_start in source_ngram_starts.get(window, ()):
+                if (_span_is_hedged(source_tokens, src_start)
+                        or _span_under_nonfactive_complement(
+                            source_tokens, src_start)):
+                    continue
                 anchored = True
+                break
+            if anchored:
                 break
         if anchored:
             return True
@@ -2607,8 +2667,28 @@ def evidence_basis(claim: Claim, store: dict[str, RetrievedSource]) -> str:
     must apply: **state what was consulted and what was found, as an
     assertion.** Never render the absence of a thing by showing nothing.
 
-    Branch order mirrors ``ground``'s exactly, so the basis can never
-    describe a path the verdict did not take.
+    **Branch coverage is INCOMPLETE and the contract is stated honestly.**
+    An earlier version of this docstring claimed the branch order "mirrors
+    ``ground``'s exactly, so the basis can never describe a path the verdict
+    did not take". **That claim was FALSE when written** (round 8, R8C-11):
+    ``ground`` dispatches RELATIONAL to ``ground_relational`` before anything
+    below, and this function has no RELATIONAL branch, so every relational
+    claim falls through to the citation branches and is misdescribed —
+    including a two-source claim whose basis reports "2 cited sources" in the
+    row whose verdict exists precisely because only one of them carried the
+    link.
+
+    Known-wrong outputs, tripwired in
+    ``tests/red_team_moat/test_moat_r8_display.py`` and OPEN:
+      * RELATIONAL claims (no branch) — R8C-11.
+      * ``query_provenance`` is interpolated RAW, so store-controlled text can
+        speak in the gate's own voice — R8C-04.
+      * the query count can differ from the set ``check_absence`` used
+        (case / NFKC / empty-string divergence) — R8C-06, R8C-09.
+
+    Until those close, read this field as *indicative*, never as an audit
+    record. A display that is wrong is worse than one that is absent, and the
+    previous docstring asserted a guarantee the code did not provide.
 
     **Deliberately NOT shared with the calibration scaffold**
     (``build_corpus._evidence_text``). The haiku_summary branch below states
