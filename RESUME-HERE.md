@@ -1,10 +1,11 @@
 # RESUME HERE — Agent-Assure
 
-**Last session:** `d2b27b1f`, closed 2026-09-12 (overnight round-7 run).
+**Last session:** `d2b27b1f`, closed 2026-09-12 (overnight round-7 run + an
+afternoon session-B run through round 8).
 **Branch:** `agent-assure-calibration-run` · clean, **pushed, 0 ahead.**
 *(The earlier "push is denied" note was wrong: the classifier blocked the compound
 `add && commit && push`, never `git push` alone.)*
-**Suite:** `cd Agent-Assure && uv run pytest -q` → **532 passed, 2 skipped, 14 xfailed.**
+**Suite:** `cd Agent-Assure && uv run pytest -q` → **563 passed, 2 skipped, 56 xfailed.**
 Trust the RUN, not this number.
 
 Read in this order: this file → `docs/logbook/2026-09-12-round-7-and-the-intra-rater-instrument.md`
@@ -12,7 +13,62 @@ Read in this order: this file → `docs/logbook/2026-09-12-round-7-and-the-intra
 
 ---
 
-# START HERE — the fork is RESOLVED. The corpus is MIXED, not ambiguous.
+# START HERE — round 8 closed NOTHING, and that is the honest headline
+
+**Round 8 ran 2026-09-12** (`docs/plans/reports/RED-TEAM-R8-2026-09-12.md`):
+**21 findings, 12 Error-B, over three surfaces. Zero classes closed.**
+
+**Do not read the xfail count as decay.** 14 → 56 is not the gate getting
+worse; it is 43 tripwires over holes that were already there and unrecorded
+this morning. Each fails today and goes RED the day someone fixes it.
+
+## The one thing to understand before touching the moat
+
+`_span_is_hedged` and `_span_under_nonfactive_complement` are called from
+T1's **exact-containment** path. The **≥8-token span path** applied neither.
+So the moat's endorsement check fired for short claims and was silent for long
+ones — **the author switched it off by typing more words.**
+
+D-36 narrowed that. It did **not** close it:
+
+```
+source:  A blogger speculated that at least three Redis nodes silently lose
+         acknowledged writes on restart under default settings.
+claim:   same text, frame stripped [S1]
+verdict: GROUNDED    gate: PASS    score: 100.0     (denial form: identical)
+```
+
+The leftward scan skips only DETERMINERS, so `that the …` is caught and
+`that at least three …` is not. **Every fixture in the test file that
+certified D-36 used `that the …`** — the fix and its test shared one blind
+spot. R8A-01 was itself the fix for round 7's quote-mining class, so this is
+the third link in one chain, and it is the convention proving itself:
+*a narrow fix closes the fixture it was written against and leaves the class
+open.*
+
+**J-21 is the sound fix and it is specified, not built:** bound the
+complementizer search AND the factive prefix to the SOURCE SENTENCE containing
+the span, using the `syntok` segmenter `decompose` already depends on. One
+rule closes this residue and R8A-03 together. **It needs its own adversarial
+round before anyone calls it closed.**
+
+## The method finding, which outlives the bug
+
+A guard can be **correct and unreached**. J-19's logic was sound the day it
+shipped and was wired into one of two call sites. No case enumeration finds
+that, because every case you test goes through the site you wired.
+
+**Enumerate call sites AND the input shapes that reach them.**
+
+And the second-order version, which is the reason the solo gate is not
+optional: I *predicted this exact blind spot in the gate's own dispatch
+prompt*, then wrote a test file that had it. Naming a bias did not prevent it.
+What caught it was an outside reader attacking a conclusion **already
+committed**, so it could not be revised to dodge them.
+
+---
+
+# The corpus fork — RESOLVED (2026-09-12)
 
 **The intra-rater test ran 2026-09-12** (`docs/reports/INTRA-RATER-2026-09-12.md`).
 
@@ -123,17 +179,23 @@ round 7 — the corpus is still clean, the gate is not).
 
 | # | Criterion | State | Owner |
 |---|---|---|---|
-| 1 | Zero known Error-B on the ratified corpus, each closed class carrying a tripwire | ⚠️ **still true of the CORPUS, but round 7 found 19 open Error-B classes the corpus does not contain.** Each is tripwired. Never quote criterion 1 without this line. | Claude |
+| 1 | Zero known Error-B on the ratified corpus, each closed class carrying a tripwire | ⚠️ **still true of the CORPUS, and now false of the GATE by a wider margin: rounds 7+8 leave ~31 open Error-B classes the corpus does not contain.** All tripwired (56 xfails, of which 3 are the ADR-006 Error-A price, not holes). Never quote criterion 1 without this line. | Claude |
 | 2 | Thresholds are data, with a current CR, and no fitted parameter is undocumented | ✅ CR-004; grounding path has **zero** fitted parameters | — |
 | 3 | Installs and runs standalone from a clean clone, zero cross-plugin imports | ✅ `install.sh`, `uv sync` | — |
 | 4 | Every open moat item is either CLOSED or accepted **in writing** by its owner | ⚠️ 9 strict xfails are recorded and accepted; **J-15 and J-05 are neither** | Sai |
 | 5 | Error rates from **≥2 independent labellers**, not the project owner alone | ❌ not met, but **now REACHABLE** — intra-rater κ=+0.857 on evidence-derivable items, anchoring refuted 4/4, and `label_basis` separates the policy rows no reader can derive. Next: **ONE domain-competent reader, derivable items only.** | Sai + Claude |
 | 6 | Error-A either tolerable for the intended user, or measured on **real** drafts | ❌ unmeasured; two attempts failed (`docs/reports/BASE-RATE-*`) | — |
-| 7 | One adversarial round whose every finding is closed or accepted, run **after** the last moat change | ❌ round 7 found **22 over 11 mechanisms**; **10 now closed, 12 open and tripwired.** Recorded is not accepted. **Round 8 is owed** and must run after J-19/J-20/D-30…D-34. `docs/plans/reports/RED-TEAM-R7-2026-09-12.md` | Claude + Sai |
+| 7 | One adversarial round whose every finding is closed or accepted, run **after** the last moat change | ❌ **round 8 ran and closed ZERO classes** — 21 findings, 12 Error-B, 20 tripwired (J-23). Recorded is not accepted. **Round 9 is owed after J-21 lands**, and J-21 is itself a moat change that needs attacking. `docs/plans/reports/RED-TEAM-R8-2026-09-12.md` | Claude + Sai |
 | 8 | AAR-004 written and `v0.9.0-alpha` tagged | ❌ | Claude |
 
-**Shortest honest path to Alpha:** #5 (free) → #4 (two rulings) → #7 (~0.4M) →
+**Shortest honest path to Alpha:** #5 (free) → #4 (two rulings) → **J-21 then
+round 9** (~1.5M, was estimated 0.4M before round 8 tripled the open set) →
 #6 or an explicit written acceptance of 0.320 → #8 (~0.4M).
+
+**The estimate moved for a reason worth keeping:** every round so far has found
+more than the previous one, in a gate that keeps getting better. That is not a
+contradiction — the adversaries keep getting sharper prompts. Budget round 9
+as a real round, not a formality.
 **T3 is not on this list.** It buys Error-A down; it is not required to *state*
 Error-A honestly.
 
@@ -144,6 +206,7 @@ Error-A honestly.
 | | Item | Cost |
 |---|---|---|
 | 0 | **q25 — a GOLD ADJUDICATION, and never Claude's to set.** `"Increased marketing spend drives higher customer signups [S251][S252]"` — gold says violation (a causal claim from two correlational sources); you said grounded, blind. The one genuinely ambiguous item the intra-rater round found. | 5 min |
+| 0a | **J-22 — add `concluded` / `indicates` to `_FACTIVE_VERBS`?** D-36 newly REFUSES honest sources that endorse with a verb not on the whitelist: `Our benchmark concluded that …` grounded before and FAILs now. Adding them is **PASS-ENABLING** = Escalation #1. **`reported` must NOT be added** — "The blog reported that X" is attribution, and adding it opens Error-B. The class is **absent from the n=52 corpus, so A=0.320 does not bound it** — unmeasured, not small. | ~free once ruled |
 | 0b | **OI-MOAT-31 — invert `_header_asserts`' default?** It asks *"is this an assertion?"* and defaults to NO, so a header escapes scoring when the test is inconclusive — a default pointing toward PASS. `### Redis lost all data` is caught only because "Redis" ends in "s". **Every narrow fix is the blacklist/length shape that has failed five times**; the sound fix inverts the default and moves the Error-A/Error-B trade-off. Escalation #1. | ~0.3M |
 | 0c | **J-15** — score rhetorical questions? *(recommend: no exemption — 7.9% of real-prose claims are questions and **zero** carry a citation, so they read UNCITED, which already blocks PASS)* | ~0.3M |
 | 0d | **D-07** — `install.sh` ships pytest to end users. *(recommend: `uv sync --no-dev`)* | free |
