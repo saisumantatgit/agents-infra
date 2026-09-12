@@ -694,13 +694,56 @@ def classify(claim: Claim) -> Claim:
 # T1 — Verbatim grounding tier
 # ---------------------------------------------------------------------------
 
-def _tokenize(text: str) -> list[str]:
-    """Return NFKC-casefolded word tokens from *text*.
+# OI-MOAT-25 (J-20). The tokenizer is \w+, which treats an apostrophe as a
+# separator: "isn't" -> ["isn", "t"]. Neither piece is "not", so a NEGATION
+# expressed as a contraction is destroyed before any rule can read it — and two
+# rules depend on reading it. _span_is_hedged looks for "not" among the tokens
+# before a mined span, and _ABSENCE_NEGATION_RE looks for it in claim and source
+# text. Round 7 turned that into a one-character evasion of the quote-mining
+# guard:
+#
+#     source "It is not true that the cache loses data on restart."  -> FAIL
+#     source "It isn't true that the cache loses data on restart."   -> PASS, 100.0
+#
+# ONE RULE, NOT A TOKEN LIST. Every contracted negation in English is the suffix
+# "n't", so expanding the suffix covers isn't / doesn't / haven't / didn't /
+# won't / can't / shouldn't / mustn't and any other, including ones nobody
+# enumerated. A list of contracted forms would be a blacklist over a class the
+# author draws from, which is the shape of rule this project has now watched
+# fail five times.
+#
+# BOTH APOSTROPHES. NFKC does NOT fold U+2019 (') to U+0027 ('), so a curly
+# apostrophe would walk straight through a straight-quote-only rule — the same
+# surface-property evasion one layer down. Both are matched explicitly.
+#
+# The irregulars are deliberately NOT special-cased: "can't" expands to "ca not"
+# and "won't" to "wo not", which are not English but ARE symmetric — claim and
+# source pass through the same function, so matching is unaffected and the "not"
+# that the guards need is present. This function serves MATCHING only; the text
+# shown to the author comes from _reconstruct_sentence, which has its own
+# separate fidelity defect (it renders "doesn't" as "doesnot") that is
+# PASS-enabling and remains Sai's call.
+_NEGATION_CONTRACTION_RE = _re.compile(r"n['’]t\b", _re.IGNORECASE)
 
-    Tokenizer: re.findall(r"\\w+", ...) on NFKC + casefold.
+
+def _expand_negation_contractions(text: str) -> str:
+    """Return *text* with the "n't" suffix expanded to " not".
+
+    Pure function — returns a new string, mutates nothing.
+    """
+    return _NEGATION_CONTRACTION_RE.sub(" not", text)
+
+
+def _tokenize(text: str) -> list[str]:
+    r"""Return NFKC-casefolded word tokens from *text*, negations expanded.
+
+    Tokenizer: re.findall(r"\w+", ...) on NFKC + casefold, after expanding
+    contracted negations (OI-MOAT-25) so that "isn't" yields ["is", "not"]
+    rather than ["isn", "t"].
     Pure function.
     """
-    return _re.findall(r"\w+", _nfkc(text).casefold())
+    return _re.findall(r"\w+",
+                       _expand_negation_contractions(_nfkc(text)).casefold())
 
 
 def _strip_citations(text: str) -> str:
@@ -1191,7 +1234,8 @@ def t2_lexical(
     # session actually retrieved the other entity. It does not make T2 sound —
     # see OI-MOAT-21, which carries round 5's finding that a ratio over
     # attacker-controlled length cannot be a soundness test at any lex_tau.
-    claim_negated = bool(_ABSENCE_NEGATION_RE.search(_nfkc(claim.text).casefold()))
+    claim_negated = bool(_ABSENCE_NEGATION_RE.search(
+        _expand_negation_contractions(_nfkc(claim.text)).casefold()))
     elsewhere: set[str] = set()
     for text in (other_source_texts or []):
         elsewhere.update(_tokenize(text))
@@ -1210,7 +1254,8 @@ def t2_lexical(
         # words with the sentence it contradicts, which a bag-of-words tier
         # scores as agreement.
         if claim_negated != bool(
-            _ABSENCE_NEGATION_RE.search(_nfkc(source.text).casefold())
+            _ABSENCE_NEGATION_RE.search(
+                _expand_negation_contractions(_nfkc(source.text)).casefold())
         ):
             continue
         return True
@@ -1907,7 +1952,8 @@ def check_absence(
                 # those as contradictions and turned three human-labeled
                 # GROUNDED rows into false alarms (caught by the mandatory
                 # corpus regeneration diff, not by the test suite).
-                if _ABSENCE_NEGATION_RE.search(body):
+                if _ABSENCE_NEGATION_RE.search(
+                    _expand_negation_contractions(body)):
                     continue
                 return Verdict.UNVERIFIED_ABSENCE
 

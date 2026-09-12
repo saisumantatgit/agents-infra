@@ -25,8 +25,12 @@ tokenizer: expand the "n't" suffix to " not" before tokenizing, one rule
 covering every contracted negation there is, so the existing hedge list and
 _ABSENCE_NEGATION_RE both see what the source actually said.
 
-These tests are strict xfails: they are the OPEN Error-B, counted. They XPASS
-the moment the tokenizer is repaired — remove the marker then.
+CLOSED 2026-09-12 by J-20, ratified by Sai. `_expand_negation_contractions`
+expands the "n't" suffix before tokenizing, so the existing hedge list and
+_ABSENCE_NEGATION_RE both see the negation. Both apostrophes are matched
+(NFKC does not fold U+2019 to U+0027, so a curly one would have walked through
+a straight-quote-only rule — the same surface evasion one layer down). The
+xfail markers came off when these XPASSed; the tests stay as permanent guards.
 """
 
 from __future__ import annotations
@@ -85,12 +89,6 @@ UNCONTRACTED = [
 ]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="OI-MOAT-25 OPEN: _tokenize splits \"isn't\" into ['isn','t'], so the "
-    "denial is invisible to _span_is_hedged and the mined span grounds. Error-B. "
-    "Closes when the n't suffix is expanded before tokenizing.",
-)
 @pytest.mark.parametrize("draft", CONTRACTED)
 def test_contracted_denial_must_not_ground(tmp_path: Path, draft: str) -> None:
     """The source DENIES the claim. Certifying it is the unrecoverable error."""

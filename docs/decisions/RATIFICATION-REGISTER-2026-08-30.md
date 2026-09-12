@@ -127,3 +127,10 @@ zero) · **19 open** · 7 tripwired classes. The earlier "closed 2" was wrong.
 **Still open and NOT covered by this ruling:** J-15 (rhetorical questions),
 D-07 (`install.sh` shipping pytest to end users), `docs/consulting/` privacy,
 D-01 (park-list reading), and the D-15…D-20 cohort.
+
+| id | Decision | Basis | Undo | Status |
+|---|---|---|---|---|
+| D-28 | **J-20 / OI-MOAT-25 CLOSED: `_expand_negation_contractions` expands the `n't` suffix before tokenizing.** Applied at 4 sites — `_tokenize` plus the three `_ABSENCE_NEGATION_RE` reads, which operate on raw text rather than tokens. | Approved by Sai ("ratify, yes"). **One rule, not a token list:** every contracted negation in English is the suffix `n't`, so a list of forms would be a blacklist over a class the author draws from — the rule shape that has now failed five times here. **Both apostrophes matched:** NFKC does not fold U+2019 to U+0027, so a curly apostrophe would have walked through a straight-quote-only rule, the same surface evasion one layer down. Irregulars deliberately NOT special-cased: `can't`→`ca not` is not English but IS symmetric, claim and source pass through the same function, and the `not` the guards need is present. Round-7 attack PASS(100.0) → **FAIL**; uncontracted control unchanged; suite **512 passed / 2 skipped / 20 xfailed**; corpus **byte-identical**, so CR-004 stands. | revert commit — reopens OI-MOAT-25 | DONE |
+
+**OI-MOAT-25's two strict xfails XPASSED and their markers are removed.** The
+tests stay as permanent guards. Open Error-B classes: **19 → 18.**
