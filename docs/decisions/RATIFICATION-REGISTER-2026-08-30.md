@@ -392,3 +392,20 @@ record in this repo.
 no helper here is fully unreached, so the lesson is not "find unreached
 guards" but **"enumerate call sites AND the input shapes that reach them"** —
 D-36 is a guard that is called and still does not fire.
+
+---
+
+## D-37 — §7.5 audit: findings recorded, NOTHING changed
+
+| id | Decision | Basis | Undo | Status |
+|---|---|---|---|---|
+| D-37 | **Record the spec §7.5 store-completeness findings and change no code.** | Every material remedy — tainting the session on uncaptured retrieval, widening the hook matcher to `WebSearch`/search tools/`Bash` — changes **hook registration**, which the project's escalation list (#4) reserves to Sai. The one display-only fix available (D-35 calls fetch provenances "search queries", which is inaccurate) was deferred to keep the night decision-independent. | nothing to undo | DONE |
+
+**The finding that needs a ruling:** an incomplete EvidenceStore is fail-closed
+for positive claims (a missing source cannot resolve, so it can only refuse)
+but **FAIL-OPEN for absence claims** — the gate cannot see a refutation the
+model read through an uncaptured tool. Reproduced on the corpus's own certified
+case: q13 reads **PASS / ABSENCE_SUPPORTED / 100.0** on what the hook captured,
+and **FAIL** once one native-WebSearch result is added to the store.
+
+Report: `Agent-Assure/docs/reports/SPEC-7.5-STORE-COMPLETENESS-2026-09-13.md`.

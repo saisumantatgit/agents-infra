@@ -20,7 +20,12 @@ outward-facing. **Do NOT build T3. Do NOT change any gold label.**
 
 ## Queue
 
-- [ ] **1. §7.5 audit — the spec's own named #1 risk, never closed.** The
+- [x] **1. DONE 00:12 — store gaps are SAFE for ordinary claims and FAIL-OPEN
+      for absence claims, demonstrated: the certified q13 absence reads PASS
+      100.0 on the captured store and FAIL once one uncaptured WebSearch result
+      is added. Also found auto mode instructs file reads via Bash, which the
+      hook never sees. Nothing changed — every remedy is hook registration,
+      Escalation #4 (D-37).** ~~original:~~ **§7.5 audit — the spec's own named #1 risk, never closed.** The
       founding spec: *"The gate is only as truthful as the EvidenceStore … Get
       this wrong and the score is theater. This is the top implementation-plan
       risk to close."* Enumerate every path by which content can reach a
