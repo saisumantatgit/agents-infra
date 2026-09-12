@@ -1,7 +1,6 @@
 # Red-team round 9 — PROVENANCE ONLY — 2026-09-13
 
-**Status: IN PROGRESS** (started 00:28 IST, adversaries time-boxed to 01:05,
-hard close 01:20). Created before the work so an interrupted round still
+**Status: COMPLETE** (00:28 → 00:50 IST). Both adversaries reported early. Created before the work so an interrupted round still
 delivers what it found.
 
 ## Scope — the closed class, deliberately
@@ -19,7 +18,7 @@ name on this class. A closed class is one a red team can actually exhaust.
 | P1 | citation-id resolution: fabricated, lookalike, unicode, zero-width, bracket/case/suffix forms, placement, mixed real+fabricated |
 | P2 | source-type and denominator integrity: summary-vs-verbatim spoofing, empty/snippet text, malformed or duplicate store records, claims that escape citation detection or the scored denominator |
 
-## Results — P1 in (00:38), P2 running
+## Results — 2 ERROR-B, 3 denominator escapes, 5 silent repairs
 
 ### CORRECTION FIRST: "provenance cannot lose a round" was FALSE
 
@@ -83,3 +82,58 @@ the project's own fail-loud convention for the store.
 `[Source:x]` — refused because leftover marker characters break a match, not
 because any check fires.
 
+
+## P2 — source type and denominator (in 00:43)
+
+**Promise (a) HELD — 0 ERROR-B.** No spelling, case, whitespace, NFKC, null or
+list variant of `full_text_source` is treated as verbatim; summary-only claims
+stay out of PASS on factual, numeric and relational paths. This is the one
+provenance promise that survived intact.
+
+**R9P2-01 — duplicate `source_id` launders a summary to verbatim.** Verified by
+me, 00:46: store `[S1 summary, S1 verbatim]` → **PASS / GROUNDED**; the same two
+records reversed → **FAIL / UNGROUNDABLE**. The verdict depends on line order.
+`load_store` has no duplicate check, contrary to the project's own "duplicate key
+→ raise" convention. -02 (NFKC id collision `Ｓ1`/`S1`) and -03 (duplicate JSON
+key inside one record) are the same class by two more entry paths; -04 (a
+`WebFetch` record claiming `verbatim`, bad sha, null/wrong-type fields load and
+certify) and -09 (the same URL fetched twice counts as two relational sources —
+reachable by ordinary capture, no tampering) complete it.
+
+**R9P2-05/06/07 — three new denominator escapes, same family as R8B-01/02.**
+Verified -06 by me: `<!--` and `-->` inside 4-space indented code blocks delete
+the visible prose between them → **PASS 100.0, 1 claim scored**, two uncited
+fabrications on the page. Tilde fences (-05) and a backslash-escaped opener
+(-07) do the same. P2 confirmed all three render as ordinary paragraphs under
+`pandoc -f commonmark`.
+
+## Disposition
+
+| | |
+|---|---|
+| ERROR-B | **2** (R9P1-01 relational, R9P1-02 absence) — verified, tripwired |
+| denominator escapes | **3** new — one verified and tripwired, -05/-07 recorded |
+| silent repairs | **5** — -01 verified and tripwired |
+| promise (a), summary never certified | **HELD** |
+| fixed tonight | **none** — deliberately |
+
+Tripwires: `tests/red_team_moat/test_moat_r9_provenance_open.py` — 4 strict
+xfails + 1 control that keeps the relational tripwire honest.
+
+## What round 9 means for the launch
+
+Provenance is still the right thing to ship and still the spec's identity. But
+"it cannot lose a round" is withdrawn. The launch-blocker list for provenance is
+now concrete and short, and every item is fail-closed:
+
+1. **Run the unresolved-citation check in `ground()` BEFORE the kind dispatch**
+   — closes R9P1-01 and R9P1-02 together (fixing either checker alone leaves the
+   other open).
+2. **`load_store` raises on a duplicate normalised id, duplicate JSON keys,
+   wrong types, and a `tool`/`full_text_source` mismatch** — closes R9P2-01…04.
+3. **Replace the comment stripper's backtick-only code detection with real
+   CommonMark block detection, or stop stripping comments** — closes
+   R8B-01/02 and R9P2-05/06/07, one family.
+4. **Spec §7.5** — absence claims fail open on an incomplete store (D-37).
+
+Then round 10, provenance-only again, against the repaired tree.

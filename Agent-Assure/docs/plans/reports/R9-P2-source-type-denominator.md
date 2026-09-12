@@ -99,8 +99,49 @@ Output:
 ```
 Human reading: "It was not." after a claim can deny it, but the content lives in the referent, which is scored elsewhere (in `yes_no_answer`, the question "Did the Redis cluster pass the durability audit?" is scored UNCITED and blocks PASS). No draft found where this alone smuggles a fact past PASS.
 
+### R9P2-09 — relational "two distinct sources" is satisfied by the SAME document captured twice
+Severity: silent-repair / provenance (corroboration laundered). Not classed ERROR-B: in the repro the relation IS asserted verbatim by the one real document, so no fabrication is certified — what is defeated is the independence the two-source rule promises. Parent to adjudicate whether §4.8 intends independence.
+Mechanism: `ground_relational` dedupes by `source_id` only (ground_check.py:2466). Two records with identical `url`, identical `text` and identical `content_sha256` but ids S1/S2 count as two distinct sources. This needs NO tampering: capture assigns a fresh id per fetch, so re-fetching one URL yields S1 and S2. Same result with a full-width `Ｓ2` id.
+Output (source text "Write amplification causes latency spikes in the storage engine.", draft "Write amplification causes latency spikes in the storage engine [S1][S2]."):
+```
+== rel_verbatim exit=1   (store: S1 only)
+{"gate": "FAIL", "score": 0.0, "scored": 1, "claims": [["RELATIONAL", "UNVERIFIED_RELATION", ...]]}
+== rel_sameurl exit=0    (store: S1 and S2, same url, same text, same sha)
+{"gate": "PASS", "score": 100.0, "scored": 1, "claims": [["RELATIONAL", "GROUNDED", "...[S1][S2]."]]}
+== rel_sid_fullwidth_dup exit=0  (S1 + Ｓ2, different url)
+{"gate": "PASS", "score": 100.0, ...}
+== rel_mixed exit=1      (S1 verbatim + S2 haiku_summary)  -> UNVERIFIED_RELATION (summary correctly excluded)
+```
+Human reading: "two independent sources support this causal link" when one page was simply fetched twice.
+
 ## KNOWN ITEMS RE-CONFIRMED STILL OPEN (not re-reported)
 - R8B-03 `#`+TAB -> PASS; 7 hashes `#######` -> PASS; full-width `＃` -> PASS (all NON_CLAIM, gate PASS 100.0).
 - OI-MOAT-20 verb-final header `### PostgreSQL Fails` -> NON_CLAIM, PASS.
 - OI-MOAT-31 header default `### Catastrophic MongoDB corruption` -> NON_CLAIM, PASS. (My NBSP variant lost the NBSP in the heredoc and reproduced this default instead; NBSP itself not re-tested.)
 
+
+## ATTACKS THAT FAILED (fail-closed or loud, verified by run)
+Store / promise (a),(b):
+1. `full_text_source` = "Verbatim", "verbatim " (trailing space), "VERBATIM", full-width "ｖｅｒｂａｔｉｍ", "verbatim"+ZWSP, null, ["verbatim"], true -> all UNGROUNDABLE, FAIL. The `== "verbatim"` exact compare is not NFKC'd, so no variant launders. (Silent acceptance of an illegal value is still a -04 type issue, but it points away from PASS.)
+2. `full_text_source` key missing -> KeyError, exit 1 (loud; raw traceback, not a clean message).
+3. `text` int, `source_id` int -> TypeError from normalize(), exit 1 (loud by accident, not by validation).
+4. Non-JSON line -> JSONDecodeError; JSON array line -> TypeError. Loud.
+5. Empty `text` -> UNGROUNDABLE; whitespace-only text -> UNGROUNDED. Fail-closed.
+6. Summary-only citation -> UNGROUNDABLE (promise (a) holds for FACTUAL); NUMERIC summary-only -> UNGROUNDABLE; RELATIONAL summary-only -> UNVERIFIED_RELATION; relational verbatim+summary -> UNVERIFIED_RELATION.
+7. Mixed cite [S1 verbatim][S2 summary] -> GROUNDED via the verbatim source only; tiers ran on verbatim only. Per spec, not a finding.
+8. Citation id forms: `[s1]` -> UNCITED; `[S01]` -> UNVERIFIED_CITATION; `[source:S1]` -> UNVERIFIED_CITATION. All fail closed.
+9. Extremely long text (~1MB filler + sentence) -> GROUNDED correctly, no crash/timeout. Store text equal to the claim itself -> GROUNDED: by design (store is trusted evidence); forging it is a store-tampering question covered by -04, not a new hole.
+10. Absence claim over summary-only store: my fixture failed the 2-query rule for BOTH verbatim and summary stores (UNVERIFIED_ABSENCE), so summary-laundering of absence was NOT demonstrated either way. Note (unrun): `ground` passes `source_texts` from ALL store records without a `full_text_source` filter (ground_check.py:2575) — worth a targeted probe next round.
+Denominator / promise (c) — each appended to a cited grounded sentence, all scored UNCITED -> gate FAIL/NEEDS_WORK:
+11. blockquote `> X`; list item `- X`; table cell; image alt `![X](x.png)`; link text `[X](url)`; footnote `[^1]: X`; `<p>X</p>`; `<details><summary>X</summary>`; `<script>X</script>`; inline code span `` `X` ``; no terminal punctuation; setext header `X\n===`; `#X` without space; zero-width-space inside words; `## Incidents` + list item.
+12. HTML entity `&lt;!--` ... `-->`; `<pre>&lt;!--</pre>`: not stripped, all text scored.
+13. Backslash-escaping BOTH delimiters (`\<!--` ... `--\>`): closer not matched, all scored (only the `-->` bare closer in -07 works).
+14. Double-backtick multi-line span inside a tilde fence to desynchronise `_CODE_SPAN_RE` pairing: over-protects, all scored (fail-closed).
+15. Nested comment `<!-- a <!-- b --> X -->`: X scored. Unterminated `<!-- X`: scored.
+16. `X;` + blank + cited sentence (semicolon propagation across paragraphs): X inherited [S1] and read UNGROUNDED — scored, not escaped.
+17. `A [S1] and X.` compound: not split (left has citation mid-sentence), whole sentence UNGROUNDED.
+18. Yes/no answer "No, it did not." is NON_CLAIM but the question carrying the content is scored UNCITED -> FAIL.
+19. Regional-indicator letters "🇲🇴🇳🇬🇴 🇱🇴🇸🇹 🇩🇦🇹🇦." -> NON_CLAIM, PASS — refuted as a finding: they render as flag emoji, not readable text.
+20. Transition glue "Therefore." -> NON_CLAIM (correct; no content).
+
+Attack count: 83 gate runs across 6 batches (a1-a6 in scratch), 9 findings (0 ERROR-B, 3 denominator-escape, 5 silent-repair incl. provenance, 1 cosmetic).

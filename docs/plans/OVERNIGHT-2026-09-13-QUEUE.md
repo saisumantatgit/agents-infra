@@ -38,7 +38,14 @@ outward-facing. **Do NOT build T3. Do NOT change any gold label.**
       UNVERIFIED_CITATION, or a route around the hook). Read and analyse only;
       any fix is a SEPARATE decision recorded as D-37+ and must be fail-closed.
       Report: `Agent-Assure/docs/reports/SPEC-7.5-STORE-COMPLETENESS-2026-09-13.md`. ~0.3M
-- [ ] **2. Round 9 — PROVENANCE ONLY.** A red team scoped to the closed class:
+- [x] **2. DONE 00:50 — provenance LOST the round: 2 ERROR-B (a fabricated
+      citation certifies PASS 100.0 on relational and absence claims, because
+      ground() dispatches them before the unresolved-citation check), 3 new
+      denominator escapes, 5 silent store repairs (a duplicate source_id
+      launders a summary to verbatim by line order). Summary-spoofing promise
+      HELD. All headline findings re-verified by me; 4 strict tripwires added;
+      nothing fixed. "Provenance cannot lose a round" WITHDRAWN.**
+      ~~original:~~ **2. Round 9 — PROVENANCE ONLY.** A red team scoped to the closed class:
       fabricated citations, unresolvable ids, id-form tricks (unicode,
       brackets, case, zero-width, lookalike ids), summary-vs-verbatim
       spoofing, citation placement, store tampering, duplicate ids, a claim
