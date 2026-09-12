@@ -8,6 +8,14 @@ Pure functions only — never mutate inputs or globals.
 from __future__ import annotations
 
 import json
+# `re` is imported HERE, at the top, and not beside its first use. Three
+# separate NameErrors in this file have had one cause: a module-level
+# `_re.compile(...)` constant placed next to the function that needed it, above
+# an `import re as _re` that sat 400 lines further down. Every one of them
+# failed at import time rather than silently, which is the only reason they were
+# cheap. Keeping the import at the top makes the class impossible rather than
+# survivable.
+import re as _re
 import unicodedata
 from collections import Counter
 from dataclasses import dataclass
@@ -289,6 +297,56 @@ def _strip_html_comments(text: str) -> str:
     return _HTML_COMMENT_RE.sub(" ", text)
 
 
+# OI-MOAT-29 (round 7). `<!--` appearing in VISIBLE prose — inside a backtick
+# code span, where no renderer treats it as a comment — paired with a genuine
+# comment's `-->` further down and swallowed every sentence between. The
+# demonstrated draft lost "MongoDB lost all data under sustained write load."
+# from the report entirely: never scored, so never flagged.
+#
+# D-17 restricted stripping to WELL-FORMED pairs, reasoning about an
+# unterminated `<!--` running to end of file. It did not consider a stray opener
+# finding a real closer downstream — which is well-formed by construction. The
+# repair is renderer-faithfulness, the same principle D-24 rests on: a comment
+# delimiter inside a code span is not a comment, so it must not be treated as
+# one. Fail-closed — strictly less text is removed, so strictly more is scored.
+_CODE_SPAN_RE = _re.compile(r"```.*?```|``.*?``|`[^`\n]*`", _re.DOTALL)
+
+
+def _strip_html_comments_outside_code(text: str) -> str:
+    """Strip well-formed HTML comments, leaving code spans untouched.
+
+    Fenced blocks and inline code are passed through verbatim, so a `<!--` a
+    writer is *talking about* can no longer open a comment. Pure function.
+    """
+    out: list[str] = []
+    last = 0
+    for m in _CODE_SPAN_RE.finditer(text):
+        out.append(_strip_html_comments(text[last:m.start()]))
+        out.append(m.group(0))
+        last = m.end()
+    out.append(_strip_html_comments(text[last:]))
+    return "".join(out)
+
+
+# OI-MOAT-30 (round 7). syntok does not break after an UNPUNCTUATED Markdown
+# header, so the body line below it was welded into the header's sentence and
+# inherited the header's NON_CLAIM exemption:
+#
+#     "### TODO\nMongoDB lost all data under load"   -> nothing scored
+#     "MongoDB lost all data under load"             -> scored
+#
+# A blank line is a paragraph boundary to syntok, and inserting one after a
+# header changes no character of the header or the body — only where the
+# segmenter is willing to cut. Fail-closed: it can only ADD claims to the
+# denominator.
+_HEADER_LINE_RE = _re.compile(r"^(#{1,6} [^\n]*)$", _re.MULTILINE)
+
+
+def _break_after_headers(text: str) -> str:
+    """Force a paragraph break after every Markdown header line. Pure function."""
+    return _HEADER_LINE_RE.sub(lambda m: m.group(1) + "\n", text)
+
+
 def _iter_raw_sentences(text: str) -> Iterator[str]:
     """Yield NFKC-normalized sentence strings from *text* using syntok.
 
@@ -316,7 +374,7 @@ def _iter_raw_sentences(text: str) -> Iterator[str]:
     """
     import syntok.segmenter as segmenter  # lazy import — keeps top-level pure
 
-    normalized = _nfkc(_strip_html_comments(text))
+    normalized = _nfkc(_break_after_headers(_strip_html_comments_outside_code(text)))
     for paragraph in segmenter.process(normalized):
         for sentence_tokens in paragraph:
             yield _reconstruct_sentence(sentence_tokens)
@@ -364,8 +422,6 @@ def decompose(draft: str) -> list[Claim]:
 # ---------------------------------------------------------------------------
 # Claim classification
 # ---------------------------------------------------------------------------
-
-import re as _re
 
 # A WELL-FORMED HTML/Markdown comment. Non-greedy and DOTALL so a multi-line
 # authoring note is removed as one unit and two separate comments are not merged
@@ -529,6 +585,14 @@ def _is_non_claim(text: str) -> bool:
     # Numerics and citations are checked FIRST and override, so "99% [S9]" —
     # which has no content WORDS but plenty of verifiable content — stays a
     # scored claim.
+    # OI-MOAT-32 (round 7): the comment above says citations are checked FIRST
+    # and override — but the code only checked numerics, and _strip_citations
+    # runs BEFORE the test, so the marker it was supposed to notice had already
+    # been removed. "It is not [S1]." left the denominator entirely. A gap
+    # between a docstring's guarantee and its code is worse than a missing
+    # guarantee: the next reader builds on something that is not there.
+    if _CITATION_RE.search(text):
+        return False
     body = _strip_citations(text)
     if not _NUMERIC_RE.search(body) and not _content_words(_tokenize(body)):
         return True

@@ -30,8 +30,15 @@ gate — a gold label is never Claude's to set).
       subject. Honest mirror GREEN. `posit` refuses without being enumerated —
       the whitelist polarity working. Suite 524/2/17, corpus byte-identical, so
       no CR is due. Open Error-B classes 18 -> 15.
-- [ ] **3. OI-MOAT-29/30/31/32** — the four decomposition holes. Fail-closed,
-      agent authority. Each needs its own mirror test. ~1M
+- [x] **3. THREE of four closed (D-30/31/32); the fourth ESCALATED.**
+      29 (comments no longer stripped inside code spans), 30 (blank line forced
+      after a header), 32 (a cited span is never zero-content NON_CLAIM) all
+      XPASSED and are permanent guards. **31 deliberately NOT patched:** every
+      narrow fix is the blacklist/length shape that has failed five times, and
+      the sound fix inverts a default, which moves the Error-A/Error-B trade-off
+      = Escalation #1. Also D-33: hoisted `import re as _re` to the top — three
+      NameErrors in this file have had that one cause, one of them today.
+      Suite 527/2/14, corpus byte-identical. Open Error-B classes 15 -> 12.
 - [ ] **4. Segregate POLICY-labelled rows from EVIDENCE-DERIVABLE rows.**
       Tonight's finding: 3 raters × 2 `haiku_summary` rows = 0/6 agreement with
       gold, because the label follows a RULE not the evidence. Reliability on

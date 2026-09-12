@@ -183,18 +183,6 @@ def test_inverted_modifier_must_not_ground(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="OI-MOAT-29 OPEN: a stray ASCII '<!--' in VISIBLE prose pairs with a "
-    "genuine later comment's '-->' and swallows every sentence between them. "
-    "D-17 reasoned about an unterminated '<!--' running to EOF and restricted "
-    "stripping to well-formed pairs; it did not consider a stray opener finding "
-    "a real closer downstream, which is well-formed by construction. "
-    "ASSERTION CORRECTED 2026-09-12 by the round-7 solo gate: this checked "
-    "`per_claim`, which includes NON_CLAIM, so it was satisfiable while the "
-    "hole stayed open — a test asserting something weaker than its own reason. "
-    "It now checks the SCORED claims, which is what 'never flagged' means.",
-)
 def test_stray_comment_opener_must_not_swallow_prose(tmp_path: Path) -> None:
     draft = (
         "The appliance ships with dual power supplies [S2].\n\n"
@@ -206,15 +194,11 @@ def test_stray_comment_opener_must_not_swallow_prose(tmp_path: Path) -> None:
     assert "MongoDB" in scored, (
         "the MongoDB sentence was not SCORED, so it could never be flagged"
     )
+    # CLOSED 2026-09-12 (D-30): comments are no longer stripped inside code
+    # spans, so a `<!--` a writer is TALKING ABOUT cannot open one. Permanent
+    # guard now, not a tripwire.
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="OI-MOAT-30 OPEN: syntok does not break after an unpunctuated "
-    "Markdown header, so the body line below is welded into the header sentence "
-    "and inherits the header's NON_CLAIM exemption. The identical line on its "
-    "own is scored.",
-)
 def test_line_under_unpunctuated_header_is_still_scored(tmp_path: Path) -> None:
     draft = "### TODO\nMongoDB lost all data under load\n"
     assert _scored(_gate(tmp_path, draft)), "nothing was scored at all"
@@ -222,11 +206,19 @@ def test_line_under_unpunctuated_header_is_still_scored(tmp_path: Path) -> None:
 
 @pytest.mark.xfail(
     strict=True,
-    reason="OI-MOAT-31 OPEN: _header_asserts is keyed on the subject noun's "
-    "SPELLING. '### Redis lost all data' is caught because 'Redis' ends in 's'; "
-    "'### MongoDB lost all data' is not. Third instance of 'never key a moat "
-    "rule on a surface property the author controls' — after token count "
-    "(round 3) and capitalisation (round 4).",
+    reason="OI-MOAT-31 OPEN, AND DELIBERATELY NOT PATCHED (2026-09-12). "
+    "_header_asserts asks 'is this an assertion?' and DEFAULTS TO NO, so a "
+    "header escapes scoring whenever the test is inconclusive — a default "
+    "pointing toward PASS. '### Redis lost all data' is caught only because "
+    "'Redis' ends in 's' and trips a verb-suffix test; '### MongoDB lost all "
+    "data' is not, because 'lost' is an irregular past form no suffix rule "
+    "reaches. "
+    "The available narrow fixes are all the shape this project has watched fail "
+    "five times: a list of irregular verbs is a blacklist over an open class, "
+    "and a content-word count is a length rule round 3 already killed. "
+    "The SOUND fix inverts the default — score headers, and group uncited ones "
+    "separately in the report, exactly the J-15 remedy — but that changes the "
+    "Error-A/Error-B trade-off and is Escalation #1 clause 1. Sai's, not mine.",
 )
 def test_header_assertion_is_not_keyed_on_spelling(tmp_path: Path) -> None:
     assert _scored(_gate(tmp_path, "### MongoDB lost all data\n")), (
@@ -240,15 +232,6 @@ def test_header_assertion_with_trailing_s_subject_is_scored(tmp_path: Path) -> N
     assert _scored(_gate(tmp_path, "### Redis lost all data\n"))
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="OI-MOAT-32 OPEN: the zero-content-word NON_CLAIM rule strips "
-    "citations BEFORE the override runs, so 'It is not [S1].' leaves the "
-    "denominator. D-19's docstring says numerics and citations override; the "
-    "code checks only numerics. Lowest severity of the round — recorded because "
-    "an undocumented gap between a docstring and its code is how the next "
-    "reader builds on a guarantee that is not there.",
-)
 def test_cited_zero_content_span_stays_scored(tmp_path: Path) -> None:
     report = _gate(tmp_path, "It is not [S1].\n")
     assert _scored(report), "a cited span left the denominator entirely"

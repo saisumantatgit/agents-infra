@@ -146,3 +146,25 @@ and tripwired.** The solo gate caught an earlier version of this work silently
 narrowing its own claim; the scope line exists so that cannot recur.
 
 **Open Error-B classes: 18 → 15.**
+
+| id | Decision | Basis | Undo | Status |
+|---|---|---|---|---|
+| D-30 | **OI-MOAT-29 CLOSED: comments are no longer stripped inside code spans.** `_strip_html_comments_outside_code` passes fenced blocks and inline code through verbatim. | A `` `<!--` `` a writer is *talking about* is not a comment to any renderer, but it paired with a genuine `-->` downstream and swallowed every sentence between — the demonstrated draft lost a whole fabricated sentence from the report, never scored so never flagged. D-17 restricted stripping to well-formed pairs while reasoning about an unterminated opener running to EOF; a stray opener finding a real closer is well-formed *by construction*. Same renderer-faithfulness principle as D-24. Fail-closed: strictly less text removed, strictly more scored. | revert commit | DONE |
+| D-31 | **OI-MOAT-30 CLOSED: a blank line is forced after every Markdown header line.** | syntok does not break after an unpunctuated header, so the body line below was welded into the header's sentence and inherited its NON_CLAIM exemption — `"### TODO\nMongoDB lost all data"` scored **nothing**, while the same line alone scored. A blank line is a paragraph boundary to syntok and changes no character of the header or the body, only where the segmenter may cut. Fail-closed: it can only ADD claims to the denominator. | revert commit | DONE |
+| D-32 | **OI-MOAT-32 CLOSED: a span carrying a citation is never zero-content NON_CLAIM.** | D-19's docstring promised "numerics and citations are checked FIRST and override" — the code checked only numerics, and `_strip_citations` ran *before* the test, so the marker it was meant to notice had already been deleted. `"It is not [S1]."` left the denominator. Lowest severity of the round; fixed because **a gap between a docstring's guarantee and its code is worse than no guarantee** — the next reader builds on something that is not there. | revert commit | DONE |
+| D-33 | **`import re as _re` hoisted to the top of `ground_check.py`.** | Systemic, not cosmetic. Three separate `NameError`s in this file have had one cause: a module-level `_re.compile(...)` constant placed beside the function that used it, above an import sitting 400 lines down. Two of the three were mine, one of them today. Every one failed loudly at import time, which is the only reason they were cheap. Hoisting makes the class impossible rather than survivable. Zero behaviour change; suite green. | revert commit | DONE |
+
+**OI-MOAT-31 is DELIBERATELY NOT PATCHED — escalated to Sai.** `_header_asserts`
+asks *"is this an assertion?"* and **defaults to NO**, so a header escapes
+scoring whenever the test is inconclusive: a default pointing toward PASS.
+`### Redis lost all data` is caught only because "Redis" ends in "s"; `###
+MongoDB lost all data` is not, because "lost" is an irregular past form no
+suffix rule reaches. Every narrow fix available is the shape this project has
+watched fail five times — a list of irregular verbs is a blacklist over an open
+class, a content-word count is the length rule round 3 already killed. **The
+sound fix inverts the default** (score headers, group uncited ones separately in
+the report — exactly the J-15 remedy), **but that moves the Error-A/Error-B
+trade-off, which is Escalation #1 clause 1.**
+
+**Open Error-B classes: 15 → 12.** Suite **527 passed / 2 skipped / 14 xfailed**;
+corpus **byte-identical**, CR-004 stands.
