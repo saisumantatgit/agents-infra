@@ -84,7 +84,25 @@ gh pr create --base agent-assure-calibration-run \
 ## 6. BUDGET
 
 Measure: **NEW TOKENS = output + cache_creation**, derived from the session
-JSONL, not from my own summary.
+JSONL by the ADR-044 clause-4 command, not from my own summary. Cache READS are
+excluded and are two orders of magnitude larger — quoting them would inflate the
+figure ~35x.
+
+| source | new tokens |
+|---|---|
+| main loop (432 turns) | 1.61M |
+| solo gate on J-25 | 0.14M |
+| round 10, three adversaries | 0.45M |
+| round 11, two adversaries | see close |
+| **total** | **~2.2M + round 11** |
+
+**Sanctioned 8M, ceiling 9.6M. Consumed roughly a quarter.** The night ended on
+**diff zero**, not on budget — the committed queue completed with hours and most
+of the budget unspent, which is worth noting against the estimate: I projected
+~7M for the committed set and it cost about a third of that. The overrun was in
+the opposite direction from the usual one, and the reason is that three of the
+four jobs were small diffs whose cost was dominated by ADVERSARIAL REVIEW, not
+by implementation.
 
 ## 7. WITHDRAWALS
 
