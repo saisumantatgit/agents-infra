@@ -860,3 +860,68 @@ test file says so in its own docstring so nobody reads it as a closure.
 
 Suite 655 → **662 passed, 2 skipped, 55 xfailed**. Corpus byte-identical, gold
 md5 unchanged.
+
+---
+
+## D-49 — ROUND 11: J-28B REFUTED (7 ERROR-B). And the class should be DELETED, not fixed a fourth time.
+
+Report: `Agent-Assure/docs/plans/reports/RED-TEAM-R11-A-block-structure.md`.
+Oracle: the `commonmark` reference port, cross-checked with `python-markdown`.
+
+**I labelled J-28B "LANDED, NOT CLOSED" when it shipped (D-45). That label was
+correct and the refutation arrived within two hours.** The rule is still a net
+improvement — it closed round 10's five shapes and is strictly better than both
+predecessors — so it STAYS. It is simply not a closure.
+
+**Verified by me**, all four reproduced as denominator escapes (the fabrication
+deleted from the scored set):
+
+```
+01a ATX heading boundary    FAB_HIDDEN=True
+01b thematic break ***      FAB_HIDDEN=True
+01c list marker             FAB_HIDDEN=True
+01d fence opener            FAB_HIDDEN=True
+```
+
+Mechanism: `_spans_one_block` sees only a blank line and blockquote depth, so
+**every other paragraph-interrupting block start is invisible to it** — headings,
+thematic breaks, list markers, fence openers, setext underlines, other HTML
+blocks. A mid-paragraph literal `<!--` pairs across that boundary and deletes
+the prose between. Second mechanism: `_opens_html_block` reads three characters
+of a line and ignores the CONTAINER, so a `<!--` inside a list item gets the
+across-blank-lines exemption it should not have.
+
+### The recommendation, and it is not "patch it again"
+
+**This class has now survived rounds 7, 8, 9, 10 and 11, across THREE
+implementations** — backtick-only, a code-region scanner, and this
+block-structure rule. Each closed the fixtures written against it and left the
+class open. Counting tonight alone it produced **12 ERROR-B**.
+
+The reason is structural, not a run of bad luck: **the gate is trying to
+reimplement a Markdown renderer's block model well enough to decide what a
+reader sees, against an adversary who writes the document.** That is open-ended,
+and every round has found another construct the model lacks. It is the
+blacklist shape the project's own law forbids, three times over.
+
+**RECOMMENDATION: stop stripping HTML comments entirely (via negativa).**
+
+- It deletes the entire class **permanently**, rather than narrowing it a fourth
+  time. No renderer model, no dependency, no further rounds.
+- The Error-B it removes is **unrecoverable**. The Error-A it buys is
+  **recoverable, bounded, and arguably correct**: a draft containing an
+  authoring note would fail, and "remove your TODOs before submitting this for
+  verification" is a defensible thing for a verification gate to require.
+- It is strictly simpler: `_strip_html_comments_outside_code`,
+  `_code_line_spans`, `_opens_html_block`, `_spans_one_block`,
+  `_blockquote_depth`, `_is_escaped` and their regexes all become dead code.
+
+**NOT DONE TONIGHT, because it is Sai's.** It changes the Error-A/Error-B
+trade-off and the product's contract with an author — Escalation #1 — and its
+Error-A cost is **unmeasured**, because no row of the n=52 corpus contains an
+HTML comment. Registered as **J-41** with this reasoning.
+
+The honest alternative, if authoring notes must keep passing: adopt a real
+CommonMark parser as the oracle rather than modelling it by hand. That was
+rejected at 03:00 for good reasons (third-party code in the verdict path), but
+it is the only other option that ends the sequence.
