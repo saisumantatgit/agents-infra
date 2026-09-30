@@ -801,3 +801,33 @@ MASKED the finding until you have proven it CLOSED it.**
 
 Suite 643 → **652 passed, 2 skipped, 55 xfailed**. Corpus byte-identical, gold
 md5 unchanged.
+
+---
+
+## D-47 — J-37: give the corpus adversary its eyes back
+
+| id | Decision | Basis | Undo | Status |
+|---|---|---|---|---|
+| D-47 | **Give the corpus fixtures REAL tool names** (`_source` → `Read`, `_summary_source` → `WebFetch`) **and add a permanent test that every corpus store survives the real `load_store`.** | The project's standing discipline is "regenerate the corpus and diff it — it is the fix's own adversary". Round 10 found that adversary **blind to the loader by construction**: the builders construct `RetrievedSource` directly and never call `load_store`, and their `tool="calibration_fixture"` is one the loader now REFUSES. So CR-004's A=0.320 / B=0.000 was measured on stores the shipped gate would reject. | revert the J-37 commit; the fixtures return to `calibration_fixture`. | DONE |
+
+**Chosen deliberately over the alternative.** The obvious repair is to add
+`calibration_fixture` to `_VERBATIM_TOOLS`. **That would be an Error-B
+generator**: any hostile store could then declare that tool and be trusted
+verbatim. Making the fixtures name tools that really exist keeps the allowlist
+honest, and `WebFetch` for the summary factory matches the capture contract
+exactly — WebFetch is the one tool that always produces a summary.
+
+**Zero corpus drift.** `labeling-v2.csv` is byte-identical to the night's
+baseline and `labels-v2.csv` md5 is unchanged, so **no gold label is stale and
+CR-004's numbers are unchanged by this.** Whether CR-004 must nonetheless be
+re-derived — because it was *originally* computed on unloadable stores — remains
+**Sai's** call under J-37.
+
+**Proven-red:** reverting the tool name fails 2 of the 3 new tests. The suite
+validates **47 corpus stores**, and the file carries a guard test asserting that
+count is non-zero — because if `build_candidate_cases()` ever stops exposing
+stores, every other assertion would vacuously pass and the file would go silent.
+That is the third distinct silent-guard failure found tonight, so the guard is
+now written in from the start rather than discovered later.
+
+Suite 652 → **655 passed, 2 skipped, 55 xfailed**.
