@@ -27,7 +27,21 @@ GO. `agent-assure-calibration-run` is untouched at `b4d4e39`.
 | J-25 | CLOSED, **then partially REFUTED** (D-42) | `uv run pytest tests/red_team_moat/test_moat_r9_provenance_closed.py -q` → 9 passed, 1 xfailed |
 | J-26 | CLOSED | `uv run pytest tests/test_store_integrity.py -q` → 27 passed |
 | J-27 | CLOSED | `uv run pytest tests/red_team_moat/test_moat_j27_comment_blocks.py -q` → 17 passed |
-| J-29 | round 10 ran, 3 adversaries | see §ROUND 10 |
+| J-29 | round 10 ran, 3 adversaries, **13 ERROR-B** | `Agent-Assure/docs/plans/reports/RED-TEAM-R10-{A,B,C}-*.md` |
+| J-28B | landed, **not closed** | `uv run pytest tests/red_team_moat/test_moat_j28b_block_structure.py -q` → 10 passed |
+| R10C-03 | CLOSED | `uv run pytest tests/red_team_moat/test_moat_r10c03_absence_summary.py -q` → 5 passed |
+| J-40 | CLOSED | `uv run pytest tests/red_team_moat/test_moat_r10c04_relational_numeric.py -q` → 6 passed |
+| J-39 | **PART** — word boundaries only | `uv run pytest tests/red_team_moat/test_moat_r10c02_relation_boundaries.py -q` → 7 passed |
+| J-37 | CLOSED (builder); CR validity is Sai's | `uv run pytest tests/test_corpus_stores_survive_the_loader.py -q` → 3 passed, 47 stores |
+
+**THE NIGHT'S HEADLINE IS NOT A FIX.** Round 10 found that **six of thirteen
+ERROR-B live in the CAPTURE layer**, where no change to `ground_check.py` can
+reach them: `Read` is trusted unconditionally so an agent can write a
+fabrication, read it back and cite it (PASS 100.0); no search tool is captured,
+so the absence rule's "two distinct searches" are two strings the drafting agent
+chose; and there is no session identity at all, so a prior session's `[S2]`
+certifies today. Ten rounds have hardened the gate's logic. **That was not the
+binding constraint.**
 
 **Whole suite**, `cd Agent-Assure && uv run pytest -q`:
 
