@@ -5,12 +5,55 @@
 **Pushed. NOT merged — the merge is your GO.** `agent-assure-calibration-run`
 is untouched at `b4d4e39`; undo the whole night with
 `git branch -D provenance-fix-2026-10-01`.
-**Suite:** `cd Agent-Assure && uv run pytest -q` → 628 passed, 2 skipped,
+**Suite:** `cd Agent-Assure && uv run pytest -q` → 643 passed, 2 skipped,
 58 xfailed. Trust the RUN, not this number.
 
 Read in this order: this file → `docs/logbook/overnight-2026-10-01-progress.md`
-→ `docs/decisions/RATIFICATION-REGISTER-2026-08-30.md` (D-38…D-44) →
+→ `docs/decisions/RATIFICATION-REGISTER-2026-08-30.md` (D-38…D-45) →
 `docs/jobs/REGISTER.md`.
+
+---
+
+# ROUND 10 CHANGED THE QUESTION — read this before J-24
+
+Three Opus adversaries ran against tonight's repaired tree. **13 ERROR-B.**
+Reports: `Agent-Assure/docs/plans/reports/RED-TEAM-R10-{A,B,C}-*.md`.
+
+**The finding is not any single bug. It is WHERE the bugs are.** Ten rounds have
+hardened the gate's deterministic logic. Six of tonight's thirteen live in the
+**CAPTURE layer**, and not one of them is reachable by editing
+`ground_check.py`:
+
+- **`Read` is trusted unconditionally** (J-35). An agent writes a fabrication to
+  a file, reads it back, cites it → **PASS 100.0 / GROUNDED**, with the numeric
+  tier "verifying" figures the same model invented. The identical text via
+  `WebFetch` is correctly refused. The laundering happens BEFORE the store, so
+  no amount of loader validation can see it.
+- **The absence ledger is attacker-written** (J-36). No SEARCH tool is captured
+  at all, so the "two distinct search queries" that certify an absence are two
+  strings the drafting agent picked — file names it chose, or one page fetched
+  twice with different URL fragments.
+- **There is no "this session"** (J-38). No `session_id` on any record,
+  `fetched_at` is a constant sentinel, the store is append-forever. A later
+  session's draft citing a prior session's `[S2]` → **PASS 100.0.** This one
+  strikes the founding spec's own sentence: "actually retrieved THIS session."
+
+**So we have been optimising the wrong constraint.** The moat's logic is in
+decent shape. The evidence entering it is not.
+
+**This reframes J-24.** "Ship provenance-only" is not currently on the menu
+either, because provenance is not enforced where evidence is captured. The
+honest options now look like: (a) fix the capture layer — all Escalation #4,
+all yours; (b) narrow the product's claim to what is actually enforced; or
+(c) both. **I did not presume any of them.**
+
+**And one measurement you relied on is weaker than advertised** (J-37):
+`build_corpus_v2.py` builds its store objects directly and **never calls
+`load_store`**, using a tool the loader now refuses. So the mandatory
+"regenerate the corpus" adversary is blind to every loader change, and
+**CR-004's A=0.320 / B=0.000 is measured on stores the shipped gate would
+reject.** I wrongly counted that check as a passed gate for J-26 last night;
+the correction is D-45.
 
 ---
 
