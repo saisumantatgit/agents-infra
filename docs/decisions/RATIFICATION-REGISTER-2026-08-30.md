@@ -656,3 +656,48 @@ this either. It is bounded by the controls, not by the corpus.
 items and an "_open" name — a file whose name lies is the kind of artifact this
 project spends its time hunting. Its verbatim reproduction is preserved as
 `test_r9p2_06_original_reproduction`.
+
+---
+
+## D-44 — J-33 analysed and NOT patched; J-31 and J-33 are ONE package, and it is Sai's
+
+| id | Decision | Basis | Undo | Status |
+|---|---|---|---|---|
+| D-44 | **Do not patch J-33 tonight. Record that J-31 and J-33 must be fixed together, and that the package is Escalation #1.** | Every spelling-based fix is the shape this project's own law forbids, and the structural fix collides with J-31. Detail below. | nothing to undo. | ESCALATED |
+
+**Why the obvious fix is the losing shape.** Widening `_CITATION_RE` keys the
+rule on the marker's SPELLING, which the attacker sets completely. A rule
+requiring "≥1 letter and ≥1 digit, no internal whitespace" would catch `[s99]`,
+`[ S99]` and `[Ѕ99]` and keep `[sic]`, `[1]`, `[see Appendix A]` safe — but it
+misses `[Sxx]`, and the next spelling after that. Round 3 died to token count,
+round 4 to capitalisation. **A spelling rule is round 4 again.**
+
+**The structurally correct fix, and why it cannot land alone.** Require
+citations for RELATIONAL and ABSENCE claims. Then an unparseable marker leaves
+the claim with ZERO citations, and zero citations refuses — **regardless of
+spelling**, which is exactly the "property the attacker cannot set without
+giving up the attack" criterion.
+
+It cannot land alone because of **J-31**: today a correctly-cited absence claim
+is ALREADY refused (`UNVERIFIED_ABSENCE`) while the identical uncited one is
+certified. Requiring citations on absence claims while cited ones fail would
+refuse EVERY absence claim. So the coherent change is one package:
+
+1. fix J-31 so a correctly-cited absence claim certifies;
+2. then require citations on ABSENCE and RELATIONAL;
+3. then re-run the corpus and measure BOTH error rates.
+
+**That package is Escalation #1.** It does not merely subtract passes — step 1
+is PASS-ENABLING, which the escalation list reserves to Sai under any reading,
+literal or fail-closed. It also changes what the product asks an author to do.
+
+**The Error-A side is unmeasured and the corpus cannot measure it.**
+`labeling-v2.csv` has been byte-identical through all three of tonight's fixes
+because none of the 52 rows carries an uninterpretable bracket, an HTML comment,
+or a malformed store. **A=0.320 bounds none of tonight's work.** A corpus that
+can measure these shapes is itself a prerequisite, and building one means
+authoring rows, which is adjacent to the gold-label gate.
+
+Recommendation for Sai, in one line: **do the J-31 + J-33 package, in that
+order, in daylight, with a corpus extension built first** — and until then
+treat "absence claims" as the product's weakest surface.
