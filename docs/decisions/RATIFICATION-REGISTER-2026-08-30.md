@@ -409,3 +409,26 @@ case: q13 reads **PASS / ABSENCE_SUPPORTED / 100.0** on what the hook captured,
 and **FAIL** once one native-WebSearch result is added to the store.
 
 Report: `Agent-Assure/docs/reports/SPEC-7.5-STORE-COMPLETENESS-2026-09-13.md`.
+
+---
+
+## D-38 — autonomous overnight run 2026-10-01, RATIFIED BY SAI AT §0
+
+| id | Decision | Basis | Undo | Status |
+|---|---|---|---|---|
+| D-38 | **Run autonomously 2026-10-01 01:45 → 07:30 IST on the provenance fix list (J-25, J-26, J-27, then round 10 / J-29), on child branch `provenance-fix-2026-10-01`, budget 8M new tokens (output + cache creation), ceiling 9.6M.** | Sai gave AGREED to the §0 handshake with the nine items stated, having been shown: the verified baseline (564 passed / 2 skipped / 60 xfailed, fresh run), the code fact that `ground()` dispatches RELATIONAL and ABSENCE ahead of the unresolved-citation check (`ground_check.py:2570-2577`), and the four committed jobs with their fail-closed claim. | `git branch -D provenance-fix-2026-10-01` — every commit of the night is on that branch and nothing is merged. `agent-assure-calibration-run` at `b4d4e39` is untouched. `CronDelete` the tick job. | ARMED |
+
+**The reading of Escalation #1 this run depends on** — the UNRATIFIED
+fail-closed reading recorded in `CLAUDE.md`: a change that can only move claims
+AWAY from PASS cannot manufacture the unrecoverable error, so it is inside the
+agent's authority; a PASS-enabling change is Sai's. **This run does not assume
+the reading holds** — instrument §C gate 2 makes it checkable: the corpus is
+regenerated and byte-diffed after every change, and **any row moving toward
+PASS halts that item and goes to Sai** rather than shipping on the reading.
+
+**J-24 is NOT presumed.** The product call — ship provenance-only or fund
+entailment — remains Sai's and unmade. Tonight's queue is the subset that is
+required under BOTH branches: entailment layers on provenance, it does not
+replace it, so a citation must resolve to a genuinely retrieved source either
+way. Nothing tonight touches T3, a gold label, hook registration, the factive
+whitelist, or anything outward-facing.
