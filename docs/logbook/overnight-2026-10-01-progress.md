@@ -104,13 +104,13 @@ figure ~35x.
 
 | source | new tokens |
 |---|---|
-| main loop (432 turns) | 1.61M |
+| main loop (490 turns) | 1.76M |
 | solo gate on J-25 | 0.14M |
 | round 10, three adversaries | 0.45M |
-| round 11, two adversaries | see close |
-| **total** | **~2.2M + round 11** |
+| round 11, two adversaries | 0.22M |
+| **total** | **2.58M** |
 
-**Sanctioned 8M, ceiling 9.6M. Consumed roughly a quarter.** The night ended on
+**Sanctioned 8M, ceiling 9.6M. Consumed 2.58M — 32%.** The night ended on
 **diff zero**, not on budget — the committed queue completed with hours and most
 of the budget unspent, which is worth noting against the estimate: I projected
 ~7M for the committed set and it cost about a third of that. The overrun was in
@@ -127,9 +127,30 @@ by implementation.
 3. **"The relational half of the gate's finding does not reproduce."** FALSE —
    my probe put the marker AFTER the claim; position was load-bearing.
 
-All three are the same error: **a confident general claim drawn from a check
-narrower than the claim.** It is the third consecutive session in which that is
-the headline, which is itself the finding.
+4. **"J-27 closes the comment-delimiter class."** Refuted by round 10 — the
+   code-region scanner was a blacklist and five more ways to be code existed.
+5. **"J-28B is fail-closed and closes round 10's shapes."** The first half
+   holds; round 11 found seven more shapes. I had labelled it "landed, NOT
+   closed" at the time, which is the one prediction that held.
+6. **"R10C-03's query restriction is fail-closed."** FALSE, and it was an
+   **ERROR-B I introduced**. Withdrawn and reverted the same night (D-50).
+7. **"J-40 checks the figure."** It checked it against the whole store rather
+   than the claim's citations. Fixed.
+8. **"J-39 is strictly fail-closed."** Right about Error-B, wrong as stated:
+   word boundaries also refuse honest morphological variants ("migraine" in
+   "migraines"). Error-A, registered J-44.
+
+Eight withdrawals. Six are the same error: **a confident general claim drawn
+from a check narrower than the claim.**
+
+**The sharpest one is #6, and it is worth the whole night.** I identified the
+direction trap in `check_absence` — wrote a comment AND a test explaining that
+filtering `source_texts` would be fail-OPEN because it is scanned for a
+refutation — and then, in the same edit, filtered `queries` and introduced
+exactly that failure. `queries` is both a numerator and a denominator. **I
+checked the direction of the parameter I was thinking about and not the
+direction of the one I was changing.** Knowing the trap by name did not prevent
+me walking into it one argument to the left.
 
 ## 8. FRAMEWORKS
 
@@ -151,3 +172,48 @@ the headline, which is itself the finding.
 | 2026-09-30 22:15 | 2 | **ROUND 10: 13 ERROR-B over three Opus adversaries. J-26 and J-27 BOTH refuted.** The reframe: six of the thirteen are in the **CAPTURE layer** and none is reachable from `ground_check.py` — `Read` is trusted unconditionally (write-then-read laundering → PASS 100.0), no search tool is captured so the absence ledger is attacker-written, and there is no session identity at all. Ten rounds have hardened the wrong constraint. **Also corrected my own evidence:** `build_corpus_v2.py` never calls `load_store`, so the gate-2 "byte-identical corpus" I cited for J-26 was structurally incapable of failing — CR-004 is measured on stores the shipped gate would reject (J-37). | ~0.60M | Theory of Constraints (the bottleneck is capture, not the gate) · Calibration (withdrew a passed-gate claim) · FMEA detectability | 
 | 2026-09-30 22:40 | 0 | **Five more fixes, all fail-closed, none claimed closed.** J-28B (block-structure rule replacing J-27's blacklist scanner — all 5 adversary-A shapes now reach the denominator, genuine notes still strip); R10C-03 (a summary may refuse an absence, never certify one — the naive filter would have been fail-OPEN); J-40 (numbers inside RELATIONAL claims are checked); J-37 (corpus fixtures get real tool names + a permanent loader-parity test, 47 stores, proven red); J-39 part (word-boundary matching — "AI drives mass layoffs" was GROUNDED where the only "ai" was inside "said"). **J-40 MASKED three J-33 tripwires** via a digit leak; pinned as controls with the masking explained rather than converted — third silent-tripwire incident tonight, now a standing rule in D-46. Suite 628 → 662. Corpus byte-identical throughout. **Round 11 dispatched against all of tonight's unvalidated fixes.** | ~0.45M | Inversion (fail-open direction on the absence filter) · Via negativa (no CommonMark dependency) · Chesterton's Fence · Name the CEILING · Asymmetry of error cost |
 | 2026-09-30 22:15 | **0** | **§B DIFF IS ZERO.** Re-derived from code, not from the register: tree clean, 14 commits since `b4d4e39`, fresh run 662 passed / 2 skipped / 55 xfailed. All four committed rows are BUILT (J-25, J-26, J-27 → J-28B, J-29 round 10) or OWNED BY A NAMED HUMAN (J-35/36/38 capture layer → Sai; J-33 + J-31 package → Sai; J-37 CR validity → Sai). **§E breaker does NOT fire — there is in-flight growth** (round 11, dispatched under J-34 because every fix tonight is unvalidated). **Decision: start nothing new.** Close what was opened — record round 11 — then disarm and write the morning report. Continuing to invent work past the committed set at 03:43 unsupervised is the scope creep the §0 handshake exists to bound; the ceiling is a constraint Sai set, so honouring it IS the decision, not a stall. | ~0.02M | Close-after-open (finish round 11, start nothing) · Degradation under constraint (stop STARTING, spend the rest finishing and reporting) · Reversibility (no one-way doors; nothing merged) |
+
+
+---
+
+## ROUND 10 AND 11 — the two results that matter
+
+**Round 10 (3 adversaries, 13 ERROR-B).** Six of the thirteen are in the
+**CAPTURE layer** and none is reachable from `ground_check.py`. `Read` is
+trusted unconditionally, so an agent can write a fabrication, read it back and
+cite it (PASS 100.0). No search tool is captured, so the absence rule's "two
+distinct searches" are two strings the drafting agent chose. There is no session
+identity at all, so a prior session's `[S2]` certifies today — which contradicts
+the founding spec's own sentence. **Ten rounds have hardened the wrong
+constraint.**
+
+**Round 11 (2 adversaries, 10 ERROR-B + 2 ERROR-A).** J-28B refuted; two of my
+own fixes withdrawn. And the comment-stripper class has now lost rounds **7, 8,
+9, 10 and 11 across three implementations**, producing 12 ERROR-B tonight alone.
+
+**That last fact is the night's real deliverable and it is a recommendation, not
+a patch: STOP STRIPPING HTML COMMENTS (J-41).** The gate is trying to
+reimplement a Markdown renderer's block model against an adversary who writes
+the document. Deleting the feature deletes the class permanently, turns seven
+functions into dead code, and trades an UNRECOVERABLE Error-B for a RECOVERABLE
+Error-A that is arguably correct. It is Sai's because it moves the trade-off and
+the author contract.
+
+## Reflection
+
+The night's most interesting finding is not any bug; it is what the bugs kept
+saying about where they were. I spent ten rounds and most of tonight hardening
+the gate's deterministic logic, and round 10 answered by pointing at the capture
+layer, where `Read` is trusted on sight and "this session" does not exist as a
+concept. The moat was being deepened on the side nobody was attacking.
+
+The second finding is about me. Eight withdrawals, six of them the same shape,
+and the sharpest one came *after* I had written the warning. I named the
+direction trap in `check_absence`, tested it, explained it in a comment — and
+then introduced the exact failure one argument away, because I checked the
+direction of the parameter I was thinking about rather than the one I was
+changing. A named lesson is not a guard. The tripwires caught what my attention
+did not, three separate times tonight, and twice they went silent under an
+unrelated fix and had to be caught going silent. **The system that worked was
+adversarial review, run against conclusions I had already committed in writing —
+not care, and not knowing better.**
