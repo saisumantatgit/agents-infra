@@ -604,3 +604,55 @@ contains none of those shapes, so A=0.320 does not bound it. A confusables fold
 for `[Ѕ99]` must NOT normalise the marker onto a real id, or it becomes
 PASS-enabling; the correct treatment is "citation-shaped but unresolvable →
 refuse". Designing that against a real Error-A measurement is a daylight job.
+
+---
+
+## D-43 — J-27: a comment delimiter is a comment only where a RENDERER says so
+
+| id | Decision | Basis | Undo | Status |
+|---|---|---|---|---|
+| D-43 | **Replace the backtick-only code check with a block-level code-region scanner** (`_code_line_spans`) covering fenced blocks — backtick or tilde, any length ≥3, opener indented up to 3 spaces, with or without an info string — and indented code blocks; and stop treating a backslash-escaped `\<!--` as an opener. A comment is stripped only when BOTH delimiters sit outside every code region and the opener is unescaped. | Fail-closed **in the direction that matters here, which is counter-intuitive**: stripping REMOVES text from the scored denominator, so stripping too much is the FAIL-OPEN direction. The scanner may freely over-detect code; it may never under-detect it. | revert the J-27 commit; `_strip_html_comments_outside_code` returns to the backtick-only form. | DONE |
+
+**Closes as ONE class:** R8B-01 (×3), R8B-02 (×2), R9P2-05, R9P2-06, R9P2-07.
+
+**No dependency added, deliberately.** The obvious fix is a real CommonMark
+parser; none is installed (deps are `syntok`, `pyyaml`). Rejected on two
+grounds. First, what is needed is not a correct renderer but a **generous code
+detector** — the asymmetry above means exactness buys nothing that generosity
+does not. Second, third-party code inside the moat's verdict path is a worse
+trade than 40 lines of line scanning, at 03:00, unreviewed.
+
+**Rejected alternative, recorded because it is the one that looks right:** "a
+comment may not span a blank line." **Insufficient** — a tilde-fenced attack
+with no blank lines anywhere still hides visible prose. I verified that BEFORE
+designing the fix, and it is pinned as
+`test_tilde_fence_with_no_blank_lines`. Had I trusted the heuristic I would
+have shipped a fix that closed the reported fixtures and left the class open —
+which is this project's recorded failure mode, five times over.
+
+**Three shapes no report enumerated**, found by asking what my own fixtures
+lacked: a tilde fence longer than three characters, a fence opener indented 1–3
+spaces, and a fence carrying an info string. All three reproduced as Error-B
+pre-fix. The R9P2 report had noted that an attacker "simply omits the info
+string"; the fix must not depend on that accident, and now does not.
+
+**Proven-red, twice over.** 7 of 13 new tests failed pre-fix. Independently, 6
+pre-existing `strict` xfails (R8B-01 ×3, R8B-02 ×2, R9P2-06) went
+`XPASS(strict)` and are now converted to passing regressions —
+red-to-green recorded by tripwires written by someone who was not fixing this.
+
+**THE ERROR-A THIS BUYS, named and pinned.** An authoring note placed INSIDE a
+tilde fence or an indented block is no longer stripped, so its text reaches the
+denominator and reads UNCITED: such a draft PASSed before and FAILs now. The
+cost is narrow — a tilde fence containing ordinary prose ALREADY failed pre-J-27
+because the fence body is scored — so this bites only a draft that puts a note
+inside a code block and would otherwise pass. Pinned as
+`test_authoring_note_inside_a_code_block_is_now_scored` with the contrast case
+beside it. **The corpus cannot measure it:** labeling-v2.csv is byte-identical
+because none of the 52 rows contains an HTML comment, so A=0.320 does not bound
+this either. It is bounded by the controls, not by the corpus.
+
+`test_moat_r9_provenance_open.py` was RETIRED rather than left with zero open
+items and an "_open" name — a file whose name lies is the kind of artifact this
+project spends its time hunting. Its verbatim reproduction is preserved as
+`test_r9p2_06_original_reproduction`.

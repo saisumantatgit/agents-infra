@@ -449,19 +449,113 @@ def _strip_html_comments(text: str) -> str:
 _CODE_SPAN_RE = _re.compile(r"```.*?```|``.*?``|`[^`\n]*`", _re.DOTALL)
 
 
-def _strip_html_comments_outside_code(text: str) -> str:
-    """Strip well-formed HTML comments, leaving code spans untouched.
+# J-27 (2026-10-01), closing R8B-01/02 and R9P2-05/06/07 as ONE class.
+#
+# OI-MOAT-29 protected comment delimiters inside BACKTICK code only. CommonMark
+# has more ways to make `<!--` literal, and in each one a stray opener pairs
+# with a real closer downstream and DELETES every paragraph between them from
+# the scored denominator. Deleted prose is never scored, so it is never
+# flagged: the gate reports PASS 100.0 over a page whose reader can plainly see
+# fabrications.
+#
+# THE DIRECTION OF SAFETY IS COUNTER-INTUITIVE AND DECIDES THE WHOLE DESIGN.
+# Stripping REMOVES text from the denominator, so stripping TOO MUCH is the
+# FAIL-OPEN direction. Therefore this scanner may freely OVER-detect code
+# (strip less, score more, fail closed) and must never UNDER-detect it. That
+# is why it does not aim at CommonMark exactness and why no Markdown parser was
+# added as a dependency: what is needed is a generous code-region detector, not
+# a correct renderer, and third-party code in the moat's verdict path is a
+# worse trade than a conservative 40-line scan.
+#
+# Rejected alternative, recorded because it is the obvious one: "a comment may
+# not span a blank line". It is NOT sufficient — a tilde-fenced attack with no
+# blank lines anywhere still hides visible prose. Verified before this was
+# written, and pinned as test_tilde_fence_with_no_blank_lines.
+_FENCE_RE = _re.compile(r"^(?P<indent> {0,3})(?P<fence>`{3,}|~{3,})(?P<info>.*)$")
+_INDENTED_CODE_RE = _re.compile(r"^(?: {4,}|\t)")
 
-    Fenced blocks and inline code are passed through verbatim, so a `<!--` a
-    writer is *talking about* can no longer open a comment. Pure function.
+
+def _code_line_spans(text: str) -> list[tuple[int, int]]:
+    """Return (start, end) character spans of BLOCK-level code. Pure.
+
+    Covers fenced blocks (backtick or tilde, any length >= 3, opener indented
+    up to 3 spaces, with or without an info string) and indented code blocks
+    (4+ spaces or a tab) outside any fence.
+
+    Deliberately generous: an indented line is treated as code without checking
+    CommonMark's "cannot interrupt a paragraph" rule. Over-detection strips
+    less, which is the safe direction.
     """
+    spans: list[tuple[int, int]] = []
+    pos = 0
+    fence_char: str | None = None
+    fence_len = 0
+    fence_start = 0
+    for line in text.splitlines(keepends=True):
+        stripped = line.rstrip("\r\n")
+        m = _FENCE_RE.match(stripped)
+        if fence_char is None:
+            if m is not None:
+                fence_char = m.group("fence")[0]
+                fence_len = len(m.group("fence"))
+                fence_start = pos
+            elif _INDENTED_CODE_RE.match(stripped):
+                spans.append((pos, pos + len(line)))
+        else:
+            # Inside a fence: a closer is the same char, at least as long, and
+            # carries no info string.
+            if (m is not None
+                    and m.group("fence")[0] == fence_char
+                    and len(m.group("fence")) >= fence_len
+                    and not m.group("info").strip()):
+                spans.append((fence_start, pos + len(line)))
+                fence_char = None
+        pos += len(line)
+    if fence_char is not None:
+        # An unclosed fence runs to end of input. Treating the remainder as
+        # code strips less, so it is the safe reading.
+        spans.append((fence_start, len(text)))
+    return spans
+
+
+def _is_escaped(text: str, index: int) -> bool:
+    r"""True if text[index] is preceded by an ODD number of backslashes. Pure.
+
+    CommonMark backslash-escaping makes `\<!--` literal text, which the raw
+    regex happily treats as a comment opener (R9P2-07).
+    """
+    backslashes = 0
+    cursor = index - 1
+    while cursor >= 0 and text[cursor] == "\\":
+        backslashes += 1
+        cursor -= 1
+    return backslashes % 2 == 1
+
+
+def _strip_html_comments_outside_code(text: str) -> str:
+    """Strip well-formed HTML comments, leaving anything a renderer calls code.
+
+    A comment is removed only when BOTH delimiters sit outside every code
+    region and the opener is not backslash-escaped. Any doubt leaves the text
+    in place, which can only ADD claims to the denominator. Pure function.
+    """
+    protected: list[tuple[int, int]] = _code_line_spans(text)
+    protected += [(m.start(), m.end()) for m in _CODE_SPAN_RE.finditer(text)]
+
+    def _protected(index: int) -> bool:
+        return any(start <= index < end for start, end in protected)
+
     out: list[str] = []
     last = 0
-    for m in _CODE_SPAN_RE.finditer(text):
-        out.append(_strip_html_comments(text[last:m.start()]))
-        out.append(m.group(0))
+    for m in _HTML_COMMENT_RE.finditer(text):
+        if (_protected(m.start())
+                or _protected(m.end() - 1)
+                or _is_escaped(text, m.start())):
+            continue
+        out.append(text[last:m.start()])
+        out.append(" ")
         last = m.end()
-    out.append(_strip_html_comments(text[last:]))
+    out.append(text[last:])
     return "".join(out)
 
 
