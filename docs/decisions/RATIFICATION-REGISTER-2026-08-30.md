@@ -831,3 +831,32 @@ That is the third distinct silent-guard failure found tonight, so the guard is
 now written in from the start rather than discovered later.
 
 Suite 652 → **655 passed, 2 skipped, 55 xfailed**.
+
+---
+
+## D-48 — J-39 (PART): relation endpoints must match on word boundaries
+
+| id | Decision | Basis | Undo | Status |
+|---|---|---|---|---|
+| D-48 | **Match relation endpoints and triggers on WORD BOUNDARIES** (`_contains_word`, lookarounds on word characters) instead of by bare substring. | "AI drives mass layoffs [S1][S2]" certified GROUNDED at PASS 100.0 against two sources whose only "ai" was inside the word **said**. Strictly fail-closed: it can only remove spurious matches. | revert the J-39 commit. | **PARTIAL** |
+
+**Lookarounds, not `\b`, on purpose.** `\b` is defined relative to the adjacent
+character's class, so it misbehaves when the needle begins or ends with
+punctuation — which a head-noun phrase extracted from real prose regularly does.
+`(?<!\w)…(?!\w)` is well-defined for any needle. Pinned by a unit test using
+`(pipeline)`.
+
+**What makes this finding uncomfortable rather than merely embarrassing:** the
+two-distinct-source rule worked *perfectly*. It corroborated across two
+independent sources exactly as specified — and corroborated a relation nobody
+asserted. A rule can be correctly implemented and still measure nothing, and
+that is not a bug a test of the rule would ever catch.
+
+**EXPLICITLY PARTIAL.** R10C-02's other half — `extract_arguments` keeps only
+ONE token per side, so unrelated subjects can still collide (an FT deal-flow
+page plus an NEJM trial page certifying "The ingestion pipeline causes silent
+data loss") — is a design change, not a bug fix, and stays OPEN under J-39. The
+test file says so in its own docstring so nobody reads it as a closure.
+
+Suite 655 → **662 passed, 2 skipped, 55 xfailed**. Corpus byte-identical, gold
+md5 unchanged.

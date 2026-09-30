@@ -2702,6 +2702,29 @@ def window_supports(source: RetrievedSource, argument_text: str) -> bool:
 # Relational grounding
 # ---------------------------------------------------------------------------
 
+def _contains_word(haystack: str, needle: str) -> bool:
+    """True iff *needle* occurs in *haystack* on word boundaries. Pure.
+
+    R10C-02 (round 10): endpoint and trigger matching used a BARE SUBSTRING
+    test, so "AI drives mass layoffs [S1][S2]" certified GROUNDED against two
+    sources whose only "ai" was inside the word "said". Two-source corroboration
+    of a relation nobody asserted.
+
+    Boundaries are expressed as lookarounds on word characters rather than \b,
+    because \b is defined relative to the adjacent character's class and
+    therefore misbehaves when the needle begins or ends with punctuation — which
+    a head-noun phrase extracted from real prose regularly does.
+
+    Strictly fail-closed: it can only REMOVE spurious matches, so a relation can
+    only become harder to corroborate, never easier.
+    """
+    if not needle:
+        return False
+    return _re.search(
+        r"(?<!\w)" + _re.escape(needle) + r"(?!\w)", haystack
+    ) is not None
+
+
 def _relation_asserted(
     sources: list[RetrievedSource], side_a: str, side_b: str
 ) -> bool:
@@ -2732,9 +2755,10 @@ def _relation_asserted(
             lo = max(0, c - 2)
             hi = min(n, c + 3)
             window = _nfkc(" ".join(sentences[lo:hi])).casefold()
-            if a not in window or b not in window:
+            if not _contains_word(window, a) or not _contains_word(window, b):
                 continue
-            if any(trigger in window for trigger in _RELATIONAL_TRIGGERS):
+            if any(_contains_word(window, trigger)
+                   for trigger in _RELATIONAL_TRIGGERS):
                 return True
     return False
 
