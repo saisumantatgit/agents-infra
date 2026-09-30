@@ -925,3 +925,65 @@ The honest alternative, if authoring notes must keep passing: adopt a real
 CommonMark parser as the oracle rather than modelling it by hand. That was
 rejected at 03:00 for good reasons (third-party code in the verdict path), but
 it is the only other option that ends the sequence.
+
+---
+
+## D-50 — WITHDRAWAL: two of MY OWN fixes tonight were defective. Round 11 found them.
+
+Report: `Agent-Assure/docs/plans/reports/RED-TEAM-R11-B-recent-fixes.md`.
+
+### WITHDRAWN 1 — R10C-03's query restriction was an ERROR-B I introduced
+
+**I claimed it was fail-closed (D-45). That was FALSE.** Verified by me at the
+function level — same claim, same sources, only the query list differs:
+
+```
+all four queries        -> Verdict.UNVERIFIED_ABSENCE      (refused)
+verbatim-only (2)       -> Verdict.ABSENCE_SUPPORTED       (certified)
+```
+
+`queries` is **both a numerator and a denominator**. It supplies the matches
+that certify an absence AND the population size for the blanket-corpus-word
+refusal (`len(distinct) >= 3`). Shrinking it switched that REFUSAL OFF.
+
+**What makes this the night's sharpest lesson:** I identified the direction trap
+in this exact function — I wrote a comment and a test explaining that filtering
+`source_texts` would be fail-OPEN because it is scanned for a refutation — and
+then walked into a second instance of the same trap one argument to the left. I
+checked the direction of the parameter I was thinking about and not the
+direction of the one I was changing.
+
+**Reverted.** The full query list is restored. The verbatim-BASIS requirement
+stays, which is what closes the original R10C-03 headline (a store of ONLY
+summaries cannot certify). That a summary can still supply a counting query is
+OPEN again as **J-42** — deliberately, because it is a strictly smaller hole
+than the one I created. The correct repair passes the full list for the
+denominator and a verbatim-only set for the matching, which needs
+`check_absence`'s signature to change; that is daylight work.
+
+### WITHDRAWN 2 — J-40 grounded a figure against sources the claim never cited
+
+`ground()` built `verbatim_sources` from `store.values()`, so a figure present
+only in an unrelated, UNCITED source satisfied the check. **That is the exact
+confusion the product exists to prevent: "somewhere in this session" is not
+"the source this claim points at."** The NUMERIC branch has always used the
+claim's own cited sources. Fixed to match, and pinned by a test plus its
+control.
+
+### Still open from round 11-B, registered not accepted
+
+- **J-43** — the relational numeric guard keys on `claim.numeric_tokens` and
+  `_NUMERIC_RE` requires a DIGIT, so **"ninety-seven percent" is never
+  extracted and never checked.** One keystroke from `97%`. Tripwired.
+- **J-44** — `_contains_word`'s `(?!\w)` makes "migraine" not occur in
+  "migraines", so an honest claim a source asserts verbatim reads
+  UNVERIFIED_RELATION. **My "strictly fail-closed" claim for J-39 was right
+  about Error-B and wrong as stated** — it removes legitimate morphological
+  matches too, which is Error-A. `window_supports` still uses bare substring,
+  so two definitions of "contains" now coexist in one branch.
+- **J-45** — `evidence_basis` still calls `_session_queries` and tells the user
+  "N distinct search queries" including ones that did not count. Display
+  disagreeing with the verdict is the D-35 defect class.
+
+Suite **664 passed, 2 skipped, 61 xfailed**. Corpus byte-identical, gold md5
+unchanged.

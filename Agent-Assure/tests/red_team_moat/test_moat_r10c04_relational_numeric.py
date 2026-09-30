@@ -101,3 +101,43 @@ def test_percent_does_not_match_a_bare_number(tmp_path):
                   "Insulin resistance causes 97% of all type 2 diabetes "
                   "[S2][S3].\n", bare)
     assert rep["gate"] != "PASS"
+
+
+# --- R11B-03: the figure must be grounded by what the claim CITES -----------
+
+def test_a_figure_in_an_uncited_source_does_not_ground_the_claim(tmp_path):
+    """Round 11 found J-40's first version drew from store.values(), so a
+    figure appearing ONLY in an unrelated, UNCITED source satisfied the check.
+
+    That is the same confusion the whole product exists to prevent: 'somewhere
+    in the session' is not 'the source this claim points at'. The NUMERIC
+    branch has always used the claim's own cited sources; the relational check
+    now matches it."""
+    distractor = _rec("S9", "An unrelated market report notes that 97% of "
+                            "respondents preferred the blue packaging.")
+    rep = _report(tmp_path,
+                  "Insulin resistance causes 97% of all type 2 diabetes "
+                  "[S2][S3].\n", NO_NUMBER + [distractor])
+    assert rep["per_claim"][0]["verdict"] == "UNVERIFIED_NUMBER"
+    assert rep["gate"] != "PASS"
+
+
+def test_the_figure_still_grounds_when_the_CITED_source_carries_it(tmp_path):
+    """CONTROL for the above: cited-only must not become 'never grounds'."""
+    rep = _report(tmp_path,
+                  "Insulin resistance causes 97% of all type 2 diabetes "
+                  "[S2][S3].\n", WITH_97)
+    assert rep["per_claim"][0]["verdict"] == "GROUNDED"
+    assert rep["gate"] == "PASS"
+
+
+@pytest.mark.xfail(strict=True, reason=(
+    "J-43 OPEN (round 11): the guard keys on claim.numeric_tokens, and "
+    "_NUMERIC_RE requires a DIGIT, so a figure spelled in words is never "
+    "extracted and never checked. One keystroke separates '97%' (refused) "
+    "from 'ninety-seven percent' (certified)."))
+def test_a_figure_spelled_in_words_is_also_checked(tmp_path):
+    rep = _report(tmp_path,
+                  "Insulin resistance causes ninety-seven percent of all type "
+                  "2 diabetes [S2][S3].\n", NO_NUMBER)
+    assert rep["gate"] != "PASS"

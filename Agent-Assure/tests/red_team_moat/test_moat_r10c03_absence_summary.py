@@ -5,7 +5,8 @@ Round 10 adversary C: `ground()`'s ABSENCE branch passed the whole store with no
 certified "we found no evidence of X" at PASS 100.0. That breaks the invariant
 named in CLAUDE.md: a haiku_summary can never ground a claim.
 
-THE DIRECTION OF THE FIX IS A TRAP, and it is the whole point of this file.
+THE DIRECTION OF THE FIX IS A TRAP — and it caught me TWICE, which is the
+whole point of this file.
 `source_texts` is scanned for a REFUTATION of the absence. Filtering it to
 verbatim would REMOVE chances to find one and make absence EASIER to certify —
 fail-OPEN. So summaries remain in that scan, and what is restricted is the BASIS
@@ -20,6 +21,8 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
+
+import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts"))
 
@@ -64,6 +67,16 @@ def test_store_of_only_summaries_cannot_certify_an_absence(tmp_path):
     assert rep["per_claim"][0]["verdict"] == "UNVERIFIED_ABSENCE"
 
 
+@pytest.mark.xfail(strict=True, reason=(
+    "J-42 OPEN. This briefly PASSED on 2026-10-01 and the fix was WITHDRAWN "
+    "the same night: restricting the query list to verbatim records shrank a "
+    "list that is ALSO the denominator of the blanket-corpus-word refusal "
+    "(len(distinct) >= 3), which switched that refusal OFF and certified "
+    "absences the all-verbatim store refused. Trading this narrow hole for "
+    "that one was a net Error-B, so the restriction was reverted. The correct "
+    "repair passes the FULL query list for the denominator and a "
+    "verbatim-only set for the matching, which needs check_absence's "
+    "signature to change."))
 def test_summaries_cannot_supply_the_distinct_searches(tmp_path):
     """SIBLING: one verbatim source exists, so the basis check passes, but the
     SECOND distinct search comes only from a summary. It must not count."""

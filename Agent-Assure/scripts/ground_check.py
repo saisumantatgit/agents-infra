@@ -2861,21 +2861,6 @@ def _distinct_queries(sources: "Iterable[RetrievedSource]") -> list[str]:
     return out
 
 
-def _verbatim_session_queries(store: dict[str, RetrievedSource]) -> list[str]:
-    """Distinct queries contributed by VERBATIM records only. Pure.
-
-    R10C-03 (round 10): a summary must never be the BASIS of a certification.
-    `haiku_summary` records may still REFUSE an absence claim — see the
-    source_texts argument at the ABSENCE branch — but they may not supply the
-    distinct searches that certify one. Asymmetric authority, the same rule that
-    governs every model-derived signal in this system: may add a flag, never
-    lift one.
-    """
-    return _distinct_queries(
-        s for s in store.values() if s.full_text_source == "verbatim"
-    )
-
-
 def ground(
     claim: Claim,
     store: dict[str, RetrievedSource],
@@ -2955,11 +2940,19 @@ def ground(
         # protected today because a digit becomes a strong anchor — that is a
         # CEILING, not a defence, and it is recorded as such in J-40.
         if verdict == Verdict.GROUNDED and claim.numeric_tokens:
-            verbatim_sources = [
-                s for s in store.values()
-                if s.full_text_source == "verbatim" and s.text
+            # R11B-03 (round 11): this drew from store.values(), so a figure
+            # appearing ONLY in an uncited, unrelated source satisfied the
+            # check. The NUMERIC branch below has always used the claim's OWN
+            # cited sources, and this must match it — a number is grounded by
+            # what the claim CITES, not by what happens to be in the session.
+            cited_verbatim = [
+                source
+                for source in (resolve(c, store) for c in claim.citations)
+                if source is not None
+                and source.full_text_source == "verbatim"
+                and source.text
             ]
-            if not numeric_ok(claim, verbatim_sources):
+            if not numeric_ok(claim, cited_verbatim):
                 return Verdict.UNVERIFIED_NUMBER
         return verdict
     if claim.kind == ClaimKind.ABSENCE:
@@ -2977,9 +2970,25 @@ def ground(
         if not any(s.full_text_source == "verbatim" and s.text
                    for s in store.values()):
             return Verdict.UNVERIFIED_ABSENCE
+        # R11B-01 (round 11) — WITHDRAWN: passing only VERBATIM queries here was
+        # my own Error-B, introduced hours earlier and claimed fail-closed.
+        #
+        # `queries` is BOTH a numerator and a DENOMINATOR. It supplies the
+        # matches that certify an absence, AND the population size for the
+        # blanket-corpus-word refusal at the `len(distinct) >= 3` gate below.
+        # Shrinking it therefore switches that REFUSAL OFF: the same claim over
+        # the same sources reads UNVERIFIED_ABSENCE with four queries and
+        # ABSENCE_SUPPORTED with two.
+        #
+        # I identified the direction trap in this function (source_texts, above)
+        # and then walked into a second instance of it. The full list is
+        # restored; the verbatim-BASIS requirement above stays, which is what
+        # closes the original R10C-03 headline (a store of only summaries cannot
+        # certify). That a summary can still supply a counting query is OPEN
+        # again, registered as J-42 — a smaller hole than the one I created.
         return check_absence(
             claim,
-            _verbatim_session_queries(store),
+            _session_queries(store),
             source_texts=[s.text for s in store.values() if s.text],
         )
 
