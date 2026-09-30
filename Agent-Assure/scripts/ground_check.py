@@ -7,6 +7,8 @@ Pure functions only — never mutate inputs or globals.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
+
 import json
 # `re` is imported HERE, at the top, and not beside its first use. Three
 # separate NameErrors in this file have had one cause: a module-level
@@ -532,12 +534,75 @@ def _is_escaped(text: str, index: int) -> bool:
     return backslashes % 2 == 1
 
 
-def _strip_html_comments_outside_code(text: str) -> str:
-    """Strip well-formed HTML comments, leaving anything a renderer calls code.
+# J-28B (2026-10-01, round 10 adversary A). J-27's code-region scanner was a
+# BLACKLIST after all: every one of round 10's five findings was a new way to be
+# code that the scanner had not enumerated — a blockquote marker in front of a
+# fence, a space-plus-tab indent, a forged line boundary. That is the shape this
+# repo has watched fail five times, and extending the scanner a fifth time would
+# have been the sixth.
+#
+# The structural question is not "is this inside code?" but "does this opener
+# genuinely OPEN AN HTML BLOCK?" CommonMark (HTML block type 2) says a `<!--`
+# beginning a line with at most 3 spaces of indent does. Anything else — mid
+# paragraph, behind a `>` blockquote marker, behind a tab — is literal text, and
+# literal text can only be a comment WITHIN ITS OWN BLOCK.
+#
+# So: strip when the opener is a real HTML-block opener, OR when opener and
+# closer lie in the same block (no blank line, no change of blockquote depth).
+# Otherwise leave the text alone. This keys on document STRUCTURE, not on a
+# surface character the author picks, which is the property the project's own
+# law demands.
+_BLANK_LINE_RE = _re.compile(r"\n[ \t]*\n")
+_HTML_BLOCK_OPENER_PREFIX_RE = _re.compile(r" {0,3}\Z")
+_BLOCKQUOTE_PREFIX_RE = _re.compile(r"[ \t]*((?:>[ \t]*)*)")
 
-    A comment is removed only when BOTH delimiters sit outside every code
-    region and the opener is not backslash-escaped. Any doubt leaves the text
-    in place, which can only ADD claims to the denominator. Pure function.
+
+def _line_start(text: str, index: int) -> int:
+    """Index just after the newline preceding *index*, or 0. Pure."""
+    return text.rfind("\n", 0, index) + 1
+
+
+def _opens_html_block(text: str, index: int) -> bool:
+    """True if `<!--` at *index* begins a line with <= 3 spaces indent. Pure.
+
+    This is CommonMark's HTML-block-type-2 opener condition. A comment that
+    really opens an HTML block runs to its `-->` however many blank lines it
+    spans, so stripping across them is renderer-faithful.
+    """
+    prefix = text[_line_start(text, index):index]
+    return _HTML_BLOCK_OPENER_PREFIX_RE.fullmatch(prefix) is not None
+
+
+def _blockquote_depth(line: str) -> int:
+    """Number of leading `>` block markers on *line*. Pure."""
+    return _BLOCKQUOTE_PREFIX_RE.match(line).group(1).count(">")
+
+
+def _spans_one_block(text: str, start: int, end: int) -> bool:
+    """True if [start, end) contains no blank line and no blockquote-depth change.
+
+    Pure. Used for an opener that does NOT open an HTML block: such an opener is
+    literal text, so it may only be honoured as a comment inside its own block.
+    """
+    segment = text[start:end]
+    if _BLANK_LINE_RE.search(segment) is not None:
+        return False
+    lines = segment.split("\n")
+    opening_depth = _blockquote_depth(text[_line_start(text, start):].split("\n")[0])
+    return all(_blockquote_depth(line) == opening_depth for line in lines[1:])
+
+
+def _strip_html_comments_outside_code(text: str) -> str:
+    """Strip well-formed HTML comments, honouring block structure.
+
+    A comment is removed only when ALL of these hold:
+      - neither delimiter sits inside a code region;
+      - the opener is not backslash-escaped;
+      - the opener either OPENS AN HTML BLOCK (line start, <= 3 spaces indent)
+        or lies in the SAME BLOCK as its closer.
+
+    Any doubt leaves the text in place, which can only ADD claims to the scored
+    denominator. Pure function.
     """
     protected: list[tuple[int, int]] = _code_line_spans(text)
     protected += [(m.start(), m.end()) for m in _CODE_SPAN_RE.finditer(text)]
@@ -551,6 +616,9 @@ def _strip_html_comments_outside_code(text: str) -> str:
         if (_protected(m.start())
                 or _protected(m.end() - 1)
                 or _is_escaped(text, m.start())):
+            continue
+        if not (_opens_html_block(text, m.start())
+                or _spans_one_block(text, m.start(), m.end())):
             continue
         out.append(text[last:m.start()])
         out.append(" ")
@@ -2754,14 +2822,34 @@ def _session_queries(store: dict[str, RetrievedSource]) -> list[str]:
     matches). A list is returned to satisfy check_absence's signature.
     Pure function — no mutation, no LLM/network/random/wall-clock.
     """
+    return _distinct_queries(store.values())
+
+
+def _distinct_queries(sources: "Iterable[RetrievedSource]") -> list[str]:
+    """Distinct query_provenance values across *sources*, order-preserving. Pure."""
     seen: set[str] = set()
     out: list[str] = []
-    for source in store.values():
+    for source in sources:
         q = source.query_provenance
         if q not in seen:
             seen.add(q)
             out.append(q)
     return out
+
+
+def _verbatim_session_queries(store: dict[str, RetrievedSource]) -> list[str]:
+    """Distinct queries contributed by VERBATIM records only. Pure.
+
+    R10C-03 (round 10): a summary must never be the BASIS of a certification.
+    `haiku_summary` records may still REFUSE an absence claim — see the
+    source_texts argument at the ABSENCE branch — but they may not supply the
+    distinct searches that certify one. Asymmetric authority, the same rule that
+    governs every model-derived signal in this system: may add a flag, never
+    lift one.
+    """
+    return _distinct_queries(
+        s for s in store.values() if s.full_text_source == "verbatim"
+    )
 
 
 def ground(
@@ -2828,9 +2916,23 @@ def ground(
     if claim.kind == ClaimKind.RELATIONAL:
         return ground_relational(claim, store)
     if claim.kind == ClaimKind.ABSENCE:
+        # R10C-03: a store of ONLY haiku_summary records certified an absence at
+        # PASS 100.0, breaking the named invariant that a summary can never
+        # ground a claim.
+        #
+        # THE DIRECTION HERE IS A TRAP. The naive repair — filter source_texts
+        # to verbatim — is FAIL-OPEN: source_texts is scanned for a REFUTATION,
+        # so removing summaries removes chances to find one and makes absence
+        # EASIER to certify. So summaries stay in that scan, and what is
+        # restricted is the BASIS for certification: at least one verbatim
+        # source must exist, and only verbatim records may contribute the
+        # distinct searches. A summary may refuse, never approve.
+        if not any(s.full_text_source == "verbatim" and s.text
+                   for s in store.values()):
+            return Verdict.UNVERIFIED_ABSENCE
         return check_absence(
             claim,
-            _session_queries(store),
+            _verbatim_session_queries(store),
             source_texts=[s.text for s in store.values() if s.text],
         )
 

@@ -701,3 +701,59 @@ authoring rows, which is adjacent to the gold-label gate.
 Recommendation for Sai, in one line: **do the J-31 + J-33 package, in that
 order, in daylight, with a corpus extension built first** — and until then
 treat "absence claims" as the product's weakest surface.
+
+---
+
+## D-45 — ROUND 10: J-26 and J-27 BOTH REFUTED. And my gate-2 evidence for J-26 was VACUOUS.
+
+Three Opus adversaries ran against tonight's tree. Two closure claims fell.
+Reports: `Agent-Assure/docs/plans/reports/RED-TEAM-R10-A-denominator.md`,
+`RED-TEAM-R10-B-store.md`.
+
+### The correction that matters most, because it is about my own evidence
+
+I reported "gate 2 (DIRECTION) passed" on all three fixes, citing a
+byte-identical `labeling-v2.csv`. **For J-26 that check was structurally
+incapable of failing, so it proved nothing and I should not have counted it.**
+
+`calibration/build_corpus_v2.py:84` constructs `RetrievedSource` **directly**,
+with `tool="calibration_fixture"` — a tool `load_store` now REFUSES — and never
+calls `load_store` at all. Verified:
+
+```
+calibration/build_corpus_v2.py:89:        tool="calibration_fixture",
+calibration_fixture in allowlists: False
+```
+
+Two consequences. (1) **The mandatory corpus-regeneration adversary — the
+project's own "the fix's own adversary" discipline — is blind to every loader
+change by construction.** (2) **CR-004's A=0.320 / B=0.000 (n=52) is measured on
+stores the shipped gate would now reject.** That is a calibration-validity
+finding, registered as J-37.
+
+This is the estate's signature defect for the THIRD time tonight: a control
+correct about what it examines (`classify`/tiers/`score`) and silent about what
+it does not (the loader). It landed on the very check my own instrument named as
+the thing that would halt me.
+
+### D-45 proper — J-28B, the structural rule that replaces J-27's scanner
+
+| id | Decision | Basis | Undo | Status |
+|---|---|---|---|---|
+| D-45 | **Replace "is this inside a code region?" with "does this opener genuinely OPEN AN HTML BLOCK?"** Strip only when the opener begins a line with ≤3 spaces indent (CommonMark HTML-block type 2), OR when opener and closer lie in the same block — no blank line, no change of blockquote depth. | J-27's scanner was a **blacklist**, and all five round-10-A findings were new ways to be code it had not enumerated: a `>` marker in front of a fence, a space+tab indent worth 4 columns, an inline opener with no code region at all, a code span crossing a newline. Extending it a fifth time would have been the sixth instance of this repo's failure mode; the adversary said so in terms. The new rule keys on document STRUCTURE, not a surface character the author picks. Strictly fail-closed. | revert the J-28B commit. | **LANDED, NOT CLOSED** |
+
+**Verified: all five shapes now reach the denominator; 3 of them previously
+certified a clean PASS 100.0 with an empty retained appendix.** And all three
+genuine-note controls still strip — including the MULTI-PARAGRAPH note, which a
+blank-line rule alone would have wrongly scored. That is precisely why the
+HTML-block exception exists: a line-start `<!--` really does open a block that
+runs to its `-->` across blank lines, so stripping there is renderer-faithful.
+
+**Deliberately NOT claimed closed.** This rule has not itself faced an
+adversary. The last two closure claims in this area were both refuted within the
+hour of being made. **Round 11 owes it one**, and no closure claim should be
+made on its behalf until then. Registered as J-34.
+
+Suite 628 → **638 passed, 2 skipped, 58 xfailed**. Corpus byte-identical, gold
+md5 unchanged — and this time the check is meaningful, because the corpus DOES
+exercise `decompose`, which is where the stripper lives.
