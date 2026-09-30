@@ -45,16 +45,17 @@ Run from `Agent-Assure/` (env is `uv`; `install.sh` provisions runtime `.venv`).
 ```bash
 bash install.sh                      # provision .venv (Python >=3.11 + runtime deps)
 uv sync                              # provisions runtime deps AND pytest (dev group)
-uv run pytest                        # full suite — 489 passed + 2 skipped + 9 xfailed
-                                     #   (2026-09-02; the count moves with every
+uv run pytest                        # full suite — 628 passed + 2 skipped + 58 xfailed
+                                     #   (2026-10-01; the count moves with every
                                      #   red-team round, so trust the RUN, not this
-                                     #   number). The 9 xfails are deliberately-open
-                                     #   items: OI-MOAT-20, OI-T2-01 (x2), and
-                                     #   OI-MOAT-21 (x6 — one legacy + the five
-                                     #   argument-swap tripwires in
-                                     #   tests/red_team_moat/test_moat_oi_moat_21.py).
-                                     #   Those five are the SAME open Error-B counted
-                                     #   per instance, not five new holes.
+                                     #   number). The xfails are deliberately-open
+                                     #   findings, each a tripwire that goes RED the
+                                     #   day someone fixes it — a RISING count is not
+                                     #   decay, it is holes being recorded rather than
+                                     #   left unrecorded. Current open families:
+                                     #   J-33 (unrecognised citation markers, x6),
+                                     #   J-31 (cited absence claims refused), and the
+                                     #   round-8 residue in tests/red_team_moat/.
                                      # (`--extra dev` is no longer needed: pytest moved to
                                      #  [dependency-groups] dev, which uv sync installs by
                                      #  default — OI-ENV-01. A conftest guard fails loud if
