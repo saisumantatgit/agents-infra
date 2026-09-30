@@ -4,9 +4,10 @@ The round scoped to the "closed class" that had been described as unable to
 lose a red-team round. It lost three ways. Every reproduction below was re-run
 by the orchestrator before being recorded.
 
-Not fixed tonight on purpose: the R9P1 fix belongs in ``ground()`` ahead of the
-kind dispatch, the R9P2 store fixes belong in ``load_store``; both are
-fail-closed and small, and both deserve daylight and their own adversary.
+R9P1-01 and R9P1-02 are CLOSED by J-25 (2026-10-01) and their regression
+guard, with sibling shapes, now lives in test_moat_r9_provenance_closed.py.
+What remains OPEN here is the R9P2 family: the load_store repairs (J-26) and
+the comment-stripper code detection (J-27).
 """
 from __future__ import annotations
 
@@ -51,33 +52,6 @@ ABS = [
                    "drone safety evidence."),
      "query_provenance": "regulatory database evidence query X200"},
 ]
-
-
-@pytest.mark.xfail(strict=True, reason=(
-    "R9P1-01 OPEN: ground_relational skips unresolvable citations, so a "
-    "fabricated [S99] beside two real sources certifies PASS 100.0 — while "
-    "evidence_basis on the same row says S99 was NEVER RETRIEVED."))
-def test_relational_claim_with_fabricated_citation_is_not_certified(tmp_path):
-    rep = _run(tmp_path,
-               "Insulin resistance causes type 2 diabetes [S2][S3][S99].\n", REL)
-    assert rep["gate"] != "PASS"
-
-
-@pytest.mark.xfail(strict=True, reason=(
-    "R9P1-02 OPEN: check_absence never inspects claim.citations, so an "
-    "absence claim citing a source that does not exist certifies PASS 100.0."))
-def test_absence_claim_with_fabricated_citation_is_not_certified(tmp_path):
-    rep = _run(tmp_path,
-               "[S99] We found no evidence of a safety recall affecting the "
-               "X200 drone.\n", ABS)
-    assert rep["gate"] != "PASS"
-
-
-def test_relational_control_without_fabrication_still_passes(tmp_path):
-    """Keeps the tripwire above honest: the real two-source claim DOES pass."""
-    rep = _run(tmp_path,
-               "Insulin resistance causes type 2 diabetes [S2][S3].\n", REL)
-    assert rep["gate"] == "PASS"
 
 
 @pytest.mark.xfail(strict=True, raises=None, reason=(

@@ -432,3 +432,115 @@ required under BOTH branches: entailment layers on provenance, it does not
 replace it, so a citation must resolve to a genuinely retrieved source either
 way. Nothing tonight touches T3, a gold label, hook registration, the factive
 whitelist, or anything outward-facing.
+
+---
+
+## D-39 — J-25: provenance precedes kind in `ground()`
+
+| id | Decision | Basis | Undo | Status |
+|---|---|---|---|---|
+| D-39 | **Move the unresolved-citation check ahead of the RELATIONAL/ABSENCE kind dispatch in `ground()`.** Closes R9P1-01 and R9P1-02 together. | Fail-closed: the branch can only return `UNVERIFIED_CITATION`, i.e. only move a claim AWAY from PASS. Whether a cited marker names something the session retrieved is a fact about the STORE, prior to and independent of claim kind; once the kind dispatch runs, the unresolvable marker has already been discarded and nothing downstream can re-derive it. | `git revert` the J-25 commit, or move the `any(resolve(...) is None ...)` block back below the `ABSENCE` branch. | DONE |
+
+**Call sites enumerated before the fix, per the round-8 lesson.**
+`ground_relational` and `check_absence` each have exactly ONE call site and
+both are inside `ground()` (`ground_check.py:2571`, `:2573` pre-fix). `ground()`
+itself is reached from `score_report` and from `scripts/calibrate.py:186`. So a
+single edit in `ground()` covers the class — verified by grep over `scripts/`
+and `calibration/`, not assumed.
+
+**Proven-red.** The two `strict=True` xfails in
+`tests/red_team_moat/test_moat_r9_provenance_open.py` were seen to
+`XPASS(strict)` against the fixed tree — the red-to-green transition for a
+tripwired finding. Both now live as passing regressions in
+`test_moat_r9_provenance_closed.py`, joined by **sibling shapes my own fixtures
+did not contain**: all-citations-fake, the NUMERIC kind, a full-width marker
+that only NFKC folds, a per-claim assertion that the report SAYS
+`UNVERIFIED_CITATION`, and the NULL CASE (an uncited absence claim, which must
+still reach `check_absence` unchanged — it does).
+
+**Gate 2, DIRECTION — passed, and stated precisely.** `labeling-v2.csv`
+regenerates **byte-identical**; `labels-v2.csv` md5 unchanged
+(`6215b526…d171f`), zero gold labels touched. **Byte-identical does NOT mean
+"no new Error-A"** — it means no row among the 52 has the shape J-25 changes.
+The corpus cannot measure this change; **A=0.320 neither bounds it nor is
+disturbed by it.** No operating point moved, so CR-004 stands and no new CR is
+due. (This wording exists because the same inference was drawn wrongly on
+2026-09-12 and had to be withdrawn.)
+
+**Type narrowing, deliberately loud.** Removing the now-dead `None` branch left
+`sources` typed `RetrievedSource | None`. Narrowed by construction with an
+explicit `raise AssertionError`, NOT by a filter — a filter would silently
+shrink the cited set, which is the exact failure mode J-25 closes.
+
+---
+
+## D-40 — J-31 found and registered, NOT fixed
+
+| id | Decision | Basis | Undo | Status |
+|---|---|---|---|---|
+| D-40 | **Record that a correctly-cited absence claim is REFUSED while the identical uncited claim is certified, and change nothing.** | Found while writing a control for D-39 and **verified PRE-EXISTING on the pre-J-25 tree**, so not a regression. It is Error-A (fail-closed), not a moat breach, so it is not urgent — but any repair moves the Error-A/Error-B trade-off, which is **Escalation #1**. | nothing to undo; the tripwire is one strict xfail. | OPEN — round 10 |
+
+Reproduction, same store, same sentence:
+
+```
+uncited  gate=PASS   [('ABSENCE', 'ABSENCE_SUPPORTED')]
+cited    gate=FAIL   [('ABSENCE', 'UNVERIFIED_ABSENCE')]
+```
+
+**Why it matters beyond the number:** the product instructs authors to cite, and
+citing correctly is what triggers the refusal. That is a Jobs-to-be-Done defect,
+not merely a rate — the customer does the thing the tool asked for and the tool
+penalises them for it. Tripwired as J-31 in
+`tests/red_team_moat/test_moat_r9_provenance_closed.py`.
+
+---
+
+## D-41 — the `evidence_basis` guard now checks the AST, not the source text
+
+| id | Decision | Basis | Undo | Status |
+|---|---|---|---|---|
+| D-41 | **Rewrite `test_basis_is_not_consulted_by_any_verdict_path` to walk the AST for `ast.Name`/`ast.Attribute` references instead of substring-matching the source text.** | The substring form could not tell a CALL from a COMMENT. It failed J-25 for writing the words "evidence_basis" in a comment explaining that the gate had contradicted its own explanation of itself. Strictly MORE precise, not weaker — proven in both directions below. | revert the test to the `"evidence_basis" not in src` form. | DONE |
+
+**Proven in both directions, because loosening a moat-adjacent guard at 02:30
+on an assertion that it is "obviously fine" is exactly how one gets quietly
+disabled.** A real call `_tamper = evidence_basis(claim, store)` was inserted
+into `ground()`: the rewritten guard FAILED. Removing it: PASSED.
+
+**The general defect, worth naming.** The test's NAME claimed a semantic
+property; its ASSERTION measured a lexical proxy. They agreed until the first
+time the words appeared in prose — at which point the cheapest way to green the
+suite was to DELETE the explanatory comment. A guard that fires on prose trains
+people to remove the prose. Sibling question asked and answered: no other test
+in the suite guards a verdict path by substring (`grep` over `tests/` for
+`inspect.getsource` — this was the only one).
+
+### D-41 CORRECTION, same session — the "only one" claim was FALSE
+
+I wrote above that this was the only substring-based verdict-path guard in the
+suite. **That was wrong, and the three-kind absence search caught it within the
+minute.** There is a second: `tests/test_label_basis_split.py:87-93` — D-34's
+own guard, the very one D-41's docstring cites as precedent, carrying the same
+mechanism across two assertions.
+
+The first search was ONE KIND (the label, `inspect.getsource`). Three kinds —
+the label, the plain-domain noun (a test reading its own source), and the
+MECHANISM (`not in src`) — found it immediately. **The mechanism search is the
+one that worked**, and it is the kind I would not have run had I trusted the
+first result. A negative result is only as wide as where you looked; this is
+the second time this project has recorded that sentence.
+
+**Systemic fix applied**, not a case fix: D-34's guard is converted to the same
+AST form, with one deliberate difference — `reliability_eligible` and
+`POLICY_SOURCE_TYPES` are reached there as **dict keys**, i.e. string
+constants, not identifiers, so `ast.Constant` strings are included in the
+reference set or the guard would have been genuinely weakened. Proven by
+inserting a real `r["reliability_eligible"]` access into `error_rates`: FAILED;
+removed: PASSED.
+
+**CEILING: including `ast.Constant` strings means a DOCSTRING in
+`error_rates` / `loo_operating_point` / `select_operating_point` that merely
+names `reliability_eligible` will still trip that guard.** It breaks the moment
+someone documents the rule inside one of those three functions. Upgrade path:
+strip the docstring node (`ast.get_docstring`) before walking. Not done
+tonight because the cheap version is correct today and the residue is loud
+rather than silent — it fails a test, it does not certify a fabrication.

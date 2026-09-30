@@ -87,3 +87,14 @@ The two `wf_*` worktrees belong to another session and were not touched.
 | J-28 | **Spec §7.5 — absence claims fail OPEN on an incomplete store.** Remedy (session taint on uncaptured retrieval, or wider matcher) is hook registration. | **Sai** | Escalation #4 |
 | J-29 | **Round 10, provenance only**, after J-25…J-27. | Claude | J-25, J-26, J-27 |
 | J-30 | **MiniCheck diagnostic** — harness ready (`docs/research/diagnostic/`), download failed twice on network. Confirmation, not decision-relevant. | Claude | a stable connection |
+
+## Added 2026-10-01 (overnight run, D-38)
+
+**J-25 is CLOSED** (D-39). It was NOT sequenced behind J-24 after all: the
+product call does not gate it, because entailment layers ON provenance rather
+than replacing it — a citation must resolve to a genuinely retrieved source
+under either branch. The same reasoning frees J-26 and J-27.
+
+| id | Thread | Owner | Blocking reason / waits on |
+|---|---|---|---|
+| J-31 | **A correctly-cited absence claim is REFUSED; the identical uncited claim is CERTIFIED.** `ABSENCE_SUPPORTED`/PASS uncited vs `UNVERIFIED_ABSENCE`/FAIL with two real citations. Verified pre-existing on the pre-J-25 tree. Error-A, fail-closed, no moat breach — but the product asks authors to cite and then penalises them for it (Jobs-to-be-Done defect, not just a rate). Any repair moves the Error-A/Error-B trade-off. Tripwired in `test_moat_r9_provenance_closed.py`. | **Sai** (Escalation #1) + Claude to diagnose | a ruling once round 10 has characterised it |

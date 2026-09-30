@@ -2547,11 +2547,15 @@ def ground(
     Branch order (first match wins):
       1. NON_CLAIM                     → GROUNDED (excluded from denominator
                                          upstream in Task 9).
-      2. RELATIONAL                    → delegate to ground_relational.
-      3. ABSENCE                       → delegate to check_absence with the
+      2. any citation unresolved       → UNVERIFIED_CITATION. Runs BEFORE the
+                                         kind dispatch (J-25): provenance is a
+                                         fact about the store, independent of
+                                         claim kind, and RELATIONAL/ABSENCE
+                                         never reached it when it sat lower.
+      3. RELATIONAL                    → delegate to ground_relational.
+      4. ABSENCE                       → delegate to check_absence with the
                                          session's distinct queries.
-      4. no citations                  → UNCITED.
-      5. any citation unresolved       → UNVERIFIED_CITATION.
+      5. no citations                  → UNCITED.
       6. any resolved source has falsy text → UNGROUNDABLE (snippet-only / no
                                          full text).
       7. no verbatim source among cited → UNGROUNDABLE (all haiku_summary).
@@ -2567,6 +2571,29 @@ def ground(
     """
     if claim.kind == ClaimKind.NON_CLAIM:
         return Verdict.GROUNDED
+
+    # PROVENANCE PRECEDES KIND (J-25, closes R9P1-01 and R9P1-02, 2026-10-01).
+    #
+    # This check USED to sit below the kind dispatch, which meant RELATIONAL
+    # and ABSENCE claims never reached it: ground_relational skips a citation
+    # it cannot resolve, and check_absence never inspects claim.citations at
+    # all. So "Insulin resistance causes type 2 diabetes [S2][S3][S99]" and
+    # "[S99] We found no evidence of a recall" both certified PASS 100.0 with
+    # a source that was never retrieved — while evidence_basis on the SAME row
+    # reported that S99 had never been retrieved. The gate contradicted its own
+    # explanation of itself.
+    #
+    # Whether a cited marker names something the session actually retrieved is
+    # a fact about the STORE, prior to and independent of what kind of claim
+    # cites it. Nothing downstream can re-derive it: once the kind dispatch has
+    # run, the unresolvable marker has already been discarded. Fail-closed —
+    # it can only move a claim away from PASS, never toward it.
+    #
+    # An UNCITED claim is unaffected: an empty citation list makes any() False,
+    # so absence claims that cite nothing still reach check_absence as before.
+    if any(resolve(c, store) is None for c in claim.citations):
+        return Verdict.UNVERIFIED_CITATION
+
     if claim.kind == ClaimKind.RELATIONAL:
         return ground_relational(claim, store)
     if claim.kind == ClaimKind.ABSENCE:
@@ -2579,9 +2606,20 @@ def ground(
     if not claim.citations:
         return Verdict.UNCITED
 
-    sources = [resolve(c, store) for c in claim.citations]
-    if any(s is None for s in sources):
-        return Verdict.UNVERIFIED_CITATION
+    # Every marker resolved above. Narrow the type by construction rather
+    # than by a filter: a filter would silently shrink the cited set, which is
+    # the exact failure mode J-25 just closed. If the invariant is ever broken
+    # the gate must fail loudly, not quietly certify against fewer sources.
+    sources: list[RetrievedSource] = []
+    for _citation in claim.citations:
+        _source = resolve(_citation, store)
+        if _source is None:
+            raise AssertionError(
+                f"citation {_citation!r} unresolved past the provenance check "
+                "in ground(); the check above must precede this loop"
+            )
+        sources.append(_source)
+
     if any(not s.text for s in sources):
         return Verdict.UNGROUNDABLE
 
