@@ -6,8 +6,9 @@ by the orchestrator before being recorded.
 
 R9P1-01 and R9P1-02 are CLOSED by J-25 (2026-10-01) and their regression
 guard, with sibling shapes, now lives in test_moat_r9_provenance_closed.py.
-What remains OPEN here is the R9P2 family: the load_store repairs (J-26) and
-the comment-stripper code detection (J-27).
+R9P2-01 is CLOSED by J-26; its guard, with siblings, is in
+tests/test_store_integrity.py. What remains OPEN here is R9P2-06, the
+comment-stripper code detection (J-27).
 """
 from __future__ import annotations
 
@@ -52,20 +53,6 @@ ABS = [
                    "drone safety evidence."),
      "query_provenance": "regulatory database evidence query X200"},
 ]
-
-
-@pytest.mark.xfail(strict=True, raises=None, reason=(
-    "R9P2-01 OPEN: load_store accepts a duplicate source_id and keeps the LAST "
-    "record, so an AI summary is laundered to verbatim by line order alone. "
-    "The store is audit evidence; a self-contradicting store must raise."))
-def test_duplicate_source_id_is_rejected(tmp_path):
-    good = "Redis handles 100K ops per second [S1].\n"
-    with pytest.raises(Exception):
-        _run(tmp_path, good, [
-            _rec("S1", "Redis handles 100K ops per second.", "haiku_summary",
-                 "WebFetch"),
-            _rec("S1", "Redis handles 100K ops per second."),
-        ])
 
 
 @pytest.mark.xfail(strict=True, reason=(

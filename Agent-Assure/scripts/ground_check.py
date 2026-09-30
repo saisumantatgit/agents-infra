@@ -84,19 +84,156 @@ def _nfkc(s: str) -> str:
     return unicodedata.normalize("NFKC", s)
 
 
+# Tool -> source-type contract. The gate keeps its OWN copy rather than
+# importing the capture layer into the moat's call tree; the copy is made safe
+# by test_tool_source_type_mapping_matches_capture_core, which fails loudly the
+# day capture_core learns a tool this file does not know. (J-26, 2026-10-01)
+_VERBATIM_TOOLS: frozenset[str] = frozenset({
+    "mcp__exa__web_fetch_exa",
+    "web_fetch_exa",
+    "Read",
+    "mcp__ddg-search__fetch_content",
+})
+_HAIKU_SUMMARY_TOOLS: frozenset[str] = frozenset({"WebFetch"})
+
+# The full_text_source enum is CLOSED (CLAUDE.md, verdict taxonomy).
+_SOURCE_TYPES: frozenset[str] = frozenset({"verbatim", "haiku_summary"})
+
+# Required on every record, and each must be a str.
+_REQUIRED_STR_FIELDS: tuple[str, ...] = (
+    "source_id", "fetched_at", "tool", "content_sha256", "text",
+    "full_text_source", "captured_via", "query_provenance",
+)
+# May be JSON null (Read has no url; a fetch has no file_path), but must be a
+# str when present.
+_OPTIONAL_STR_FIELDS: tuple[str, ...] = ("url", "file_path")
+
+
+def _object_pairs_no_duplicates(
+    pairs: list[tuple[str, object]],
+) -> dict[str, object]:
+    """json object hook that RAISES on a duplicated key. Pure.
+
+    ``json.loads`` keeps the LAST of duplicated keys, so a single line could
+    declare ``full_text_source`` twice — haiku_summary then verbatim — and load
+    as verbatim. That makes a provenance decision by JSON key order (R9P2-03).
+    """
+    seen: set[str] = set()
+    for key, _value in pairs:
+        if key in seen:
+            raise ValueError(
+                f"duplicate JSON key {key!r} in one evidence record; the store "
+                "is audit evidence and a record must not contradict itself"
+            )
+        seen.add(key)
+    return dict(pairs)
+
+
+def _validate_record(obj: dict[str, object], lineno: int) -> None:
+    """Raise unless *obj* is a self-consistent, correctly-typed record. Pure.
+
+    Checks, each closing a round-9 finding:
+      - every required field present and a str;
+      - url/file_path either null or a str;
+      - full_text_source within the closed enum;
+      - tool RECOGNISED, and its declared source type matching the capture
+        contract (capture_core: native WebFetch is ALWAYS haiku_summary).
+
+    An unrecognised tool RAISES rather than being trusted. The gate's rule is
+    that every "I don't know" must point AWAY from PASS, and an unknown reader
+    makes the record's own "verbatim" unverifiable — which is exactly the claim
+    that must not be taken on trust.
+    """
+    for field in _REQUIRED_STR_FIELDS:
+        if field not in obj:
+            raise ValueError(
+                f"line {lineno}: evidence record is missing required field "
+                f"{field!r}"
+            )
+        if not isinstance(obj[field], str):
+            raise TypeError(
+                f"line {lineno}: field {field!r} must be a str, got "
+                f"{type(obj[field]).__name__}"
+            )
+    for field in _OPTIONAL_STR_FIELDS:
+        value = obj.get(field)
+        if value is not None and not isinstance(value, str):
+            raise TypeError(
+                f"line {lineno}: field {field!r} must be a str or null, got "
+                f"{type(value).__name__}"
+            )
+
+    source_type = obj["full_text_source"]
+    if source_type not in _SOURCE_TYPES:
+        raise ValueError(
+            f"line {lineno}: full_text_source {source_type!r} is not one of "
+            f"{sorted(_SOURCE_TYPES)}; the enum is closed"
+        )
+
+    tool = obj["tool"]
+    if tool in _HAIKU_SUMMARY_TOOLS:
+        expected = "haiku_summary"
+    elif tool in _VERBATIM_TOOLS:
+        expected = "verbatim"
+    else:
+        raise ValueError(
+            f"line {lineno}: unrecognised tool {tool!r}. The gate cannot verify "
+            f"the source type of a reader it does not know, and trusting the "
+            f"record's own {source_type!r} would let an unknown capture path "
+            f"certify claims. Add the tool to capture_core and to this file's "
+            f"allowlist together."
+        )
+    if source_type != expected:
+        raise ValueError(
+            f"line {lineno}: tool {tool!r} always produces {expected!r} but the "
+            f"record declares full_text_source={source_type!r}. A store that "
+            f"contradicts the capture contract is not audit evidence."
+        )
+
+
 def load_store(path: str) -> dict[str, RetrievedSource]:
     """Read a JSONL file and return a dict indexed by NFKC-normalized source_id.
 
     Blank lines are skipped. Returns a new dict; does not mutate any input.
+
+    RAISES rather than repairing (J-26, closes R9P2-01..04). Before this, the
+    loader silently accepted four self-contradicting stores, and in each one a
+    verdict was decided by something that is not evidence:
+
+      - a duplicate source_id (last record wins, so LINE ORDER decided whether
+        a claim citing [S1] was UNGROUNDABLE or GROUNDED);
+      - two raw ids that NFKC folds onto one key (full-width vs ASCII);
+      - a duplicated JSON key inside one record (KEY ORDER decided the source
+        type);
+      - tool/full_text_source disagreement, an out-of-enum source type, and
+        mistyped or null fields, none of which were checked at all.
+
+    CEILING: content_sha256 is required to be a str but is NOT recomputed
+    against text, so a record whose text was edited after capture still loads.
+    That would break the moment it is enforced, because 76 test fixtures across
+    33 files carry placeholder digests. It is deliberately out of scope: the
+    threat model here is the DRAFTING model's text, not an edited store, and an
+    attacker who can rewrite the store can also rewrite the digest. Upgrade
+    path: verify sha256(NFKC(text)) == content_sha256 — which holds by
+    construction, since capture_core._sha256_nfkc hashes the NFKC form — and
+    sweep the fixtures in the same commit. Tracked as J-32.
     """
     store: dict[str, RetrievedSource] = {}
     with open(path, encoding="utf-8") as fh:
-        for raw_line in fh:
+        for lineno, raw_line in enumerate(fh, start=1):
             line = raw_line.strip()
             if not line:
                 continue
-            obj = json.loads(line)
+            obj = json.loads(line, object_pairs_hook=_object_pairs_no_duplicates)
+            _validate_record(obj, lineno)
             source_id = _nfkc(obj["source_id"])
+            if source_id in store:
+                raise ValueError(
+                    f"line {lineno}: duplicate source_id {source_id!r} "
+                    f"(NFKC-normalized). The earlier record would be silently "
+                    f"replaced, making the verdict for a claim citing "
+                    f"[{source_id}] depend on line order alone."
+                )
             source = RetrievedSource(
                 source_id=source_id,
                 url=obj.get("url"),

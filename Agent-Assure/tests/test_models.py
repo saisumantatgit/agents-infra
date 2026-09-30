@@ -2,7 +2,7 @@ from scripts.ground_check import load_store, resolve, Verdict, ClaimKind
 
 def test_load_store_indexes_by_source_id(tmp_path):
     p = tmp_path / "s.jsonl"
-    p.write_text('{"source_id":"S1","url":"http://a","file_path":null,"fetched_at":"2026-06-20T00:00:00Z","tool":"exa.web_fetch_exa","content_sha256":"x","text":"Redis handles 100K ops","full_text_source":"verbatim","captured_via":"inline","query_provenance":"q1"}\n')
+    p.write_text('{"source_id":"S1","url":"http://a","file_path":null,"fetched_at":"2026-06-20T00:00:00Z","tool":"mcp__exa__web_fetch_exa","content_sha256":"x","text":"Redis handles 100K ops","full_text_source":"verbatim","captured_via":"inline","query_provenance":"q1"}\n')
     store = load_store(str(p))
     assert set(store.keys()) == {"S1"}
     assert store["S1"].full_text_source == "verbatim"

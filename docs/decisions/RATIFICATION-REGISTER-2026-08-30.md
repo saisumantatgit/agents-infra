@@ -544,3 +544,63 @@ someone documents the rule inside one of those three functions. Upgrade path:
 strip the docstring node (`ast.get_docstring`) before walking. Not done
 tonight because the cheap version is correct today and the residue is loud
 rather than silent — it fails a test, it does not certify a fabrication.
+
+---
+
+## D-42 — WITHDRAWAL: J-25's closure claim was too broad. The solo gate refuted it.
+
+**I claimed, in commit b8d4584:** "no fabricated citation can certify PASS on
+ANY claim kind." **That is FALSE and I withdraw it.** The solo gate refuted it
+within the hour and I reproduced both findings myself.
+
+What J-25 actually closed: an **UNRESOLVED** citation — a marker the gate
+parses, looks up, and fails to find. That much holds.
+
+What it did not touch: an **UNRECOGNISED** marker. `_CITATION_RE` is
+`\[(?:S\d+[a-zA-Z]*|source:[^\]]+)\]` — case-sensitive and narrow. A marker it
+cannot parse does not become an unresolved citation; it becomes **NO citation**,
+so `any(resolve(c, store) is None for c in claim.citations)` has nothing to
+object to. RELATIONAL and ABSENCE certify with zero citations BY DESIGN. Net
+effect: show the reader a citation the parser cannot see, and the claim
+certifies against unrelated store contents at PASS 100.0.
+
+**`[S99]` FAILs. `[s99]` PASSes.** One Shift keystroke. That is round 4's
+lesson — never key a moat rule on a surface property the author controls — for
+the **third** time in this project.
+
+**Reproduced, with a correction to my own first attempt.** My first probe put
+the marker AFTER the claim and I reported the relational half as
+not-reproducing. Wrong: **position is load-bearing.** Trailing, the unparsed
+marker's leftover text breaks `extract_arguments` and the claim is refused BY
+ACCIDENT. Leading, it certifies:
+
+```
+control, no fake      : PASS  RELATIONAL  GROUNDED
+leading  '[s99]'      : PASS  RELATIONAL  GROUNDED     <-- ERROR-B
+midsent  '[s99]'      : FAIL  RELATIONAL  UNVERIFIED_RELATION
+absence  '[s99]'      : PASS  ABSENCE     ABSENCE_SUPPORTED   <-- ERROR-B
+absence  '[S99]'      : FAIL  ABSENCE     UNVERIFIED_CITATION  (the control)
+```
+
+So I made the SAME class of error the gate was dispatched to find: I generalised
+from the positions my own fixtures happened to use. Third time recorded.
+
+**Count corrected DOWNWARD from the gate's testimony.** The gate reported 13 of
+18 spellings evading. On the relational path I could reproduce **4**: `[s99]`,
+`[ S99]`, `[Sxx]`, `[Ѕ99]` (Cyrillic — NFKC folds compatibility variants,
+never visual confusables). The other four — `[S99.]`, `[S-99]`, `[S99, S100]`,
+`[Source:acme-report]` — ARE refused, by the same extraction accident, and are
+pinned as controls rather than counted as coverage. The register carries the
+number I reproduced, not the number I was handed.
+
+Tripwired: `tests/red_team_moat/test_moat_j33_unrecognised_citation_open.py`
+(6 strict xfails, 7 controls). Registered as **J-33**.
+
+**Not patched tonight, and this is a judgment, not a stall.** Widening the
+matcher is fail-closed for fabrications but also catches `[sic]`, `[1]`,
+`[see Appendix A]`, each of which becomes an unresolvable citation and therefore
+a refusal on honest prose. That Error-A is **unmeasured** — the n=52 corpus
+contains none of those shapes, so A=0.320 does not bound it. A confusables fold
+for `[Ѕ99]` must NOT normalise the marker onto a real id, or it becomes
+PASS-enabling; the correct treatment is "citation-shaped but unresolvable →
+refuse". Designing that against a real Error-A measurement is a daylight job.

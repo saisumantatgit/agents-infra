@@ -24,7 +24,7 @@ GROUND_CHECK = str(REPO_ROOT / "scripts" / "ground_check.py")
 
 STORE_RECORD = {
     "source_id": "S1", "url": "https://example.invalid/db-notes", "file_path": None,
-    "fetched_at": "2026-09-12T00:00:00Z", "tool": "WebFetch",
+    "fetched_at": "2026-09-12T00:00:00Z", "tool": "mcp__exa__web_fetch_exa",
     "content_sha256": "a" * 64,
     "text": ("Redis is an in-memory data structure store. Redis supports "
              "replication and persistence. The default port for Redis is 6379."),
