@@ -2914,7 +2914,30 @@ def ground(
         return Verdict.UNVERIFIED_CITATION
 
     if claim.kind == ClaimKind.RELATIONAL:
-        return ground_relational(claim, store)
+        verdict = ground_relational(claim, store)
+        # R10C-04 (round 10): a number inside a RELATIONAL claim was NEVER
+        # checked. `classify` orders RELATIONAL ahead of NUMERIC and this branch
+        # returns above the numeric branch, so "causes 97% of all silent data
+        # loss" certified GROUNDED at PASS 100.0 against a store containing no
+        # percentage at all. The relation was corroborated and the FIGURE —
+        # the part a reader actually quotes — was never looked at.
+        #
+        # Fail-closed: this can only downgrade an otherwise-GROUNDED relational
+        # claim to UNVERIFIED_NUMBER. It never creates a PASS.
+        #
+        # ABSENCE is deliberately NOT given the same treatment. numeric_ok asks
+        # "does this figure appear in a source", which is the wrong question for
+        # a claim asserting that something is missing. Absence is incidentally
+        # protected today because a digit becomes a strong anchor — that is a
+        # CEILING, not a defence, and it is recorded as such in J-40.
+        if verdict == Verdict.GROUNDED and claim.numeric_tokens:
+            verbatim_sources = [
+                s for s in store.values()
+                if s.full_text_source == "verbatim" and s.text
+            ]
+            if not numeric_ok(claim, verbatim_sources):
+                return Verdict.UNVERIFIED_NUMBER
+        return verdict
     if claim.kind == ClaimKind.ABSENCE:
         # R10C-03: a store of ONLY haiku_summary records certified an absence at
         # PASS 100.0, breaking the named invariant that a summary can never

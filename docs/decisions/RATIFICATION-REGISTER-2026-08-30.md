@@ -757,3 +757,47 @@ made on its behalf until then. Registered as J-34.
 Suite 628 → **638 passed, 2 skipped, 58 xfailed**. Corpus byte-identical, gold
 md5 unchanged — and this time the check is meaningful, because the corpus DOES
 exercise `decompose`, which is where the stripper lives.
+
+---
+
+## D-46 — J-40: the relation was corroborated and the FIGURE was never checked
+
+| id | Decision | Basis | Undo | Status |
+|---|---|---|---|---|
+| D-46 | **Check numeric tokens on RELATIONAL claims.** If `ground_relational` returns GROUNDED and the claim carries numeric tokens, require `numeric_ok` against the VERBATIM sources; otherwise `UNVERIFIED_NUMBER`. | `classify` orders RELATIONAL ahead of NUMERIC and the relational branch returned above the numeric branch, so "Insulin resistance causes **97%** of all type 2 diabetes [S2][S3]" certified GROUNDED at PASS 100.0 against a store containing no percentage. Fail-closed: can only downgrade GROUNDED, never create a PASS. | revert the J-40 commit. | DONE |
+
+**Why this shape is the worst kind for a reader:** the relation *was* genuinely
+corroborated by two real sources, and that is precisely what makes the number
+look safe. The figure is the part a reader quotes.
+
+**ABSENCE deliberately NOT given the same treatment.** `numeric_ok` asks "does
+this figure appear in a source", which is the wrong question for a claim
+asserting something is missing. Absence is incidentally protected today because
+a digit becomes a strong anchor — **a CEILING, not a defence**, recorded in J-40.
+
+### The part that needed care: J-40 MASKED three J-33 tripwires
+
+Three of J-33's four relational shapes stopped failing. **Not because J-33 was
+fixed — it is untouched.** The unparsed marker leaves its DIGITS in the
+sentence, `99` leaks into `claim.numeric_tokens`, and the new numeric check
+cannot find 99 in the store:
+
+```
+'[s99]'   citations=['[S2]','[S3]']  numeric_tokens=['99','2']   -> UNVERIFIED_NUMBER
+'[Sxx]'   citations=['[S2]','[S3]']  numeric_tokens=['2']        -> GROUNDED, PASS
+```
+
+Drop the digits and the attack returns. So the three were **pinned as controls
+asserting `UNVERIFIED_NUMBER` specifically**, with the masking explained, rather
+than quietly converted to passing tests. Converting them would have made the
+register read as though J-33 had shrunk from four shapes to one, when an
+unrelated fix had merely hidden three.
+
+**That is a tripwire going silent while looking healthy — the third instance
+tonight** (the r8 `WebFetch` fixtures under J-26 were the first, my own
+`evidence_basis` guard the second). The pattern is now frequent enough to be
+worth a standing rule: **when a fix makes an unrelated tripwire pass, assume it
+MASKED the finding until you have proven it CLOSED it.**
+
+Suite 643 → **652 passed, 2 skipped, 55 xfailed**. Corpus byte-identical, gold
+md5 unchanged.

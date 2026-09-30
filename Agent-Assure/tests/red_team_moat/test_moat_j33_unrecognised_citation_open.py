@@ -88,11 +88,37 @@ def _run(tmp_path, draft, records):
 # disputed for other configurations - it is simply not what I measured, and the
 # register carries the count I could reproduce rather than the one I was handed.
 UNRECOGNISED = [
+    "[Sxx]",
+]
+
+# MASKED BY J-40, NOT FIXED. These three still parse as NO citation — J-33 is
+# untouched for them. They are refused only because the unparsed marker leaves
+# its DIGITS in the sentence, "99" leaks into claim.numeric_tokens, and J-40's
+# new relational numeric check cannot find 99 in the store. Drop the digits and
+# the attack returns, which is exactly what "[Sxx]" above demonstrates.
+#
+# They are pinned HERE, as controls with this explanation, rather than quietly
+# converted to passing tests. Converting them would have made the register read
+# as though J-33 had shrunk from four shapes to one, when all that happened is
+# that an unrelated fix masked three of them. That is a tripwire going silent
+# while looking healthy — the same failure J-26 exposed in the r8 fixtures
+# earlier the same night.
+MASKED_BY_DIGIT_LEAK = [
     "[s99]",
     "[ S99]",
-    "[Sxx]",
     "[\u040599]",
 ]
+
+
+@pytest.mark.parametrize("marker", MASKED_BY_DIGIT_LEAK)
+def test_marker_refused_only_because_its_digits_leak(tmp_path, marker):
+    rep = _run(tmp_path,
+               f"{marker} Insulin resistance causes type 2 diabetes [S2][S3].\n",
+               REL)
+    assert rep["gate"] != "PASS"
+    assert rep["per_claim"][0]["verdict"] == "UNVERIFIED_NUMBER", (
+        "if this stops being UNVERIFIED_NUMBER the masking has gone and J-33 "
+        "is live again for this spelling")
 
 # Markers a reader ALSO reads as citations, which _CITATION_RE likewise fails to
 # match, but which are refused anyway - by ACCIDENT, because their leftover text
