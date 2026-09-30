@@ -169,8 +169,15 @@ uv run python -m calibration.run_calibration   # sweep + LOO + emit CR (module f
 ## Gotchas
 
 - **No build step** — prompt/skill/hook based; `uv` manages the env, no compile.
-- **Store is per-session.** Grounding runs against sources captured THIS session; a
-  draft citing prior-session sources fails, correctly.
+- **"Store is per-session" is ASPIRATIONAL, not enforced (J-38, round 10).** The
+  intent is that grounding runs only against sources captured THIS session. The
+  implementation does not do it: `session_id` is never written to a record,
+  `fetched_at` is the constant sentinel `1970-01-01T00:00:00Z`, and the store is
+  opened `mode="a"` forever and never rotated. **A later session's draft citing a
+  prior session's `[S2]` certifies PASS 100.0.** This contradicts the founding
+  spec's one-sentence promise ("actually retrieved THIS session"), so treat it as
+  the product's largest open gap, not as a working guarantee. Owner: Sai
+  (Escalation #4 — the remedy is in the capture hook).
 - **Citation placement matters.** Markers go inside the sentence before the final
   period; a marker after the period detaches and reads `UNCITED` (fail-safe).
 - **`gate` / `nli_tau` are `deferred` in CR-001**, not derived: single-claim
