@@ -5,12 +5,42 @@
 **Pushed. NOT merged — the merge is your GO.** `agent-assure-calibration-run`
 is untouched at `b4d4e39`; undo the whole night with
 `git branch -D provenance-fix-2026-10-01`.
-**Suite:** `cd Agent-Assure && uv run pytest -q` → 643 passed, 2 skipped,
-58 xfailed. Trust the RUN, not this number.
+**Suite:** `cd Agent-Assure && uv run pytest -q` → 664 passed, 2 skipped,
+61 xfailed. Trust the RUN, not this number.
 
 Read in this order: this file → `docs/logbook/overnight-2026-10-01-progress.md`
-→ `docs/decisions/RATIFICATION-REGISTER-2026-08-30.md` (D-38…D-45) →
+→ `docs/decisions/RATIFICATION-REGISTER-2026-08-30.md` (D-38…D-50) →
 `docs/jobs/REGISTER.md`.
+
+---
+
+# THE ONE RECOMMENDATION I WOULD PUT FIRST — J-41
+
+**Stop stripping HTML comments from drafts. Delete the feature.**
+
+The comment-stripper has now lost rounds **7, 8, 9, 10 AND 11**, across **three
+implementations** — backtick-only, a code-region scanner, and a block-structure
+rule. It produced **12 ERROR-B tonight alone.** Each version closed the fixtures
+written against it and left the class open.
+
+The cause is structural, not a run of bad luck: the gate is trying to
+reimplement a Markdown renderer's block model well enough to decide what a
+reader sees, **against an adversary who writes the document.** Every round finds
+another construct the model lacks. It is the blacklist shape this project's own
+law forbids, three times over.
+
+Deleting the feature ends the sequence permanently and turns seven functions
+into dead code. The trade is an **unrecoverable** Error-B for a **recoverable**
+Error-A: a draft containing an authoring note would fail, and "remove your TODOs
+before submitting this for verification" is a defensible thing for a
+verification gate to require.
+
+**It is yours because it moves the Error-A/Error-B trade-off and the contract
+with the author (Escalation #1), and because its Error-A cost is unmeasured —
+no row of the n=52 corpus contains an HTML comment.** The only other option that
+ends the sequence is adopting a real CommonMark parser as the oracle, which I
+rejected at 03:00 for putting third-party code in the verdict path. You may
+weigh that differently in daylight.
 
 ---
 
@@ -111,12 +141,33 @@ Also yours: **J-22** (factive whitelist, PASS-enabling), **J-28** (spec §7.5
 hook registration, Escalation #4), **q25** gold adjudication, **OI-MOAT-31**,
 **J-15**, **D-07**, `docs/consulting/` privacy.
 
+## Round 11 (2 adversaries): J-28B refuted, and TWO OF MY OWN FIXES withdrawn
+
+- **R10C-03's query restriction was an ERROR-B I introduced** and claimed
+  fail-closed. `queries` is both a numerator and a **denominator** — it sizes
+  the blanket-corpus-word refusal — so shrinking it switched that refusal off.
+  Reverted; the narrower hole is reopened deliberately as J-42.
+- **J-40 grounded a figure against the whole store** rather than the claim's
+  citations. Fixed.
+- Open and tripwired: **J-43** ("ninety-seven percent" is never extracted —
+  `_NUMERIC_RE` needs a digit), **J-44** ("migraine" ≠ "migraines", Error-A),
+  **J-45** (`evidence_basis` announces queries the verdict ignored).
+
 ## Withdrawn — do not repeat these
 
 - "The founding spec does not exist." It is in the HQ repo.
 - "Provenance cannot lose a red-team round." It lost round 9.
-- **"No fabricated citation can certify PASS on any claim kind" (b8d4584).
-  Refuted the same night. See D-42.**
+- **"No fabricated citation can certify PASS on any claim kind" (b8d4584).**
+  Refuted the same night. D-42.
+- **"J-27 closes the comment-delimiter class."** Refuted by round 10. D-45.
+- **"R10C-03's query restriction is fail-closed."** FALSE — it was an Error-B I
+  introduced and withdrew the same night. D-50.
+- **"J-39 is strictly fail-closed."** Right about Error-B, wrong as stated. J-44.
+
+**Eight withdrawals, six of them the same shape: a confident general claim drawn
+from a check narrower than the claim.** The sharpest came AFTER I had written the
+warning — I named the direction trap in `check_absence`, tested it, commented
+it, then introduced that exact failure one argument to the left.
 
 ---
 
