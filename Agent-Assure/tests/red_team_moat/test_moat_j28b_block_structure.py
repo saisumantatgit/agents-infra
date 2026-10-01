@@ -4,8 +4,9 @@ The block-structure rule this file was written for LOST ROUND 11 (7 ERROR-B) and
 has been replaced by the same-line-or-unambiguous-block rule in
 test_moat_j41r_comment_rule.py. The ATTACK tests below are kept as permanent
 regressions — those five shapes must stay closed under any future design. The
-multi-PARAGRAPH control moved to the J-41r file, where it is pinned as that
-rule's one deliberate cost rather than asserted both ways in two places.
+multi-line and multi-PARAGRAPH note controls moved to the J-41r file, which owns
+the note behaviour and pins the reopened OI-DEC-03 cost as J-48. Asserting it in
+two places is how a control ends up contradicting its sibling.
 
 J-27's code-region scanner was a BLACKLIST after all. Every one of round 10's
 findings was a NEW WAY TO BE CODE that the scanner had not enumerated: a `>`
@@ -112,7 +113,6 @@ def test_r10a_05_code_span_across_a_newline(tmp_path):
 
 @pytest.mark.parametrize("note,label", [
     ("<!-- TODO: check this figure -->", "single line"),
-    ("<!--\nTODO: check this figure.\nAsk the team.\n-->", "multi line"),
 ])
 def test_a_genuine_html_block_comment_is_still_stripped(tmp_path, note, label):
     """A `<!--` at line start really DOES open a CommonMark HTML block, which

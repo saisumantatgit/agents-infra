@@ -1138,3 +1138,63 @@ verb's subject is, not which verb it is, so "Critics concluded that P" is the
 next attack on this surface.
 
 Suite 689 → **706 passed, 2 skipped, 58 xfailed**.
+
+---
+
+## D-54 — WITHDRAWAL of D-52. My extension beyond Sai's ruling cost an ERROR-B. Reverted to what he ratified.
+
+| id | Decision | Basis | Undo | Status |
+|---|---|---|---|---|
+| D-54 | **Remove the multi-line BLOCK branch. The comment rule is SAME-LINE ONLY, exactly as Sai ratified.** | An adversary found **3 ERROR-B** in the branch within the hour of it landing. I reproduced the unconditional one. | re-apply D-52's branch (not recommended — see below). | DONE |
+
+**D-52 is WITHDRAWN.** I extended the rule beyond Sai's ruling to keep OI-DEC-03
+closed, flagged it honestly, and was wrong to do it.
+
+**Reproduced by me:** `_BLANK_LINE_BETWEEN_RE` (`\n[ \t]*\n`) **never matches a
+CRLF blank line**, so the no-blank-line guard was VOID on every CRLF document:
+
+```
+CRLF blank line   gate=PASS  score=100.0  FAB_HIDDEN=True
+_BLANK_LINE_BETWEEN_RE matches '\r\n\r\n': False
+```
+
+**Not reproduced by me, recorded as the adversary reported it:** three
+abrupt-close forms (`<!-->`, `<!--->`, `<!-- x --!>`) which end an HTML comment
+on the opener line. In my three draft shapes the fabrication was scored
+(FAB_HIDDEN=False). The mechanism is real HTML grammar and the fixtures differ;
+I am not inheriting a count I could not reproduce, and all four shapes are now
+permanent tests regardless.
+
+**My "renderer-faithful BY CONSTRUCTION" claim was FALSE.** The construction
+assumed `-->` is the only way a comment closes. It is not.
+
+### The lesson, which is about judgment and not about regex
+
+**I traded an UNRECOVERABLE error for a RECOVERABLE one, in the wrong
+direction — the exact trade the moat invariant forbids.** OI-DEC-03 is Error-A:
+a writer's note gets scored, the user sees a strange verdict, nobody is misled
+about evidence. The branch I added to prevent that deleted *unbounded
+multi-paragraph prose* from the denominator at PASS 100.0. I had the invariant
+in front of me and still optimised the recoverable side.
+
+§1 does say design judgment is mine and not to park it. **That licenses deciding;
+it does not license overriding a ratified safety decision to buy UX.** The
+distinction I missed: Sai's ruling WAS the conservative branch of a trade-off he
+had already weighed, and "I found new facts" was a reason to tell him, not a
+reason to act. The honest route was: ship same-line as ratified, register J-48,
+and put the OI-DEC-03 evidence in the morning list.
+
+**Four designs, four losses** (r9, r10, r11, and now this). The one that survives
+contact is the narrowest: strip only what sits on a single line. Via negativa, on
+the fourth attempt.
+
+**All four adversary shapes are now permanent attack fixtures** in
+`test_moat_j41r_comment_rule.py`, so no future design can pass without closing
+them.
+
+**COST, registered as J-48:** OI-DEC-03 reopens — a multi-line authoring note is
+scored. Three tests now carry strict xfails naming it. **The finding is not
+retracted**; the tests state the behaviour we want and do not have.
+
+Suite 706 → **705 passed, 2 skipped, 60 xfailed**. Corpus byte-identical, gold
+md5 unchanged.

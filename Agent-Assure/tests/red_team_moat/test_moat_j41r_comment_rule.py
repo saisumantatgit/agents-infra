@@ -106,6 +106,18 @@ ATTACKS = {
         f"{GOOD}\n\nThe system is safe \\<!-- {FAB} --> really.\n",
     "j41r-block-opener-blank-line":
         f"{GOOD}\n\n<!--\nnote\n\n{FAB}\n\n-->\n",
+    # Found by the adversary against the block branch that briefly existed
+    # (D-54). Kept permanently: any future design must close these too.
+    "adv-crlf-blank-line":
+        f"{GOOD}\r\n\r\n<!--\r\nnote\r\n\r\n{FAB}\r\n\r\n-->\r\n",
+    "adv-abrupt-close-empty":
+        f"{GOOD}\n\n<!-->\n\n{FAB}\n\n-->\n",
+    "adv-abrupt-close-dash":
+        f"{GOOD}\n\n<!--->\n\n{FAB}\n\n-->\n",
+    "adv-abrupt-close-bang":
+        f"{GOOD}\n\n<!-- x --!>\n\n{FAB}\n\n-->\n",
+    "adv-list-container-no-blank":
+        f"{GOOD}\n\n- item\n-\n  <!--\n{FAB}\n  -->\n",
 }
 
 
@@ -123,9 +135,6 @@ def test_no_known_shape_deletes_visible_prose(tmp_path, draft):
     "<!-- TODO: check this figure before sending -->",
     "<!-- DRAFT v2 -->",
     "<!-- Reviewer: this came from the Q3 deck -->",
-    "<!--\nTODO: check this figure.\nAsk the team.\n-->",
-    "   <!--\n   an indented note, 3 columns\n   -->",
-    "<!--\nline one\nline two\nline three\n-->",
 ])
 def test_a_genuine_authoring_note_is_still_stripped(tmp_path, note):
     """OI-DEC-03 is an ACCEPTED finding with a real fixture from this project's
@@ -144,24 +153,22 @@ def test_inline_same_line_note_is_stripped(tmp_path):
 
 # --- the remaining cost, pinned so it is never a surprise -------------------
 
-def test_multi_PARAGRAPH_note_is_now_scored(tmp_path):
-    """THE ONE COST, deliberate. A blank line inside a comment means the
-    delimiters may sit in different blocks, which is precisely the condition
-    every attack needed. Refusing to strip across it is the fail-closed choice,
-    and it is the narrowest version of this cost any of the four designs has had
-    (design 3 failed EVERY multi-line note; this fails only ones with a blank
-    line in them)."""
-    rep = _report(tmp_path, f"{GOOD}\n\n<!--\nnote one.\n\nnote two.\n-->\n")
+@pytest.mark.parametrize("note", [
+    "<!--\nTODO: check this figure.\nAsk the team.\n-->",
+    "<!--\nnote one.\n\nnote two.\n-->",
+])
+def test_multi_line_note_is_scored_J48(tmp_path, note):
+    """THE COST OF THE RATIFIED RULE, and it is the reopening of OI-DEC-03.
+
+    A multi-line authoring note is scored again. I briefly shipped a block
+    branch to keep OI-DEC-03 closed; an adversary found 3 ERROR-B in it within
+    the hour and the branch was removed (D-54). Trading an UNRECOVERABLE error
+    for a RECOVERABLE one is the trade the moat invariant forbids, and that is
+    what the branch did.
+
+    Error-A, loud not silent, registered as J-48 for Sai."""
+    rep = _report(tmp_path, f"{GOOD}\n\n{note}\n")
     assert rep["gate"] == "FAIL"
-
-
-def test_indent_columns_measures_tabs_as_commonmark_does():
-    """Unit-level: ' \\t' is FOUR columns, which is why it is code. Round 10's
-    R10A-03 was exactly this off-by-a-tab."""
-    assert g._indent_columns(" \t") == 4
-    assert g._indent_columns("   ") == 3
-    assert g._indent_columns("\t") == 4
-    assert g._indent_columns("") == 0
 
 
 def test_draft_with_no_comments_is_unaffected(tmp_path):

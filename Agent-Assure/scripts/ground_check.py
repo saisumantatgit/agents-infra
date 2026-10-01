@@ -568,6 +568,22 @@ def _is_escaped(text: str, index: int) -> bool:
 # Measured before ratification: 9 of 9 known attacks score the fabrication, and
 # every single-line authoring note still PASSes.
 #
+# D-54 (2026-10-01): the multi-line BLOCK branch I added beyond Sai's
+# ratification is REMOVED. An adversary found 3 ERROR-B in it within the hour,
+# and I reproduced the unconditional one: `_BLANK_LINE_BETWEEN_RE` (`\n[ \t]*\n`)
+# never matches a CRLF blank line, so the no-blank-line guard was VOID on every
+# CRLF document and the branch deleted unbounded multi-paragraph prose —
+# gate PASS, score 100.0, fabrication absent from the report.
+#
+# The claim "renderer-faithful BY CONSTRUCTION" was FALSE. The construction
+# assumed `-->` is the only way an HTML comment closes; the abrupt-close forms
+# `<!-->`, `<!--->` and `<!-- x --!>` end it on the opener line.
+#
+# The cost of removing it: OI-DEC-03 reopens — a MULTI-LINE authoring note is
+# scored again. That is Error-A, recoverable, and registered as J-48 for Sai. I
+# traded an unrecoverable error for a recoverable one in the wrong direction
+# once; the invariant says do not do it twice.
+#
 # TWO PROTECTIONS SURVIVE, and both were checked rather than assumed:
 #   - `_is_escaped`: `\<!--` renders as LITERAL text, so a same-line
 #     `\<!-- ... -->` leaves the text between VISIBLE. Stripping it would be a
@@ -583,53 +599,6 @@ def _is_escaped(text: str, index: int) -> bool:
 # because the same-line rule bounds the damage to one line. It is no longer on
 # the Error-B path.
 _SAME_LINE_COMMENT_RE = _re.compile(r"<!--[^\n]*?-->")
-
-# A MULTI-LINE comment is honoured only when it is unambiguously an HTML block:
-# the opener is the first non-whitespace on its line at <=3 COLUMNS of indent
-# (tabs expanded to 4, as CommonMark measures), the closer is the last
-# non-whitespace on its line, and no blank line sits between them.
-#
-# This exists because OI-DEC-03 is a real accepted finding with a real fixture:
-# a writer's multi-line working note was decomposed into scored FACTUAL claims,
-# and "a gate that flags a writer's own TODO notes as ungrounded claims is not
-# measuring the document". Dropping multi-line support entirely would have
-# re-opened it.
-#
-# WHY THIS IS NOT J-28B AGAIN. J-28B allowed a MID-LINE opener to pair with a
-# closer in another block, and every round-11 finding used that: "See <!-- here."
-# followed by a heading, a thematic break, a list marker or a <div>. Requiring
-# the opener to START a line kills all of them at once, because CommonMark's
-# HTML-block rule only fires at line start — and when it does fire, everything
-# through the closing line really IS inside the comment. The no-blank-line
-# condition then blocks R11A-02, where a container-scoped block is left
-# unterminated and a later `-->` lives in a different block.
-_MULTILINE_OPEN_RE = _re.compile(r"(?:\A|\n)([ \t]*)\Z")
-_BLANK_LINE_BETWEEN_RE = _re.compile(r"\n[ \t]*\n")
-
-
-def _indent_columns(prefix: str) -> int:
-    """Width of *prefix* in columns, tabs advancing to the next multiple of 4.
-
-    CommonMark measures indentation in columns, not characters, which is why
-    " \t" is a 4-column indent and therefore code (round 10, R10A-03). Pure.
-    """
-    width = 0
-    for ch in prefix:
-        width = width + 4 - (width % 4) if ch == "\t" else width + 1
-    return width
-
-
-def _is_block_comment(text: str, start: int, end: int) -> bool:
-    """True if text[start:end] is unambiguously an HTML block comment. Pure."""
-    m = _MULTILINE_OPEN_RE.search(text, 0, start)
-    if m is None or _indent_columns(m.group(1)) > 3:
-        return False
-    line_end = text.find("\n", end)
-    trailing = text[end:] if line_end == -1 else text[end:line_end]
-    if trailing.strip():
-        return False
-    return _BLANK_LINE_BETWEEN_RE.search(text, start, end) is None
-
 
 def _strip_html_comments_outside_code(text: str) -> str:
     """Strip SAME-LINE HTML comments, outside code, unescaped. Pure function.
@@ -651,13 +620,13 @@ def _strip_html_comments_outside_code(text: str) -> str:
 
     out: list[str] = []
     last = 0
-    for m in _HTML_COMMENT_RE.finditer(text):
+    # D-54: iterate the SAME-LINE pattern directly. Driving the loop from the
+    # multi-line _HTML_COMMENT_RE and classifying afterwards is what let the
+    # block branch exist, and that branch cost an unrecoverable Error-B.
+    for m in _SAME_LINE_COMMENT_RE.finditer(text):
         if (_protected(m.start())
                 or _protected(m.end() - 1)
                 or _is_escaped(text, m.start())):
-            continue
-        same_line = _SAME_LINE_COMMENT_RE.fullmatch(m.group(0)) is not None
-        if not same_line and not _is_block_comment(text, m.start(), m.end()):
             continue
         out.append(text[last:m.start()])
         out.append(" ")
