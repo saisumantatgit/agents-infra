@@ -987,3 +987,46 @@ control.
 
 Suite **664 passed, 2 skipped, 61 xfailed**. Corpus byte-identical, gold md5
 unchanged.
+
+---
+
+## D-51 — autonomous overnight run 2026-10-01B, RATIFIED BY SAI AT §0
+
+| id | Decision | Basis | Undo | Status |
+|---|---|---|---|---|
+| D-51 | **Run autonomously 2026-10-01 22:15 → 2026-10-02 06:30 IST on the LAUNCH-READINESS queue** (J-41r same-line comment rule, J-22 factive verbs, CLAIM-1 product-claim rewrite, J-38 session identity, CR-005), on branch `launch-claim-2026-10-01`, budget 8M new tokens (output + cache creation), ceiling 9.6M. | Sai replied "Agreed, GO" to the §0 handshake with the nine items stated, having been shown: state derived from code (`d8563c5`, clean, 664 passed / 2 skipped / 61 xfailed), the Hamming answer (the binding constraint on shipping is the CLAIM and the INSTALL, not the gate — α4 has never been run), and the five committed rows with their directions. | `git branch -D launch-claim-2026-10-01` — all work lands there, nothing merged. `agent-assure-calibration-run` stays at `d8563c5`; `main` untouched. `CronDelete` both jobs. | ARMED |
+
+**Four rulings from Sai on 2026-10-01 that this run depends on, recorded because
+they change what is and is not a bug:**
+
+1. **THREAT MODEL: the drafting agent's TOOL CHOICES ARE TRUSTED.** The adversary
+   is the model's TEXT. **J-35 (`Read` mapped to verbatim unconditionally, so an
+   agent can write a fabrication and read it back) and J-36 (no search tool is
+   captured, so the absence ledger is agent-written) are therefore ACCEPTED
+   DESIGN, not open Error-B.** They move from the bug list to the scope
+   statement, and CLAIM-1 exists to make the product claim honest about it.
+2. **J-41 → the SAME-LINE rule**, not deletion and not a CommonMark dependency.
+   Measured before ratification: 9 of 9 known attacks from rounds 9/10/11 score
+   the fabrication; every single-line note still PASSes; only multi-line notes
+   fail. **My earlier recommendation to delete the feature outright is
+   WITHDRAWN** — deletion failed every draft containing any comment, including
+   `<!-- DRAFT v2 -->`, which scored "v2" as an UNCITED numeric claim.
+3. **CR-005 is emitted, not an annotation.** I had recommended annotating on the
+   grounds that the numbers could not have moved. **Also withdrawn** — the
+   project's own failure-mode 9 makes a CR mandatory after any
+   classify/tiers/score change, and exempting myself because I expected no
+   movement is exactly the selective calibration ADR-025 exists to prevent. The
+   rates were then re-derived through `predicted_is_violation` over
+   `feature_rows-v2.jsonl` and reproduce EXACTLY: **A = 8/25 = 0.320,
+   B = 0/27 = 0.000**, n=52.
+4. **J-22 ratified as PASS-ENABLING:** add `conclude/concludes/concluded` and
+   `indicate/indicates/indicated`; **`report*` stays OUT**. The deciding argument
+   was consistency, not taste — `_FACTIVE_VERBS` already contains
+   `find/finds/found`, which carries the identical attribution ambiguity, so
+   excluding `concluded` was an inconsistency rather than a caution.
+   **CEILING: the whitelist is SUBJECT-BLIND** — the real distinction is the
+   verb's subject, so "Critics concluded that X" is the next attack.
+
+**Hard stop 06:30 IST is honoured as a constraint Sai set, not as a target.**
+At 80% of budget I stop STARTING work and spend the remainder finishing and
+reporting.
