@@ -552,57 +552,96 @@ def _is_escaped(text: str, index: int) -> bool:
 # Otherwise leave the text alone. This keys on document STRUCTURE, not on a
 # surface character the author picks, which is the property the project's own
 # law demands.
-_BLANK_LINE_RE = _re.compile(r"\n[ \t]*\n")
-_HTML_BLOCK_OPENER_PREFIX_RE = _re.compile(r" {0,3}\Z")
-_BLOCKQUOTE_PREFIX_RE = _re.compile(r"[ \t]*((?:>[ \t]*)*)")
+# J-41r (2026-10-01, ratified by Sai). The rule is now STRUCTURAL and tiny:
+# a comment is stripped only if its opener and closer sit on the SAME LINE.
+#
+# Why this ends a sequence that three previous designs did not. Every attack in
+# rounds 9, 10 and 11 worked by pairing an opener with a closer in a DIFFERENT
+# block, so that the reader-visible prose between them was deleted from the
+# scored denominator. All of them need the two delimiters on different lines —
+# that is what "spanning" means. A comment that cannot cross a line cannot
+# cross a block, so there is no renderer block-model to get wrong, and nothing
+# left to enumerate. The three predecessors (backtick-only, a code-region
+# scanner, a block-structure rule) were each a blacklist over "ways to be code"
+# or "ways to end a block", and each lost the next round.
+#
+# Measured before ratification: 9 of 9 known attacks score the fabrication, and
+# every single-line authoring note still PASSes.
+#
+# TWO PROTECTIONS SURVIVE, and both were checked rather than assumed:
+#   - `_is_escaped`: `\<!--` renders as LITERAL text, so a same-line
+#     `\<!-- ... -->` leaves the text between VISIBLE. Stripping it would be a
+#     NEW Error-B introduced by this very rule. Deleting this helper was the
+#     mistake this comment exists to prevent.
+#   - `_code_line_spans` + `_CODE_SPAN_RE`: keep the rule from deleting
+#     comment-shaped text inside code, which is scored today.
+#
+# CEILING: `_code_line_spans` remains an incomplete detector (round 11 showed it
+# misses `>`-prefixed fences and space+tab indents). The consequence is now much
+# smaller than it was — at worst a same-line comment inside undetected code is
+# stripped, removing CODE text from the denominator, never reader-visible prose,
+# because the same-line rule bounds the damage to one line. It is no longer on
+# the Error-B path.
+_SAME_LINE_COMMENT_RE = _re.compile(r"<!--[^\n]*?-->")
+
+# A MULTI-LINE comment is honoured only when it is unambiguously an HTML block:
+# the opener is the first non-whitespace on its line at <=3 COLUMNS of indent
+# (tabs expanded to 4, as CommonMark measures), the closer is the last
+# non-whitespace on its line, and no blank line sits between them.
+#
+# This exists because OI-DEC-03 is a real accepted finding with a real fixture:
+# a writer's multi-line working note was decomposed into scored FACTUAL claims,
+# and "a gate that flags a writer's own TODO notes as ungrounded claims is not
+# measuring the document". Dropping multi-line support entirely would have
+# re-opened it.
+#
+# WHY THIS IS NOT J-28B AGAIN. J-28B allowed a MID-LINE opener to pair with a
+# closer in another block, and every round-11 finding used that: "See <!-- here."
+# followed by a heading, a thematic break, a list marker or a <div>. Requiring
+# the opener to START a line kills all of them at once, because CommonMark's
+# HTML-block rule only fires at line start — and when it does fire, everything
+# through the closing line really IS inside the comment. The no-blank-line
+# condition then blocks R11A-02, where a container-scoped block is left
+# unterminated and a later `-->` lives in a different block.
+_MULTILINE_OPEN_RE = _re.compile(r"(?:\A|\n)([ \t]*)\Z")
+_BLANK_LINE_BETWEEN_RE = _re.compile(r"\n[ \t]*\n")
 
 
-def _line_start(text: str, index: int) -> int:
-    """Index just after the newline preceding *index*, or 0. Pure."""
-    return text.rfind("\n", 0, index) + 1
+def _indent_columns(prefix: str) -> int:
+    """Width of *prefix* in columns, tabs advancing to the next multiple of 4.
 
-
-def _opens_html_block(text: str, index: int) -> bool:
-    """True if `<!--` at *index* begins a line with <= 3 spaces indent. Pure.
-
-    This is CommonMark's HTML-block-type-2 opener condition. A comment that
-    really opens an HTML block runs to its `-->` however many blank lines it
-    spans, so stripping across them is renderer-faithful.
+    CommonMark measures indentation in columns, not characters, which is why
+    " \t" is a 4-column indent and therefore code (round 10, R10A-03). Pure.
     """
-    prefix = text[_line_start(text, index):index]
-    return _HTML_BLOCK_OPENER_PREFIX_RE.fullmatch(prefix) is not None
+    width = 0
+    for ch in prefix:
+        width = width + 4 - (width % 4) if ch == "\t" else width + 1
+    return width
 
 
-def _blockquote_depth(line: str) -> int:
-    """Number of leading `>` block markers on *line*. Pure."""
-    return _BLOCKQUOTE_PREFIX_RE.match(line).group(1).count(">")
-
-
-def _spans_one_block(text: str, start: int, end: int) -> bool:
-    """True if [start, end) contains no blank line and no blockquote-depth change.
-
-    Pure. Used for an opener that does NOT open an HTML block: such an opener is
-    literal text, so it may only be honoured as a comment inside its own block.
-    """
-    segment = text[start:end]
-    if _BLANK_LINE_RE.search(segment) is not None:
+def _is_block_comment(text: str, start: int, end: int) -> bool:
+    """True if text[start:end] is unambiguously an HTML block comment. Pure."""
+    m = _MULTILINE_OPEN_RE.search(text, 0, start)
+    if m is None or _indent_columns(m.group(1)) > 3:
         return False
-    lines = segment.split("\n")
-    opening_depth = _blockquote_depth(text[_line_start(text, start):].split("\n")[0])
-    return all(_blockquote_depth(line) == opening_depth for line in lines[1:])
+    line_end = text.find("\n", end)
+    trailing = text[end:] if line_end == -1 else text[end:line_end]
+    if trailing.strip():
+        return False
+    return _BLANK_LINE_BETWEEN_RE.search(text, start, end) is None
 
 
 def _strip_html_comments_outside_code(text: str) -> str:
-    """Strip well-formed HTML comments, honouring block structure.
+    """Strip SAME-LINE HTML comments, outside code, unescaped. Pure function.
 
-    A comment is removed only when ALL of these hold:
+    A comment is removed only when all three hold:
+      - opener and closer are on the SAME LINE;
       - neither delimiter sits inside a code region;
-      - the opener is not backslash-escaped;
-      - the opener either OPENS AN HTML BLOCK (line start, <= 3 spaces indent)
-        or lies in the SAME BLOCK as its closer.
+      - the opener is not backslash-escaped.
 
     Any doubt leaves the text in place, which can only ADD claims to the scored
-    denominator. Pure function.
+    denominator — the fail-closed direction, because stripping is what REMOVES
+    text from scoring.
     """
     protected: list[tuple[int, int]] = _code_line_spans(text)
     protected += [(m.start(), m.end()) for m in _CODE_SPAN_RE.finditer(text)]
@@ -617,8 +656,8 @@ def _strip_html_comments_outside_code(text: str) -> str:
                 or _protected(m.end() - 1)
                 or _is_escaped(text, m.start())):
             continue
-        if not (_opens_html_block(text, m.start())
-                or _spans_one_block(text, m.start(), m.end())):
+        same_line = _SAME_LINE_COMMENT_RE.fullmatch(m.group(0)) is not None
+        if not same_line and not _is_block_comment(text, m.start(), m.end()):
             continue
         out.append(text[last:m.start()])
         out.append(" ")
