@@ -1,6 +1,6 @@
 {
   "name": "agent-assure",
-  "description": "Agent-Assure — Verification-first grounding gate for AI research. A PostToolUse hook captures every retrieved source verbatim into an evidence store; a deterministic, no-LLM engine then proves every factual claim in a draft is grounded in a source actually retrieved this session. Fabricated citations are caught mechanically, not by asking a model. Research you can be sure of.",
+  "description": "Agent-Assure — Verification-first grounding gate for AI research. A PostToolUse hook captures every source your session retrieves, verbatim, into an evidence store. A deterministic engine \u2014 pure Python, no model, no network, no randomness \u2014 then checks every factual claim in a draft against that store and REFUSES anything it cannot trace: a citation naming no captured source, a figure the cited source does not contain, a sentence that is not verbatim-traceable. It verifies the draft against what the session READ; it does not verify where what it read came from, and it checks verbatim provenance rather than meaning. Fabricated citations are caught mechanically, not by asking a model.",
   "version": "0.1.0",
   "author": {
     "name": "Sai Sumanth Battepati"

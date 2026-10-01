@@ -1198,3 +1198,59 @@ retracted**; the tests state the behaviour we want and do not have.
 
 Suite 706 → **705 passed, 2 skipped, 60 xfailed**. Corpus byte-identical, gold
 md5 unchanged.
+
+---
+
+## D-55 — CLAIM-1: the product claim is now EXECUTABLE, and it was false before
+
+| id | Decision | Basis | Undo | Status |
+|---|---|---|---|---|
+| D-55 | **Rewrite all four shipped claim surfaces to state only what is enforced, add a "what this does not prove" block to each, and pin every sentence — promises AND limitations — to tests in `tests/test_product_claim.py`.** | Round 10 proved the shipped claim false. Sai's threat-model ruling (D-51) makes the agent's tool choices accepted design, which is a scope statement the surfaces did not contain. Docs + tests only; no verdict logic touched. | `git revert` this commit restores the old wording — which is false, so don't. | DONE |
+
+**What was false.** `plugin.json`, `README.md`, `commands/assure-verify.md` and
+`skills/verify-grounding/SKILL.md` all promised a claim is "grounded in a source
+**actually retrieved this session**". There is no session boundary in the code:
+the store is appended to and never rotated, and no record carries a session id
+(J-38). Four surfaces, one sentence, zero enforcement.
+
+### The find that justifies the whole exercise
+
+**A three-kind search showed that "no LLM calls during grounding" — the project's
+loudest claim, which CLAUDE.md calls "the product, not a style choice" — was
+asserted on four surfaces and enforced by NO test.** Its only occurrence in 705
+tests was as *prose inside a determinism fixture's draft text*:
+
+```
+_DETERMINISM_DRAFT = ( ... "No LLM calls occur during grounding." )
+```
+
+That is a sentence in test DATA, not an assertion. The moat's defining property
+was documented everywhere and checked nowhere. It is now an AST walk over
+`ground_check.py`'s imports — lazy imports included, because `syntok`'s import is
+lazy and proves the pattern is live — against an allowlist, with a forbidden-
+substring check for model clients, HTTP libraries, `subprocess` and `random`.
+**Proven red twice:** a synthetic module, and the real file with `subprocess`
+added (`assert 'subprocess' not in 'subprocess'`).
+
+### The part that is unusual, and deliberate
+
+`tests/test_product_claim.py` pins the **limitations** as tests too, each
+asserting the limitation is STILL REAL:
+
+- paraphrase is refused, not passed (Error-A 0.320);
+- a file the agent wrote and read back is trusted (D-51 ruling 1);
+- absence searches are agent-supplied (D-51 ruling 1);
+- a multi-line authoring note is scored (J-48).
+
+**If someone later closes one of these, THIS SUITE FAILS and the claim text must
+be updated in the same commit.** A claim drifts from the code in two directions —
+the code getting worse, and the prose getting braver — and only the second half
+catches the latter. Plus a surface-text guard that fails if any shipped file
+re-acquires a retired phrase; proven red by appending the old sentence to
+`README.md`.
+
+**Precision applied twice.** "this session's evidence store" was also removed:
+the store is not session-bounded, so even that phrasing overclaimed. The
+remaining three "this session" mentions describe the HOOK firing, which is true.
+
+Suite 705 → **724 passed, 2 skipped, 60 xfailed**.

@@ -140,9 +140,25 @@ Agent-Assure is the verification-first research member of the `agents-infra`
 suite (PROVE, Cite, Trace, Scribe, Drift, Litmus). Its closest sibling is
 **Agent-Cite**, and the boundary is deliberate: Cite does LLM-based citation
 *discovery* (does a claim have *a* source somewhere on the web?); Assure does
-*mechanical* grounding (does every claim trace to a source *actually retrieved
-this session*, proven without a model?). Cite asks a model; Assure asks the
+*mechanical* traceability (does every claim trace to a source *captured in the
+evidence store*, proven without a model?). Cite asks a model; Assure asks the
 evidence store.
+
+## What Agent-Assure does not prove
+
+A PASS means every claim was mechanically traced to captured evidence. It is not
+a certificate of truth, and the boundary is deliberate:
+
+| Not proven | Why |
+|---|---|
+| Where the evidence came from | The gate checks the draft against what the session READ. The drafting agent's tool choices are trusted, so a file it wrote and read back is a verbatim source. |
+| That the meaning is supported | Verbatim provenance only. A faithful paraphrase is REFUSED (Error-A 0.320, n=52, CR-004). `UNGROUNDED` means "not mechanically traceable", never "false". |
+| That the source is right | The gate certifies source-support, not truth. |
+| That an absence was really searched for | The searches behind "no evidence of X" are supplied by the agent, not observed. |
+| That the source was retrieved *this* session | The store is appended to and never rotated, and no record carries a session id, so an earlier session's source still resolves (J-38). |
+
+Each row is pinned by a test in `Agent-Assure/tests/test_product_claim.py`. If
+one stops being true, that suite fails and this table is what must change.
 
 ## License
 
