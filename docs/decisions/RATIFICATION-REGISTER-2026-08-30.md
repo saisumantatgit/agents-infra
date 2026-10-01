@@ -1373,3 +1373,75 @@ never ran the first command in the README.**
   plugin.
 
 Suite 734 → **735 passed, 2 skipped, 60 xfailed**.
+
+---
+
+## D-58 — J-45 CLOSED by D-54's revert; J-43 and J-44 ESCALATED, not built
+
+| id | Decision | Basis | Undo | Status |
+|---|---|---|---|---|
+| D-58 | **Pin the display/verdict agreement that D-54 restored (J-45), and ESCALATE J-43 and J-44 rather than implement them.** | J-45 is closed by construction. J-43 and J-44 both move the Error-A/Error-B trade-off on prose the corpus cannot measure, which is Escalation #1. | `git revert` this commit (tests only). | DONE |
+
+### J-45 — CLOSED, and proven closed rather than merely passing
+
+Round 11-B found `evidence_basis` calling `_session_queries` while the ABSENCE
+verdict used `_verbatim_session_queries`, so an absence PASS announced "4 distinct
+search queries" when the verdict had counted two — and counting the other two
+would have REVERSED it. Display contradicting the verdict is the D-35 class.
+
+Reverting my own Error-B (D-54) removed the second function, so both paths call
+the same one. **Per D-46's rule I treated that as MASKING until proven CLOSED:**
+proof is by construction — there is now exactly ONE query-source function and
+both the verdict and the display call it on the same store, so the count shown IS
+the count used.
+
+Three guards keep it true: an AST check that `ground` and `evidence_basis` call
+the same query-source function, a sibling asserting only one such function
+exists, and an end-to-end check that an absence PASS states the count it used.
+**Proven red** by reintroducing the exact divergence — both guards fail.
+
+The AST guard needed narrowing first: comparing *every* referenced name failed
+because `evidence_basis` has a LOCAL VARIABLE called `queries`. **A guard that
+fires on a variable name is D-41's substring mistake wearing an AST costume**, so
+it now inspects `ast.Call` targets only.
+
+### J-43 — ESCALATED. Every candidate fix is an enumeration.
+
+A figure written without a digit is never extracted by `_NUMERIC_RE` and so never
+checked. Four spellings certify against a store containing no such figure.
+
+Both designs break the project's own law:
+
+- **(a) a number-word list** is a blacklist over ways to WRITE a number. Miss a
+  spelling and the attack survives.
+- **(b) unit-anchoring** — refuse when a unit word appears with no verified digit
+  — looks like a whitelist over a small closed set, but the attacker drops the
+  unit: **"ninety-seven OF ALL cases"**, which is now a tripwire variant.
+
+Either way it refuses honest prose the n=52 corpus does not contain, so the
+Error-A is **unmeasured**. That is Escalation #1. Tripwire widened from one
+fixture to four, so round 12 inherits the CLASS rather than one spelling.
+
+### J-53 — NEW, found while widening that tripwire
+
+"ninety-seven **per cent** of all" is refused where "ninety-seven **percent** of
+all" certifies — and not because the figure was detected. Isolated:
+
+```
+"... causes diabetes in 2 distinct ways [S2][S3]"          -> GROUNDED
+"... causes per cent diabetes in 2 distinct ways [S2][S3]" -> UNVERIFIED_NUMBER
+```
+
+The words "per cent" make an **unrelated bare digit** read as a percentage, so
+the source's absolute `2` stops matching. Error-A, fail-closed, pinned as an
+ACCIDENT so it is never mistaken for J-43 coverage.
+
+### J-44 — ESCALATED, because the fix is PASS-ENABLING
+
+`_contains_word` refuses "migraine" in "migraines". The obvious repair is the
+project's existing `_stem` helper (reuse ladder rung 2 — it already handles
+exactly this plural case for absence matching). But stemming LOOSENS matching,
+so it can only ADD groundings: **PASS-enabling, Escalation #1, Sai's.** Noted in
+the register with the reuse pointer so the next session does not re-derive it.
+
+Suite 735 → **739 passed, 2 skipped, 63 xfailed**.
