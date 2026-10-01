@@ -1085,3 +1085,56 @@ reader-visible prose, because the line bound caps the damage.
 
 Suite 664 → **689 passed, 2 skipped, 57 xfailed**. Corpus byte-identical, gold
 md5 unchanged.
+
+---
+
+## D-53 — J-22: `conclude*` and `indicate*` added to the factive whitelist
+
+| id | Decision | Basis | Undo | Status |
+|---|---|---|---|---|
+| D-53 | **Add `conclude/concludes/concluded` and `indicate/indicates/indicated` to `_FACTIVE_VERBS`. `report*` stays OUT.** | **RATIFIED BY SAI 2026-10-01** (D-51 ruling 4). PASS-enabling, so it was never mine to take. | `git revert` this commit, or delete the two lines from the frozenset. | DONE |
+
+**The deciding argument was CONSISTENCY, not taste.** `find/finds/found` was
+already in the set, and "Smith found that P" carries exactly the same attribution
+ambiguity as "Smith concluded that P". Excluding `concluded` while including
+`found` was an inconsistency rather than a caution. A parity test now pins the
+two together: if they ever diverge, the reasoning that justified J-22 has stopped
+holding.
+
+**`report*` stays out for a reason sharper than "it is attribution":** its
+canonical subject is a PUBLICATION relaying someone else's claim. "The blog
+reported that P" does not assert P. Pinned as a load-bearing negative test —
+if it starts passing, attribution has become indistinguishable from assertion and
+the guard is hollow.
+
+### The sibling check earned its keep, and corrected my own test
+
+I wrote the FMEA sibling — "adding a factive verb must not let a DENIAL ground" —
+and it FAILED. Investigated rather than assumed, and it is **round-7 finding c5
+(retraction AFTER the span), already OPEN and tripwired** in
+`test_moat_r7_open.py`. J-22 does not create it; it **widens** it by two verb
+families:
+
+```
+'The study found that <claim> does not occur at all'        -> GROUNDED
+'The study shown/demonstrated/observed that ... not at all' -> GROUNDED
+'The study concluded/indicated that ... not at all'         -> GROUNDED  (new reach)
+```
+
+No prefix rule can see a denial that arrives AFTER the matched span, so any
+factive verb inherits c5's reach by construction. My test asserted the wrong
+owner; converted to a strict xfail citing c5 rather than filed as a new finding.
+**This is the inverse of D-46's rule** — there, a fix made an unrelated tripwire
+PASS and had to be treated as masking; here, a fix made a sibling FAIL and had to
+be traced to an existing class rather than blamed on itself.
+
+**Corpus byte-identical, gold md5 unchanged — and that is NOT evidence J-22 is
+costless.** It means the n=52 corpus contains no `concluded that` / `indicates
+that` construction at all, which is precisely why the class was unmeasured when
+Sai ruled on it. **A=0.320 does not bound this change in either direction.**
+
+**CEILING: the whitelist is SUBJECT-BLIND.** The real distinction is who the
+verb's subject is, not which verb it is, so "Critics concluded that P" is the
+next attack on this surface.
+
+Suite 689 → **706 passed, 2 skipped, 58 xfailed**.

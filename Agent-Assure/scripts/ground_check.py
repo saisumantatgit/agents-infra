@@ -1276,6 +1276,26 @@ _FACTIVE_VERBS: frozenset[str] = frozenset({
     "measure", "measures", "measured",
     "verify", "verifies", "verified",
     "document", "documents", "documented",
+    # J-22, ratified by Sai 2026-10-01 (D-51 ruling 4). PASS-ENABLING, so it was
+    # his call, not mine.
+    #
+    # The argument that decided it was CONSISTENCY, not taste: `find/finds/found`
+    # is already above, and "Smith found that P" carries exactly the same
+    # attribution ambiguity as "Smith concluded that P". Excluding `conclude`
+    # while including `find` was an inconsistency, not a caution. `indicate` is
+    # safer still — its subject is typically the evidence ("the data indicates").
+    #
+    # `report*` is DELIBERATELY ABSENT and must stay absent. Its canonical
+    # subject is a PUBLICATION relaying someone else's claim: "The blog reported
+    # that P" does not assert P. Admitting it would make attribution
+    # indistinguishable from assertion, which is the confusion rounds 3-8 kept
+    # exploiting. A test pins that negative.
+    #
+    # CEILING: this whitelist is SUBJECT-BLIND. The real distinction is who the
+    # verb's subject is, not which verb it is, so "Critics concluded that P" is
+    # the next attack on this surface.
+    "conclude", "concludes", "concluded",
+    "indicate", "indicates", "indicated",
 })
 
 _NEGATION_TOKENS: frozenset[str] = frozenset({
