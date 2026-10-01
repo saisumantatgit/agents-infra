@@ -157,8 +157,26 @@ def test_evidence_basis_does_not_mutate_its_inputs():
 
 
 def test_basis_is_not_consulted_by_any_verdict_path():
-    """Display must never become decision — source inspection, like D-34's."""
+    """Display must never become decision — source inspection, like D-34's.
+
+    Checked over the AST, not the source TEXT. The substring form of this guard
+    could not tell a call from a comment, and on 2026-10-01 it failed J-25 for
+    writing the words "evidence_basis" in a comment explaining that the gate
+    had contradicted its own explanation of itself. A guard that fires on prose
+    trains people to delete the prose. The AST form asserts the property the
+    test is NAMED for: no verdict path REFERENCES the display layer.
+    """
+    import ast
     import inspect
+    import textwrap
+
     for name in ("ground", "check_absence", "ground_relational", "classify"):
-        src = inspect.getsource(getattr(g, name))
-        assert "evidence_basis" not in src, f"{name} consults the display layer"
+        tree = ast.parse(textwrap.dedent(inspect.getsource(getattr(g, name))))
+        referenced = {
+            node.id for node in ast.walk(tree) if isinstance(node, ast.Name)
+        } | {
+            node.attr for node in ast.walk(tree) if isinstance(node, ast.Attribute)
+        }
+        assert "evidence_basis" not in referenced, (
+            f"{name} consults the display layer"
+        )

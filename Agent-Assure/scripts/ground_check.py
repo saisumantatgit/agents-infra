@@ -7,6 +7,8 @@ Pure functions only — never mutate inputs or globals.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
+
 import json
 # `re` is imported HERE, at the top, and not beside its first use. Three
 # separate NameErrors in this file have had one cause: a module-level
@@ -84,19 +86,156 @@ def _nfkc(s: str) -> str:
     return unicodedata.normalize("NFKC", s)
 
 
+# Tool -> source-type contract. The gate keeps its OWN copy rather than
+# importing the capture layer into the moat's call tree; the copy is made safe
+# by test_tool_source_type_mapping_matches_capture_core, which fails loudly the
+# day capture_core learns a tool this file does not know. (J-26, 2026-10-01)
+_VERBATIM_TOOLS: frozenset[str] = frozenset({
+    "mcp__exa__web_fetch_exa",
+    "web_fetch_exa",
+    "Read",
+    "mcp__ddg-search__fetch_content",
+})
+_HAIKU_SUMMARY_TOOLS: frozenset[str] = frozenset({"WebFetch"})
+
+# The full_text_source enum is CLOSED (CLAUDE.md, verdict taxonomy).
+_SOURCE_TYPES: frozenset[str] = frozenset({"verbatim", "haiku_summary"})
+
+# Required on every record, and each must be a str.
+_REQUIRED_STR_FIELDS: tuple[str, ...] = (
+    "source_id", "fetched_at", "tool", "content_sha256", "text",
+    "full_text_source", "captured_via", "query_provenance",
+)
+# May be JSON null (Read has no url; a fetch has no file_path), but must be a
+# str when present.
+_OPTIONAL_STR_FIELDS: tuple[str, ...] = ("url", "file_path")
+
+
+def _object_pairs_no_duplicates(
+    pairs: list[tuple[str, object]],
+) -> dict[str, object]:
+    """json object hook that RAISES on a duplicated key. Pure.
+
+    ``json.loads`` keeps the LAST of duplicated keys, so a single line could
+    declare ``full_text_source`` twice — haiku_summary then verbatim — and load
+    as verbatim. That makes a provenance decision by JSON key order (R9P2-03).
+    """
+    seen: set[str] = set()
+    for key, _value in pairs:
+        if key in seen:
+            raise ValueError(
+                f"duplicate JSON key {key!r} in one evidence record; the store "
+                "is audit evidence and a record must not contradict itself"
+            )
+        seen.add(key)
+    return dict(pairs)
+
+
+def _validate_record(obj: dict[str, object], lineno: int) -> None:
+    """Raise unless *obj* is a self-consistent, correctly-typed record. Pure.
+
+    Checks, each closing a round-9 finding:
+      - every required field present and a str;
+      - url/file_path either null or a str;
+      - full_text_source within the closed enum;
+      - tool RECOGNISED, and its declared source type matching the capture
+        contract (capture_core: native WebFetch is ALWAYS haiku_summary).
+
+    An unrecognised tool RAISES rather than being trusted. The gate's rule is
+    that every "I don't know" must point AWAY from PASS, and an unknown reader
+    makes the record's own "verbatim" unverifiable — which is exactly the claim
+    that must not be taken on trust.
+    """
+    for field in _REQUIRED_STR_FIELDS:
+        if field not in obj:
+            raise ValueError(
+                f"line {lineno}: evidence record is missing required field "
+                f"{field!r}"
+            )
+        if not isinstance(obj[field], str):
+            raise TypeError(
+                f"line {lineno}: field {field!r} must be a str, got "
+                f"{type(obj[field]).__name__}"
+            )
+    for field in _OPTIONAL_STR_FIELDS:
+        value = obj.get(field)
+        if value is not None and not isinstance(value, str):
+            raise TypeError(
+                f"line {lineno}: field {field!r} must be a str or null, got "
+                f"{type(value).__name__}"
+            )
+
+    source_type = obj["full_text_source"]
+    if source_type not in _SOURCE_TYPES:
+        raise ValueError(
+            f"line {lineno}: full_text_source {source_type!r} is not one of "
+            f"{sorted(_SOURCE_TYPES)}; the enum is closed"
+        )
+
+    tool = obj["tool"]
+    if tool in _HAIKU_SUMMARY_TOOLS:
+        expected = "haiku_summary"
+    elif tool in _VERBATIM_TOOLS:
+        expected = "verbatim"
+    else:
+        raise ValueError(
+            f"line {lineno}: unrecognised tool {tool!r}. The gate cannot verify "
+            f"the source type of a reader it does not know, and trusting the "
+            f"record's own {source_type!r} would let an unknown capture path "
+            f"certify claims. Add the tool to capture_core and to this file's "
+            f"allowlist together."
+        )
+    if source_type != expected:
+        raise ValueError(
+            f"line {lineno}: tool {tool!r} always produces {expected!r} but the "
+            f"record declares full_text_source={source_type!r}. A store that "
+            f"contradicts the capture contract is not audit evidence."
+        )
+
+
 def load_store(path: str) -> dict[str, RetrievedSource]:
     """Read a JSONL file and return a dict indexed by NFKC-normalized source_id.
 
     Blank lines are skipped. Returns a new dict; does not mutate any input.
+
+    RAISES rather than repairing (J-26, closes R9P2-01..04). Before this, the
+    loader silently accepted four self-contradicting stores, and in each one a
+    verdict was decided by something that is not evidence:
+
+      - a duplicate source_id (last record wins, so LINE ORDER decided whether
+        a claim citing [S1] was UNGROUNDABLE or GROUNDED);
+      - two raw ids that NFKC folds onto one key (full-width vs ASCII);
+      - a duplicated JSON key inside one record (KEY ORDER decided the source
+        type);
+      - tool/full_text_source disagreement, an out-of-enum source type, and
+        mistyped or null fields, none of which were checked at all.
+
+    CEILING: content_sha256 is required to be a str but is NOT recomputed
+    against text, so a record whose text was edited after capture still loads.
+    That would break the moment it is enforced, because 76 test fixtures across
+    33 files carry placeholder digests. It is deliberately out of scope: the
+    threat model here is the DRAFTING model's text, not an edited store, and an
+    attacker who can rewrite the store can also rewrite the digest. Upgrade
+    path: verify sha256(NFKC(text)) == content_sha256 — which holds by
+    construction, since capture_core._sha256_nfkc hashes the NFKC form — and
+    sweep the fixtures in the same commit. Tracked as J-32.
     """
     store: dict[str, RetrievedSource] = {}
     with open(path, encoding="utf-8") as fh:
-        for raw_line in fh:
+        for lineno, raw_line in enumerate(fh, start=1):
             line = raw_line.strip()
             if not line:
                 continue
-            obj = json.loads(line)
+            obj = json.loads(line, object_pairs_hook=_object_pairs_no_duplicates)
+            _validate_record(obj, lineno)
             source_id = _nfkc(obj["source_id"])
+            if source_id in store:
+                raise ValueError(
+                    f"line {lineno}: duplicate source_id {source_id!r} "
+                    f"(NFKC-normalized). The earlier record would be silently "
+                    f"replaced, making the verdict for a claim citing "
+                    f"[{source_id}] depend on line order alone."
+                )
             source = RetrievedSource(
                 source_id=source_id,
                 url=obj.get("url"),
@@ -312,19 +451,179 @@ def _strip_html_comments(text: str) -> str:
 _CODE_SPAN_RE = _re.compile(r"```.*?```|``.*?``|`[^`\n]*`", _re.DOTALL)
 
 
-def _strip_html_comments_outside_code(text: str) -> str:
-    """Strip well-formed HTML comments, leaving code spans untouched.
+# J-27 (2026-10-01), closing R8B-01/02 and R9P2-05/06/07 as ONE class.
+#
+# OI-MOAT-29 protected comment delimiters inside BACKTICK code only. CommonMark
+# has more ways to make `<!--` literal, and in each one a stray opener pairs
+# with a real closer downstream and DELETES every paragraph between them from
+# the scored denominator. Deleted prose is never scored, so it is never
+# flagged: the gate reports PASS 100.0 over a page whose reader can plainly see
+# fabrications.
+#
+# THE DIRECTION OF SAFETY IS COUNTER-INTUITIVE AND DECIDES THE WHOLE DESIGN.
+# Stripping REMOVES text from the denominator, so stripping TOO MUCH is the
+# FAIL-OPEN direction. Therefore this scanner may freely OVER-detect code
+# (strip less, score more, fail closed) and must never UNDER-detect it. That
+# is why it does not aim at CommonMark exactness and why no Markdown parser was
+# added as a dependency: what is needed is a generous code-region detector, not
+# a correct renderer, and third-party code in the moat's verdict path is a
+# worse trade than a conservative 40-line scan.
+#
+# Rejected alternative, recorded because it is the obvious one: "a comment may
+# not span a blank line". It is NOT sufficient — a tilde-fenced attack with no
+# blank lines anywhere still hides visible prose. Verified before this was
+# written, and pinned as test_tilde_fence_with_no_blank_lines.
+_FENCE_RE = _re.compile(r"^(?P<indent> {0,3})(?P<fence>`{3,}|~{3,})(?P<info>.*)$")
+_INDENTED_CODE_RE = _re.compile(r"^(?: {4,}|\t)")
 
-    Fenced blocks and inline code are passed through verbatim, so a `<!--` a
-    writer is *talking about* can no longer open a comment. Pure function.
+
+def _code_line_spans(text: str) -> list[tuple[int, int]]:
+    """Return (start, end) character spans of BLOCK-level code. Pure.
+
+    Covers fenced blocks (backtick or tilde, any length >= 3, opener indented
+    up to 3 spaces, with or without an info string) and indented code blocks
+    (4+ spaces or a tab) outside any fence.
+
+    Deliberately generous: an indented line is treated as code without checking
+    CommonMark's "cannot interrupt a paragraph" rule. Over-detection strips
+    less, which is the safe direction.
     """
+    spans: list[tuple[int, int]] = []
+    pos = 0
+    fence_char: str | None = None
+    fence_len = 0
+    fence_start = 0
+    for line in text.splitlines(keepends=True):
+        stripped = line.rstrip("\r\n")
+        m = _FENCE_RE.match(stripped)
+        if fence_char is None:
+            if m is not None:
+                fence_char = m.group("fence")[0]
+                fence_len = len(m.group("fence"))
+                fence_start = pos
+            elif _INDENTED_CODE_RE.match(stripped):
+                spans.append((pos, pos + len(line)))
+        else:
+            # Inside a fence: a closer is the same char, at least as long, and
+            # carries no info string.
+            if (m is not None
+                    and m.group("fence")[0] == fence_char
+                    and len(m.group("fence")) >= fence_len
+                    and not m.group("info").strip()):
+                spans.append((fence_start, pos + len(line)))
+                fence_char = None
+        pos += len(line)
+    if fence_char is not None:
+        # An unclosed fence runs to end of input. Treating the remainder as
+        # code strips less, so it is the safe reading.
+        spans.append((fence_start, len(text)))
+    return spans
+
+
+def _is_escaped(text: str, index: int) -> bool:
+    r"""True if text[index] is preceded by an ODD number of backslashes. Pure.
+
+    CommonMark backslash-escaping makes `\<!--` literal text, which the raw
+    regex happily treats as a comment opener (R9P2-07).
+    """
+    backslashes = 0
+    cursor = index - 1
+    while cursor >= 0 and text[cursor] == "\\":
+        backslashes += 1
+        cursor -= 1
+    return backslashes % 2 == 1
+
+
+# J-28B (2026-10-01, round 10 adversary A). J-27's code-region scanner was a
+# BLACKLIST after all: every one of round 10's five findings was a new way to be
+# code that the scanner had not enumerated — a blockquote marker in front of a
+# fence, a space-plus-tab indent, a forged line boundary. That is the shape this
+# repo has watched fail five times, and extending the scanner a fifth time would
+# have been the sixth.
+#
+# The structural question is not "is this inside code?" but "does this opener
+# genuinely OPEN AN HTML BLOCK?" CommonMark (HTML block type 2) says a `<!--`
+# beginning a line with at most 3 spaces of indent does. Anything else — mid
+# paragraph, behind a `>` blockquote marker, behind a tab — is literal text, and
+# literal text can only be a comment WITHIN ITS OWN BLOCK.
+#
+# So: strip when the opener is a real HTML-block opener, OR when opener and
+# closer lie in the same block (no blank line, no change of blockquote depth).
+# Otherwise leave the text alone. This keys on document STRUCTURE, not on a
+# surface character the author picks, which is the property the project's own
+# law demands.
+_BLANK_LINE_RE = _re.compile(r"\n[ \t]*\n")
+_HTML_BLOCK_OPENER_PREFIX_RE = _re.compile(r" {0,3}\Z")
+_BLOCKQUOTE_PREFIX_RE = _re.compile(r"[ \t]*((?:>[ \t]*)*)")
+
+
+def _line_start(text: str, index: int) -> int:
+    """Index just after the newline preceding *index*, or 0. Pure."""
+    return text.rfind("\n", 0, index) + 1
+
+
+def _opens_html_block(text: str, index: int) -> bool:
+    """True if `<!--` at *index* begins a line with <= 3 spaces indent. Pure.
+
+    This is CommonMark's HTML-block-type-2 opener condition. A comment that
+    really opens an HTML block runs to its `-->` however many blank lines it
+    spans, so stripping across them is renderer-faithful.
+    """
+    prefix = text[_line_start(text, index):index]
+    return _HTML_BLOCK_OPENER_PREFIX_RE.fullmatch(prefix) is not None
+
+
+def _blockquote_depth(line: str) -> int:
+    """Number of leading `>` block markers on *line*. Pure."""
+    return _BLOCKQUOTE_PREFIX_RE.match(line).group(1).count(">")
+
+
+def _spans_one_block(text: str, start: int, end: int) -> bool:
+    """True if [start, end) contains no blank line and no blockquote-depth change.
+
+    Pure. Used for an opener that does NOT open an HTML block: such an opener is
+    literal text, so it may only be honoured as a comment inside its own block.
+    """
+    segment = text[start:end]
+    if _BLANK_LINE_RE.search(segment) is not None:
+        return False
+    lines = segment.split("\n")
+    opening_depth = _blockquote_depth(text[_line_start(text, start):].split("\n")[0])
+    return all(_blockquote_depth(line) == opening_depth for line in lines[1:])
+
+
+def _strip_html_comments_outside_code(text: str) -> str:
+    """Strip well-formed HTML comments, honouring block structure.
+
+    A comment is removed only when ALL of these hold:
+      - neither delimiter sits inside a code region;
+      - the opener is not backslash-escaped;
+      - the opener either OPENS AN HTML BLOCK (line start, <= 3 spaces indent)
+        or lies in the SAME BLOCK as its closer.
+
+    Any doubt leaves the text in place, which can only ADD claims to the scored
+    denominator. Pure function.
+    """
+    protected: list[tuple[int, int]] = _code_line_spans(text)
+    protected += [(m.start(), m.end()) for m in _CODE_SPAN_RE.finditer(text)]
+
+    def _protected(index: int) -> bool:
+        return any(start <= index < end for start, end in protected)
+
     out: list[str] = []
     last = 0
-    for m in _CODE_SPAN_RE.finditer(text):
-        out.append(_strip_html_comments(text[last:m.start()]))
-        out.append(m.group(0))
+    for m in _HTML_COMMENT_RE.finditer(text):
+        if (_protected(m.start())
+                or _protected(m.end() - 1)
+                or _is_escaped(text, m.start())):
+            continue
+        if not (_opens_html_block(text, m.start())
+                or _spans_one_block(text, m.start(), m.end())):
+            continue
+        out.append(text[last:m.start()])
+        out.append(" ")
         last = m.end()
-    out.append(_strip_html_comments(text[last:]))
+    out.append(text[last:])
     return "".join(out)
 
 
@@ -2403,6 +2702,29 @@ def window_supports(source: RetrievedSource, argument_text: str) -> bool:
 # Relational grounding
 # ---------------------------------------------------------------------------
 
+def _contains_word(haystack: str, needle: str) -> bool:
+    """True iff *needle* occurs in *haystack* on word boundaries. Pure.
+
+    R10C-02 (round 10): endpoint and trigger matching used a BARE SUBSTRING
+    test, so "AI drives mass layoffs [S1][S2]" certified GROUNDED against two
+    sources whose only "ai" was inside the word "said". Two-source corroboration
+    of a relation nobody asserted.
+
+    Boundaries are expressed as lookarounds on word characters rather than \b,
+    because \b is defined relative to the adjacent character's class and
+    therefore misbehaves when the needle begins or ends with punctuation — which
+    a head-noun phrase extracted from real prose regularly does.
+
+    Strictly fail-closed: it can only REMOVE spurious matches, so a relation can
+    only become harder to corroborate, never easier.
+    """
+    if not needle:
+        return False
+    return _re.search(
+        r"(?<!\w)" + _re.escape(needle) + r"(?!\w)", haystack
+    ) is not None
+
+
 def _relation_asserted(
     sources: list[RetrievedSource], side_a: str, side_b: str
 ) -> bool:
@@ -2433,9 +2755,10 @@ def _relation_asserted(
             lo = max(0, c - 2)
             hi = min(n, c + 3)
             window = _nfkc(" ".join(sentences[lo:hi])).casefold()
-            if a not in window or b not in window:
+            if not _contains_word(window, a) or not _contains_word(window, b):
                 continue
-            if any(trigger in window for trigger in _RELATIONAL_TRIGGERS):
+            if any(_contains_word(window, trigger)
+                   for trigger in _RELATIONAL_TRIGGERS):
                 return True
     return False
 
@@ -2523,9 +2846,14 @@ def _session_queries(store: dict[str, RetrievedSource]) -> list[str]:
     matches). A list is returned to satisfy check_absence's signature.
     Pure function — no mutation, no LLM/network/random/wall-clock.
     """
+    return _distinct_queries(store.values())
+
+
+def _distinct_queries(sources: "Iterable[RetrievedSource]") -> list[str]:
+    """Distinct query_provenance values across *sources*, order-preserving. Pure."""
     seen: set[str] = set()
     out: list[str] = []
-    for source in store.values():
+    for source in sources:
         q = source.query_provenance
         if q not in seen:
             seen.add(q)
@@ -2547,11 +2875,15 @@ def ground(
     Branch order (first match wins):
       1. NON_CLAIM                     → GROUNDED (excluded from denominator
                                          upstream in Task 9).
-      2. RELATIONAL                    → delegate to ground_relational.
-      3. ABSENCE                       → delegate to check_absence with the
+      2. any citation unresolved       → UNVERIFIED_CITATION. Runs BEFORE the
+                                         kind dispatch (J-25): provenance is a
+                                         fact about the store, independent of
+                                         claim kind, and RELATIONAL/ABSENCE
+                                         never reached it when it sat lower.
+      3. RELATIONAL                    → delegate to ground_relational.
+      4. ABSENCE                       → delegate to check_absence with the
                                          session's distinct queries.
-      4. no citations                  → UNCITED.
-      5. any citation unresolved       → UNVERIFIED_CITATION.
+      5. no citations                  → UNCITED.
       6. any resolved source has falsy text → UNGROUNDABLE (snippet-only / no
                                          full text).
       7. no verbatim source among cited → UNGROUNDABLE (all haiku_summary).
@@ -2567,9 +2899,93 @@ def ground(
     """
     if claim.kind == ClaimKind.NON_CLAIM:
         return Verdict.GROUNDED
+
+    # PROVENANCE PRECEDES KIND (J-25, closes R9P1-01 and R9P1-02, 2026-10-01).
+    #
+    # This check USED to sit below the kind dispatch, which meant RELATIONAL
+    # and ABSENCE claims never reached it: ground_relational skips a citation
+    # it cannot resolve, and check_absence never inspects claim.citations at
+    # all. So "Insulin resistance causes type 2 diabetes [S2][S3][S99]" and
+    # "[S99] We found no evidence of a recall" both certified PASS 100.0 with
+    # a source that was never retrieved — while evidence_basis on the SAME row
+    # reported that S99 had never been retrieved. The gate contradicted its own
+    # explanation of itself.
+    #
+    # Whether a cited marker names something the session actually retrieved is
+    # a fact about the STORE, prior to and independent of what kind of claim
+    # cites it. Nothing downstream can re-derive it: once the kind dispatch has
+    # run, the unresolvable marker has already been discarded. Fail-closed —
+    # it can only move a claim away from PASS, never toward it.
+    #
+    # An UNCITED claim is unaffected: an empty citation list makes any() False,
+    # so absence claims that cite nothing still reach check_absence as before.
+    if any(resolve(c, store) is None for c in claim.citations):
+        return Verdict.UNVERIFIED_CITATION
+
     if claim.kind == ClaimKind.RELATIONAL:
-        return ground_relational(claim, store)
+        verdict = ground_relational(claim, store)
+        # R10C-04 (round 10): a number inside a RELATIONAL claim was NEVER
+        # checked. `classify` orders RELATIONAL ahead of NUMERIC and this branch
+        # returns above the numeric branch, so "causes 97% of all silent data
+        # loss" certified GROUNDED at PASS 100.0 against a store containing no
+        # percentage at all. The relation was corroborated and the FIGURE —
+        # the part a reader actually quotes — was never looked at.
+        #
+        # Fail-closed: this can only downgrade an otherwise-GROUNDED relational
+        # claim to UNVERIFIED_NUMBER. It never creates a PASS.
+        #
+        # ABSENCE is deliberately NOT given the same treatment. numeric_ok asks
+        # "does this figure appear in a source", which is the wrong question for
+        # a claim asserting that something is missing. Absence is incidentally
+        # protected today because a digit becomes a strong anchor — that is a
+        # CEILING, not a defence, and it is recorded as such in J-40.
+        if verdict == Verdict.GROUNDED and claim.numeric_tokens:
+            # R11B-03 (round 11): this drew from store.values(), so a figure
+            # appearing ONLY in an uncited, unrelated source satisfied the
+            # check. The NUMERIC branch below has always used the claim's OWN
+            # cited sources, and this must match it — a number is grounded by
+            # what the claim CITES, not by what happens to be in the session.
+            cited_verbatim = [
+                source
+                for source in (resolve(c, store) for c in claim.citations)
+                if source is not None
+                and source.full_text_source == "verbatim"
+                and source.text
+            ]
+            if not numeric_ok(claim, cited_verbatim):
+                return Verdict.UNVERIFIED_NUMBER
+        return verdict
     if claim.kind == ClaimKind.ABSENCE:
+        # R10C-03: a store of ONLY haiku_summary records certified an absence at
+        # PASS 100.0, breaking the named invariant that a summary can never
+        # ground a claim.
+        #
+        # THE DIRECTION HERE IS A TRAP. The naive repair — filter source_texts
+        # to verbatim — is FAIL-OPEN: source_texts is scanned for a REFUTATION,
+        # so removing summaries removes chances to find one and makes absence
+        # EASIER to certify. So summaries stay in that scan, and what is
+        # restricted is the BASIS for certification: at least one verbatim
+        # source must exist, and only verbatim records may contribute the
+        # distinct searches. A summary may refuse, never approve.
+        if not any(s.full_text_source == "verbatim" and s.text
+                   for s in store.values()):
+            return Verdict.UNVERIFIED_ABSENCE
+        # R11B-01 (round 11) — WITHDRAWN: passing only VERBATIM queries here was
+        # my own Error-B, introduced hours earlier and claimed fail-closed.
+        #
+        # `queries` is BOTH a numerator and a DENOMINATOR. It supplies the
+        # matches that certify an absence, AND the population size for the
+        # blanket-corpus-word refusal at the `len(distinct) >= 3` gate below.
+        # Shrinking it therefore switches that REFUSAL OFF: the same claim over
+        # the same sources reads UNVERIFIED_ABSENCE with four queries and
+        # ABSENCE_SUPPORTED with two.
+        #
+        # I identified the direction trap in this function (source_texts, above)
+        # and then walked into a second instance of it. The full list is
+        # restored; the verbatim-BASIS requirement above stays, which is what
+        # closes the original R10C-03 headline (a store of only summaries cannot
+        # certify). That a summary can still supply a counting query is OPEN
+        # again, registered as J-42 — a smaller hole than the one I created.
         return check_absence(
             claim,
             _session_queries(store),
@@ -2579,9 +2995,20 @@ def ground(
     if not claim.citations:
         return Verdict.UNCITED
 
-    sources = [resolve(c, store) for c in claim.citations]
-    if any(s is None for s in sources):
-        return Verdict.UNVERIFIED_CITATION
+    # Every marker resolved above. Narrow the type by construction rather
+    # than by a filter: a filter would silently shrink the cited set, which is
+    # the exact failure mode J-25 just closed. If the invariant is ever broken
+    # the gate must fail loudly, not quietly certify against fewer sources.
+    sources: list[RetrievedSource] = []
+    for _citation in claim.citations:
+        _source = resolve(_citation, store)
+        if _source is None:
+            raise AssertionError(
+                f"citation {_citation!r} unresolved past the provenance check "
+                "in ground(); the check above must precede this loop"
+            )
+        sources.append(_source)
+
     if any(not s.text for s in sources):
         return Verdict.UNGROUNDABLE
 

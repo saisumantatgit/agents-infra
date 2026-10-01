@@ -409,3 +409,581 @@ case: q13 reads **PASS / ABSENCE_SUPPORTED / 100.0** on what the hook captured,
 and **FAIL** once one native-WebSearch result is added to the store.
 
 Report: `Agent-Assure/docs/reports/SPEC-7.5-STORE-COMPLETENESS-2026-09-13.md`.
+
+---
+
+## D-38 — autonomous overnight run 2026-10-01, RATIFIED BY SAI AT §0
+
+| id | Decision | Basis | Undo | Status |
+|---|---|---|---|---|
+| D-38 | **Run autonomously 2026-10-01 01:45 → 07:30 IST on the provenance fix list (J-25, J-26, J-27, then round 10 / J-29), on child branch `provenance-fix-2026-10-01`, budget 8M new tokens (output + cache creation), ceiling 9.6M.** | Sai gave AGREED to the §0 handshake with the nine items stated, having been shown: the verified baseline (564 passed / 2 skipped / 60 xfailed, fresh run), the code fact that `ground()` dispatches RELATIONAL and ABSENCE ahead of the unresolved-citation check (`ground_check.py:2570-2577`), and the four committed jobs with their fail-closed claim. | `git branch -D provenance-fix-2026-10-01` — every commit of the night is on that branch and nothing is merged. `agent-assure-calibration-run` at `b4d4e39` is untouched. `CronDelete` the tick job. | ARMED |
+
+**The reading of Escalation #1 this run depends on** — the UNRATIFIED
+fail-closed reading recorded in `CLAUDE.md`: a change that can only move claims
+AWAY from PASS cannot manufacture the unrecoverable error, so it is inside the
+agent's authority; a PASS-enabling change is Sai's. **This run does not assume
+the reading holds** — instrument §C gate 2 makes it checkable: the corpus is
+regenerated and byte-diffed after every change, and **any row moving toward
+PASS halts that item and goes to Sai** rather than shipping on the reading.
+
+**J-24 is NOT presumed.** The product call — ship provenance-only or fund
+entailment — remains Sai's and unmade. Tonight's queue is the subset that is
+required under BOTH branches: entailment layers on provenance, it does not
+replace it, so a citation must resolve to a genuinely retrieved source either
+way. Nothing tonight touches T3, a gold label, hook registration, the factive
+whitelist, or anything outward-facing.
+
+---
+
+## D-39 — J-25: provenance precedes kind in `ground()`
+
+| id | Decision | Basis | Undo | Status |
+|---|---|---|---|---|
+| D-39 | **Move the unresolved-citation check ahead of the RELATIONAL/ABSENCE kind dispatch in `ground()`.** Closes R9P1-01 and R9P1-02 together. | Fail-closed: the branch can only return `UNVERIFIED_CITATION`, i.e. only move a claim AWAY from PASS. Whether a cited marker names something the session retrieved is a fact about the STORE, prior to and independent of claim kind; once the kind dispatch runs, the unresolvable marker has already been discarded and nothing downstream can re-derive it. | `git revert` the J-25 commit, or move the `any(resolve(...) is None ...)` block back below the `ABSENCE` branch. | DONE |
+
+**Call sites enumerated before the fix, per the round-8 lesson.**
+`ground_relational` and `check_absence` each have exactly ONE call site and
+both are inside `ground()` (`ground_check.py:2571`, `:2573` pre-fix). `ground()`
+itself is reached from `score_report` and from `scripts/calibrate.py:186`. So a
+single edit in `ground()` covers the class — verified by grep over `scripts/`
+and `calibration/`, not assumed.
+
+**Proven-red.** The two `strict=True` xfails in
+`tests/red_team_moat/test_moat_r9_provenance_open.py` were seen to
+`XPASS(strict)` against the fixed tree — the red-to-green transition for a
+tripwired finding. Both now live as passing regressions in
+`test_moat_r9_provenance_closed.py`, joined by **sibling shapes my own fixtures
+did not contain**: all-citations-fake, the NUMERIC kind, a full-width marker
+that only NFKC folds, a per-claim assertion that the report SAYS
+`UNVERIFIED_CITATION`, and the NULL CASE (an uncited absence claim, which must
+still reach `check_absence` unchanged — it does).
+
+**Gate 2, DIRECTION — passed, and stated precisely.** `labeling-v2.csv`
+regenerates **byte-identical**; `labels-v2.csv` md5 unchanged
+(`6215b526…d171f`), zero gold labels touched. **Byte-identical does NOT mean
+"no new Error-A"** — it means no row among the 52 has the shape J-25 changes.
+The corpus cannot measure this change; **A=0.320 neither bounds it nor is
+disturbed by it.** No operating point moved, so CR-004 stands and no new CR is
+due. (This wording exists because the same inference was drawn wrongly on
+2026-09-12 and had to be withdrawn.)
+
+**Type narrowing, deliberately loud.** Removing the now-dead `None` branch left
+`sources` typed `RetrievedSource | None`. Narrowed by construction with an
+explicit `raise AssertionError`, NOT by a filter — a filter would silently
+shrink the cited set, which is the exact failure mode J-25 closes.
+
+---
+
+## D-40 — J-31 found and registered, NOT fixed
+
+| id | Decision | Basis | Undo | Status |
+|---|---|---|---|---|
+| D-40 | **Record that a correctly-cited absence claim is REFUSED while the identical uncited claim is certified, and change nothing.** | Found while writing a control for D-39 and **verified PRE-EXISTING on the pre-J-25 tree**, so not a regression. It is Error-A (fail-closed), not a moat breach, so it is not urgent — but any repair moves the Error-A/Error-B trade-off, which is **Escalation #1**. | nothing to undo; the tripwire is one strict xfail. | OPEN — round 10 |
+
+Reproduction, same store, same sentence:
+
+```
+uncited  gate=PASS   [('ABSENCE', 'ABSENCE_SUPPORTED')]
+cited    gate=FAIL   [('ABSENCE', 'UNVERIFIED_ABSENCE')]
+```
+
+**Why it matters beyond the number:** the product instructs authors to cite, and
+citing correctly is what triggers the refusal. That is a Jobs-to-be-Done defect,
+not merely a rate — the customer does the thing the tool asked for and the tool
+penalises them for it. Tripwired as J-31 in
+`tests/red_team_moat/test_moat_r9_provenance_closed.py`.
+
+---
+
+## D-41 — the `evidence_basis` guard now checks the AST, not the source text
+
+| id | Decision | Basis | Undo | Status |
+|---|---|---|---|---|
+| D-41 | **Rewrite `test_basis_is_not_consulted_by_any_verdict_path` to walk the AST for `ast.Name`/`ast.Attribute` references instead of substring-matching the source text.** | The substring form could not tell a CALL from a COMMENT. It failed J-25 for writing the words "evidence_basis" in a comment explaining that the gate had contradicted its own explanation of itself. Strictly MORE precise, not weaker — proven in both directions below. | revert the test to the `"evidence_basis" not in src` form. | DONE |
+
+**Proven in both directions, because loosening a moat-adjacent guard at 02:30
+on an assertion that it is "obviously fine" is exactly how one gets quietly
+disabled.** A real call `_tamper = evidence_basis(claim, store)` was inserted
+into `ground()`: the rewritten guard FAILED. Removing it: PASSED.
+
+**The general defect, worth naming.** The test's NAME claimed a semantic
+property; its ASSERTION measured a lexical proxy. They agreed until the first
+time the words appeared in prose — at which point the cheapest way to green the
+suite was to DELETE the explanatory comment. A guard that fires on prose trains
+people to remove the prose. Sibling question asked and answered: no other test
+in the suite guards a verdict path by substring (`grep` over `tests/` for
+`inspect.getsource` — this was the only one).
+
+### D-41 CORRECTION, same session — the "only one" claim was FALSE
+
+I wrote above that this was the only substring-based verdict-path guard in the
+suite. **That was wrong, and the three-kind absence search caught it within the
+minute.** There is a second: `tests/test_label_basis_split.py:87-93` — D-34's
+own guard, the very one D-41's docstring cites as precedent, carrying the same
+mechanism across two assertions.
+
+The first search was ONE KIND (the label, `inspect.getsource`). Three kinds —
+the label, the plain-domain noun (a test reading its own source), and the
+MECHANISM (`not in src`) — found it immediately. **The mechanism search is the
+one that worked**, and it is the kind I would not have run had I trusted the
+first result. A negative result is only as wide as where you looked; this is
+the second time this project has recorded that sentence.
+
+**Systemic fix applied**, not a case fix: D-34's guard is converted to the same
+AST form, with one deliberate difference — `reliability_eligible` and
+`POLICY_SOURCE_TYPES` are reached there as **dict keys**, i.e. string
+constants, not identifiers, so `ast.Constant` strings are included in the
+reference set or the guard would have been genuinely weakened. Proven by
+inserting a real `r["reliability_eligible"]` access into `error_rates`: FAILED;
+removed: PASSED.
+
+**CEILING: including `ast.Constant` strings means a DOCSTRING in
+`error_rates` / `loo_operating_point` / `select_operating_point` that merely
+names `reliability_eligible` will still trip that guard.** It breaks the moment
+someone documents the rule inside one of those three functions. Upgrade path:
+strip the docstring node (`ast.get_docstring`) before walking. Not done
+tonight because the cheap version is correct today and the residue is loud
+rather than silent — it fails a test, it does not certify a fabrication.
+
+---
+
+## D-42 — WITHDRAWAL: J-25's closure claim was too broad. The solo gate refuted it.
+
+**I claimed, in commit b8d4584:** "no fabricated citation can certify PASS on
+ANY claim kind." **That is FALSE and I withdraw it.** The solo gate refuted it
+within the hour and I reproduced both findings myself.
+
+What J-25 actually closed: an **UNRESOLVED** citation — a marker the gate
+parses, looks up, and fails to find. That much holds.
+
+What it did not touch: an **UNRECOGNISED** marker. `_CITATION_RE` is
+`\[(?:S\d+[a-zA-Z]*|source:[^\]]+)\]` — case-sensitive and narrow. A marker it
+cannot parse does not become an unresolved citation; it becomes **NO citation**,
+so `any(resolve(c, store) is None for c in claim.citations)` has nothing to
+object to. RELATIONAL and ABSENCE certify with zero citations BY DESIGN. Net
+effect: show the reader a citation the parser cannot see, and the claim
+certifies against unrelated store contents at PASS 100.0.
+
+**`[S99]` FAILs. `[s99]` PASSes.** One Shift keystroke. That is round 4's
+lesson — never key a moat rule on a surface property the author controls — for
+the **third** time in this project.
+
+**Reproduced, with a correction to my own first attempt.** My first probe put
+the marker AFTER the claim and I reported the relational half as
+not-reproducing. Wrong: **position is load-bearing.** Trailing, the unparsed
+marker's leftover text breaks `extract_arguments` and the claim is refused BY
+ACCIDENT. Leading, it certifies:
+
+```
+control, no fake      : PASS  RELATIONAL  GROUNDED
+leading  '[s99]'      : PASS  RELATIONAL  GROUNDED     <-- ERROR-B
+midsent  '[s99]'      : FAIL  RELATIONAL  UNVERIFIED_RELATION
+absence  '[s99]'      : PASS  ABSENCE     ABSENCE_SUPPORTED   <-- ERROR-B
+absence  '[S99]'      : FAIL  ABSENCE     UNVERIFIED_CITATION  (the control)
+```
+
+So I made the SAME class of error the gate was dispatched to find: I generalised
+from the positions my own fixtures happened to use. Third time recorded.
+
+**Count corrected DOWNWARD from the gate's testimony.** The gate reported 13 of
+18 spellings evading. On the relational path I could reproduce **4**: `[s99]`,
+`[ S99]`, `[Sxx]`, `[Ѕ99]` (Cyrillic — NFKC folds compatibility variants,
+never visual confusables). The other four — `[S99.]`, `[S-99]`, `[S99, S100]`,
+`[Source:acme-report]` — ARE refused, by the same extraction accident, and are
+pinned as controls rather than counted as coverage. The register carries the
+number I reproduced, not the number I was handed.
+
+Tripwired: `tests/red_team_moat/test_moat_j33_unrecognised_citation_open.py`
+(6 strict xfails, 7 controls). Registered as **J-33**.
+
+**Not patched tonight, and this is a judgment, not a stall.** Widening the
+matcher is fail-closed for fabrications but also catches `[sic]`, `[1]`,
+`[see Appendix A]`, each of which becomes an unresolvable citation and therefore
+a refusal on honest prose. That Error-A is **unmeasured** — the n=52 corpus
+contains none of those shapes, so A=0.320 does not bound it. A confusables fold
+for `[Ѕ99]` must NOT normalise the marker onto a real id, or it becomes
+PASS-enabling; the correct treatment is "citation-shaped but unresolvable →
+refuse". Designing that against a real Error-A measurement is a daylight job.
+
+---
+
+## D-43 — J-27: a comment delimiter is a comment only where a RENDERER says so
+
+| id | Decision | Basis | Undo | Status |
+|---|---|---|---|---|
+| D-43 | **Replace the backtick-only code check with a block-level code-region scanner** (`_code_line_spans`) covering fenced blocks — backtick or tilde, any length ≥3, opener indented up to 3 spaces, with or without an info string — and indented code blocks; and stop treating a backslash-escaped `\<!--` as an opener. A comment is stripped only when BOTH delimiters sit outside every code region and the opener is unescaped. | Fail-closed **in the direction that matters here, which is counter-intuitive**: stripping REMOVES text from the scored denominator, so stripping too much is the FAIL-OPEN direction. The scanner may freely over-detect code; it may never under-detect it. | revert the J-27 commit; `_strip_html_comments_outside_code` returns to the backtick-only form. | DONE |
+
+**Closes as ONE class:** R8B-01 (×3), R8B-02 (×2), R9P2-05, R9P2-06, R9P2-07.
+
+**No dependency added, deliberately.** The obvious fix is a real CommonMark
+parser; none is installed (deps are `syntok`, `pyyaml`). Rejected on two
+grounds. First, what is needed is not a correct renderer but a **generous code
+detector** — the asymmetry above means exactness buys nothing that generosity
+does not. Second, third-party code inside the moat's verdict path is a worse
+trade than 40 lines of line scanning, at 03:00, unreviewed.
+
+**Rejected alternative, recorded because it is the one that looks right:** "a
+comment may not span a blank line." **Insufficient** — a tilde-fenced attack
+with no blank lines anywhere still hides visible prose. I verified that BEFORE
+designing the fix, and it is pinned as
+`test_tilde_fence_with_no_blank_lines`. Had I trusted the heuristic I would
+have shipped a fix that closed the reported fixtures and left the class open —
+which is this project's recorded failure mode, five times over.
+
+**Three shapes no report enumerated**, found by asking what my own fixtures
+lacked: a tilde fence longer than three characters, a fence opener indented 1–3
+spaces, and a fence carrying an info string. All three reproduced as Error-B
+pre-fix. The R9P2 report had noted that an attacker "simply omits the info
+string"; the fix must not depend on that accident, and now does not.
+
+**Proven-red, twice over.** 7 of 13 new tests failed pre-fix. Independently, 6
+pre-existing `strict` xfails (R8B-01 ×3, R8B-02 ×2, R9P2-06) went
+`XPASS(strict)` and are now converted to passing regressions —
+red-to-green recorded by tripwires written by someone who was not fixing this.
+
+**THE ERROR-A THIS BUYS, named and pinned.** An authoring note placed INSIDE a
+tilde fence or an indented block is no longer stripped, so its text reaches the
+denominator and reads UNCITED: such a draft PASSed before and FAILs now. The
+cost is narrow — a tilde fence containing ordinary prose ALREADY failed pre-J-27
+because the fence body is scored — so this bites only a draft that puts a note
+inside a code block and would otherwise pass. Pinned as
+`test_authoring_note_inside_a_code_block_is_now_scored` with the contrast case
+beside it. **The corpus cannot measure it:** labeling-v2.csv is byte-identical
+because none of the 52 rows contains an HTML comment, so A=0.320 does not bound
+this either. It is bounded by the controls, not by the corpus.
+
+`test_moat_r9_provenance_open.py` was RETIRED rather than left with zero open
+items and an "_open" name — a file whose name lies is the kind of artifact this
+project spends its time hunting. Its verbatim reproduction is preserved as
+`test_r9p2_06_original_reproduction`.
+
+---
+
+## D-44 — J-33 analysed and NOT patched; J-31 and J-33 are ONE package, and it is Sai's
+
+| id | Decision | Basis | Undo | Status |
+|---|---|---|---|---|
+| D-44 | **Do not patch J-33 tonight. Record that J-31 and J-33 must be fixed together, and that the package is Escalation #1.** | Every spelling-based fix is the shape this project's own law forbids, and the structural fix collides with J-31. Detail below. | nothing to undo. | ESCALATED |
+
+**Why the obvious fix is the losing shape.** Widening `_CITATION_RE` keys the
+rule on the marker's SPELLING, which the attacker sets completely. A rule
+requiring "≥1 letter and ≥1 digit, no internal whitespace" would catch `[s99]`,
+`[ S99]` and `[Ѕ99]` and keep `[sic]`, `[1]`, `[see Appendix A]` safe — but it
+misses `[Sxx]`, and the next spelling after that. Round 3 died to token count,
+round 4 to capitalisation. **A spelling rule is round 4 again.**
+
+**The structurally correct fix, and why it cannot land alone.** Require
+citations for RELATIONAL and ABSENCE claims. Then an unparseable marker leaves
+the claim with ZERO citations, and zero citations refuses — **regardless of
+spelling**, which is exactly the "property the attacker cannot set without
+giving up the attack" criterion.
+
+It cannot land alone because of **J-31**: today a correctly-cited absence claim
+is ALREADY refused (`UNVERIFIED_ABSENCE`) while the identical uncited one is
+certified. Requiring citations on absence claims while cited ones fail would
+refuse EVERY absence claim. So the coherent change is one package:
+
+1. fix J-31 so a correctly-cited absence claim certifies;
+2. then require citations on ABSENCE and RELATIONAL;
+3. then re-run the corpus and measure BOTH error rates.
+
+**That package is Escalation #1.** It does not merely subtract passes — step 1
+is PASS-ENABLING, which the escalation list reserves to Sai under any reading,
+literal or fail-closed. It also changes what the product asks an author to do.
+
+**The Error-A side is unmeasured and the corpus cannot measure it.**
+`labeling-v2.csv` has been byte-identical through all three of tonight's fixes
+because none of the 52 rows carries an uninterpretable bracket, an HTML comment,
+or a malformed store. **A=0.320 bounds none of tonight's work.** A corpus that
+can measure these shapes is itself a prerequisite, and building one means
+authoring rows, which is adjacent to the gold-label gate.
+
+Recommendation for Sai, in one line: **do the J-31 + J-33 package, in that
+order, in daylight, with a corpus extension built first** — and until then
+treat "absence claims" as the product's weakest surface.
+
+---
+
+## D-45 — ROUND 10: J-26 and J-27 BOTH REFUTED. And my gate-2 evidence for J-26 was VACUOUS.
+
+Three Opus adversaries ran against tonight's tree. Two closure claims fell.
+Reports: `Agent-Assure/docs/plans/reports/RED-TEAM-R10-A-denominator.md`,
+`RED-TEAM-R10-B-store.md`.
+
+### The correction that matters most, because it is about my own evidence
+
+I reported "gate 2 (DIRECTION) passed" on all three fixes, citing a
+byte-identical `labeling-v2.csv`. **For J-26 that check was structurally
+incapable of failing, so it proved nothing and I should not have counted it.**
+
+`calibration/build_corpus_v2.py:84` constructs `RetrievedSource` **directly**,
+with `tool="calibration_fixture"` — a tool `load_store` now REFUSES — and never
+calls `load_store` at all. Verified:
+
+```
+calibration/build_corpus_v2.py:89:        tool="calibration_fixture",
+calibration_fixture in allowlists: False
+```
+
+Two consequences. (1) **The mandatory corpus-regeneration adversary — the
+project's own "the fix's own adversary" discipline — is blind to every loader
+change by construction.** (2) **CR-004's A=0.320 / B=0.000 (n=52) is measured on
+stores the shipped gate would now reject.** That is a calibration-validity
+finding, registered as J-37.
+
+This is the estate's signature defect for the THIRD time tonight: a control
+correct about what it examines (`classify`/tiers/`score`) and silent about what
+it does not (the loader). It landed on the very check my own instrument named as
+the thing that would halt me.
+
+### D-45 proper — J-28B, the structural rule that replaces J-27's scanner
+
+| id | Decision | Basis | Undo | Status |
+|---|---|---|---|---|
+| D-45 | **Replace "is this inside a code region?" with "does this opener genuinely OPEN AN HTML BLOCK?"** Strip only when the opener begins a line with ≤3 spaces indent (CommonMark HTML-block type 2), OR when opener and closer lie in the same block — no blank line, no change of blockquote depth. | J-27's scanner was a **blacklist**, and all five round-10-A findings were new ways to be code it had not enumerated: a `>` marker in front of a fence, a space+tab indent worth 4 columns, an inline opener with no code region at all, a code span crossing a newline. Extending it a fifth time would have been the sixth instance of this repo's failure mode; the adversary said so in terms. The new rule keys on document STRUCTURE, not a surface character the author picks. Strictly fail-closed. | revert the J-28B commit. | **LANDED, NOT CLOSED** |
+
+**Verified: all five shapes now reach the denominator; 3 of them previously
+certified a clean PASS 100.0 with an empty retained appendix.** And all three
+genuine-note controls still strip — including the MULTI-PARAGRAPH note, which a
+blank-line rule alone would have wrongly scored. That is precisely why the
+HTML-block exception exists: a line-start `<!--` really does open a block that
+runs to its `-->` across blank lines, so stripping there is renderer-faithful.
+
+**Deliberately NOT claimed closed.** This rule has not itself faced an
+adversary. The last two closure claims in this area were both refuted within the
+hour of being made. **Round 11 owes it one**, and no closure claim should be
+made on its behalf until then. Registered as J-34.
+
+Suite 628 → **638 passed, 2 skipped, 58 xfailed**. Corpus byte-identical, gold
+md5 unchanged — and this time the check is meaningful, because the corpus DOES
+exercise `decompose`, which is where the stripper lives.
+
+---
+
+## D-46 — J-40: the relation was corroborated and the FIGURE was never checked
+
+| id | Decision | Basis | Undo | Status |
+|---|---|---|---|---|
+| D-46 | **Check numeric tokens on RELATIONAL claims.** If `ground_relational` returns GROUNDED and the claim carries numeric tokens, require `numeric_ok` against the VERBATIM sources; otherwise `UNVERIFIED_NUMBER`. | `classify` orders RELATIONAL ahead of NUMERIC and the relational branch returned above the numeric branch, so "Insulin resistance causes **97%** of all type 2 diabetes [S2][S3]" certified GROUNDED at PASS 100.0 against a store containing no percentage. Fail-closed: can only downgrade GROUNDED, never create a PASS. | revert the J-40 commit. | DONE |
+
+**Why this shape is the worst kind for a reader:** the relation *was* genuinely
+corroborated by two real sources, and that is precisely what makes the number
+look safe. The figure is the part a reader quotes.
+
+**ABSENCE deliberately NOT given the same treatment.** `numeric_ok` asks "does
+this figure appear in a source", which is the wrong question for a claim
+asserting something is missing. Absence is incidentally protected today because
+a digit becomes a strong anchor — **a CEILING, not a defence**, recorded in J-40.
+
+### The part that needed care: J-40 MASKED three J-33 tripwires
+
+Three of J-33's four relational shapes stopped failing. **Not because J-33 was
+fixed — it is untouched.** The unparsed marker leaves its DIGITS in the
+sentence, `99` leaks into `claim.numeric_tokens`, and the new numeric check
+cannot find 99 in the store:
+
+```
+'[s99]'   citations=['[S2]','[S3]']  numeric_tokens=['99','2']   -> UNVERIFIED_NUMBER
+'[Sxx]'   citations=['[S2]','[S3]']  numeric_tokens=['2']        -> GROUNDED, PASS
+```
+
+Drop the digits and the attack returns. So the three were **pinned as controls
+asserting `UNVERIFIED_NUMBER` specifically**, with the masking explained, rather
+than quietly converted to passing tests. Converting them would have made the
+register read as though J-33 had shrunk from four shapes to one, when an
+unrelated fix had merely hidden three.
+
+**That is a tripwire going silent while looking healthy — the third instance
+tonight** (the r8 `WebFetch` fixtures under J-26 were the first, my own
+`evidence_basis` guard the second). The pattern is now frequent enough to be
+worth a standing rule: **when a fix makes an unrelated tripwire pass, assume it
+MASKED the finding until you have proven it CLOSED it.**
+
+Suite 643 → **652 passed, 2 skipped, 55 xfailed**. Corpus byte-identical, gold
+md5 unchanged.
+
+---
+
+## D-47 — J-37: give the corpus adversary its eyes back
+
+| id | Decision | Basis | Undo | Status |
+|---|---|---|---|---|
+| D-47 | **Give the corpus fixtures REAL tool names** (`_source` → `Read`, `_summary_source` → `WebFetch`) **and add a permanent test that every corpus store survives the real `load_store`.** | The project's standing discipline is "regenerate the corpus and diff it — it is the fix's own adversary". Round 10 found that adversary **blind to the loader by construction**: the builders construct `RetrievedSource` directly and never call `load_store`, and their `tool="calibration_fixture"` is one the loader now REFUSES. So CR-004's A=0.320 / B=0.000 was measured on stores the shipped gate would reject. | revert the J-37 commit; the fixtures return to `calibration_fixture`. | DONE |
+
+**Chosen deliberately over the alternative.** The obvious repair is to add
+`calibration_fixture` to `_VERBATIM_TOOLS`. **That would be an Error-B
+generator**: any hostile store could then declare that tool and be trusted
+verbatim. Making the fixtures name tools that really exist keeps the allowlist
+honest, and `WebFetch` for the summary factory matches the capture contract
+exactly — WebFetch is the one tool that always produces a summary.
+
+**Zero corpus drift.** `labeling-v2.csv` is byte-identical to the night's
+baseline and `labels-v2.csv` md5 is unchanged, so **no gold label is stale and
+CR-004's numbers are unchanged by this.** Whether CR-004 must nonetheless be
+re-derived — because it was *originally* computed on unloadable stores — remains
+**Sai's** call under J-37.
+
+**Proven-red:** reverting the tool name fails 2 of the 3 new tests. The suite
+validates **47 corpus stores**, and the file carries a guard test asserting that
+count is non-zero — because if `build_candidate_cases()` ever stops exposing
+stores, every other assertion would vacuously pass and the file would go silent.
+That is the third distinct silent-guard failure found tonight, so the guard is
+now written in from the start rather than discovered later.
+
+Suite 652 → **655 passed, 2 skipped, 55 xfailed**.
+
+---
+
+## D-48 — J-39 (PART): relation endpoints must match on word boundaries
+
+| id | Decision | Basis | Undo | Status |
+|---|---|---|---|---|
+| D-48 | **Match relation endpoints and triggers on WORD BOUNDARIES** (`_contains_word`, lookarounds on word characters) instead of by bare substring. | "AI drives mass layoffs [S1][S2]" certified GROUNDED at PASS 100.0 against two sources whose only "ai" was inside the word **said**. Strictly fail-closed: it can only remove spurious matches. | revert the J-39 commit. | **PARTIAL** |
+
+**Lookarounds, not `\b`, on purpose.** `\b` is defined relative to the adjacent
+character's class, so it misbehaves when the needle begins or ends with
+punctuation — which a head-noun phrase extracted from real prose regularly does.
+`(?<!\w)…(?!\w)` is well-defined for any needle. Pinned by a unit test using
+`(pipeline)`.
+
+**What makes this finding uncomfortable rather than merely embarrassing:** the
+two-distinct-source rule worked *perfectly*. It corroborated across two
+independent sources exactly as specified — and corroborated a relation nobody
+asserted. A rule can be correctly implemented and still measure nothing, and
+that is not a bug a test of the rule would ever catch.
+
+**EXPLICITLY PARTIAL.** R10C-02's other half — `extract_arguments` keeps only
+ONE token per side, so unrelated subjects can still collide (an FT deal-flow
+page plus an NEJM trial page certifying "The ingestion pipeline causes silent
+data loss") — is a design change, not a bug fix, and stays OPEN under J-39. The
+test file says so in its own docstring so nobody reads it as a closure.
+
+Suite 655 → **662 passed, 2 skipped, 55 xfailed**. Corpus byte-identical, gold
+md5 unchanged.
+
+---
+
+## D-49 — ROUND 11: J-28B REFUTED (7 ERROR-B). And the class should be DELETED, not fixed a fourth time.
+
+Report: `Agent-Assure/docs/plans/reports/RED-TEAM-R11-A-block-structure.md`.
+Oracle: the `commonmark` reference port, cross-checked with `python-markdown`.
+
+**I labelled J-28B "LANDED, NOT CLOSED" when it shipped (D-45). That label was
+correct and the refutation arrived within two hours.** The rule is still a net
+improvement — it closed round 10's five shapes and is strictly better than both
+predecessors — so it STAYS. It is simply not a closure.
+
+**Verified by me**, all four reproduced as denominator escapes (the fabrication
+deleted from the scored set):
+
+```
+01a ATX heading boundary    FAB_HIDDEN=True
+01b thematic break ***      FAB_HIDDEN=True
+01c list marker             FAB_HIDDEN=True
+01d fence opener            FAB_HIDDEN=True
+```
+
+Mechanism: `_spans_one_block` sees only a blank line and blockquote depth, so
+**every other paragraph-interrupting block start is invisible to it** — headings,
+thematic breaks, list markers, fence openers, setext underlines, other HTML
+blocks. A mid-paragraph literal `<!--` pairs across that boundary and deletes
+the prose between. Second mechanism: `_opens_html_block` reads three characters
+of a line and ignores the CONTAINER, so a `<!--` inside a list item gets the
+across-blank-lines exemption it should not have.
+
+### The recommendation, and it is not "patch it again"
+
+**This class has now survived rounds 7, 8, 9, 10 and 11, across THREE
+implementations** — backtick-only, a code-region scanner, and this
+block-structure rule. Each closed the fixtures written against it and left the
+class open. Counting tonight alone it produced **12 ERROR-B**.
+
+The reason is structural, not a run of bad luck: **the gate is trying to
+reimplement a Markdown renderer's block model well enough to decide what a
+reader sees, against an adversary who writes the document.** That is open-ended,
+and every round has found another construct the model lacks. It is the
+blacklist shape the project's own law forbids, three times over.
+
+**RECOMMENDATION: stop stripping HTML comments entirely (via negativa).**
+
+- It deletes the entire class **permanently**, rather than narrowing it a fourth
+  time. No renderer model, no dependency, no further rounds.
+- The Error-B it removes is **unrecoverable**. The Error-A it buys is
+  **recoverable, bounded, and arguably correct**: a draft containing an
+  authoring note would fail, and "remove your TODOs before submitting this for
+  verification" is a defensible thing for a verification gate to require.
+- It is strictly simpler: `_strip_html_comments_outside_code`,
+  `_code_line_spans`, `_opens_html_block`, `_spans_one_block`,
+  `_blockquote_depth`, `_is_escaped` and their regexes all become dead code.
+
+**NOT DONE TONIGHT, because it is Sai's.** It changes the Error-A/Error-B
+trade-off and the product's contract with an author — Escalation #1 — and its
+Error-A cost is **unmeasured**, because no row of the n=52 corpus contains an
+HTML comment. Registered as **J-41** with this reasoning.
+
+The honest alternative, if authoring notes must keep passing: adopt a real
+CommonMark parser as the oracle rather than modelling it by hand. That was
+rejected at 03:00 for good reasons (third-party code in the verdict path), but
+it is the only other option that ends the sequence.
+
+---
+
+## D-50 — WITHDRAWAL: two of MY OWN fixes tonight were defective. Round 11 found them.
+
+Report: `Agent-Assure/docs/plans/reports/RED-TEAM-R11-B-recent-fixes.md`.
+
+### WITHDRAWN 1 — R10C-03's query restriction was an ERROR-B I introduced
+
+**I claimed it was fail-closed (D-45). That was FALSE.** Verified by me at the
+function level — same claim, same sources, only the query list differs:
+
+```
+all four queries        -> Verdict.UNVERIFIED_ABSENCE      (refused)
+verbatim-only (2)       -> Verdict.ABSENCE_SUPPORTED       (certified)
+```
+
+`queries` is **both a numerator and a denominator**. It supplies the matches
+that certify an absence AND the population size for the blanket-corpus-word
+refusal (`len(distinct) >= 3`). Shrinking it switched that REFUSAL OFF.
+
+**What makes this the night's sharpest lesson:** I identified the direction trap
+in this exact function — I wrote a comment and a test explaining that filtering
+`source_texts` would be fail-OPEN because it is scanned for a refutation — and
+then walked into a second instance of the same trap one argument to the left. I
+checked the direction of the parameter I was thinking about and not the
+direction of the one I was changing.
+
+**Reverted.** The full query list is restored. The verbatim-BASIS requirement
+stays, which is what closes the original R10C-03 headline (a store of ONLY
+summaries cannot certify). That a summary can still supply a counting query is
+OPEN again as **J-42** — deliberately, because it is a strictly smaller hole
+than the one I created. The correct repair passes the full list for the
+denominator and a verbatim-only set for the matching, which needs
+`check_absence`'s signature to change; that is daylight work.
+
+### WITHDRAWN 2 — J-40 grounded a figure against sources the claim never cited
+
+`ground()` built `verbatim_sources` from `store.values()`, so a figure present
+only in an unrelated, UNCITED source satisfied the check. **That is the exact
+confusion the product exists to prevent: "somewhere in this session" is not
+"the source this claim points at."** The NUMERIC branch has always used the
+claim's own cited sources. Fixed to match, and pinned by a test plus its
+control.
+
+### Still open from round 11-B, registered not accepted
+
+- **J-43** — the relational numeric guard keys on `claim.numeric_tokens` and
+  `_NUMERIC_RE` requires a DIGIT, so **"ninety-seven percent" is never
+  extracted and never checked.** One keystroke from `97%`. Tripwired.
+- **J-44** — `_contains_word`'s `(?!\w)` makes "migraine" not occur in
+  "migraines", so an honest claim a source asserts verbatim reads
+  UNVERIFIED_RELATION. **My "strictly fail-closed" claim for J-39 was right
+  about Error-B and wrong as stated** — it removes legitimate morphological
+  matches too, which is Error-A. `window_supports` still uses bare substring,
+  so two definitions of "contains" now coexist in one branch.
+- **J-45** — `evidence_basis` still calls `_session_queries` and tells the user
+  "N distinct search queries" including ones that did not count. Display
+  disagreeing with the verdict is the D-35 defect class.
+
+Suite **664 passed, 2 skipped, 61 xfailed**. Corpus byte-identical, gold md5
+unchanged.

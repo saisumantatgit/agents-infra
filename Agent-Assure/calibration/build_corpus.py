@@ -73,7 +73,7 @@ def _source(source_id: str, text: str, query_provenance: str) -> RetrievedSource
         url=None,
         file_path=None,
         fetched_at="2026-07-03T00:00:00Z",
-        tool="calibration_fixture",
+        tool="Read",
         content_sha256=_content_sha256(text),
         text=text,
         full_text_source="verbatim",

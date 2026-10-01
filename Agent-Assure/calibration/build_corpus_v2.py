@@ -86,7 +86,7 @@ def _summary_source(source_id: str, text: str, query_provenance: str) -> Retriev
         url=None,
         file_path=None,
         fetched_at="2026-07-08T00:00:00Z",
-        tool="calibration_fixture",
+        tool="WebFetch",
         content_sha256=hashlib.sha256(normalized.encode("utf-8")).hexdigest(),
         text=text,
         full_text_source="haiku_summary",

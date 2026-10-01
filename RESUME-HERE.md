@@ -1,63 +1,173 @@
 # RESUME HERE — Agent-Assure
 
-**Last session:** `d2b27b1f`, closed **2026-09-13 01:30 IST** (overnight after the
-launch analysis; round 9).
-**Branch:** `agent-assure-calibration-run` · clean, **pushed, 0 ahead.**
-**Suite:** `cd Agent-Assure && uv run pytest -q` → **564 passed, 2 skipped, 60 xfailed.**
-Trust the RUN, not this number.
+**Last session:** overnight 2026-10-01, ratified at a §0 handshake (D-38).
+**Branch:** `provenance-fix-2026-10-01`, a child of `agent-assure-calibration-run`.
+**Pushed. NOT merged — the merge is your GO.** `agent-assure-calibration-run`
+is untouched at `b4d4e39`; undo the whole night with
+`git branch -D provenance-fix-2026-10-01`.
+**Suite:** `cd Agent-Assure && uv run pytest -q` → 664 passed, 2 skipped,
+61 xfailed. Trust the RUN, not this number.
 
-Read in this order: this file → `docs/logbook/2026-09-13-the-launch-question-and-what-provenance-actually-is.md`
-→ `docs/jobs/REGISTER.md`.
+Read in this order: this file → `docs/logbook/overnight-2026-10-01-progress.md`
+→ `docs/decisions/RATIFICATION-REGISTER-2026-08-30.md` (D-38…D-50) →
+`docs/jobs/REGISTER.md`.
 
 ---
 
-# START HERE — one decision is Sai's, and everything waits on it
+# THE ONE RECOMMENDATION I WOULD PUT FIRST — J-41
 
-**Ship PROVENANCE-only, or fund ENTAILMENT?** Not made. Do not presume it.
+**Stop stripping HTML comments from drafts. Delete the feature.**
 
-| | provenance | entailment |
+The comment-stripper has now lost rounds **7, 8, 9, 10 AND 11**, across **three
+implementations** — backtick-only, a code-region scanner, and a block-structure
+rule. It produced **12 ERROR-B tonight alone.** Each version closed the fixtures
+written against it and left the class open.
+
+The cause is structural, not a run of bad luck: the gate is trying to
+reimplement a Markdown renderer's block model well enough to decide what a
+reader sees, **against an adversary who writes the document.** Every round finds
+another construct the model lacks. It is the blacklist shape this project's own
+law forbids, three times over.
+
+Deleting the feature ends the sequence permanently and turns seven functions
+into dead code. The trade is an **unrecoverable** Error-B for a **recoverable**
+Error-A: a draft containing an authoring note would fail, and "remove your TODOs
+before submitting this for verification" is a defensible thing for a
+verification gate to require.
+
+**It is yours because it moves the Error-A/Error-B trade-off and the contract
+with the author (Escalation #1), and because its Error-A cost is unmeasured —
+no row of the n=52 corpus contains an HTML comment.** The only other option that
+ends the sequence is adopting a real CommonMark parser as the oracle, which I
+rejected at 03:00 for putting third-party code in the verdict path. You may
+weigh that differently in daylight.
+
+---
+
+# ROUND 10 CHANGED THE QUESTION — read this before J-24
+
+Three Opus adversaries ran against tonight's repaired tree. **13 ERROR-B.**
+Reports: `Agent-Assure/docs/plans/reports/RED-TEAM-R10-{A,B,C}-*.md`.
+
+**The finding is not any single bug. It is WHERE the bugs are.** Ten rounds have
+hardened the gate's deterministic logic. Six of tonight's thirteen live in the
+**CAPTURE layer**, and not one of them is reachable by editing
+`ground_check.py`:
+
+- **`Read` is trusted unconditionally** (J-35). An agent writes a fabrication to
+  a file, reads it back, cites it → **PASS 100.0 / GROUNDED**, with the numeric
+  tier "verifying" figures the same model invented. The identical text via
+  `WebFetch` is correctly refused. The laundering happens BEFORE the store, so
+  no amount of loader validation can see it.
+- **The absence ledger is attacker-written** (J-36). No SEARCH tool is captured
+  at all, so the "two distinct search queries" that certify an absence are two
+  strings the drafting agent picked — file names it chose, or one page fetched
+  twice with different URL fragments.
+- **There is no "this session"** (J-38). No `session_id` on any record,
+  `fetched_at` is a constant sentinel, the store is append-forever. A later
+  session's draft citing a prior session's `[S2]` → **PASS 100.0.** This one
+  strikes the founding spec's own sentence: "actually retrieved THIS session."
+
+**So we have been optimising the wrong constraint.** The moat's logic is in
+decent shape. The evidence entering it is not.
+
+**This reframes J-24.** "Ship provenance-only" is not currently on the menu
+either, because provenance is not enforced where evidence is captured. The
+honest options now look like: (a) fix the capture layer — all Escalation #4,
+all yours; (b) narrow the product's claim to what is actually enforced; or
+(c) both. **I did not presume any of them.**
+
+**And one measurement you relied on is weaker than advertised** (J-37):
+`build_corpus_v2.py` builds its store objects directly and **never calls
+`load_store`**, using a tool the loader now refuses. So the mandatory
+"regenerate the corpus" adversary is blind to every loader change, and
+**CR-004's A=0.320 / B=0.000 is measured on stores the shipped gate would
+reject.** I wrongly counted that check as a passed gate for J-26 last night;
+the correction is D-45.
+
+---
+
+# What changed: provenance is MORE true, and still not true
+
+Three fail-closed fixes landed. Each was proven red, corpus-diffed, and
+adversarially reviewed.
+
+| | what it closes | evidence |
 |---|---|---|
-| what it answers | is every citation a source actually retrieved this session, verbatim? | does the source support the claim? |
-| the founding spec | **its one-sentence identity** — "mechanically traced to a source that was actually retrieved this session" (HQ repo, `docs/superpowers/specs/2026-06-20-agent-assure-design.md` §1) | the means (§4.3 T1/T2/T3), not the promise |
-| state | **NOT yet true** — round 9 found 2 ERROR-B; fix list is 4 items, all fail-closed | ~31 open ERROR-B classes; nothing measured fixes them |
-| human blockers | none | q25, J-22, second reader, calibration |
+| **J-25** | A fabricated citation that PARSES certified PASS on RELATIONAL and ABSENCE claims, because the unresolved-citation check sat BELOW the kind dispatch. | 2 strict xfails → 9 passing regressions |
+| **J-26** | `load_store` silently repaired self-contradicting stores: duplicate ids, NFKC id collisions, duplicate JSON keys, mistyped fields, tool/source-type disagreement. Line order decided verdicts. | 19 of 27 proven red |
+| **J-27** | Comment delimiters inside tilde fences, indented code and backslash escapes deleted visible prose from the scored denominator. | 7 of 13 red, plus 6 pre-existing xfails converted |
 
-## Why entailment is not buyable right now — measured, not argued
+## The one thing to read before touching this again
 
-- STORM verifies its own citations with an LLM at ~85%, and names "red herrings"
-  (q25's shape) as its unsolved failure.
-- Nothing on the standard benchmark clears 80%. An API judge buys 0.6pp over a
-  770M local checker at 446× the cost, is non-deterministic at temperature 0,
-  and is prompt-injectable ~91% of the time.
-- **Our own diagnostic:** HHEM-2.1-Open catches 3 of 17 open attacks, **all 3
-  already caught by the gate — union gain zero.** It is right only where it
-  would have to *lift* a flag, which the moat forbids.
-  `docs/research/diagnostic/RESULTS-2026-09-12.md`
+**I claimed J-25 closed the class. It did not, and the solo gate refuted me
+within the hour** (D-42). J-25 closed UNRESOLVED citations — markers the gate
+parses and fails to find. It did nothing about **UNRECOGNISED** ones:
+`_CITATION_RE` is case-sensitive, so `[s99]` is not an unresolved citation but
+**no citation at all**, and RELATIONAL/ABSENCE certify with zero citations by
+design. `[S99]` FAILs. `[s99]` PASSes. One Shift keystroke — round 4's lesson
+for the third time in this project.
 
-## If provenance — the launch fix list (all fail-closed)
+## THE DECISION WAITING ON YOU — J-31 + J-33, as ONE package (D-44)
 
-1. **Run the unresolved-citation check in `ground()` BEFORE the kind dispatch.**
-   Today RELATIONAL and ABSENCE claims skip it: `[S2][S3][S99]` and
-   `[S99] We found no evidence…` both certify **PASS 100.0**. Fixing either
-   checker alone leaves the other open.
-2. **`load_store` must raise** on a duplicate normalised id, duplicate JSON keys,
-   wrong types, and a `tool`/`full_text_source` mismatch. Today a duplicate
-   `source_id` launders a summary to verbatim by line order.
-3. **Comment stripping must detect code the way CommonMark does** (tilde fences,
-   indented blocks, escaped openers) — or stop stripping comments. One family:
-   R8B-01/02, R9P2-05/06/07.
-4. **Spec §7.5 — absence claims fail OPEN on an incomplete store.** The hook
-   does not capture WebSearch, search tools, Bash, Grep/Glob or most MCP
-   readers, and auto mode routes file reads through Bash. **Remedy touches hook
-   registration → Sai.** Launch option: exclude absence claims.
-   `Agent-Assure/docs/reports/SPEC-7.5-STORE-COMPLETENESS-2026-09-13.md`
+Not made. Do not presume it.
 
-Then **round 10, provenance only**, against the repaired tree.
+The spelling-based fix for J-33 is the losing shape: the attacker sets the
+spelling. The structural fix — **require citations on ABSENCE and RELATIONAL
+claims** — closes it regardless of spelling, but it cannot land alone, because
+**J-31** means a correctly-cited absence claim is ALREADY refused while the
+identical uncited one is certified. Requiring citations while cited ones fail
+would refuse every absence claim.
+
+So the package is: fix J-31 → then require citations → then measure both error
+rates. **Step 1 is PASS-ENABLING, so the package is Escalation #1 and yours.**
+
+**And you cannot measure it with what we have.** `labeling-v2.csv` came back
+byte-identical after all three fixes, because none of the 52 rows carries an
+uninterpretable bracket, an HTML comment, or a malformed store. **A=0.320
+bounds none of tonight's work.** A corpus extension is a prerequisite, and
+authoring rows sits next to the gold-label gate, which is also yours.
+
+## Still yours, unchanged
+
+**J-24 — ship PROVENANCE-only, or fund ENTAILMENT?** Still not made. Tonight
+did not presume it: everything built is required under BOTH branches, because
+entailment layers on provenance rather than replacing it. The measured case
+against buying entailment now is unchanged — HHEM-2.1-Open catches 3 of 17 open
+attacks, all 3 already caught by the gate, union gain **zero**, and it is right
+only where it would have to LIFT a flag, which the moat forbids.
+
+Also yours: **J-22** (factive whitelist, PASS-enabling), **J-28** (spec §7.5
+hook registration, Escalation #4), **q25** gold adjudication, **OI-MOAT-31**,
+**J-15**, **D-07**, `docs/consulting/` privacy.
+
+## Round 11 (2 adversaries): J-28B refuted, and TWO OF MY OWN FIXES withdrawn
+
+- **R10C-03's query restriction was an ERROR-B I introduced** and claimed
+  fail-closed. `queries` is both a numerator and a **denominator** — it sizes
+  the blanket-corpus-word refusal — so shrinking it switched that refusal off.
+  Reverted; the narrower hole is reopened deliberately as J-42.
+- **J-40 grounded a figure against the whole store** rather than the claim's
+  citations. Fixed.
+- Open and tripwired: **J-43** ("ninety-seven percent" is never extracted —
+  `_NUMERIC_RE` needs a digit), **J-44** ("migraine" ≠ "migraines", Error-A),
+  **J-45** (`evidence_basis` announces queries the verdict ignored).
 
 ## Withdrawn — do not repeat these
 
 - "The founding spec does not exist." It is in the HQ repo.
 - "Provenance cannot lose a red-team round." It lost round 9.
+- **"No fabricated citation can certify PASS on any claim kind" (b8d4584).**
+  Refuted the same night. D-42.
+- **"J-27 closes the comment-delimiter class."** Refuted by round 10. D-45.
+- **"R10C-03's query restriction is fail-closed."** FALSE — it was an Error-B I
+  introduced and withdrew the same night. D-50.
+- **"J-39 is strictly fail-closed."** Right about Error-B, wrong as stated. J-44.
+
+**Eight withdrawals, six of them the same shape: a confident general claim drawn
+from a check narrower than the claim.** The sharpest came AFTER I had written the
+warning — I named the direction trap in `check_absence`, tested it, commented
+it, then introduced that exact failure one argument to the left.
 
 ---
 

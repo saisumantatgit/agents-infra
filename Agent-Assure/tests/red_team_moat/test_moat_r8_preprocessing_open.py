@@ -24,7 +24,7 @@ GROUND_CHECK = str(REPO_ROOT / "scripts" / "ground_check.py")
 
 STORE_RECORD = {
     "source_id": "S1", "url": "https://example.invalid/db-notes", "file_path": None,
-    "fetched_at": "2026-09-12T00:00:00Z", "tool": "WebFetch",
+    "fetched_at": "2026-09-12T00:00:00Z", "tool": "mcp__exa__web_fetch_exa",
     "content_sha256": "a" * 64,
     "text": ("Redis is an in-memory data structure store. Redis supports "
              "replication and persistence. The default port for Redis is 6379."),
@@ -57,15 +57,8 @@ def _scored_texts(report: dict) -> list[str]:
 # prose between them.
 # ---------------------------------------------------------------------------
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="R8B-01 OPEN (tilde fence): _CODE_SPAN_RE only knows backtick "
-    "spans. A CommonMark tilde fence (~~~) is code to every renderer but "
-    "plain text to _strip_html_comments_outside_code, so a `<!--` shown "
-    "inside one fence pairs with a `-->` inside another and deletes the "
-    "reader-visible sentence between them — it does not even reach the "
-    "scored denominator.",
-)
+# CLOSED by J-27 (2026-10-01): the tilde-fence, indented-code and backslash-escape shapes are now
+# detected as code, so the delimiters no longer delete reader-visible prose.
 def test_tilde_fenced_comment_delimiters_must_not_delete_visible_prose(tmp_path: Path) -> None:
     draft = (
         "Redis is an in-memory data structure store [S1].\n\n"
@@ -80,12 +73,8 @@ def test_tilde_fenced_comment_delimiters_must_not_delete_visible_prose(tmp_path:
     )
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="R8B-01 OPEN (indented code block): the same delimiter-hiding "
-    "mechanism via a 4-space indented code block, which CommonMark treats as "
-    "code and the comment stripper does not.",
-)
+# CLOSED by J-27 (2026-10-01): the tilde-fence, indented-code and backslash-escape shapes are now
+# detected as code, so the delimiters no longer delete reader-visible prose.
 def test_indented_code_block_comment_delimiters_must_not_delete_visible_prose(tmp_path: Path) -> None:
     draft = (
         "Redis is an in-memory data structure store [S1].\n\n"
@@ -100,13 +89,8 @@ def test_indented_code_block_comment_delimiters_must_not_delete_visible_prose(tm
     )
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="R8B-01 OPEN (opposite-meaning variant): the same indented-code-"
-    "block mechanism used to delete a NEGATION, so the gate certifies at "
-    "PASS/100.0 a document whose visible prose asserts the opposite of the "
-    "cited claim ('Redis does not support replication').",
-)
+# CLOSED by J-27 (2026-10-01): the tilde-fence, indented-code and backslash-escape shapes are now
+# detected as code, so the delimiters no longer delete reader-visible prose.
 def test_indented_code_block_must_not_delete_a_negation_and_certify_the_opposite(tmp_path: Path) -> None:
     draft = (
         "Redis is an in-memory data structure store [S1].\n\n"
@@ -130,14 +114,8 @@ def test_indented_code_block_must_not_delete_a_negation_and_certify_the_opposite
 # comment stripper, which has no notion of escaping.
 # ---------------------------------------------------------------------------
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="R8B-02 OPEN (whole-sentence deletion): CommonMark backslash "
-    "escapes (\\<!-- , \\-->) render as literal visible text; the stripper "
-    "has no escaping awareness, sees a well-formed delimiter pair, and "
-    "deletes the visible prose between them, which never reaches the scored "
-    "denominator.",
-)
+# CLOSED by J-27 (2026-10-01): the tilde-fence, indented-code and backslash-escape shapes are now
+# detected as code, so the delimiters no longer delete reader-visible prose.
 def test_escaped_comment_delimiters_must_not_delete_visible_prose(tmp_path: Path) -> None:
     draft = (
         "Redis is an in-memory data structure store [S1].\n\n"
@@ -150,14 +128,8 @@ def test_escaped_comment_delimiters_must_not_delete_visible_prose(tmp_path: Path
     )
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="R8B-02 OPEN (mid-sentence reversal): the same escaping gap welds "
-    "a claim into a sentence the author never wrote, and the gate certifies "
-    "the fabricated sentence GROUNDED at 100.0 — OI-MOAT-26's shape "
-    "(weld a delimiter pair into a sentence and reverse it) reopened via "
-    "backslash escaping instead of NFKC.",
-)
+# CLOSED by J-27 (2026-10-01): the tilde-fence, indented-code and backslash-escape shapes are now
+# detected as code, so the delimiters no longer delete reader-visible prose.
 def test_escaped_delimiters_must_not_fabricate_a_reversed_sentence(tmp_path: Path) -> None:
     draft = "Redis is an \\<!--on-disk relational, never an\\--> in-memory data structure store [S1].\n"
     report = _gate(tmp_path, draft)

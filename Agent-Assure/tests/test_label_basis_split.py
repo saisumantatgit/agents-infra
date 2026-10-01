@@ -79,17 +79,34 @@ def test_error_rates_still_see_every_row() -> None:
     claims, so nothing in the error-rate path may consult it. This asserts the
     corpus the rates are computed over is the WHOLE corpus.
     """
+    import ast  # noqa: PLC0415
     import inspect  # noqa: PLC0415
+    import textwrap  # noqa: PLC0415
 
     from scripts import calibrate  # noqa: PLC0415
 
+    # Checked over the AST, not the source TEXT (D-41, 2026-10-01). The
+    # substring form cannot tell a REFERENCE from a COMMENT, so it fires on
+    # prose that merely explains the rule — and the cheapest way to green it is
+    # then to delete the explanation. Reference-level checking asserts the
+    # property this test is NAMED for.
     for name in ("error_rates", "loo_operating_point", "select_operating_point"):
-        src = inspect.getsource(getattr(calibrate, name))
-        assert "reliability_eligible" not in src, (
+        tree = ast.parse(textwrap.dedent(inspect.getsource(getattr(calibrate, name))))
+        referenced = {
+            n.id for n in ast.walk(tree) if isinstance(n, ast.Name)
+        } | {
+            n.attr for n in ast.walk(tree) if isinstance(n, ast.Attribute)
+        } | {
+            n.value for n in ast.walk(tree)
+            if isinstance(n, ast.Constant) and isinstance(n.value, str)
+        }
+        assert "reliability_eligible" not in referenced, (
             f"{name}() consults reliability_eligible — policy rows have been "
             "dropped from the ERROR RATES, which scores the gate only on the "
             "questions it finds easy"
         )
-        assert "POLICY_SOURCE_TYPES" not in src, f"{name}() filters on policy type"
+        assert "POLICY_SOURCE_TYPES" not in referenced, (
+            f"{name}() filters on policy type"
+        )
 
     assert len(_rows()) == 52

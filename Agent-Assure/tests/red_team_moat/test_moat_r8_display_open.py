@@ -32,7 +32,7 @@ GROUND_CHECK = str(REPO_ROOT / "scripts" / "ground_check.py")
 def _store_row(source_id: str, text: str, query_provenance: str) -> dict:
     return {
         "source_id": source_id, "url": f"https://example.invalid/{source_id}",
-        "file_path": None, "fetched_at": "2026-09-12T00:00:00Z", "tool": "WebFetch",
+        "file_path": None, "fetched_at": "2026-09-12T00:00:00Z", "tool": "mcp__exa__web_fetch_exa",
         "content_sha256": "a" * 64, "text": text,
         "full_text_source": "verbatim", "captured_via": "exa",
         "query_provenance": query_provenance,
