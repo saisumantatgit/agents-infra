@@ -19,6 +19,7 @@ import json
 # survivable.
 import re as _re
 import unicodedata
+from pathlib import Path
 from collections import Counter
 from dataclasses import dataclass
 from enum import Enum
@@ -270,6 +271,20 @@ def load_store(path: str) -> dict[str, RetrievedSource]:
     sweep the fixtures in the same commit. Tracked as J-32.
     """
     store: dict[str, RetrievedSource] = {}
+    # α4 friction 1 (2026-10-02): the FIRST command the installer prints points
+    # at .assure/evidence-store.jsonl, which does not exist on a fresh install
+    # because no research has happened yet. A raw FileNotFoundError traceback was
+    # the first thing a new user saw. Still an exception and still exit 1 — loud,
+    # not silent — but now it says what to do.
+    if not Path(path).exists():
+        raise FileNotFoundError(
+            f"no evidence store at {path!r}. The store is written by the "
+            f"PostToolUse capture hook as your session retrieves sources, so it "
+            f"does not exist until the hook has fired at least once. Either run "
+            f"some research first with the plugin installed, or point --store at "
+            f"an existing store (the shipped demo has one: "
+            f"demo/evidence-store.jsonl)."
+        )
     with open(path, encoding="utf-8") as fh:
         for lineno, raw_line in enumerate(fh, start=1):
             line = raw_line.strip()

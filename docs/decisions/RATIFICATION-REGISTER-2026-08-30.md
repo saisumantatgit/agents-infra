@@ -1322,3 +1322,54 @@ claim surfaces say session scoping is available **on request**, not by default.
 
 Suite 724 → **734 passed, 2 skipped, 60 xfailed**. Corpus byte-identical, gold
 md5 unchanged.
+
+---
+
+## D-57 — α4 install validation: RUN FOR THE FIRST TIME, and it mostly worked
+
+| id | Decision | Basis | Undo | Status |
+|---|---|---|---|---|
+| D-57 | **Run `install.sh` and the full gate journey in a throwaway clone of an unrelated repo, and fix the one first-run defect it exposed.** | `ALPHA-READINESS-PLAN.md` α4 has required this since July 2026 with every checkbox empty. Eleven red-team rounds and 700+ tests, and no evidence a stranger could install this and get a verdict. Reversible: a scratch directory, nothing live touched. | the install lives in the scratchpad and is already gone; `git revert` the F1 error-message commit. | DONE |
+
+**Report:** `Agent-Assure/docs/reports/ALPHA4-INSTALL-VALIDATION-2026-10-02.md`.
+
+**`install.sh` was READ before being run** — it is Escalation #4 so it was not
+edited, and reading it first confirmed it writes nothing outside its own
+directory (the `curl` line is error-message text, not an executed command).
+
+**The full stranger journey works:** install exit 0 → demo grounded PASS exit 0 →
+demo fabricated FAIL exit 1 → hook fed a real-shaped `Read` event writes
+`S1 / Read / session_id 'sess-STRANGER' / verbatim` → gate on a draft citing that
+captured `[S1]` with `--session-id` PASS exit 0 → **same store under a different
+session REFUSED exit 1** → fabricated `[S7]` FAIL exit 1.
+
+Those last three are **the first end-to-end proof of J-38 outside unit tests.**
+
+### F1, found and FIXED: the first command a new user runs produced a traceback
+
+`install.sh` prints a manual-usage command pointing at
+`.assure/evidence-store.jsonl`. **On a fresh install that file cannot exist** —
+the hook writes it as research happens, and no research has happened yet. So the
+very first thing a new user is told to run produced a raw `FileNotFoundError`
+traceback. `load_store` now raises with the cause and two remedies, pinned by a
+test asserting both the explanation and a working remedy are present. Still an
+exception, still exit 1 — **loud, not silent.**
+
+This is the kind of defect no amount of red-teaming finds, because every test in
+the suite constructs a store before calling the gate. **Eleven adversarial rounds
+never ran the first command in the README.**
+
+### Deliberately NOT fixed, and why
+
+- **J-50** — a session-refused store exits 1 with a traceback rather than a
+  one-line message. Every other store error behaves this way; special-casing one
+  would make the CLI's error register inconsistent. Fix the family together.
+- **J-51** — `install.sh` never mentions `--session-id` and nothing explains how
+  to obtain a session id. Needs `install.sh` text: Escalation #4.
+- **J-52 — THE LAST UNPROVEN STEP BEFORE LAUNCH.** The Claude Code *plugin* path
+  is still unvalidated: `claude --plugin-dir`, the marketplace entry, and the hook
+  firing from a live session. All need hook registration into a live config, which
+  is Sai's. α4 proved the engine, the hook and the CLI; it did not prove the
+  plugin.
+
+Suite 734 → **735 passed, 2 skipped, 60 xfailed**.

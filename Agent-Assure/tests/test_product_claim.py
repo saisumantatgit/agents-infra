@@ -290,3 +290,15 @@ def test_every_surface_states_a_limitation(surface):
     text = (_ROOT / surface).read_text(encoding="utf-8").lower()
     assert any(k in text for k in ("does not", "not prove", "refuses")), (
         f"{surface} makes a promise but discloses no boundary")
+
+
+def test_a_missing_store_says_what_to_do(tmp_path):
+    """α4 friction 1: the first command the installer prints points at a store
+    that does not exist on a fresh install (no research has happened yet). A raw
+    FileNotFoundError traceback was the first thing a new user saw. Still an
+    exception, still exit 1 — but it must now name the cause and a remedy."""
+    with pytest.raises(FileNotFoundError) as exc:
+        g.load_store(str(tmp_path / "nope.jsonl"))
+    message = str(exc.value)
+    assert "capture hook" in message, "does not explain WHY it is missing"
+    assert "demo/evidence-store.jsonl" in message, "offers no working remedy"
