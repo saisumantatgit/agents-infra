@@ -66,6 +66,12 @@ class RetrievedSource:
     full_text_source: str
     captured_via: str
     query_provenance: str
+    # J-38. DEFAULTS TO "" so every store written before 2026-10-01 keeps
+    # loading (close-after-open: the demo and 47 corpus fixtures predate this).
+    # The default is safe because an EMPTY session_id is treated as
+    # UNATTRIBUTABLE by assert_single_session and therefore refuses under
+    # enforcement — "I don't know" points away from PASS.
+    session_id: str = ""
 
 
 @dataclass(frozen=True)
@@ -193,6 +199,49 @@ def _validate_record(obj: dict[str, object], lineno: int) -> None:
         )
 
 
+def assert_single_session(
+    store: dict[str, RetrievedSource], session_id: str
+) -> None:
+    """Raise unless every record in *store* belongs to *session_id*. Pure.
+
+    J-38. The founding spec promises a claim traces to a source "actually
+    retrieved THIS SESSION". Before this, nothing in the code expressed a
+    session at all: no record carried an id and the store was appended to
+    forever, so a prior session's [S2] certified at PASS 100.0.
+
+    IT RAISES; IT DOES NOT FILTER, and that is the whole design decision.
+
+    Dropping foreign records looks safer and is not. The store reaches
+    check_absence through two arguments at once and shrinking it moves them in
+    OPPOSITE directions (proven 2026-10-01, D-54):
+
+      - fewer cited sources    -> citations do not resolve   -> refuse  (closed)
+      - fewer source_texts     -> fewer refutations found    -> CERTIFY (OPEN)
+      - fewer distinct queries -> may drop below the 2-query bar -> refuse,
+        but ALSO disables the blanket-corpus-word refusal -> CERTIFY   (OPEN)
+
+    So a filtered store is not a weaker store, it is a DIFFERENTLY weak one.
+    Refusing to produce a verdict is the only unambiguously fail-closed answer:
+    a store holding another session's evidence is not this session's audit
+    record, and the gate should say so rather than quietly score a subset.
+
+    An EMPTY session_id is UNATTRIBUTABLE and also raises. A record that cannot
+    be placed in this session cannot be certified against in it.
+    """
+    foreign = sorted(
+        {source.session_id or "<no session_id>" for source in store.values()
+         if source.session_id != session_id}
+    )
+    if foreign:
+        raise ValueError(
+            f"evidence store holds records from outside this session "
+            f"{session_id!r}: {', '.join(foreign)}. The store is append-only and "
+            f"is never rotated, so this is the expected state of a reused store. "
+            f"Point --store at a fresh file for this session, or omit "
+            f"--session-id to score without session enforcement."
+        )
+
+
 def load_store(path: str) -> dict[str, RetrievedSource]:
     """Read a JSONL file and return a dict indexed by NFKC-normalized source_id.
 
@@ -236,7 +285,14 @@ def load_store(path: str) -> dict[str, RetrievedSource]:
                     f"replaced, making the verdict for a claim citing "
                     f"[{source_id}] depend on line order alone."
                 )
+            session_id = obj.get("session_id", "")
+            if not isinstance(session_id, str):
+                raise TypeError(
+                    f"line {lineno}: field 'session_id' must be a str or absent, "
+                    f"got {type(session_id).__name__}"
+                )
             source = RetrievedSource(
+                session_id=_nfkc(session_id),
                 source_id=source_id,
                 url=obj.get("url"),
                 file_path=obj.get("file_path"),
@@ -3367,6 +3423,9 @@ def main() -> None:
       --store PATH      Path to the evidence JSONL store (required).
       --threshold FLOAT Grounding score threshold (default 90.0).
       --json            Print JSON report to stdout; skip writing YAML file.
+      --session-id STR  Assert every record was captured in this session; the
+                        gate REFUSES a store containing any other session's
+                        evidence (J-38). Omitted => no session enforcement.
 
     Exit codes:
       0  gate == "PASS"
@@ -3394,6 +3453,11 @@ def main() -> None:
                              "it is an error rather than a no-op: a flag that "
                              "silently does nothing is the silent-fallback "
                              "failure this codebase forbids.")
+    parser.add_argument("--session-id", dest="session_id", default=None,
+                        metavar="STR",
+                        help="Assert every record was captured in this session; "
+                             "REFUSE a store containing another session's "
+                             "evidence (J-38). Omit for no enforcement.")
     parser.add_argument("--json", dest="json_mode", action="store_true",
                         help="Print JSON report to stdout; skip writing YAML file.")
     args = parser.parse_args()
@@ -3415,6 +3479,11 @@ def main() -> None:
         draft_text = fh.read()
 
     store = load_store(args.store)
+    # J-38: enforce BEFORE any scoring, so a foreign-session store never
+    # produces a verdict at all. Raising here rather than filtering is
+    # deliberate — see assert_single_session.
+    if args.session_id is not None:
+        assert_single_session(store, args.session_id)
     claims = [classify(c) for c in decompose(draft_text)]
     report = score_report(claims, store, threshold=args.threshold)
 

@@ -155,7 +155,7 @@ a certificate of truth, and the boundary is deliberate:
 | That the meaning is supported | Verbatim provenance only. A faithful paraphrase is REFUSED (Error-A 0.320, n=52, CR-004). `UNGROUNDED` means "not mechanically traceable", never "false". |
 | That the source is right | The gate certifies source-support, not truth. |
 | That an absence was really searched for | The searches behind "no evidence of X" are supplied by the agent, not observed. |
-| That the source was retrieved *this* session | The store is appended to and never rotated, and no record carries a session id, so an earlier session's source still resolves (J-38). |
+| That the source was retrieved *this* session — **unless you ask** | Every captured record now carries a `session_id`, and `--session-id <id>` makes the gate REFUSE a store containing any other session's evidence. Without that flag there is no session enforcement, because the store is appended to and never rotated (J-38). |
 
 Each row is pinned by a test in `Agent-Assure/tests/test_product_claim.py`. If
 one stops being true, that suite fails and this table is what must change.

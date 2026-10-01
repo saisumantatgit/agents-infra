@@ -39,10 +39,13 @@ Say this plainly when you report a PASS. A PASS is not a certificate of truth.
   searches behind an absence claim are supplied by the agent, not observed.
 - **A multi-line `<!-- ... -->` note is scored as claims** and will fail the
   draft (J-48). Keep authoring notes on one line.
-- **The store is not session-bounded.** It is appended to and never rotated, and
-  no record carries a session id, so a claim can be traced to a source captured
-  in an EARLIER session. Say "captured in the evidence store", never "retrieved
-  this session" (J-38).
+- **The store is not session-bounded unless you ask it to be.** Every captured
+  record carries a `session_id`, and passing `--session-id <id>` makes the gate
+  REFUSE a store holding any other session's evidence. Without that flag the
+  store is appended to and never rotated, so a claim can trace to a source
+  captured in an EARLIER session. So: describe evidence as "captured in the
+  evidence store" by default, and describe a run as session-scoped ONLY when it
+  actually passed `--session-id` (J-38).
 
 These are scope, not bugs — each is pinned by a test in
 `tests/test_product_claim.py`, so if one ever stops being true this list is

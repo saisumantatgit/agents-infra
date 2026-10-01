@@ -1254,3 +1254,71 @@ the store is not session-bounded, so even that phrasing overclaimed. The
 remaining three "this session" mentions describe the HOOK firing, which is true.
 
 Suite 705 → **724 passed, 2 skipped, 60 xfailed**.
+
+---
+
+## D-56 — J-38: "this session" becomes expressible, and one of my own recommendations is withdrawn
+
+| id | Decision | Basis | Undo | Status |
+|---|---|---|---|---|
+| D-56 | **Record `session_id` on every captured record, and add `--session-id` to the gate: when passed, REFUSE a store containing any other session's evidence (or any unattributable record).** Enforcement is OPT-IN; without the flag behaviour is unchanged. | Round 10 showed there was no session in the code at all, while `CLAUDE.md` and four shipped surfaces promised one. Fail-closed: the flag can only cause a refusal. | `git revert` this commit. `session_id` defaults to `""`, so reverting cannot strand a store. | DONE |
+
+**WITHDRAWN: "stamp `fetched_at` for real".** That was part of my own J-38
+recommendation and it was wrong. The sentinel is deliberate — PostToolUse events
+carry no trustworthy fetch time and `CLAUDE.md` forbids wall-clock in logic, so a
+real timestamp would break the capture layer's determinism. **Session scoping
+needs an IDENTITY, not a clock**, and `event["session_id"]` already existed — it
+was being read as a `query_provenance` fallback and thrown away. Chesterton's
+Fence, third time this night.
+
+### The design decision: it RAISES, it does not FILTER
+
+Dropping foreign records looks obviously safer. It is not, and I have the proof
+from last night (D-54): the store reaches `check_absence` through two arguments
+at once and shrinking it moves them in **opposite** directions —
+
+- fewer cited sources → citations do not resolve → refuse (**fail-closed**)
+- fewer `source_texts` → fewer refutations found → certify (**fail-OPEN**)
+- fewer distinct queries → may drop below the 2-query bar → refuse, but **also**
+  disables the blanket-corpus-word refusal → certify (**fail-OPEN**)
+
+A filtered store is not a weaker store, it is a **differently weak** one.
+Refusing to produce a verdict is the only unambiguously fail-closed answer. A
+test pins this by source-inspecting `assert_single_session` for `del`, `.pop`,
+`filter(` and reassignment — so a future "simplification" to a filter fails
+loudly with the reason attached.
+
+### FOUR sites, not one — the sibling discipline earned its keep again
+
+My first patch touched the dataclass and the constructor. Two more would have
+dropped the field **silently on the exact path every captured record takes**:
+
+- `_record_with_source_id` rebuilds field by field (every record goes through it
+  during `assign_and_append`);
+- `append_record` serialises via an **explicit field list**, so a new field never
+  reaches disk.
+
+And my unit tests write JSONL **by hand**, so they would all have passed while
+`session_id` never persisted. An end-to-end test now goes capture → disk → load
+→ enforce. **A new field needs the dataclass, the constructor, the COPY and the
+SERIALISER.**
+
+**Verified end to end through the CLI:** without the flag, exit 0 / PASS; with
+`--session-id sess-A` against a store holding `sess-B`, exit 1 and an actionable
+message naming the foreign session and both remedies.
+
+**The drift guard from CLAIM-1 then caught ME.** My first wording of the skill's
+caveat quoted the retired phrase while explaining when it is allowed, and
+`test_no_shipped_surface_overclaims` failed. Reworded rather than exempted — a
+guard with ad-hoc exemptions decays into decoration.
+
+**Close-after-open:** `session_id` defaults to `""`, so the demo store and the 47
+corpus fixtures keep loading untouched. Under enforcement an empty id is
+UNATTRIBUTABLE and refuses, so the default cannot buy a PASS.
+
+**CEILING / J-49:** the skill and command do not pass `--session-id`, because
+they have no reliable way to learn the session id. Until that is wired, the
+claim surfaces say session scoping is available **on request**, not by default.
+
+Suite 724 → **734 passed, 2 skipped, 60 xfailed**. Corpus byte-identical, gold
+md5 unchanged.
