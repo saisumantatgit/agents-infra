@@ -83,7 +83,12 @@ def test_fabricated_citation_names_the_marker_and_the_store_size():
     basis = _report("The Zentara trial reported a 62% response rate [S19].",
                     STORE)["per_claim"][0]["evidence_basis"]
     assert basis.startswith("S19 is cited"), basis
-    assert "NEVER RETRIEVED" in basis
+    # J-56: was "NEVER RETRIEVED this session". The gate cannot claim session
+    # scope unless --session-id was passed, and evidence_basis is not told
+    # whether it was; all it knows is that the id is absent from the store.
+    assert "NOT IN THE EVIDENCE STORE" in basis
+    assert "this session" not in basis.lower(), (
+        "evidence_basis must not claim a scope it was not given")
     assert "[" not in basis and "]" not in basis, "bracket marker leaked"
 
 
@@ -126,7 +131,7 @@ def test_basis_branch_matches_the_verdict_branch():
              "The device sold 250,000 units in its first month.")
     expected = {
         "GROUNDED": "Checked verbatim against",
-        "UNVERIFIED_CITATION": "NEVER RETRIEVED",
+        "UNVERIFIED_CITATION": "NOT IN THE EVIDENCE STORE",
         "UNCITED": "No source is cited",
     }
     seen = set()

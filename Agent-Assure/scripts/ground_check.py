@@ -3236,9 +3236,14 @@ def evidence_basis(claim: Claim, store: dict[str, RetrievedSource]) -> str:
         queries = _session_queries(store)
         n_src = sum(1 for s in store.values() if s.text)
         if not queries:
-            return ("The evidence store recorded NO search queries this "
-                    "session. An absence claim is substantiated by searches "
-                    "that were actually run, and there are none to show.")
+            # J-56, the SIBLING: the same overclaim as the citation branch
+            # above. Without --session-id the gate cannot say "this session";
+            # it can only speak about the store it was handed. Found by the
+            # AST guard after the first instance was fixed, which is the point
+            # of having the guard rather than a grep.
+            return ("The evidence store recorded NO search queries. An absence "
+                    "claim is substantiated by searches that were actually "
+                    "run, and there are none to show.")
         listed = "; ".join(f'"{q}"' for q in queries)
         return (f"An absence claim is checked against what was SEARCHED, not "
                 f"what was cited. Complete record consulted: "
@@ -3260,10 +3265,17 @@ def evidence_basis(claim: Claim, store: dict[str, RetrievedSource]) -> str:
                for c in claim.citations if resolve(c, store) is None]
     if missing:
         n_src = len(store)
+        # J-56: this used to say "NEVER RETRIEVED this session". It cannot know
+        # that — the store is session-bounded only when the caller passes
+        # --session-id, and evidence_basis is not told whether they did. All the
+        # gate knows here is that the id is absent from the store. Found by a
+        # real `claude -p` session running /assure-verify, which noticed the
+        # overclaim in its own output; it is the same claim CLAIM-1 retired from
+        # the four shipped surfaces, surviving one layer down in runtime text.
         return (f"{', '.join(missing)} "
                 f"{_plural(len(missing), 'is', 'are')} cited but "
-                f"{_plural(len(missing), 'was', 'were')} NEVER RETRIEVED this "
-                f"session. The store holds {n_src} "
+                f"{_plural(len(missing), 'is', 'are')} NOT IN THE EVIDENCE "
+                f"STORE. The store holds {n_src} "
                 f"{_plural(n_src, 'source', 'sources')} and does not contain "
                 f"{_plural(len(missing), 'it', 'them')}, so nothing exists to "
                 f"check the claim against.")

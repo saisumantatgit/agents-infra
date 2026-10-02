@@ -1,42 +1,118 @@
 # RESUME HERE — Agent-Assure
 
 **Last session:** overnight 2026-10-01→02, ratified at a §0 handshake (D-51).
-**Branch:** `launch-claim-2026-10-01`, child of `agent-assure-calibration-run`.
+**Branch:** `plugin-validation-2026-10-02`, child of `agent-assure-calibration-run`.
 **Pushed. NOT merged — the merge is your GO.** Undo the night with
-`git branch -D launch-claim-2026-10-01`; `main` untouched.
-**Suite:** `cd Agent-Assure && uv run pytest -q` → 739 passed, 2 skipped,
+`git branch -D plugin-validation-2026-10-02`; `main` untouched. The previous night's work is already MERGED (PR #5).
+**Suite:** `cd Agent-Assure && uv run pytest -q` → 751 passed, 2 skipped,
 63 xfailed. Trust the RUN, not this number.
 
 Read: this file → `docs/logbook/overnight-2026-10-01B-progress.md` (the morning
 report, §0 answers "is it ready to ship?") → `docs/decisions/RATIFICATION-REGISTER-2026-08-30.md`
-(D-51…D-58) → `docs/jobs/REGISTER.md`.
+(D-51…D-61) → `docs/jobs/REGISTER.md`.
 
 ---
 
-# IS IT READY TO SHIP? Ready as a CLI. Not as a plugin.
+# IS IT READY TO SHIP? Ready as both. One 2-minute check left (J-54).
 
-**The gap is one item wide: J-52.**
+**J-52 is closed as far as it can be closed without you.** Report:
+`Agent-Assure/docs/reports/J52-PLUGIN-PATH-2026-10-02.md`.
 
-Proven in a stranger repo last night (`docs/reports/ALPHA4-INSTALL-VALIDATION-2026-10-02.md`):
-`install.sh` → exit 0; demo grounded PASS / fabricated FAIL; the hook writes a
-real store with a `session_id`; the gate PASSes the captured citation; **the same
-store under a different session is REFUSED**; a fabricated citation FAILs.
+**`/assure-verify` is proven end to end through the plugin**: a real
+`claude -p` run against the fabricated demo draft returned FAIL 50.0, caught the
+fabricated `[S3]` and the invented "100×", and volunteered its own limitations.
+That session also found **J-56** — the engine printed "NEVER RETRIEVED this
+session" with no `--session-id` passed, the same overclaim CLAIM-1 retired from
+the doc surfaces, surviving in runtime strings where the drift guard never
+looked. Fixed and guarded.
 
-**J-52 — what is NOT proven: the Claude Code PLUGIN path.** `claude --plugin-dir`,
-the marketplace entry, and the hook firing from a live session. α4 fed the hook a
-real-shaped event on stdin, which is not Claude Code invoking it. All three need
-hook registration — Escalation #4, yours, likely an hour.
+Validated and pinned (`tests/test_plugin_contract.py`): the manifest is
+discoverable; the hook matcher covers **every** shipped retrieval tool in both
+directions; the exact `hooks.json` command line fires with `CLAUDE_PLUGIN_ROOT`
+resolved and writes a store carrying the session id; command and skill
+frontmatter are discoverable. Plus α4's full stranger journey (install → demo
+PASS/FAIL → hook captures → session enforcement → fabrication FAILs).
 
-**The thing not to launch quietly: Error-A is 0.320.** A third of honest claims
-read UNGROUNDED, because the gate certifies verbatim provenance and nothing else.
-The surfaces now disclose it. But a first user meets a gate that objects to one
-honest sentence in three, and that — not any Error-B — is what loses them in week
-one. T3/NLI was the fix and the HHEM diagnostic measured it as adding **zero**, so
-this is a property of the product, not a bug to close.
+## J-54 — the one human step. Two minutes.
 
-**Recommendation: ship as an alpha CLI with 0.320 on the README's first screen;
-gate the plugin launch on J-52.** Narrow-and-true ships better than
-broad-and-false, which is what the tin said two days ago.
+```
+claude --plugin-dir /path/to/Agent-Assure
+#   /hooks            -> expect PostToolUse listing capture_hook.py
+#   read any file     -> expect .assure/evidence-store.jsonl to appear
+#   /assure-verify <draft>
+```
+
+**Proven unreachable non-interactively**, not merely unfinished: `claude -p`
+executes no PostToolUse hooks under ANY of three registrations (plugin
+`--plugin-dir`, project `.claude/settings.json`, explicit `--settings`) — none
+fired while the tool call itself ran every time. Everything J-54 would confirm is
+already proven in parts.
+
+## J-55 — the limitation that search found, and it is a roadmap question
+
+**In `claude -p` / CI / piped mode the capture hook never runs**, so the store
+stays empty and every claim reads `UNCITED` — the gate fails everything for a
+reason unrelated to the draft. Nobody had written this down. It is now on the
+README and the skill and pinned as a disclosed limitation. **If CI is a target,
+capture needs a non-hook mechanism** (a wrapper, or SDK-level capture). That is a
+design decision, not a bug fix, and it is yours.
+
+## The thing not to launch quietly, unchanged: Error-A is 0.320
+
+A third of honest claims read UNGROUNDED, because the gate certifies verbatim
+provenance and nothing else. The surfaces disclose it. T3/NLI was the fix and the
+HHEM diagnostic measured it as adding **zero**. Put it on the README's first
+screen and ship as an alpha.
+
+# ALL RULINGS MADE 2026-10-02. Here is the queue, in order.
+
+## Sai's three (≈12 minutes total)
+
+1. **J-54 — THE LAST LAUNCH GATE. 2 min, interactive terminal.**
+   ```
+   claude --plugin-dir /path/to/Agent-Assure
+   #   /hooks          -> expect PostToolUse listing capture_hook.py
+   #   read any file   -> expect .assure/evidence-store.jsonl to appear
+   #   /assure-verify <draft>
+   ```
+   Everything around it is proven. `claude -p` runs NO PostToolUse hooks under
+   any of three registrations, so this is genuinely unreachable from a script.
+2. **J-51** — add two lines to `install.sh`: mention `--session-id`, and say where
+   a session id comes from. Its closing message is the one thing every new user
+   reads and it never mentions the feature.
+3. **q25** — one gold label: a causal claim supported by two correlational
+   sources. Never Claude's to set.
+
+## Claude's, in a FRESH session, in this order
+
+4. **J-48** — documentation only: "keep authoring notes on one line." Four
+   designs have lost trying to strip multi-line comments safely.
+5. **J-43** — on RELATIONAL claims, a quantity phrase must appear VERBATIM in a
+   cited source. **Not a number parser.** Measured: FACTUAL is already protected
+   (verbatim containment forces the figure to appear); the hole is relational
+   only. The corpus extension that would MEASURE the Error-A is Sai's (gold
+   labels).
+6. **`extract_arguments` tightening** (the open half of J-39) — keep more than
+   one token per side. **Must land BEFORE J-44.**
+7. **J-44** — plural stemming on relation ENDPOINTS, symmetric, never on
+   triggers. Loosening endpoint matching before step 6 would make the weakest
+   surface weaker.
+8. **One adversarial round** over 5-7, then **CR-006** (mandatory after any
+   classify/tier change).
+
+**ETA: ~3.5M new tokens, ~5h. START A NEW SESSION.** Cost scales with session
+LENGTH, not work: this session's output was 0.54M and its cache creation 7.51M;
+the first 282 turns cost 2.7M and the next 142 cost 5.33M for the same kind of
+work. Extending a long session is the expensive choice.
+
+## Ruled OUT, do not reopen without new evidence
+
+- **J-55 / CI mode** — interactive-only. `claude -p` runs no PostToolUse hooks,
+  so in CI the store is empty and the gate fails everything. Disclosed on the
+  README and the skill; Sai ruled CI is not a launch target.
+- **T3 / any NLI tier** — standing no, and HHEM measured union gain as ZERO.
+
+---
 
 # What changed
 

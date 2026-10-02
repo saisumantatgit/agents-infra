@@ -39,6 +39,12 @@ Say this plainly when you report a PASS. A PASS is not a certificate of truth.
   searches behind an absence claim are supplied by the agent, not observed.
 - **A multi-line `<!-- ... -->` note is scored as claims** and will fail the
   draft (J-48). Keep authoring notes on one line.
+- **In `claude -p` / CI / piped mode the capture hook never runs**, so the store
+  is empty and EVERY claim reads `UNCITED`. If you see a draft where nothing is
+  cited and the store is missing or empty, suspect this before suspecting the
+  draft. Agent-Assure needs an interactive session to capture evidence. Verified
+  2026-10-02 across three hook registrations (plugin, project settings, explicit
+  `--settings`) — none fired, while the tool call itself ran.
 - **The store is not session-bounded unless you ask it to be.** Every captured
   record carries a `session_id`, and passing `--session-id <id>` makes the gate
   REFUSE a store holding any other session's evidence. Without that flag the

@@ -302,3 +302,28 @@ def test_a_missing_store_says_what_to_do(tmp_path):
     message = str(exc.value)
     assert "capture hook" in message, "does not explain WHY it is missing"
     assert "demo/evidence-store.jsonl" in message, "offers no working remedy"
+
+
+def test_LIMITATION_the_capture_hook_does_not_run_in_print_mode():
+    """NOT PROMISED: that Agent-Assure works in `claude -p` / CI mode.
+
+    Verified 2026-10-02 with a three-way control: a plugin hook via
+    `--plugin-dir`, a project-local `.claude/settings.json` hook, and an explicit
+    `--settings` hook. NONE fired, while the `Read` tool itself demonstrably ran
+    (the model answered from the file each time). So print mode does not execute
+    PostToolUse hooks however they are registered.
+
+    Consequence: the store stays EMPTY and every claim reads UNCITED, so the gate
+    fails everything for a reason unrelated to the draft.
+
+    This test asserts the LIMITATION IS DOCUMENTED, because the behaviour itself
+    belongs to Claude Code and cannot be asserted from pytest. If print mode ever
+    starts running hooks, delete this test AND the caveat it guards — together.
+    """
+    readme = (_ROOT / "README.md").read_text(encoding="utf-8")
+    skill = (_ROOT / "skills" / "verify-grounding" / "SKILL.md").read_text(encoding="utf-8")
+    for surface, text in (("README.md", readme), ("SKILL.md", skill)):
+        assert "print mode" in text.lower() or "claude -p" in text.lower(), (
+            f"{surface} does not warn that the capture hook never runs in "
+            f"print mode — a user wiring this into CI gets a gate that fails "
+            f"everything with no explanation")

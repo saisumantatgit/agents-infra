@@ -1445,3 +1445,158 @@ so it can only ADD groundings: **PASS-enabling, Escalation #1, Sai's.** Noted in
 the register with the reuse pointer so the next session does not re-derive it.
 
 Suite 735 → **739 passed, 2 skipped, 63 xfailed**.
+
+---
+
+## D-59 — autonomous run to close J-52 (the plugin path), RATIFIED 2026-10-02
+
+| id | Decision | Basis | Undo | Status |
+|---|---|---|---|---|
+| D-59 | **Close J-52: validate the Claude Code PLUGIN path, so the verdict changes from "ready as a CLI, not as a plugin" to ready as both.** Branch `plugin-validation-2026-10-02`. Re-armed until done. | Sai, 2026-10-02: "Merge all if any… 'Ready as a CLI under the claim you approved. Not ready as a plugin. The gap is one item wide.' do this… Rearm until done." **This explicitly un-parks the one item that had been Escalation #4**, because closing the gap IS the instruction. | `git branch -D plugin-validation-2026-10-02`; `agent-assure-calibration-run` stays at `8fd5282`. `CronDelete` the tick job. | ARMED |
+
+**THE ESCALATION #4 BOUNDARY STILL APPLIES TO HIS LIVE ENVIRONMENT.** He
+authorised closing the gap, not editing his machine. So:
+
+- **ALLOWED:** a throwaway project directory with its own PROJECT-LOCAL
+  `.claude/settings.json`, `claude --plugin-dir` pointed at a scratch copy,
+  `hooks.json` exercised exactly as Claude Code invokes it.
+- **STILL BARRED:** any write to `~/.claude/settings.json`, the global plugin
+  registry, or `install.sh`. A validation that requires mutating his live config
+  is reported, not performed.
+
+**What "done" means for J-52**, decided now so it cannot drift later:
+
+1. the plugin manifest is structurally valid for discovery;
+2. `hooks.json`'s matcher actually matches the shipped retrieval tool names;
+3. the hook command line works with `CLAUDE_PLUGIN_ROOT` resolved as Claude Code
+   resolves it;
+4. the command and skill frontmatter are discoverable;
+5. **a real `claude` process, given `--plugin-dir`, fires the PostToolUse hook and
+   a store appears** — the step α4 could not reach.
+
+If (5) proves impossible from inside a Claude Code session, that is reported as
+the residue with the exact human command, and J-52 closes only to (4).
+
+---
+
+## D-60 — J-52 closed to its closable extent; print mode cannot run hooks, and that is a PRODUCT caveat
+
+| id | Decision | Basis | Undo | Status |
+|---|---|---|---|---|
+| D-60 | **Close J-52 items 1-4 with tests, prove item 5 unreachable non-interactively, and DOCUMENT the print-mode limitation it exposed.** | Four of five validated and pinned. The fifth is not "unfinished" — it is proven impossible from a non-interactive process, by a three-way control. | `git revert` this commit (tests + docs only). | DONE |
+
+Report: `Agent-Assure/docs/reports/J52-PLUGIN-PATH-2026-10-02.md`.
+
+**Items 1-4 CLOSED**, pinned by `tests/test_plugin_contract.py` (10 tests). The
+one that earns its keep is the **matcher-parity guard**: `_RETRIEVAL_TOOLS` is
+what the hook captures, `hooks.json`'s matcher is what Claude Code invokes it
+for, and a tool in one but not the other means the hook silently never fires and
+every claim citing it is silently uncited. Both directions now asserted.
+
+**`claude plugin validate --strict` passes — and was NOT allowed to count as hook
+evidence.** Its own help says it validates "the skills, agents, and commands";
+hooks are not mentioned, and its JSON report returns `"contents": []`.
+
+### Item 5: the plugin is exonerated BY CONTROL, not by assertion
+
+A real `claude -p --plugin-dir` run answered correctly (so `Read` ran) and wrote
+no store. Rather than conclude, three registrations were tried:
+
+| Registration | `Read` ran | hook fired |
+|---|---|---|
+| plugin via `--plugin-dir` | yes | **no** |
+| plain project `.claude/settings.json` | yes | **no** |
+| explicit `--settings <file>` | yes | **no** |
+
+**`claude -p` does not execute PostToolUse hooks however they are registered.**
+
+**A misquote corrected on the way, and it mattered.** A research agent reported
+`-p`'s help as "settings files silently ignored". It actually says "settings
+files **that fail validation** are silently ignored" — a materially different
+claim that briefly pointed me at a defect in our own `hooks.json`. Reading the
+help text myself killed the false lead. **An agent's paraphrase of a primary
+source is testimony, not the source.**
+
+### The product caveat this found, which is the real deliverable
+
+**In `claude -p` / CI / piped mode the capture hook never runs, so the store stays
+EMPTY and every claim reads `UNCITED` — the gate fails everything for a reason
+unrelated to the draft.** Nobody had written this down. Now on the README and the
+skill, and pinned in `tests/test_product_claim.py` as a disclosed limitation
+(the test asserts the DOCUMENTATION exists, since the behaviour belongs to Claude
+Code and cannot be asserted from pytest).
+
+Second time in two days the honest-claim discipline found a gap between the tin
+and the code.
+
+### What is left, and it is genuinely one human step
+
+**J-54** — an interactive `claude --plugin-dir`, `/hooks`, one file read,
+`/assure-verify`. Everything it would confirm is already proven in parts: the
+hook command works when invoked, the matcher covers the tools, and the layout is
+the documented one. The residual risk is that Claude Code does not register a
+`--plugin-dir` plugin's hooks at all — which the docs say it does.
+
+**SHIP VERDICT MOVES:** from "ready as a CLI, not as a plugin" to **ready as
+both, with one two-minute human confirmation (J-54) outstanding.**
+
+Suite 739 → **750 passed, 2 skipped, 63 xfailed**. Corpus byte-identical, gold
+md5 unchanged.
+
+---
+
+## D-61 — J-52 item 5 reached by another route; and a STRANGER found the bug my own guard was blind to
+
+| id | Decision | Basis | Undo | Status |
+|---|---|---|---|---|
+| D-61 | **Validate the stranger's actual path — `/assure-verify` via the plugin — and fix the two overclaims it exposed in `evidence_basis`.** | The tick's own Goodhart warning ("J-52 is 'a stranger can install and use it', not 'five boxes ticked'") was correct about my close: I had validated that the command is DISCOVERABLE, never that it WORKS. Display-only fix; no verdict logic touched. | `git revert` this commit. | DONE |
+
+### The Goodhart check found a real gap in my own close
+
+I had proven the plugin loads and `/assure-verify` is listed. I had NOT proven it
+produces a verdict. And that path **is** reachable non-interactively, because it
+needs a store to EXIST, not the hook to FIRE — so the store was pre-made.
+
+**It works.** A real `claude -p "/assure-verify draft.md" --plugin-dir …` against
+the fabricated demo draft returned: **FAIL, score 50.0**, the fabricated `[S3]`
+as `UNVERIFIED_CITATION`, the invented "100×" as `UNVERIFIED_NUMBER`, both
+grounded claims correctly attributed — and it volunteered the limitations
+(unverified ≠ false; the gate does not check whether the source is right).
+
+### J-56 — the stranger session found what 750 tests did not
+
+It reported, unprompted:
+
+> the engine's message says S3 was "never retrieved this session", but I didn't
+> pass `--session-id`, so the check wasn't limited to this session.
+
+**Correct, and it is the SAME overclaim CLAIM-1 retired from all four shipped
+surfaces — surviving one layer down in the engine's RUNTIME OUTPUT.** My drift
+guard reads shipped DOCUMENTS; it never read the strings the engine PRINTS. The
+guard and the bug were one layer apart.
+
+Fixed to "NOT IN THE EVIDENCE STORE", which is true whether or not session
+enforcement is on.
+
+**Then the new AST guard found the SIBLING I would have missed**: the absence
+branch said "recorded NO search queries **this session**" — same overclaim,
+different branch. **My own three-kind grep had missed it**, because I searched
+for "retrieved this session" and "NEVER RETRIEVED" and this instance says
+neither. An AST walk over string literals is strictly better than a phrase grep
+for this class, and that is the lesson worth keeping.
+
+The guard is scoped to `evidence_basis` on purpose. `--session-id`'s help text
+and `assert_single_session`'s error message DO legitimately say "this session",
+because they only run when the caller asserted it. **The invariant is not "never
+mention sessions"; it is "do not claim a scope you were not given."**
+
+Two `test_evidence_basis.py` assertions were updated to the new wording and
+**strengthened** with a negative (`"this session" not in basis`), so the
+overclaim cannot return through the test that pins the message.
+
+**J-52 ITEM 5 IS NOW SUBSTANTIALLY REACHED.** Not the hook firing live — that
+remains J-54, two minutes, interactive — but the stranger's actual experience,
+`/assure-verify` producing a correct verdict through the plugin, is proven.
+
+Suite 750 → **751 passed, 2 skipped, 63 xfailed**. Corpus byte-identical, gold
+md5 unchanged.
