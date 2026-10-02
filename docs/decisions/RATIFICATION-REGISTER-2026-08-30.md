@@ -1542,3 +1542,61 @@ both, with one two-minute human confirmation (J-54) outstanding.**
 
 Suite 739 → **750 passed, 2 skipped, 63 xfailed**. Corpus byte-identical, gold
 md5 unchanged.
+
+---
+
+## D-61 — J-52 item 5 reached by another route; and a STRANGER found the bug my own guard was blind to
+
+| id | Decision | Basis | Undo | Status |
+|---|---|---|---|---|
+| D-61 | **Validate the stranger's actual path — `/assure-verify` via the plugin — and fix the two overclaims it exposed in `evidence_basis`.** | The tick's own Goodhart warning ("J-52 is 'a stranger can install and use it', not 'five boxes ticked'") was correct about my close: I had validated that the command is DISCOVERABLE, never that it WORKS. Display-only fix; no verdict logic touched. | `git revert` this commit. | DONE |
+
+### The Goodhart check found a real gap in my own close
+
+I had proven the plugin loads and `/assure-verify` is listed. I had NOT proven it
+produces a verdict. And that path **is** reachable non-interactively, because it
+needs a store to EXIST, not the hook to FIRE — so the store was pre-made.
+
+**It works.** A real `claude -p "/assure-verify draft.md" --plugin-dir …` against
+the fabricated demo draft returned: **FAIL, score 50.0**, the fabricated `[S3]`
+as `UNVERIFIED_CITATION`, the invented "100×" as `UNVERIFIED_NUMBER`, both
+grounded claims correctly attributed — and it volunteered the limitations
+(unverified ≠ false; the gate does not check whether the source is right).
+
+### J-56 — the stranger session found what 750 tests did not
+
+It reported, unprompted:
+
+> the engine's message says S3 was "never retrieved this session", but I didn't
+> pass `--session-id`, so the check wasn't limited to this session.
+
+**Correct, and it is the SAME overclaim CLAIM-1 retired from all four shipped
+surfaces — surviving one layer down in the engine's RUNTIME OUTPUT.** My drift
+guard reads shipped DOCUMENTS; it never read the strings the engine PRINTS. The
+guard and the bug were one layer apart.
+
+Fixed to "NOT IN THE EVIDENCE STORE", which is true whether or not session
+enforcement is on.
+
+**Then the new AST guard found the SIBLING I would have missed**: the absence
+branch said "recorded NO search queries **this session**" — same overclaim,
+different branch. **My own three-kind grep had missed it**, because I searched
+for "retrieved this session" and "NEVER RETRIEVED" and this instance says
+neither. An AST walk over string literals is strictly better than a phrase grep
+for this class, and that is the lesson worth keeping.
+
+The guard is scoped to `evidence_basis` on purpose. `--session-id`'s help text
+and `assert_single_session`'s error message DO legitimately say "this session",
+because they only run when the caller asserted it. **The invariant is not "never
+mention sessions"; it is "do not claim a scope you were not given."**
+
+Two `test_evidence_basis.py` assertions were updated to the new wording and
+**strengthened** with a negative (`"this session" not in basis`), so the
+overclaim cannot return through the test that pins the message.
+
+**J-52 ITEM 5 IS NOW SUBSTANTIALLY REACHED.** Not the hook firing live — that
+remains J-54, two minutes, interactive — but the stranger's actual experience,
+`/assure-verify` producing a correct verdict through the plugin, is proven.
+
+Suite 750 → **751 passed, 2 skipped, 63 xfailed**. Corpus byte-identical, gold
+md5 unchanged.

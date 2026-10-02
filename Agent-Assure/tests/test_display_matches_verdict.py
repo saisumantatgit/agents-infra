@@ -107,3 +107,36 @@ def test_an_absence_pass_reports_the_query_count_it_actually_used(tmp_path):
     assert str(actual) in basis, (
         f"the report does not state the {actual} queries the verdict counted: "
         f"{basis!r}")
+
+
+def test_evidence_basis_never_claims_session_scoping():
+    """J-56 — the report must not claim a scope the gate did not enforce.
+
+    `evidence_basis` said a missing citation "was NEVER RETRIEVED this session".
+    It cannot know that: the store is session-bounded only when the caller passes
+    `--session-id`, and `evidence_basis` is not told whether they did. Without
+    the flag, all the gate knows is that the id is not in the store.
+
+    FOUND BY A STRANGER, not by this suite. A real `claude -p` session invoked
+    `/assure-verify` on a fabricated draft, got the right verdict, and then said:
+    "the engine's message says S3 was 'never retrieved this session', but I
+    didn't pass --session-id, so the check wasn't limited to this session."
+
+    It is the SAME overclaim CLAIM-1 retired from all four shipped surfaces,
+    surviving one layer down in the engine's runtime output — and my drift guard
+    was blind to it because it reads shipped DOCUMENTS, not the strings the
+    engine PRINTS. This test is that missing sibling.
+
+    Scoped to `evidence_basis` deliberately: `--session-id`'s help text and
+    `assert_single_session`'s error DO legitimately say "this session", because
+    they only run when the caller asserted it. The invariant is not "never
+    mention sessions"; it is "do not claim a scope you were not given".
+    """
+    tree = ast.parse(textwrap.dedent(inspect.getsource(g.evidence_basis)))
+    literals = [n.value for n in ast.walk(tree)
+                if isinstance(n, ast.Constant) and isinstance(n.value, str)]
+    offenders = [s for s in literals if "this session" in s.lower()]
+    assert not offenders, (
+        f"evidence_basis claims session scoping it cannot verify: {offenders}. "
+        f"Without --session-id the gate only knows the id is absent from the "
+        f"store.")
