@@ -1,42 +1,60 @@
 # RESUME HERE — Agent-Assure
 
 **Last session:** overnight 2026-10-01→02, ratified at a §0 handshake (D-51).
-**Branch:** `launch-claim-2026-10-01`, child of `agent-assure-calibration-run`.
+**Branch:** `plugin-validation-2026-10-02`, child of `agent-assure-calibration-run`.
 **Pushed. NOT merged — the merge is your GO.** Undo the night with
-`git branch -D launch-claim-2026-10-01`; `main` untouched.
-**Suite:** `cd Agent-Assure && uv run pytest -q` → 739 passed, 2 skipped,
+`git branch -D plugin-validation-2026-10-02`; `main` untouched. The previous night's work is already MERGED (PR #5).
+**Suite:** `cd Agent-Assure && uv run pytest -q` → 750 passed, 2 skipped,
 63 xfailed. Trust the RUN, not this number.
 
 Read: this file → `docs/logbook/overnight-2026-10-01B-progress.md` (the morning
 report, §0 answers "is it ready to ship?") → `docs/decisions/RATIFICATION-REGISTER-2026-08-30.md`
-(D-51…D-58) → `docs/jobs/REGISTER.md`.
+(D-51…D-60) → `docs/jobs/REGISTER.md`.
 
 ---
 
-# IS IT READY TO SHIP? Ready as a CLI. Not as a plugin.
+# IS IT READY TO SHIP? Ready as both CLI and plugin — one 2-minute check left.
 
-**The gap is one item wide: J-52.**
+**J-52 is closed as far as it can be closed without you.** Report:
+`Agent-Assure/docs/reports/J52-PLUGIN-PATH-2026-10-02.md`.
 
-Proven in a stranger repo last night (`docs/reports/ALPHA4-INSTALL-VALIDATION-2026-10-02.md`):
-`install.sh` → exit 0; demo grounded PASS / fabricated FAIL; the hook writes a
-real store with a `session_id`; the gate PASSes the captured citation; **the same
-store under a different session is REFUSED**; a fabricated citation FAILs.
+Validated and pinned (`tests/test_plugin_contract.py`): the manifest is
+discoverable; the hook matcher covers **every** shipped retrieval tool in both
+directions; the exact `hooks.json` command line fires with `CLAUDE_PLUGIN_ROOT`
+resolved and writes a store carrying the session id; command and skill
+frontmatter are discoverable. Plus α4's full stranger journey (install → demo
+PASS/FAIL → hook captures → session enforcement → fabrication FAILs).
 
-**J-52 — what is NOT proven: the Claude Code PLUGIN path.** `claude --plugin-dir`,
-the marketplace entry, and the hook firing from a live session. α4 fed the hook a
-real-shaped event on stdin, which is not Claude Code invoking it. All three need
-hook registration — Escalation #4, yours, likely an hour.
+## J-54 — the one human step. Two minutes.
 
-**The thing not to launch quietly: Error-A is 0.320.** A third of honest claims
-read UNGROUNDED, because the gate certifies verbatim provenance and nothing else.
-The surfaces now disclose it. But a first user meets a gate that objects to one
-honest sentence in three, and that — not any Error-B — is what loses them in week
-one. T3/NLI was the fix and the HHEM diagnostic measured it as adding **zero**, so
-this is a property of the product, not a bug to close.
+```
+claude --plugin-dir /path/to/Agent-Assure
+#   /hooks            -> expect PostToolUse listing capture_hook.py
+#   read any file     -> expect .assure/evidence-store.jsonl to appear
+#   /assure-verify <draft>
+```
 
-**Recommendation: ship as an alpha CLI with 0.320 on the README's first screen;
-gate the plugin launch on J-52.** Narrow-and-true ships better than
-broad-and-false, which is what the tin said two days ago.
+**Proven unreachable non-interactively**, not merely unfinished: `claude -p`
+executes no PostToolUse hooks under ANY of three registrations (plugin
+`--plugin-dir`, project `.claude/settings.json`, explicit `--settings`) — none
+fired while the tool call itself ran every time. Everything J-54 would confirm is
+already proven in parts.
+
+## J-55 — the limitation that search found, and it is a roadmap question
+
+**In `claude -p` / CI / piped mode the capture hook never runs**, so the store
+stays empty and every claim reads `UNCITED` — the gate fails everything for a
+reason unrelated to the draft. Nobody had written this down. It is now on the
+README and the skill and pinned as a disclosed limitation. **If CI is a target,
+capture needs a non-hook mechanism** (a wrapper, or SDK-level capture). That is a
+design decision, not a bug fix, and it is yours.
+
+## The thing not to launch quietly, unchanged: Error-A is 0.320
+
+A third of honest claims read UNGROUNDED, because the gate certifies verbatim
+provenance and nothing else. The surfaces disclose it. T3/NLI was the fix and the
+HHEM diagnostic measured it as adding **zero**. Put it on the README's first
+screen and ship as an alpha.
 
 # What changed
 
