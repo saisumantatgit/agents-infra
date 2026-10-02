@@ -81,3 +81,60 @@ moment I found the original; restating the case from what I knew then made that
 immediate rather than defended.
 
 **New tokens this cycle:** ~0.20M (output + cache creation), of 3.5M sanctioned.
+
+### CYCLE 2 — 17:4x UTC — round 14, and a recommendation withdrawn the same night
+
+**Diff recomputed from code → register → scoreboard.** Start: 4 Claude-owned
+unblocked rows. End: **1** (CR-008 + close), because round 14 moved three rows
+to Sai as Escalation #1 and merged two others into one class.
+
+| UTC | Diff | What changed | New tokens | Frameworks |
+|---|---|---|---|---|
+| 17:0x | 4 | Round 14 reported: 4 CRITICAL Error-B, all reproduced by me from the adversary's own fixtures. 7/7 round-12 relational shapes confirmed refused; positive control intact. | ~0.35M | Contradiction-as-locator; Asymmetry of error cost |
+| 17:3x | 2 | J-69/J-70/J-71 registered with owners and a measured price. ADR-007 amended for my own overclaim (R14-06). 5 strict-xfail tripwires added. PR #7 updated. | ~0.25M | FMEA detectability; Case-vs-Systemic (systemic chosen) |
+| 17:5x | 1 | **Recommendation WITHDRAWN** — the priced J-70 repair breaks 5 of 7 honest drafts. J-62+J-71 merged into one class and priced. J-72 opened. | ~0.25M | Calibration; Swiss cheese; Sunk cost (my own) |
+
+**What round 14 found, in one line each.**
+- **R14-01** — the D-76 flat refusal is gated on `classify`, and `_RELATIONAL_RE`
+  is a ten-member blacklist over an open class. `causes`→`triggered` flips the
+  same sentence on the same store from FAIL/exit 1 to **PASS 100.0/exit 0**
+  against a source reading *"found no evidence that the migration triggered
+  widespread customer refunds"*. **This is the assumption I named as
+  load-bearing in the §0 handshake, item 9. It was the one that broke.**
+- **R14-04** — and extending that lexicon would not fix it: the same
+  certification happens on a plain FACTUAL claim with **no causal word at all**.
+  T1 anchors its ≥8-token span in the claim's long SUBJECT; `_span_is_hedged`
+  reads only the 5 tokens BEFORE the span. **Measured: the same denial moved
+  before the subject refuses (FAIL 0.0), left after it certifies (PASS 100.0).**
+- **R14-02** — `_SPELLED_NUMBER_WORDS` excludes `"one"`, a `CEILING:` I recorded
+  during J-43, and that exclusion breaks the word run so `one million` is
+  checked only as `million`. **The recorded ceiling was the attack.**
+- **R14-03a** — `ABSENCE` returns above the figure checks, so `numeric_ok` is
+  unreachable: digit `4200` in no source certifies **PASS 100.0**.
+- **R14-06** — my own overclaim. ADR-007 and `ground_check.py` both said D-77's
+  figure checks were kind-independent *"and an ABSENCE claim carrying a figure
+  skipped it too"* — past tense, asserting closure. Both kinds return above
+  those checks. Comment fixed in place, ADR fixed by amendment (ADR-023).
+
+**THE WITHDRAWAL, which is the night's real lesson.** I priced the J-70 repair
+on the gold corpus at **+0.160 Error-A** and recommended it in a PR comment.
+Then I ran the OTHER instrument. `tests/honest_drafts/` goes **7 passed → 5
+FAILED**, and one of the failures is a **verbatim quotation of the cited
+source** reading UNGROUNDED. Same patch, same hour, two instruments, opposite
+verdicts — and the corpus is the one I had already published a recommendation
+on. Third instance in three days (D-68's stem, D-74's fall-through) of a correct
+measurement from an instrument that cannot represent the cost. **Caught before
+landing this time, because running the second instrument was a deliberate step
+rather than an afterthought.**
+
+**Nothing landed in the gate.** Three pricing patches were applied, measured and
+reverted; `git status` clean after each. The only `ground_check.py` change
+tonight is one corrected comment.
+
+**Gates, first-hand.** `uv run pytest -q` → **797 passed · 2 skipped · 66
+xfailed · exit 0**. Gold md5 `6215b526d03147295b003d7ccb0d171f` unchanged.
+Baseline Error-A/Error-B **independently re-derived from current code: 10/25 =
+0.400 and 0/27 = 0.000**, matching CR-007 — so that number is verified, not
+quoted.
+
+**New tokens cumulative:** ~1.05M of 3.5M sanctioned (output + cache creation).
