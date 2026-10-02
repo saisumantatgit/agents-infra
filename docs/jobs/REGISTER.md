@@ -187,3 +187,56 @@ worth its larger cost instead.
 |---|---|---|---|
 | J-62+J-71 | **MERGED. The absence branch's figure hole, spelled (J-62) and digit (J-71) forms, is one defect with one repair.** They were briefly split across two owners, which would have made this register incoherent — one class cannot be half Claude's and half Sai's. **PRICED:** running the two figure checks before the absence verdict closes R14-03a (digit `4200` → `UNVERIFIED_NUMBER`, exit 1) at **Error-A 0.400 unchanged, Error-B 0.000** on the n=52 gold corpus. **Unlike J-70's zero-deltas, this one IS a measurement, not non-measurement:** the corpus holds 7 ABSENCE claims and 2 of them carry a figure (q13, q22), so rows of this shape exist and did not move. **The caveat that matters:** both of those "figures" are product model numbers, not quantities — `X200` extracts as `200`, and `X200 manual` extracts as **`200 m`** — so the corpus exercises the check on an unrepresentative shape. Whether an honest absence claim naming a model number differently from its source would newly fail is **UNVERIFIED**: I predicted it, built the fixture, and the baseline already refused that draft for an unrelated reason, so the test did not isolate the effect. | **Sai** | Escalation #1 — but this is the cheapest measured repair of the three, and the only one with no observed Error-A cost |
 | J-72 | **`numeric_tokens` misparses a model number as a quantity-with-unit (NEW, found while pricing J-62).** `X200 manual` yields the numeric token **`200 m`** — the extractor took the model's digits and the next word's first letter as a unit. Direction is fail-closed (it can only refuse), so this is Error-A, not Error-B, and it is why two gold corpus rows exercise the figure path at all. It also means any corpus-measured price for a figure check is partly measured on model numbers rather than quantities. | Claude | nothing; after launch, and it needs its own Error-A measurement |
+
+### WITHDRAWAL 2026-10-02, same night, before anything landed — J-70's priced repair is UNSHIPPABLE
+
+**I recommended the whole-source hedge scan for J-70 on the strength of a
+corpus price of +0.160 Error-A. That recommendation is WITHDRAWN.** The
+honest-draft harness (`tests/honest_drafts/`) — the Error-A instrument the gold
+corpus cannot substitute for — goes from **7 passed / 3 xfailed** to **5 FAILED
+/ 2 passed / 3 xfailed** under the same patch:
+
+| honest draft | result |
+|---|---|
+| `honest-long-verbatim-quote` | **FAILS** |
+| `honest-numeric-with-rate-and-quantity` | **FAILS** |
+| `honest-full-sentence-with-comparison` | **FAILS** |
+| `honest-structured-document-with-headings` | **FAILS** |
+| `test_short_verbatim_quotation_should_ground` | **FAILS** |
+
+**A verbatim quotation of the cited source reads UNGROUNDED.** That harness
+exists because of exactly this failure (OI-T2-01) and its docstring names it as
+"the worst user experience this product can produce". The mechanism is obvious
+once measured and invisible before: nearly every real source sentence contains
+some `_SPAN_HEDGE_TOKENS` member somewhere, so scanning the WHOLE source makes
+nearly every source look hedged.
+
+**Why this matters more than the finding itself.** The corpus said +0.160 — four
+extra false alarms out of 25, which reads as tolerable. The honest-draft harness
+said five of seven real drafts break, which is not shippable. Same patch, same
+hour, two instruments, opposite verdicts — and **the corpus is the one I had
+already written into the recommendation.** This is D-68 and D-74's pattern for
+the third time in three days: a correct measurement from an instrument that
+cannot represent the cost. The only difference tonight is that it was caught
+BEFORE landing, by deliberately running the second instrument, which is the
+discipline the overnight instrument file was written to enforce.
+
+**REVISED RECOMMENDATION for J-70.** Not the blunt scan. Either:
+
+1. **The structural repair** — give T1 sentence-scoped source text so a hedge is
+   read within the span's own sentence rather than across the whole document.
+   This is the only option that can close the class without the false-alarm
+   blowup, and it is NOT a small change: `_tokenize` strips punctuation, so
+   `_span_is_hedged` has no sentence boundaries and the fix needs a signature
+   change across its call sites, plus its own adversarial round. **Recommended
+   if Agent-Assure's claim is to refuse a claim its source denies.**
+2. **Accept the hole and disclose it** — ship with a stated limitation that the
+   gate verifies *presence* in a source, not *agreement* with it, and that a
+   source denying the claim can still satisfy T1. Cheap, honest, and it keeps
+   Error-A where it is. **Recommended if launch timing dominates** — the gate's
+   advertised job is traceability, and this makes the boundary explicit rather
+   than implied.
+
+**What I will NOT do:** pick between these overnight. Option 1 is a moat
+redesign and option 2 changes the product claim; both are Escalation #1 and #4
+respectively. **Owner: Sai.**
