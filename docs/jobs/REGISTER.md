@@ -157,3 +157,26 @@ breaks**, and almost nothing below is fixable by changing `ground_check.py`.
 | J-48 | **APPROVED as recommended: documentation, not code.** "Keep authoring notes on one line." | Four designs have lost trying to strip multi-line comments safely. The three strict xfails stay as the record. |
 | J-51 | **APPROVED — Sai will add the `install.sh` text.** | 2 lines: mention `--session-id`, and where a session id comes from. His file (Escalation #4). |
 | q25 | **APPROVED — Sai will adjudicate.** | One gold label: a causal claim supported by two correlational sources. Never Claude's. |
+
+## Round 14 — opened 2026-10-02, against the code that actually ships
+
+All three reproduced by the orchestrator from the adversary's own fixtures, all
+tripwired strict-xfail in `tests/red_team_moat/test_moat_r14_hedge_classifier_absence.py`,
+**none repaired.** Each alters which claims can pass, so each is Escalation #1.
+
+| id | Finding | Owner | Blocked on |
+|---|---|---|---|
+| J-69 | **The flat relational refusal is routed around by ONE WORD (R14-01, CRITICAL).** `ground()` refuses only on `kind == RELATIONAL`, and `classify` sets that only from `_RELATIONAL_RE` — a **ten-member blacklist over an open class** (`causes`, `caused by`, `leads to`, `results in`, `drives`, `because of`, `due to`, `gives rise to`, `is responsible for`, `the reason for`). 22/22 probed ordinary causal expressions route around it. `causes`→`triggered` flips the same sentence on the same store from FAIL/`UNVERIFIED_RELATION`/exit 1 to **PASS 100.0 / GROUNDED / exit 0** against a source reading *"found no evidence that the migration triggered widespread customer refunds"*. **Do NOT fix by extending the lexicon:** J-70 proves the same certification happens with no causal word at all, so lexicon extension closes 22 fixtures and leaves the class open — the comment stripper's five-round pattern. | **Sai** | Escalation #1 |
+| J-70 | **THE ROOT CAUSE, and it is kind-independent (R14-04, CRITICAL; supersedes J-67's framing).** T1 anchors its ≥8-token contiguous span at the claim's FIRST content word, so a claim with a long subject matches a span lying **entirely inside its own subject**; the predicate is then checked only by set-membership coverage, and `_span_is_hedged` inspects only the **5 tokens BEFORE** the span. A denial between subject and predicate is never read, and `no` is a `_STOP_WORD` so coverage discards it. **Measured: the SAME denial moved BEFORE the subject refuses (FAIL 0.0); left AFTER it certifies (PASS 100.0).** Reproduced on plain `FACTUAL` with no causal vocabulary, and on a source whose finding was explicitly *withdrawn*. **This is not an exotic attack — "we found no evidence that X" is how real sources report a negative finding, so the shape arises from honest retrieval with no adversarial control of the source.** **PRICED on the n=52 gold corpus:** a whole-source hedge scan closes R14-01 and both R14-04 cases, Error-B stays **0.000**, Error-A goes **0.400 → 0.560** (+4 false alarms / 25 grounded rows). The narrower sentence-scoped variant **cannot be written at that layer**: `_tokenize` strips punctuation, so `_span_is_hedged` receives no sentence boundaries and scoping needs a signature change across its call sites. **No corpus row has a subject phrase of 8+ tokens, so a zero corpus delta here is non-measurement.** | **Sai** | Escalation #1 — it is a priced Error-A/Error-B trade |
+| J-71 | **`ABSENCE` returns ABOVE the figure checks, so `numeric_ok` is unreachable for it (R14-03, CRITICAL).** The digit `4200`, present in **no** source text, certifies `ABSENCE_SUPPORTED` at **PASS 100.0 / exit 0**. This is the same class as J-62 (spelled figures) but with digits, and it is the one D-77 was believed to have closed — see the ADR-007 Amendment 2026-10-02C correcting that overclaim. Also open within it: `_extract_absence_anchors` reads only POST-trigger text, so a figure or entity placed before the trigger is checked by nothing. | **Sai** | Escalation #1 (moving the checks above the kind dispatch changes which claims can pass) |
+
+**Recommendation to Sai, with the why.** Fix **J-70**, not J-69. J-70 is the
+mechanism; J-69 and J-62/J-71 are its symptoms plus their own gating bugs, and
+J-69's tempting repair (add strings to a refusal lexicon) is the exact pattern
+that lost five rounds to the comment stripper. The price of the blunt repair is
+measured and small on the recoverable side — **+0.160 Error-A, Error-B
+unchanged at 0.000** — against a CRITICAL unrecoverable class that arises
+without any adversary. **What would flip this:** if real-draft Error-A at 0.560
+makes the gate unusable in practice (J-66 is the open question about exactly
+that), then the structural repair — giving T1 sentence-scoped source text — is
+worth its larger cost instead.
