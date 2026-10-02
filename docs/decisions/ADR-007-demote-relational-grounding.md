@@ -101,3 +101,42 @@ the moat invariant exists to make.
   shipped product, which the invariant calls unrecoverable. Rejected by Sai.
 - **Delete the relational path entirely.** Rejected by Sai in favour of keeping
   it as a visible no-op, per the `tier_sensitive` precedent.
+
+## Amendments
+
+### 2026-10-02 — the fall-through is withdrawn (D-76, D-77)
+
+The decision stands: relational grounding decides nothing. **How it decides
+nothing changed within hours of acceptance.**
+
+"Why fall-through rather than a flat refusal" above is **WITHDRAWN.** Round 13
+(one Opus adversary, 16 findings, all reproduced) found **six NEW Error-B
+shapes, five CRITICAL**, caused by the fall-through:
+
+- **T1 and corroboration are NOT NESTED.** T1 certifies on an 8-token
+  contiguous span anchored at the claim's SUBJECT plus set-membership coverage,
+  so a causal claim with a long subject phrase had its entire PREDICATE checked
+  only by "do these words appear anywhere in this source".
+- Direction reversal with no planted vocabulary, a source that explicitly
+  DENIES the relation, and negation reversal ("causes no X" grounded by "causes
+  X", because `no` is a stop word) all certified **PASS 100.0**.
+- **J-57, J-60 and J-61 were not closed by the demotion — they were MOVED ONTO
+  T1.**
+- **R13-01, the worst:** `classify` ranks RELATIONAL above NUMERIC and the
+  numeric gate read `kind == NUMERIC`, so deleting the relational branch deleted
+  the only figure check such a claim ever got. The gate returned `PASS 100.0 /
+  exit 0` on a fabricated €3.7 million figure **while printing
+  `figure_not_in_cited_sources` in the same record.**
+
+**A RELATIONAL claim now returns `UNVERIFIED_RELATION`, always** — the flat
+refusal, which is what Sai was shown and priced at Error-A 0.400. The measured
+0.360 was real and it was not the whole trade: four points of a recoverable
+error bought six shapes of an unrecoverable one.
+
+**The figure checks are now KIND-INDEPENDENT** (D-77), because the deeper defect
+predates this ADR: a check gated on a classifier branch is a check an author can
+route around by adding one word, and an ABSENCE claim carrying a figure skipped
+it too.
+
+Revised price: **Error-A 0.400 (10/25), Error-B 0.000 (0/27)**, relational
+Error-B shapes **0**. `q36` no longer certifies either.
