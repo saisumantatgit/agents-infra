@@ -64,8 +64,24 @@ def _report(tmp_path, draft, records):
                           g.load_store(str(p)))
 
 
+_J44_REOPENED = (
+    "J-44 REOPENED 2026-10-02 (D-69), hours after it landed. Round 12 showed "
+    "`_stem` maps the NOUN 'news' to the ADJECTIVE 'new', so 'The recall "
+    "causes negative news [S1][S2]' certified GROUNDED / PASS 100.0 against "
+    "two sources containing no 'news'. Telling 'news'/'new' from 'cost'/'costs' "
+    "is a DICTIONARY fact, not a suffix fact, and an incomplete blacklist of "
+    "s-final singulars on a LOOSENING is an Error-B generator. The Error-A "
+    "below is real and recoverable; the Error-B it cost is not. Escalation #1."
+)
+
+
+@pytest.mark.xfail(strict=True, reason=_J44_REOPENED)
 def test_a_plural_endpoint_matches_a_singular_source(tmp_path):
-    """The documented J-44 case: one letter, one wrongful refusal."""
+    """The documented J-44 case: one letter, one wrongful refusal.
+
+    Kept as a strict xfail rather than deleted — this is the Error-A the
+    project still owes its honest users, and deleting it would make the next
+    reader think the refusal was intended."""
     rep = _report(tmp_path,
                   "Chronic sleep deprivation causes severe migraines "
                   "[S1][S2].\n", SINGULAR_SOURCES)
@@ -73,6 +89,7 @@ def test_a_plural_endpoint_matches_a_singular_source(tmp_path):
     assert rep["gate"] == "PASS"
 
 
+@pytest.mark.xfail(strict=True, reason=_J44_REOPENED)
 def test_a_singular_endpoint_matches_a_plural_source(tmp_path):
     """SYMMETRY. A stem applied in one direction only is a different rule
     depending on who wrote which side, which is not a rule at all."""
@@ -84,9 +101,12 @@ def test_a_singular_endpoint_matches_a_plural_source(tmp_path):
 
 
 @pytest.mark.parametrize("phrase,window,expected", [
-    ("severe migraines", "severe migraine was reported", True),
-    ("severe migraine", "severe migraines were reported", True),
-    ("operating costs", "operating cost fell", True),
+    # The three plural pairs read False again: J-44 is withdrawn (D-69). They
+    # stay in the table, with the expectation flipped rather than the rows
+    # deleted, so the Error-A is visible in the same place as the guards.
+    ("severe migraines", "severe migraine was reported", False),
+    ("severe migraine", "severe migraines were reported", False),
+    ("operating costs", "operating cost fell", False),
     # NOT a plural pair — the stem must not become a prefix match.
     ("migraines", "migration was observed", False),
     ("losses", "a pre-tax loss was reported", False),  # -es is NOT handled
@@ -127,20 +147,43 @@ def test_a_relation_trigger_is_NOT_stemmed(tmp_path):
     assert rep["per_claim"][0]["verdict"] == "UNVERIFIED_RELATION"
 
 
-def test_stemming_is_confined_to_the_endpoint_predicate():
-    """Over the AST: the trigger loop in `_relation_asserted` must keep calling
-    `_contains_word` directly, so no future edit routes triggers through the
-    stem-aware predicate."""
+def test_no_endpoint_token_is_matched_by_a_STEM_COLLISION():
+    """R12-01, the Error-B J-44 cost, pinned so it can never return silently.
+
+    The old form of this test asserted over the AST that `_relation_asserted`
+    does not call `_stem` — which round 12 called near-vacuous, correctly: it
+    never plausibly would, and the stemming it was named for happened one frame
+    down in `_endpoint_in_window`. An AST guard on the wrong frame is a test
+    that cannot fail.
+
+    This asserts the PROPERTY instead, over the collision pairs that defeated
+    the suffix rule. Each is a word whose naive stem equals a DIFFERENT word.
+    """
+    collisions = [
+        ("news", "the new coverage limits"),      # noun -> adjective
+        ("species", "a specie of bond"),
+        ("ethics", "a strong ethic"),
+        ("damages", "the damage was limited"),    # legal award -> harm
+        ("lens", "len of the pipeline"),
+    ]
+    for endpoint, window in collisions:
+        assert not g._endpoint_in_window(window, endpoint), (
+            f"{endpoint!r} must not be matched by {window!r} — a stem is not a "
+            f"meaning, and this pair is how J-44 produced an Error-B")
+
+
+def test_a_relation_trigger_is_matched_LITERALLY():
+    """The guard that outlives J-44: whatever forgiveness is ever added to
+    endpoint matching, a TRIGGER is matched word for word. "cause" is a noun as
+    often as a verb, and stemming the lexicon would read every mention of "the
+    cause" as a causal assertion."""
     import ast
     import inspect
     import textwrap
 
     tree = ast.parse(textwrap.dedent(inspect.getsource(g._relation_asserted)))
-    # The trigger comprehension is the only place _contains_word may appear.
-    calls = [
-        node for node in ast.walk(tree)
+    names = [
+        node.func.id for node in ast.walk(tree)
         if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
     ]
-    names = [c.func.id for c in calls]
     assert "_contains_word" in names, "triggers must be matched literally"
-    assert "_stem" not in names, "_relation_asserted must not stem anything"

@@ -163,6 +163,26 @@ def test_a_figure_spelled_in_words_is_also_checked(tmp_path, figure):
     assert rep["per_claim"][0]["verdict"] == "UNVERIFIED_NUMBER"
 
 
+# R12-05 — the lexicon's own omission, which is NOT the open-class trap above.
+#
+# PROVEN RED: "The outage causes thousands of customer refunds [S1][S2]"
+# certified GROUNDED at PASS 100.0 while "fifty thousand" was refused on the
+# SAME store, because the plural scale words were missing from
+# _SPELLED_NUMBER_WORDS and _spelled_quantity_phrases therefore returned () —
+# read downstream as "no quantity asserted". That is the round-4 anti-pattern
+# (an unreadable field read as UNCONSTRAINED) inside the very guard whose
+# comment cites it. Five missing strings, not an open class.
+@pytest.mark.parametrize("figure", [
+    "thousands of", "hundreds of", "millions of", "billions of", "dozens of",
+])
+def test_a_plural_scale_word_is_checked_R12_05(tmp_path, figure):
+    rep = _report(tmp_path,
+                  f"Insulin resistance causes {figure} type 2 diabetes "
+                  f"[S2][S3].\n", NO_NUMBER)
+    assert rep["per_claim"][0]["verdict"] == "UNVERIFIED_NUMBER"
+    assert rep["gate"] != "PASS"
+
+
 def test_a_spelled_figure_the_CITED_SOURCE_CARRIES_still_certifies(tmp_path):
     """The other direction, which is what makes this a check and not a ban.
 
@@ -212,7 +232,11 @@ def test_a_relational_claim_with_no_spelled_figure_is_untouched(tmp_path):
     "there is no closed lexicon of ways to be vague, so enumerating them IS "
     "the trap the number-word set avoids by being a lexicon. Refusing them "
     "would also tax honest hedged prose the n=52 corpus does not contain, so "
-    "the Error-A is unmeasured. Escalation #1 if anyone wants it closed."))
+    "the Error-A is unmeasured. Escalation #1 if anyone wants it closed. "
+    "NOT to be confused with a MISSING MEMBER of the closed lexicon, which is "
+    "an ordinary bug and was one: round 12 (R12-05) found 'thousands' / "
+    "'hundreds' / 'millions' absent, so the guard ran vacuously on the "
+    "commonest fabricated magnitude. Closed 2026-10-02 and pinned below."))
 def test_a_vague_quantifier_is_still_not_checked(tmp_path):
     rep = _report(tmp_path,
                   "Insulin resistance causes almost all type 2 diabetes "

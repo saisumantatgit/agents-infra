@@ -2337,6 +2337,16 @@ _SPELLED_NUMBER_WORDS: frozenset[str] = frozenset({
     "seventeen", "eighteen", "nineteen", "twenty", "thirty", "forty", "fifty",
     "sixty", "seventy", "eighty", "ninety",
     "hundred", "thousand", "million", "billion", "trillion", "dozen",
+    # R12-05 (round 12): these five were MISSING, and they are the ordinary way
+    # a draft overstates a magnitude — "causes thousands of customer refunds"
+    # produced NO phrase, so J-43's guard ran vacuously and the claim certified
+    # at PASS 100.0 while the digit form was refused on the same store. That is
+    # the round-4 anti-pattern ("an unreadable field read as UNCONSTRAINED")
+    # inside the very change whose comment cites it. They are members of the
+    # same closed lexicon — a writer cannot invent a new word for "thousands"
+    # either — so omitting them was not the open-class trap, it was five
+    # missing strings.
+    "hundreds", "thousands", "millions", "billions", "trillions", "dozens",
 })
 
 
@@ -2849,9 +2859,37 @@ def _is_quantity_token(token: str) -> bool:
 # than a guess at author behaviour — the same argument that licenses
 # `_SPELLED_NUMBER_WORDS`. An attacker gains nothing by dropping a quantifier:
 # the identifying nouns are still required.
+#   3. PREPOSITIONS AND SUBORDINATORS WERE ADDED HERE AFTER ROUND 12 (R12-11)
+#      AND IMMEDIATELY WITHDRAWN (D-71). R12-11 is real: the union of the two
+#      inherited sets is INCOMPLETE — `_HEAD_NOUN_STOPS` carries in/on/at/to/
+#      for/of/with/by/from and `_ABSENCE_SCOPE_PREPS`, in this same file,
+#      carries across/within/among/under, but neither carries between/during/
+#      without/through. So "causes data loss across regions" makes the endpoint
+#      "data loss across regions" and demands the draft's own preposition from
+#      the source. Error-A, and the lesson stands: a closed class is only
+#      closed once ENUMERATED, and reusing two partial sets does not complete
+#      the union.
+#
+#      BUT THE FIX MADE THINGS WORSE, and measuring it is the only reason that
+#      is known. Making a preposition a boundary does not shorten the endpoint
+#      to "data loss" — it moves side_B's ANCHOR, because the anchor is the
+#      LAST content token of the whole segment. Measured:
+#
+#        "The pipeline causes data loss across regions"
+#          preposition NOT a boundary -> ('pipeline', 'data loss across regions')
+#          preposition IS  a boundary -> ('pipeline', 'regions')
+#
+#      The second is a ONE-TOKEN endpoint — precisely the coincidence surface
+#      J-39 exists to remove. So the choice is a recoverable Error-A against an
+#      unrecoverable Error-B surface, and the invariant decides it.
+#
+#      R12-11 and R12-03 are therefore ONE design decision, not two findings:
+#      the preposition boundary is only safe once side_B anchors on the FIRST
+#      content run after the trigger instead of the last. That moves the
+#      Error-A/Error-B trade-off, so it is Escalation #1 — registered as J-58
+#      with both halves named together.
 _ENDPOINT_PHRASE_STOPS: frozenset[str] = (
-    frozenset(_HEAD_NOUN_STOPS) | frozenset(_STOP_WORDS) | frozenset({
-        "all", "almost", "nearly", "most", "mostly", "every", "each", "many",
+    frozenset(_HEAD_NOUN_STOPS) | frozenset(_STOP_WORDS) | frozenset({        "all", "almost", "nearly", "most", "mostly", "every", "each", "many",
         "much", "several", "few", "fewer", "more", "less", "least", "about",
         "roughly", "approximately", "around", "both", "either", "neither",
         "any", "none", "such", "same", "other", "another", "various",
@@ -2868,9 +2906,20 @@ def extract_arguments(text: str) -> tuple[str, str] | None:
     1. NFKC-normalize input.
     2. Strip citation markers.
     3. Find the first relational trigger (longest-match-first).
-    4. side_A = last contiguous non-stop-word token before the trigger.
-       side_B = first contiguous non-stop-word token after the trigger.
-    5. Return None when either side cannot be isolated (fail-closed).
+    4. side_A = the contiguous head-noun PHRASE ending at the last content
+       token before the trigger, extended LEFTWARD through contiguous content
+       tokens (modifiers precede the head in English).
+       side_B = the same construction anchored on the LAST non-quantity content
+       token of the post-trigger segment.
+    5. Return None when either side resolves to the empty phrase (fail-closed).
+
+    KNOWN DEFECT, round 12 (R12-03 / R12-10, registered as J-58, owner Sai):
+    side_B's anchor is the last content token of the WHOLE segment, so a
+    trailing attribution or adverbial clause replaces the asserted object
+    ("... causes X, researchers confirmed" anchors on "confirmed"). It cuts
+    both ways — Error-B when the trailing phrase is in the source and the
+    object is not, Error-A when the reverse. Moving the anchor changes the
+    Error-A/Error-B trade-off, which is Escalation #1.
 
     Returns a (side_A, side_B) pair of casefolded strings, or None.
     Pure function — no LLM, no network, no random, no wall-clock.
@@ -3028,40 +3077,38 @@ def _endpoint_in_window(window_text: str, endpoint: str) -> bool:
         return False
     window = _nfkc(window_text).casefold()
 
-    # J-44 (Sai's ruling, 2026-10-02): a plural stem, applied SYMMETRICALLY, to
-    # ENDPOINTS ONLY. "migraines" does not occur in "severe migraine", so a
-    # claim whose endpoint the cited source states in the singular was refused
-    # over one letter — Error-A on exactly the honest draft the gate exists to
-    # certify.
+    # J-44 WAS LANDED HERE ON 2026-10-02 AND WITHDRAWN THE SAME DAY (D-69).
     #
-    # SEQUENCING WAS THE RULING: after J-39, never before. Forgiving the number
-    # of a word while each endpoint was still ONE TOKEN would have widened the
-    # weakest surface in this branch. Now every modifier must still be present
-    # and only the number is forgiven, so the needle stays long.
+    # The clause was `_contains_word(window, tok) or _stem(tok) in window_stems`
+    # — a symmetric plural stem, endpoints only, triggers excluded. Round 12
+    # refuted it in one line: `_stem` strips a trailing "s" with no
+    # part-of-speech test, so it maps the NOUN "news" to the ADJECTIVE "new".
     #
-    # SYMMETRIC means both sides are stemmed: a rule that stems only the claim
-    # behaves differently depending on who wrote which side, which is not a
-    # rule. The literal check runs first because an endpoint token can carry
-    # punctuation ("state-of-the-art"), which the \w+ tokenizer would split.
+    #   "The recall causes negative news [S1][S2]"
+    #     against two sources containing no "news" at all
+    #     -> UNVERIFIED_RELATION before J-44, GROUNDED / PASS 100.0 after it,
+    #        with evidence_basis reporting "checked verbatim".
     #
-    # TRIGGERS ARE NEVER STEMMED. `_relation_asserted` matches the trigger
-    # lexicon with `_contains_word` directly, and must keep doing so: "cause"
-    # is a noun as often as a verb, and stemming "causes" would read every
-    # mention of "the cause" as a causal assertion. Pinned by an AST guard in
-    # tests/red_team_moat/test_moat_j44_endpoint_plurals.py.
+    # The argument that J-39's longer phrase bounded the stem was WRONG, and
+    # this is exactly how: when the collision lands on the HEAD noun and the
+    # modifier is a word the unrelated source happens to contain, the extra
+    # modifiers buy nothing. Same class: species/specie, ethics/ethic,
+    # damages/damage, lens/len.
     #
-    # CEILING: `_stem` strips a single trailing "s" only, so "-es" plurals do
-    # NOT match ("losses" stems to "losse", never to "loss"), and neither do
-    # irregulars ("analysis"/"analyses", "mouse"/"mice"). Those endpoints are
-    # still refused — Error-A, loud, unchanged. The upgrade path is a real
-    # morphological analyser, which is a dependency the verdict path may not
-    # import; a longer hand-written suffix table is NOT the upgrade, because
-    # English suffix rules are an open set and that is the enumeration trap.
-    window_stems = {_stem(tok) for tok in _tokenize(window)}
-    return all(
-        _contains_word(window, tok) or _stem(tok) in window_stems
-        for tok in tokens
-    )
+    # WHY IT IS NOT REPAIRED INSTEAD. Telling "news"/"new" from "cost"/"costs"
+    # requires knowing that "news" is not a plural — which is a DICTIONARY
+    # fact, not a suffix fact. Every repair that stays inside this file is a
+    # blacklist of s-final singular nouns, and an incomplete blacklist on a
+    # loosening is an Error-B generator: the one word missing from it is the
+    # attack. English s-final singulars are not a lexicon I can close the way
+    # the cardinal number words are closed.
+    #
+    # So the moat invariant decides it, literally: no change may reduce Error-A
+    # by raising Error-B. The Error-A is real and stays open as J-44, now
+    # Escalation #1 with its two candidate designs named. Reopening it needs a
+    # real morphological analyser, which is a dependency the verdict path may
+    # not import — i.e. it is a product decision, not a fix.
+    return all(_contains_word(window, tok) for tok in tokens)
 
 
 def window_supports(source: RetrievedSource, argument_text: str) -> bool:
