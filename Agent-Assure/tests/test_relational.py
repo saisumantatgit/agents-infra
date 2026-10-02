@@ -298,26 +298,30 @@ def test_side_b_on_different_source_required():
 # ---------------------------------------------------------------------------
 
 def test_extract_arguments_skips_numeric_head():
-    """extract_arguments skips bare-numeric tokens when selecting the side_B head.
+    """A bare digit is never an endpoint, and never truncates one either.
 
-    'Insulin resistance causes type 2 diabetes [S1][S2].' — the argument phrase
-    after the trigger is 'type 2 diabetes'.  Without the numeric-head guard the
-    function could return '2' as side_B (a bare digit, not a meaningful noun).
-    With the guard, bare-numeric tokens are skipped and the rightmost
-    non-numeric content token 'diabetes' is selected as the head noun.
+    'Insulin resistance causes type 2 diabetes [S1][S2].' — the endpoint after
+    the trigger is the phrase 'type 2 diabetes'. Without the numeric-head guard
+    the function could return '2' as side_B: a bare digit, not a noun.
 
-    This test exercises the fix directly via extract_arguments; it would produce
-    a wrong side_B ('2' or an equivalent numeric) with the un-patched code.
+    UPDATED 2026-10-02 (J-39). The expectation was 'diabetes' / 'resistance' —
+    ONE token per side — and that single token was the finding: two unrelated
+    documents each using one common noun satisfied the two-source rule. The
+    sides are now the contiguous head-noun PHRASES, with the SAME anchors as
+    before ('diabetes', 'resistance') extended leftward through their
+    modifiers. The digit is still dropped, so a source may write 'type II',
+    but it no longer truncates the phrase to its head.
     """
     args = extract_arguments("Insulin resistance causes type 2 diabetes [S1][S2].")
     assert args is not None, "extract_arguments must not return None for a valid claim"
     side_a, side_b = args
-    assert side_b == "diabetes", (
-        f"Expected side_B='diabetes' (numeric-head guard skips '2'), got {side_b!r}"
+    assert side_b == "type diabetes", (
+        f"Expected side_B='type diabetes' (the phrase, digit dropped), got {side_b!r}"
     )
-    assert side_a == "resistance", (
-        f"Expected side_A='resistance', got {side_a!r}"
+    assert side_a == "insulin resistance", (
+        f"Expected side_A='insulin resistance' (the phrase), got {side_a!r}"
     )
+    assert "2" not in side_b, "a bare digit must never be part of an endpoint"
 
 
 # --- OI-MOAT-05: predicate support required (D-05, 2026-08-30) ---------------

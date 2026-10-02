@@ -87,9 +87,29 @@ def _run(tmp_path, draft, records):
 # relational path, so four is what is recorded. The gate's wider number is not
 # disputed for other configurations - it is simply not what I measured, and the
 # register carries the count I could reproduce rather than the one I was handed.
-UNRECOGNISED = [
+# MASKED BY J-39, NOT FIXED (2026-10-02). "[Sxx]" was the LAST live relational
+# demonstrator of J-33. J-39 made each endpoint the contiguous head-noun phrase
+# rather than one token, so the unparsed marker's leftover text ("sxx") is now
+# swallowed into side_A — "sxx insulin resistance" — which no source carries,
+# and the claim is refused. The refusal has nothing to do with the citation: it
+# is the SAME accident already pinned for trailing position below, now reaching
+# leading position too.
+#
+# So J-33's relational shape is fully masked: digits leak for three spellings
+# (J-40) and leftover text pollutes the endpoint for the fourth (J-39). The
+# finding itself is untouched — _CITATION_RE still cannot parse these markers,
+# so they are still NO citation rather than an unresolved one — and it stays
+# live and strict on the ABSENCE path below, which does not extract arguments.
+#
+# Pinned here with the explanation rather than deleted, per the standing rule:
+# when a fix makes an unrelated tripwire pass, assume it MASKED the finding
+# until proven CLOSED. A tripwire that goes silent while looking healthy is
+# worse than one that stays red.
+MASKED_BY_ENDPOINT_PHRASE = [
     "[Sxx]",
 ]
+
+UNRECOGNISED: list[str] = []
 
 # MASKED BY J-40, NOT FIXED. These three still parse as NO citation — J-33 is
 # untouched for them. They are refused only because the unparsed marker leaves
@@ -143,16 +163,23 @@ def test_unparsed_marker_refused_only_because_its_text_breaks_extraction(
     assert rep["gate"] != "PASS"
 
 
-@pytest.mark.parametrize("marker", UNRECOGNISED)
-@pytest.mark.xfail(strict=True, reason=(
-    "J-33 OPEN: a marker _CITATION_RE cannot parse is not an unresolved "
-    "citation but NO citation, so a RELATIONAL claim certifies GROUNDED at "
-    "PASS 100.0 while the reader sees a source that was never retrieved."))
-def test_relational_claim_with_unrecognised_marker_is_not_certified(tmp_path, marker):
+@pytest.mark.parametrize("marker", MASKED_BY_ENDPOINT_PHRASE)
+def test_leading_unrecognised_marker_is_refused_by_ACCIDENT(tmp_path, marker):
+    """Refused, but not for the reason a reader would assume — see the comment
+    on MASKED_BY_ENDPOINT_PHRASE. The assertion below proves the ACCIDENT is
+    what refuses it: the verdict is UNVERIFIED_RELATION (the endpoint could not
+    be found) and NOT UNVERIFIED_CITATION (the marker was never checked).
+
+    If someone later teaches _CITATION_RE these spellings, this test keeps
+    passing and the second assertion flips — which is the signal that J-33 was
+    actually closed rather than hidden."""
     rep = _run(tmp_path,
                f"{marker} Insulin resistance causes type 2 diabetes [S2][S3].\n",
                REL)
     assert rep["gate"] != "PASS"
+    assert rep["per_claim"][0]["verdict"] == "UNVERIFIED_RELATION", (
+        "if this is now UNVERIFIED_CITATION, J-33 is CLOSED for this shape — "
+        "move the marker out of MASKED_BY_ENDPOINT_PHRASE and update J-33")
 
 
 @pytest.mark.parametrize("marker", ["[s99]", "[Ѕ99]"])

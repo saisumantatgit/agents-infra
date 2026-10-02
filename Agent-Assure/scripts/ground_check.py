@@ -2812,6 +2812,55 @@ def resolve(citation: str, store: dict[str, RetrievedSource]) -> RetrievedSource
 # Relational grounding helpers
 # ---------------------------------------------------------------------------
 
+def _is_quantity_token(token: str) -> bool:
+    """True iff *token* expresses a QUANTITY rather than an identity.
+
+    Hyphen-joined compounds are judged part by part, because "ninety-seven" is
+    one whitespace token and `_SPELLED_NUMBER_WORDS` holds single words — a
+    compound slipped through and became part of the endpoint phrase, which
+    would have checked the same figure twice under a weaker rule than J-43's.
+
+    Pure function.
+    """
+    parts = [part for part in token.replace("/", "-").split("-") if part]
+    if not parts:
+        return False
+    return all(
+        any(ch.isdigit() for ch in part) or part in _SPELLED_NUMBER_WORDS
+        for part in parts
+    )
+
+
+# Where an endpoint PHRASE stops growing (J-39). Two closed classes:
+#
+#   1. The module's existing stop-word sets, reused rather than re-listed —
+#      `_STOP_WORDS` (the tier content-word filter) and `_HEAD_NOUN_STOPS` (the
+#      absence head-noun filter). One of the two already covers "the", "a",
+#      "of", "its".
+#   2. QUANTIFIERS, DETERMINERS AND DEGREE WORDS, which neither set carried.
+#      These express SCOPE, not IDENTITY: "causes almost all type 2 diabetes"
+#      and "causes type 2 diabetes" name the same endpoint, and a source
+#      discussing it is under no obligation to repeat the draft's quantifier.
+#      Swallowing them into the phrase was pure Error-A — it refused the
+#      corpus's own labeled-grounded relational rows (caught by the suite, in
+#      the same run that proved the tightening worked).
+#
+# Function words are a CLOSED class, which is what makes this a lexicon rather
+# than a guess at author behaviour — the same argument that licenses
+# `_SPELLED_NUMBER_WORDS`. An attacker gains nothing by dropping a quantifier:
+# the identifying nouns are still required.
+_ENDPOINT_PHRASE_STOPS: frozenset[str] = (
+    frozenset(_HEAD_NOUN_STOPS) | frozenset(_STOP_WORDS) | frozenset({
+        "all", "almost", "nearly", "most", "mostly", "every", "each", "many",
+        "much", "several", "few", "fewer", "more", "less", "least", "about",
+        "roughly", "approximately", "around", "both", "either", "neither",
+        "any", "none", "such", "same", "other", "another", "various",
+        "multiple", "numerous", "certain", "total", "overall", "entire",
+        "whole",
+    })
+)
+
+
 def extract_arguments(text: str) -> tuple[str, str] | None:
     """Extract (side_A, side_B) head-noun phrases flanking the relational trigger.
 
@@ -2848,55 +2897,137 @@ def extract_arguments(text: str) -> tuple[str, str] | None:
     before_text = stripped[:trigger_start].strip()
     after_text = stripped[trigger_end:].strip()
 
-    # --- Extract side_A: last content word(s) before trigger ---
-    # Tokenize on whitespace; strip punctuation; filter stop words; take last token.
-    _stop = _HEAD_NOUN_STOPS  # reuse absence-check stop-word set
+    # --- Extract the head-noun PHRASE on each side of the trigger ----------
+    #
+    # J-39 (round 10, closed 2026-10-02): this kept ONE TOKEN per side. "The
+    # ingestion pipeline causes silent data loss" became ("pipeline", "loss"),
+    # and two unrelated documents that each happened to use one of those common
+    # nouns satisfied the two-source rule — an FT deal-flow page ("a thinner
+    # pipeline leads to a wider loss") and an NEJM trial page ("sensorineural
+    # hearing loss") certified a causal claim nobody had made, at PASS 100.0.
+    #
+    # The modifiers are not decoration. "silent data loss" and "a pre-tax loss"
+    # are different objects, and the only thing separating them was the words
+    # the extractor discarded.
+    #
+    # The ANCHOR is unchanged — still the last content token before the trigger,
+    # and still the last non-digit content token after it (English noun-phrase
+    # heads sit rightmost). The change is that the phrase then EXTENDS LEFTWARD
+    # from that anchor through contiguous content tokens, because modifiers
+    # precede the head. Keeping the old anchor is what makes this a pure
+    # tightening: the needle can only grow, so a relation can only become
+    # harder to corroborate.
+    #
+    # Boundaries of the run: a stop word, a token that is pure punctuation
+    # (which is how a comma or clause break shows up after `split()`), or the
+    # start of the segment. A bare digit is SKIPPED WITHOUT BREAKING the run —
+    # "type 2 diabetes" is one phrase, and dropping the digit lets a source
+    # write "type II" — the exact behaviour the old side_B extractor had.
+    _stop = _ENDPOINT_PHRASE_STOPS
 
-    def _last_content_token(segment: str) -> str:
-        """Return the last non-stop-word token from segment (casefolded)."""
-        tokens = segment.split()
-        for raw in reversed(tokens):
-            tok = raw.strip(".,;:!?\"'()[]{}")
-            if tok and tok.casefold() not in _stop:
-                return tok.casefold()
+    def _cells(segment: str) -> list[tuple[str, bool]]:
+        """Return (casefolded token, is_content) for each whitespace token.
+
+        is_content is False for a run BOUNDARY: a stop word, or a token that is
+        empty once punctuation is stripped (which is how a comma or clause break
+        survives `split()`).
+
+        A QUANTITY EXPRESSION is returned as ("", True) — inside the run,
+        contributing nothing to the phrase. That covers a digit-bearing token
+        ("2", "97%", "12.5%") and a spelled number word ("ninety", "million").
+        A quantity is verified by the numeric guards (R10C-04 for digits, J-43
+        for spelled figures) against the CITED sources; it is not part of the
+        endpoint's identity, and requiring it here would check the same figure
+        twice under a weaker rule. It also lets a source write "type II" where
+        the draft wrote "type 2" — the behaviour the old side_B extractor had.
+        """
+        out: list[tuple[str, bool]] = []
+        for raw in segment.split():
+            tok = raw.strip(".,;:!?\"'()[]{}").casefold()
+            if not tok or tok in _stop:
+                out.append((tok, False))
+            elif _is_quantity_token(tok):
+                out.append(("", True))
+            else:
+                out.append((tok, True))
+            # A clause break ends the run even when its punctuation is attached
+            # to the word before it — which is the normal case, so testing only
+            # for a standalone punctuation token would have made the documented
+            # "never read across a comma" property false. "After the migration,
+            # data loss causes outages" must yield "data loss", not "migration
+            # data loss": a modifier on the far side of a clause boundary is not
+            # modifying this head. Recorded as a BOUNDARY cell after the token,
+            # so the token itself still counts.
+            if raw.rstrip("\"')]}").endswith((",", ";", ":", "—", "–")):
+                out.append(("", False))
+        return out
+
+    def _phrase_ending_at(cells: list[tuple[str, bool]], anchor: int) -> str:
+        """Join the contiguous content run that ends at *anchor*, left-extended."""
+        i = anchor
+        while i - 1 >= 0 and cells[i - 1][1]:
+            i -= 1
+        return " ".join(tok for tok, is_content in cells[i:anchor + 1] if tok)
+
+    def _side_a_phrase(segment: str) -> str:
+        cells = _cells(segment)
+        for i in range(len(cells) - 1, -1, -1):
+            if cells[i][1] and cells[i][0]:
+                return _phrase_ending_at(cells, i)
         return ""
 
-    def _first_content_token(segment: str) -> str:
-        """Return the head content token for side_B (casefolded).
+    def _side_b_phrase(segment: str) -> str:
+        """Anchor on the LAST non-digit content token, then extend leftward.
 
-        Strategy: collect all non-stop-word tokens; skip bare-numeric tokens
-        (tokens whose stripped form is entirely digits, e.g. '2' in 'type 2
-        diabetes'); return the last surviving token.  The last position is used
-        because English noun-phrase heads sit rightmost: 'type 2 diabetes' →
-        'diabetes', 'elevated cortisol' → 'cortisol'.
-
-        If filtering leaves no tokens, fall back to the first non-stop-word
-        token regardless of numeric status (fail-closed: return something rather
-        than empty, letting the downstream window_supports decide).
+        The fallback for an all-numeric side is gone with the digit-skip: a
+        segment whose only content is digits now yields "" and the caller
+        returns None, which is UNVERIFIED_RELATION. That is fail-closed, and it
+        replaces a fallback that handed `window_supports` a bare digit to match.
         """
-        tokens = segment.split()
-        content_tokens: list[str] = []
-        fallback: str = ""
-        for raw in tokens:
-            tok = raw.strip(".,;:!?\"'()[]{}")
-            if tok and tok.casefold() not in _stop:
-                if not fallback:
-                    fallback = tok.casefold()
-                # Skip bare-numeric tokens (pure digit strings, e.g. '2', '10').
-                if tok.isdigit():
-                    continue
-                content_tokens.append(tok.casefold())
-        if content_tokens:
-            return content_tokens[-1]
-        return fallback
+        cells = _cells(segment)
+        last = -1
+        for i, (tok, is_content) in enumerate(cells):
+            if is_content and tok:
+                last = i
+        if last == -1:
+            return ""
+        return _phrase_ending_at(cells, last)
 
-    side_a = _last_content_token(before_text)
-    side_b = _first_content_token(after_text)
+    side_a = _side_a_phrase(before_text)
+    side_b = _side_b_phrase(after_text)
 
     if not side_a or not side_b:
         return None
 
     return (side_a, side_b)
+
+
+def _endpoint_in_window(window_text: str, endpoint: str) -> bool:
+    """True iff EVERY content token of *endpoint* occurs in *window_text*, each
+    on word boundaries.
+
+    THE ONE DEFINITION OF "CONTAINS AN ENDPOINT". Until 2026-10-02 there were
+    two, inside the same verdict branch: `window_supports` used a bare substring
+    (so "loss" was supported by "lossless", and a multi-token phrase had to
+    appear CONTIGUOUSLY), while `_relation_asserted` used `_contains_word`.
+    Two definitions of containment in one branch is a seam, and J-44 was filed
+    against exactly that seam. Both callers now route through here.
+
+    Word order is free and intervening words are allowed ("loss of data"
+    supports "data loss"), because a faithful source is not obliged to use the
+    draft's word order — demanding contiguity is Error-A with no Error-B closed.
+    What is NOT free is dropping a token: every modifier must be present
+    somewhere in the window.
+
+    An empty endpoint is False — never vacuously supported.
+
+    Pure function — no mutation, no LLM/network/random/wall-clock.
+    """
+    tokens = [tok for tok in _nfkc(endpoint).casefold().split() if tok]
+    if not tokens:
+        return False
+    window = _nfkc(window_text).casefold()
+    return all(_contains_word(window, tok) for tok in tokens)
 
 
 def window_supports(source: RetrievedSource, argument_text: str) -> bool:
@@ -2909,21 +3040,19 @@ def window_supports(source: RetrievedSource, argument_text: str) -> bool:
 
     Pure function — no mutation, no LLM/network/random/wall-clock.
     """
-    arg_normalized = _nfkc(argument_text).casefold().strip()
-    if not arg_normalized:
+    if not _nfkc(argument_text).casefold().strip():
         return False
 
     sentences = _split_sentences(source.text)
     if not sentences:
         # Single-block source — check the whole text.
-        return arg_normalized in _nfkc(source.text).casefold()
+        return _endpoint_in_window(source.text, argument_text)
 
     n = len(sentences)
     for c in range(n):
         lo = max(0, c - 2)
         hi = min(n, c + 3)
-        window_text = _nfkc(" ".join(sentences[lo:hi])).casefold()
-        if arg_normalized in window_text:
+        if _endpoint_in_window(" ".join(sentences[lo:hi]), argument_text):
             return True
 
     return False
@@ -2986,7 +3115,8 @@ def _relation_asserted(
             lo = max(0, c - 2)
             hi = min(n, c + 3)
             window = _nfkc(" ".join(sentences[lo:hi])).casefold()
-            if not _contains_word(window, a) or not _contains_word(window, b):
+            if not _endpoint_in_window(window, a) or not _endpoint_in_window(
+                    window, b):
                 continue
             if any(_contains_word(window, trigger)
                    for trigger in _RELATIONAL_TRIGGERS):
