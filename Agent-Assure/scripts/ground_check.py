@@ -3528,12 +3528,25 @@ def ground(
     #   "The 2019 federal review of interbank settlement latency across the
     #    eurozone causes a 3.7 million euro shortfall [S1][S2]."
     #
-    # The deeper defect is the gating itself, and it predates ADR-007: an
-    # ABSENCE claim carrying a figure skipped this check too, for the same
-    # reason. A figure is a figure whatever sentence it sits in, so the check is
-    # now KIND-INDEPENDENT — every claim that reaches the verbatim path and
-    # carries a figure must have it present in a cited source. Strictly
-    # fail-closed: it can only move claims away from PASS.
+    # The deeper defect is the gating itself, and it predates ADR-007: a figure
+    # is a figure whatever sentence it sits in. So this check no longer asks
+    # what KIND the claim is — every claim THAT REACHES HERE and carries a
+    # figure must have it present in a cited source. Strictly fail-closed: it
+    # can only move claims away from PASS.
+    #
+    # SCOPE, CORRECTED 2026-10-02 (R14-06, R14-03). An earlier version of this
+    # comment said "an ABSENCE claim carrying a figure skipped this check too",
+    # in the past tense, and ADR-007 shipped the same sentence. That overstated
+    # D-77 and the same text reached the ADR: **ABSENCE and RELATIONAL return
+    # ABOVE this line and so never reach it.** "Kind-independent" is true only
+    # of the claims that arrive here at all.
+    #
+    # Demonstrated, not inferred (R14-03a): the digit 4200 appearing in NO
+    # source text certifies `ABSENCE_SUPPORTED` at PASS 100.0 / exit 0, because
+    # numeric_ok is unreachable from the absence branch. Tripwired in
+    # tests/red_team_moat/test_moat_r14_hedge_classifier_absence.py and
+    # registered J-71 — NOT fixed here, because moving these two checks above
+    # the kind dispatch changes which claims can pass and is Escalation #1.
     if claim.numeric_tokens and not numeric_ok(claim, verbatim):
         return Verdict.UNVERIFIED_NUMBER
 

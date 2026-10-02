@@ -140,3 +140,35 @@ it too.
 
 Revised price: **Error-A 0.400 (10/25), Error-B 0.000 (0/27)**, relational
 Error-B shapes **0**. `q36` no longer certifies either.
+
+### Amendment 2026-10-02C — D-77's "kind-independent" claim OVERSTATED its scope (R14-06)
+
+The body above says *"The figure checks are now KIND-INDEPENDENT (D-77) …
+and an ABSENCE claim carrying a figure skipped it too"*, whose past tense
+asserts that the ABSENCE case was thereby closed. **It was not.** `ground()`
+returns from the RELATIONAL branch and from the ABSENCE branch **above** both
+figure checks, so neither kind ever reaches them. D-77 made the checks
+*kind-agnostic for the claims that arrive at them* — which is a smaller
+statement than the one shipped here, and the same sentence shipped verbatim as
+a comment in `ground_check.py` (corrected in place).
+
+Demonstrated by round 14, not inferred: the digit `4200`, present in **no**
+source text, certifies `ABSENCE_SUPPORTED` at **PASS 100.0 / exit 0**, because
+`numeric_ok` is unreachable from the absence branch (R14-03a). Round 14 also
+showed the relational refusal itself is routed around by one word — `causes` →
+`triggered` — because the refusal is gated on `classify` and `_RELATIONAL_RE`
+is a ten-member blacklist over an open class (R14-01).
+
+**The decision in this ADR stands; its claimed COVERAGE does not.** Nothing is
+repaired by this amendment: J-69 (the classifier-gated refusal), J-70 (T1's
+subject-anchored span and the backward-only hedge window) and J-71 (ABSENCE
+returning above the figure checks) are registered OPEN, owner **Sai**, because
+each alters which claims can pass — Escalation #1. All are tripwired strict-xfail
+in `tests/red_team_moat/test_moat_r14_hedge_classifier_absence.py`.
+
+**Why this amendment exists at all.** The overclaim was written by the same
+session that landed D-77, in the same hour, about its own change — the third
+time in two days that a correct narrow measurement was written up as a broader
+property than it had. The pattern is not carelessness about facts; it is
+describing a fix by the defect it was aimed at rather than by the code path it
+actually occupies.
