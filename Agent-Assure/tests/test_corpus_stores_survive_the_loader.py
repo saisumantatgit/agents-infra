@@ -81,3 +81,26 @@ def test_the_loader_round_trip_preserves_evidence_text(tmp_path):
                 f"{qid}/{sid}: load_store rewrote the evidence text")
             assert loaded[sid].full_text_source == source.full_text_source, (
                 f"{qid}/{sid}: load_store changed the source type")
+
+
+def test_the_loader_still_REFUSES_an_unrecognised_tool(tmp_path):
+    """POSITIVE CONTROL — without it, every test above is satisfiable by a stub.
+
+    Added 2026-10-02. The three tests above assert that corpus stores SURVIVE
+    `load_store`. Nothing in them asserts that surviving it still MEANS
+    anything: if the tool validation were deleted, or `load_store` were reduced
+    to a parse-and-return, all three would go on passing and the file would
+    report the corpus "validated" against a loader that validates nothing.
+
+    This pins the other direction on the same corpus record, changing ONLY the
+    `tool` field — the exact value the fixtures used to carry and that the
+    J-37 fix (`15baf1e`) removed. It is the behavioural form of "an empty
+    result is NOT_LOCATED_UNDER(params), never ABSENT": a green round-trip is
+    evidence only while a red one is still reachable.
+    """
+    _, store = next(iter(_all_corpus_stores()))
+    record = asdict(next(iter(store.values()))) | {"tool": "calibration_fixture"}
+    path = tmp_path / "unrecognised-tool.jsonl"
+    path.write_text(json.dumps(record) + "\n", encoding="utf-8")
+    with pytest.raises((ValueError, TypeError)):
+        load_store(str(path))
