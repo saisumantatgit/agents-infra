@@ -4,19 +4,27 @@
 **Branch:** `plugin-validation-2026-10-02`, child of `agent-assure-calibration-run`.
 **Pushed. NOT merged — the merge is your GO.** Undo the night with
 `git branch -D plugin-validation-2026-10-02`; `main` untouched. The previous night's work is already MERGED (PR #5).
-**Suite:** `cd Agent-Assure && uv run pytest -q` → 750 passed, 2 skipped,
+**Suite:** `cd Agent-Assure && uv run pytest -q` → 751 passed, 2 skipped,
 63 xfailed. Trust the RUN, not this number.
 
 Read: this file → `docs/logbook/overnight-2026-10-01B-progress.md` (the morning
 report, §0 answers "is it ready to ship?") → `docs/decisions/RATIFICATION-REGISTER-2026-08-30.md`
-(D-51…D-60) → `docs/jobs/REGISTER.md`.
+(D-51…D-61) → `docs/jobs/REGISTER.md`.
 
 ---
 
-# IS IT READY TO SHIP? Ready as both CLI and plugin — one 2-minute check left.
+# IS IT READY TO SHIP? Ready as both. One 2-minute check left (J-54).
 
 **J-52 is closed as far as it can be closed without you.** Report:
 `Agent-Assure/docs/reports/J52-PLUGIN-PATH-2026-10-02.md`.
+
+**`/assure-verify` is proven end to end through the plugin**: a real
+`claude -p` run against the fabricated demo draft returned FAIL 50.0, caught the
+fabricated `[S3]` and the invented "100×", and volunteered its own limitations.
+That session also found **J-56** — the engine printed "NEVER RETRIEVED this
+session" with no `--session-id` passed, the same overclaim CLAIM-1 retired from
+the doc surfaces, surviving in runtime strings where the drift guard never
+looked. Fixed and guarded.
 
 Validated and pinned (`tests/test_plugin_contract.py`): the manifest is
 discoverable; the hook matcher covers **every** shipped retrieval tool in both
