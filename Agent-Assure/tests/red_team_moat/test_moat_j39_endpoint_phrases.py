@@ -81,13 +81,21 @@ def test_the_modifiers_are_part_of_the_endpoint(tmp_path):
     assert rep["gate"] != "PASS"
 
 
-def test_a_source_that_really_asserts_the_relation_still_certifies(tmp_path):
-    """Without this the fix could be `return UNVERIFIED_RELATION` — a tautology."""
+def test_a_source_that_really_asserts_the_relation_is_still_CORROBORATED(tmp_path):
+    """Without this the fix could be a blanket refusal that proves nothing about
+    endpoints at all — the tautology INS-005 exists to catch.
+
+    ADR-007 / D-76: a RELATIONAL claim is NEVER certified. The corroboration
+    this test set up is still computed and still asserted — it moved to
+    `relation_diagnostic`, which is information, not a verdict. The verdict
+    is UNVERIFIED_RELATION for every relational claim, by design.
+    """
     rep = _report(tmp_path,
                   "The ingestion pipeline causes silent data loss [S3][S4].\n",
                   HONEST)
-    assert rep["per_claim"][0]["verdict"] == "GROUNDED"
-    assert rep["gate"] == "PASS"
+    assert rep["per_claim"][0]["relation_diagnostic"] == g.RELATION_CORROBORATED
+    assert rep["per_claim"][0]["verdict"] == "UNVERIFIED_RELATION"
+    assert rep["gate"] == "FAIL"
 
 
 def test_extract_arguments_keeps_the_whole_contiguous_phrase():

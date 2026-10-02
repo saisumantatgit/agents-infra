@@ -80,7 +80,7 @@ def test_non_claim_returns_grounded():
 # Branch 2: RELATIONAL delegates to ground_relational
 # ---------------------------------------------------------------------------
 
-def test_relational_delegates_to_ground_relational():
+def test_relational_is_refused_while_the_DIAGNOSTIC_corroborates():
     """RELATIONAL claim is routed through ground_relational (two-distinct-source rule).
 
     Side A ('insulin resistance') in S1, side B ('type 2 diabetes') in S2,
@@ -104,9 +104,13 @@ def test_relational_delegates_to_ground_relational():
     )
     claim = _classified("Insulin resistance causes type 2 diabetes [S1][S2].")
     assert claim.kind == ClaimKind.RELATIONAL
-    result = ground(claim, _store(s1, s2))
-    assert result == Verdict.GROUNDED, (
-        f"Expected GROUNDED via ground_relational delegation, got {result}"
+    store = _store(s1, s2)
+    result = ground(claim, store)
+    assert g.relational_diagnostic(claim, store) == g.RELATION_CORROBORATED, (
+        "the corroboration rule must still CONCLUDE — a demotion that stops "
+        "computing the thing is a deletion, not a demotion")
+    assert result == Verdict.UNVERIFIED_RELATION, (
+        f"ADR-007 / D-76: a RELATIONAL claim is never certified, got {result}"
     )
 
 
@@ -123,7 +127,7 @@ def test_relational_delegation_unverified_relation():
     assert claim.kind == ClaimKind.RELATIONAL
     assert g.relational_diagnostic(claim, _store(s1)) == g.RELATION_NOT_CORROBORATED
     result = ground(claim, _store(s1))
-    assert result == Verdict.UNGROUNDED, (
+    assert result == Verdict.UNVERIFIED_RELATION, (
         f"Expected UNGROUNDED via the ordinary path, got {result}"
     )
 

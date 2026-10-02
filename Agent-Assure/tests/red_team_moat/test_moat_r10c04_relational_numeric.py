@@ -77,7 +77,7 @@ def test_the_relation_is_still_corroborated_without_a_figure(tmp_path):
                   "Insulin resistance causes type 2 diabetes [S2][S3].\n",
                   NO_NUMBER)
     assert rep["per_claim"][0]["relation_diagnostic"] == g.RELATION_CORROBORATED
-    assert rep["per_claim"][0]["verdict"] == "UNGROUNDED"
+    assert rep["per_claim"][0]["verdict"] == "UNVERIFIED_RELATION"
     assert rep["gate"] == "FAIL"
 
 
@@ -89,7 +89,7 @@ def test_a_figure_PRESENT_in_the_store_leaves_the_diagnostic_clean(tmp_path):
                   "Insulin resistance causes 97% of all type 2 diabetes "
                   "[S2][S3].\n", WITH_97)
     assert rep["per_claim"][0]["relation_diagnostic"] == g.RELATION_CORROBORATED
-    assert rep["per_claim"][0]["verdict"] == "UNGROUNDED"
+    assert rep["per_claim"][0]["verdict"] == "UNVERIFIED_RELATION"
     assert rep["gate"] == "FAIL"
 
 
@@ -136,7 +136,7 @@ def test_the_figure_satisfies_the_diagnostic_when_the_CITED_source_carries_it(tm
                   "Insulin resistance causes 97% of all type 2 diabetes "
                   "[S2][S3].\n", WITH_97)
     assert rep["per_claim"][0]["relation_diagnostic"] == g.RELATION_CORROBORATED
-    assert rep["per_claim"][0]["verdict"] == "UNGROUNDED"
+    assert rep["per_claim"][0]["verdict"] == "UNVERIFIED_RELATION"
     assert rep["gate"] == "FAIL"
 
 
@@ -210,7 +210,7 @@ def test_a_spelled_figure_the_CITED_SOURCE_CARRIES_satisfies_the_diagnostic(tmp_
                   "Insulin resistance causes ninety-seven percent of all type 2 "
                   "diabetes [S2][S3].\n", spelled)
     assert rep["per_claim"][0]["relation_diagnostic"] == g.RELATION_CORROBORATED
-    assert rep["per_claim"][0]["verdict"] == "UNGROUNDED"
+    assert rep["per_claim"][0]["verdict"] == "UNVERIFIED_RELATION"
     assert rep["gate"] == "FAIL"
 
 
@@ -237,7 +237,7 @@ def test_a_relational_claim_with_no_spelled_figure_is_untouched(tmp_path):
                   "Insulin resistance causes type 2 diabetes [S2][S3].\n",
                   NO_NUMBER)
     assert rep["per_claim"][0]["relation_diagnostic"] == g.RELATION_CORROBORATED
-    assert rep["per_claim"][0]["verdict"] == "UNGROUNDED"
+    assert rep["per_claim"][0]["verdict"] == "UNVERIFIED_RELATION"
     assert rep["gate"] == "FAIL"
 
 
@@ -294,7 +294,7 @@ def test_per_cent_refuses_an_UNRELATED_digit_J53(tmp_path):
                       "[S2][S3].\n", two_ways)
     assert control["per_claim"][0]["relation_diagnostic"] == g.RELATION_CORROBORATED, (
         "the control must corroborate, or this test proves nothing about per cent")
-    assert control["per_claim"][0]["verdict"] == "UNGROUNDED"
+    assert control["per_claim"][0]["verdict"] == "UNVERIFIED_RELATION"
 
     rep = _report(tmp_path,
                   "Insulin resistance causes per cent diabetes in 2 distinct "

@@ -1662,3 +1662,20 @@ dispatched against ADR-007 itself and had not handed back when this close was
 written. Its report file exists on disk and is **deliberately uncommitted** —
 a partial artifact is mid-flight, not done (ADR-044). **Nothing in this register
 may be read as "ADR-007 survived an adversary."** It has not yet been reviewed.
+
+### Round 13 refuted ADR-007's first implementation. Two more decisions, one a withdrawal.
+
+| id | Decision | Basis | UNDO | status |
+|---|---|---|---|---|
+| D-76 | **D-74 WITHDRAWN. The fall-through is replaced by a FLAT REFUSAL: a RELATIONAL claim returns `UNVERIFIED_RELATION`, always.** This is Sai's ruling exactly as he was shown it, at the price he was shown (Error-A 0.400). | **R13: six NEW Error-B shapes, five CRITICAL, caused by MY refinement.** T1 and corroboration are not nested — T1 certifies on an 8-token contiguous span anchored at the claim's SUBJECT plus set-membership coverage, so a causal claim with a long subject phrase had its entire PREDICATE checked only by "do these words appear anywhere in this source". Direction reversal with no planted vocabulary, a source that explicitly DENIES the relation, and negation reversal ("causes no X" grounded by "causes X", because `no` is a stop word) all certified PASS 100.0 at the fall-through commit and FAIL at `59b647d`. **J-57, J-60 and J-61 were not closed by the demotion — they were MOVED ONTO T1.** The four points of Error-A that fall-through saved bought six Error-B shapes. | `git revert` this commit returns to fall-through and to 0.360 — and to the six shapes. Do not. | DONE |
+| D-77 | **The figure checks are now KIND-INDEPENDENT in `ground()`.** `if claim.numeric_tokens and not numeric_ok(...)` and `if not spelled_quantity_ok(...)`, for every kind that reaches the verbatim path — not gated on `kind == NUMERIC`. | **R13-01, CRITICAL, reproduced through the CLI by me before acting:** `gate: PASS, score 100.0, exit 0` on "The 2019 federal review … causes a 3.7 million euro shortfall", **while printing `figure_not_in_cited_sources` in the same record.** `classify`'s cascade is RELATIONAL → ABSENCE → NUMERIC, so a figure inside a causal sentence was kind RELATIONAL and never reached the numeric gate; the pre-ADR-007 relational branch ran `numeric_ok` itself and I deleted that branch without re-homing the check. The deeper defect PREDATES ADR-007: an ABSENCE claim carrying a figure skipped it too. **A check gated on a classifier branch is a check an author can route around by adding one word.** Strictly fail-closed; added no false alarm on the corpus (Error-A is 0.400 either way). | `git revert` this commit; two `if` statements. | DONE |
+
+**Pattern worth naming, because it is now twice in one session.** D-68 (J-44)
+and D-74 (fall-through) were both *refinements I made inside a ruling*, both
+argued from a real measurement, and both created Error-B. The measurement was
+not wrong either time — 0.360 really is less than 0.400. What was wrong was
+treating a single measured quantity as the whole of the trade when the thing I
+was changing sits on the unrecoverable side of the invariant. **Inside a ruling
+that touches the moat, a refinement needs its own adversary BEFORE it lands, not
+after.** Round 13 cost nothing to run and caught six shapes; had PR #7 been
+merged on the fall-through, it would have shipped them.

@@ -3410,49 +3410,48 @@ def ground(
 
     # ======================================================================
     # RELATIONAL GROUNDING IS DEMOTED (ADR-007, Sai's ruling 2026-10-02).
+    # A RELATIONAL claim IS NEVER CERTIFIED. The two-source corroboration
+    # result is reported as a DIAGNOSTIC only (`relation_diagnostic`).
     #
-    # It decides NOTHING. A RELATIONAL claim falls through to the ordinary
-    # citation/verbatim path below, exactly as a FACTUAL claim does, and the
-    # two-source corroboration result is reported as a DIAGNOSTIC only
-    # (`relation_diagnostic` in the per-claim report).
+    # WHY THE RULE WENT. Round 12 demonstrated SEVEN Error-B shapes on it, two
+    # CRITICAL, all pre-existing: a negated endpoint grounded by the positive, a
+    # trailing clause replacing the asserted object, a trigger merely
+    # CO-LOCATED in the window, direction-blindness, a window that DENIES the
+    # relation satisfying it, both endpoints resolving to one phrase, and the
+    # absence variant. Seven shapes on one rule is a CLASS: it was
+    # reconstructing "this source asserts a relation between A and B" from
+    # token co-occurrence, against an adversary who writes the document — the
+    # trap the comment stripper lost five rounds to (J-41), and the reason
+    # ADR-006 demoted T2.
     #
-    # WHY. Round 12 demonstrated SEVEN Error-B shapes on this branch, two of
-    # them CRITICAL, every one of them pre-existing: a negated endpoint
-    # grounded by the positive, a trailing clause replacing the asserted
-    # object, a trigger merely CO-LOCATED in the window rather than relating
-    # the endpoints, direction-blindness ("B because of A" grounding "A causes
-    # B"), a window that DENIES the relation satisfying it, both endpoints
-    # resolving to the same phrase, and the absence variant. They are not a
-    # backlog, they are a CLASS: this rule was reconstructing "X asserts a
-    # relation between A and B" from token co-occurrence, against an adversary
-    # who writes the document. That is the same structural trap the HTML
-    # comment stripper lost five rounds to (J-41).
+    # WHY A FLAT REFUSAL AND NOT FALL-THROUGH — D-74 WITHDRAWN (D-76).
+    # ADR-007 first let a relational claim fall through to the ordinary
+    # verbatim path, on the measured argument that it cost 0.360 Error-A
+    # against a flat refusal's 0.400. Round 13 refuted it: T1 and corroboration
+    # are NOT NESTED. T1 certifies on an 8-token contiguous span anchored at the
+    # claim's SUBJECT plus set-membership coverage, so a causal claim with a
+    # long subject phrase had its entire PREDICATE checked only by "do these
+    # words appear anywhere in this source". Direction reversal with no planted
+    # vocabulary, a source that explicitly DENIES the relation, and negation
+    # reversal ("causes no X" grounded by "causes X", because `no` is a stop
+    # word) all certified PASS 100.0. J-57, J-60 and J-61 were not closed by
+    # the demotion — they were MOVED ONTO T1.
     #
-    # THE PRICE, MEASURED, NOT ESTIMATED. Across the n=52 gold corpus the
-    # relational rule earned exactly TWO certifications (q12, q36) — five of
-    # its seven rows are gold VIOLATIONS it was already refusing. Demoting it
-    # moves Error-A from 0.320 to 0.400 (8/25 -> 10/25) and leaves Error-B at
-    # 0/27, while removing the entire unrecoverable class. Eight points of a
-    # RECOVERABLE error to close an UNRECOVERABLE one is the trade the moat
-    # invariant exists to make.
+    # So the four points of Error-A that fall-through saved bought six Error-B
+    # shapes. The invariant is not a preference: Error-B is unrecoverable and no
+    # change may reduce Error-A by raising it. Sai priced the flat refusal at
+    # 0.400 and ruled on it; the refinement was mine and it was wrong.
     #
-    # WHY FALL-THROUGH AND NOT A FLAT REFUSAL. A flat `return
-    # UNVERIFIED_RELATION` would also have worked and was the simpler change.
-    # Fall-through is better because it DELETES A RULE instead of adding one:
-    # a relational claim is now grounded by exactly the guarantee the product
-    # actually makes — the cited source contains the claim verbatim — with no
-    # bespoke path of its own. If a source literally states the causal
-    # sentence, certifying it is correct; if it does not, no amount of
-    # co-occurrence should have. Verified before landing: NONE of the five
-    # gold-violation relational rows certifies through the verbatim path.
-    #
-    # PRECEDENT: ADR-006 demoted T2 the same way, and this repo's own rule
-    # says a demoted computation is KEPT as a visible no-op rather than
-    # deleted, so a future change cannot silently re-enable a path nobody
-    # re-validated. `ground_relational`, `extract_arguments`,
-    # `_endpoint_in_window` and `spelled_quantity_ok` all still run, still
-    # have their tripwires, and still report — they just do not vote.
+    # The machinery is KEPT, not deleted — `relational_diagnostic`,
+    # `ground_relational`, `extract_arguments`, `_endpoint_in_window` and
+    # `spelled_quantity_ok` all still run and still report, so every round-10
+    # and round-12 tripwire stays strict and a future change cannot silently
+    # re-enable a path nobody re-validated (the `tier_sensitive` precedent).
+    # `UNVERIFIED_RELATION` is therefore the verdict again — reachable, and
+    # meaning exactly one thing: this gate does not certify relations.
     # ======================================================================
+    if claim.kind == ClaimKind.RELATIONAL:
+        return Verdict.UNVERIFIED_RELATION
 
     if claim.kind == ClaimKind.ABSENCE:
         # R10C-03: a store of ONLY haiku_summary records certified an absence at
@@ -3515,7 +3514,33 @@ def ground(
     if not verbatim:
         return Verdict.UNGROUNDABLE
 
-    if claim.kind == ClaimKind.NUMERIC and not numeric_ok(claim, verbatim):
+    # R13-01 / R13-02 (round 13) — A CHECK GATED ON A CLASSIFIER BRANCH IS A
+    # CHECK AN AUTHOR CAN ROUTE AROUND BY ADDING ONE WORD.
+    #
+    # This read `claim.kind == ClaimKind.NUMERIC`. `classify`'s cascade is
+    # NON_CLAIM -> RELATIONAL -> ABSENCE -> NUMERIC, so a figure inside a causal
+    # sentence is kind RELATIONAL and never reached here. Before ADR-007 the
+    # relational branch ran `numeric_ok` itself (R10C-04); ADR-007 deleted that
+    # branch and I did not re-home the check, so for a few hours the gate
+    # certified a fabricated monetary figure at PASS 100.0 / exit 0 while
+    # PRINTING `figure_not_in_cited_sources` in the same record:
+    #
+    #   "The 2019 federal review of interbank settlement latency across the
+    #    eurozone causes a 3.7 million euro shortfall [S1][S2]."
+    #
+    # The deeper defect is the gating itself, and it predates ADR-007: an
+    # ABSENCE claim carrying a figure skipped this check too, for the same
+    # reason. A figure is a figure whatever sentence it sits in, so the check is
+    # now KIND-INDEPENDENT — every claim that reaches the verbatim path and
+    # carries a figure must have it present in a cited source. Strictly
+    # fail-closed: it can only move claims away from PASS.
+    if claim.numeric_tokens and not numeric_ok(claim, verbatim):
+        return Verdict.UNVERIFIED_NUMBER
+
+    # The same hole, for a figure spelled in words (J-43). `spelled_quantity_ok`
+    # lived only in the deleted relational branch, so after ADR-007 it was
+    # reachable from nothing at all.
+    if not spelled_quantity_ok(claim, verbatim):
         return Verdict.UNVERIFIED_NUMBER
 
     # T2 IS NO LONGER CONSULTED HERE (ADR-006, 2026-09-02). T1 alone certifies.

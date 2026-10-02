@@ -232,5 +232,5 @@ def test_honest_relational_claim_is_corroborated_but_NOT_certified(tmp_path):
     rep = _run(tmp_path,
                "Insulin resistance causes type 2 diabetes [S2][S3].\n", REL)
     assert rep["per_claim"][0]["relation_diagnostic"] == g.RELATION_CORROBORATED
-    assert rep["per_claim"][0]["verdict"] == "UNGROUNDED"
+    assert rep["per_claim"][0]["verdict"] == "UNVERIFIED_RELATION"
     assert rep["gate"] == "FAIL"

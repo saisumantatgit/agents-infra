@@ -312,14 +312,19 @@ def test_ungrounded_row_is_not_tier_sensitive():
 # Error-B. Proven RED against the pre-fix code before acceptance.
 # ---------------------------------------------------------------------------
 
-def test_relational_grounded_row_is_not_tier_sensitive():
+def test_relational_row_is_not_tier_sensitive():
     """insulin->diabetes shape (mirrors tests/test_relational.py): side A in S1,
     side B in S2, both verbatim -> ground_relational returns GROUNDED with
     t1_verbatim False (a 6-token relational claim, too short for T1, and its two
     sides live in different sources). The verdict is FIXED regardless of lex_tau,
     so tier_sensitive MUST be False, and predicted_is_violation MUST return the
-    fixed verdict-based result (NOT a violation) at EVERY lex_tau -- never the
-    t2_f1<lex_tau re-threshold. This is the merge-blocker: production grounds this
+    fixed verdict-based result at EVERY lex_tau -- never the t2_f1<lex_tau
+    re-threshold.
+
+    UPDATED 2026-10-02 (ADR-007 / D-76): that fixed result is now a VIOLATION,
+    because a RELATIONAL claim is never certified. The property under test is
+    UNCHANGED and is the merge-blocker it always was -- the verdict must not
+    move with lex_tau. What changed is which fixed value it is. This is the merge-blocker: production grounds this
     claim at every lex_tau, but the buggy tier_sensitive=True flipped it to a
     violation at lex_tau >= t2_f1, silently corrupting held-out Error-B."""
     s1 = _src(
@@ -344,7 +349,7 @@ def test_relational_grounded_row_is_not_tier_sensitive():
     row = rows[0]
 
     assert row.kind == "RELATIONAL"
-    assert row.predicted_verdict == "GROUNDED"
+    assert row.predicted_verdict == "UNVERIFIED_RELATION"
     # t1_verbatim became True on 2026-09-02: ADR-006's exact-containment path
     # matches "insulin resistance causes type 2 diabetes" inside S1's "Sustained
     # insulin resistance causes type 2 diabetes to develop". Incidental to this
@@ -357,7 +362,7 @@ def test_relational_grounded_row_is_not_tier_sensitive():
     assert row.tier_sensitive is False        # RELATIONAL never consults lex_tau
 
     for lex_tau in (0.10, 0.65, 0.90):
-        assert predicted_is_violation(row, lex_tau) is False
+        assert predicted_is_violation(row, lex_tau) is True
 
 
 def test_non_claim_row_is_not_tier_sensitive():

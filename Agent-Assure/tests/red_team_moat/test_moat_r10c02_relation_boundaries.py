@@ -76,7 +76,7 @@ def test_the_genuine_relation_is_still_CORROBORATED(tmp_path):
     """
     rep = _report(tmp_path, "AI drives mass layoffs [S1][S2].\n", GENUINE)
     assert rep["per_claim"][0]["relation_diagnostic"] == g.RELATION_CORROBORATED
-    assert rep["per_claim"][0]["verdict"] == "UNGROUNDED"
+    assert rep["per_claim"][0]["verdict"] == "UNVERIFIED_RELATION"
     assert rep["gate"] == "FAIL"
 
 

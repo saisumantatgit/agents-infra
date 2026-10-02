@@ -234,11 +234,15 @@ MATRIX = [
     # ------------------------------------------------------------------
     # ROW 7: relational claim, single verbatim source (id kept: unverified_relation)
     #
-    # Claim is RELATIONAL (contains "causes"). Under ADR-007 it falls through
-    # to the ordinary citation/verbatim path: S1 does not contain the claim
-    # verbatim → UNGROUNDED. The two-source rule (needs ≥2 DISTINCT verbatim
-    # sources; only S1 is present) is now a diagnostic, pinned separately by
+    # Claim is RELATIONAL (contains "causes"). Under ADR-007 / D-76 a relational
+    # claim is NEVER certified and never reaches the verbatim path at all, so the
+    # verdict is UNVERIFIED_RELATION for every relational claim — which is why
+    # this row's name and its verdict agree again. The two-source rule is now a
+    # diagnostic, pinned separately by
     # test_golden_relational_diagnostic_single_source.
+    #
+    # The fall-through this comment used to describe was withdrawn after round 13
+    # showed T1 certifying causal claims whose sources DENIED or REVERSED them.
     # ------------------------------------------------------------------
     pytest.param(
         "unverified_relation",
@@ -249,7 +253,7 @@ MATRIX = [
                 "Insulin resistance is a metabolic condition affecting cells.",
             )
         ),
-        Verdict.UNGROUNDED,
+        Verdict.UNVERIFIED_RELATION,
         id="unverified_relation",
     ),
 ]

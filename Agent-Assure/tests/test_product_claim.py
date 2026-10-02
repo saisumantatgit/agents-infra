@@ -265,7 +265,7 @@ def test_LIMITATION_a_relational_claim_is_never_certified_by_corroboration(tmp_p
     assert pc["relation_diagnostic"] == g.RELATION_CORROBORATED, (
         "the diagnostic must still measure corroboration — a demotion that "
         "stops computing the thing is a deletion, not a demotion")
-    assert pc["verdict"] == "UNGROUNDED", (
+    assert pc["verdict"] == "UNVERIFIED_RELATION", (
         "ADR-007 was reverted — update the claim text before this test"
     )
     assert rep["gate"] == "FAIL"
@@ -289,12 +289,22 @@ def test_the_verdict_path_does_not_consult_the_RELATIONAL_DIAGNOSTIC():
     tree = ast.parse(textwrap.dedent(inspect.getsource(g.ground)))
     referenced = {n.id for n in ast.walk(tree) if isinstance(n, ast.Name)} | {
         n.attr for n in ast.walk(tree) if isinstance(n, ast.Attribute)}
+    # NARROWED after round 13. `UNVERIFIED_RELATION` is legitimately returned
+    # by ground() again (D-76 withdrew the fall-through), and the FIGURE checks
+    # — numeric_ok and spelled_quantity_ok — were deliberately re-homed INTO
+    # the verdict path, kind-independently, because gating them on a classifier
+    # branch is what R13-01 exploited. What must never be consulted is the
+    # CORROBORATION RULE and the endpoint machinery that serves only it.
     for name in ("relational_diagnostic", "ground_relational",
-                 "extract_arguments", "spelled_quantity_ok",
-                 "_endpoint_in_window", "UNVERIFIED_RELATION"):
+                 "extract_arguments", "_endpoint_in_window"):
         assert name not in referenced, (
-            f"ground() references {name!r} — ADR-007 demoted it to a "
-            f"diagnostic, so the verdict path must not read it")
+            f"ground() references {name!r} — ADR-007 demoted the corroboration "
+            f"rule to a diagnostic, so the verdict path must not read it")
+    assert "numeric_ok" in referenced and "spelled_quantity_ok" in referenced, (
+        "the figure checks must stay IN the verdict path and kind-independent — "
+        "R13-01 certified a fabricated 3.7 million euro figure at PASS 100.0 "
+        "because the numeric check was gated on kind == NUMERIC while classify "
+        "ranks RELATIONAL higher")
 
 
 def test_the_demoted_machinery_is_KEPT_not_deleted():
