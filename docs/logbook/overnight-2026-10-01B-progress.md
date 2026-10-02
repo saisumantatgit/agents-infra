@@ -181,3 +181,13 @@ The most interesting finding is α4's. Eleven adversarial rounds, 739 tests, fiv
 calibration records — and the first command the installer prints produced a raw
 traceback, because every test in the suite constructs a store before calling the
 gate. Adversaries attack what you built. Nobody had been the stranger.
+
+---
+
+# J-52 — the plugin path (2026-10-02, after Sai's "do this / rearm until done")
+
+| UTC | what changed | new tokens | frameworks |
+|---|---|---|---|
+| 2026-10-02 01:20 | **PR #5 MERGED** into `agent-assure-calibration-run` (`8fd5282`), suite green at 739 on the merged tree, `main` untouched. Re-armed on `plugin-validation-2026-10-02` (D-59) with "done" defined up front so it could not drift. | ~0.05M | Reversibility · Close-after-open |
+| 2026-10-02 01:45 | **J-52 items 1-4 CLOSED and pinned** (`tests/test_plugin_contract.py`, 10 tests): manifest discoverable; **hook matcher covers every shipped retrieval tool, both directions**; the exact `hooks.json` command line fires with `CLAUDE_PLUGIN_ROOT` resolved and writes a store carrying the session id; command + skill frontmatter discoverable. `claude plugin validate --strict` passes — but note it covers "skills, agents, and commands", **not hooks**, so it is not evidence about `hooks.json`. | ~0.30M | FMEA detectability (a capture gap is invisible by construction — the matcher-parity guard is the point) · Calibration (did not read a passing validator as hook evidence) |
+| 2026-10-02 02:00 | **Item 5 measured and it did NOT pass — then cleared our plugin.** A real `claude -p --plugin-dir` ran (exit 0, answered `47219`, so `Read` definitely ran) and **no store appeared**. Discriminators: the nested session reports `/assure-verify` IS available (weak — model self-report), and **a PLAIN project-local `.claude/settings.json` PostToolUse hook ALSO did not fire**. So the suppression is not plugin-specific. **Corrected the guide agent's misquote**: `-p`'s help says "settings files **that fail validation** are silently ignored", not "settings files are ignored" — a materially different claim that briefly pointed me at a defect in our own `hooks.json`. | ~0.35M | Contradiction-as-locator (plugin loads but hook does not fire → isolate with a plain hook) · Calibration (checked the quoted help text myself; the paraphrase was wrong) · Three-kind search (named the absence "not found by this method", not "absent") |
