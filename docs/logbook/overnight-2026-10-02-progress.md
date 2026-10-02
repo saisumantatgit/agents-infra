@@ -90,7 +90,7 @@ to Sai as Escalation #1 and merged two others into one class.
 
 | UTC | Diff | What changed | New tokens | Frameworks |
 |---|---|---|---|---|
-| 17:0x | 4 | Round 14 reported: 4 CRITICAL Error-B, all reproduced by me from the adversary's own fixtures. 7/7 round-12 relational shapes confirmed refused; positive control intact. | ~0.35M | Contradiction-as-locator; Asymmetry of error cost |
+| 17:0x | 4 | Round 14 reported: **3 CRITICAL (NEW) + 2 re-confirmed + 1 doc-defect as the adversary graded it**; I re-graded R14-04 to CRITICAL and said so. All reproduced by me from the adversary's own fixtures. 7/7 round-12 relational shapes confirmed refused; positive control intact. | ~0.35M | Contradiction-as-locator; Asymmetry of error cost |
 | 17:3x | 2 | J-69/J-70/J-71 registered with owners and a measured price. ADR-007 amended for my own overclaim (R14-06). 5 strict-xfail tripwires added. PR #7 updated. | ~0.25M | FMEA detectability; Case-vs-Systemic (systemic chosen) |
 | 17:5x | 1 | **Recommendation WITHDRAWN** — the priced J-70 repair breaks 5 of 7 honest drafts. J-62+J-71 merged into one class and priced. J-72 opened. | ~0.25M | Calibration; Swiss cheese; Sunk cost (my own) |
 

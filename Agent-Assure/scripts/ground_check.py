@@ -3682,6 +3682,24 @@ def evidence_basis(claim: Claim, store: dict[str, RetrievedSource]) -> str:
             return ("The evidence store recorded NO search queries. An absence "
                     "claim is substantiated by searches that were actually "
                     "run, and there are none to show.")
+        # J-45 (2026-10-02): this listing used to end at the queries, which
+        # read as "all of these counted". They do not. check_absence narrows
+        # them twice before anything is certified — by the claim's SCOPE
+        # (OI-ABS-01: to establish absence FROM a domain you must have looked
+        # IN it) and then by requiring the subject's head noun, plus a
+        # corroborating content word when the subject is specific.
+        #
+        # So a user reading "3 distinct search queries" next to a REFUSAL had
+        # no way to see that only one of the three was eligible, which is
+        # precisely the information needed to fix the draft. That is the D-35
+        # class: a display that states something the verdict does not.
+        #
+        # WHY THIS DOES NOT RECOMPUTE THE COUNT. Re-deriving match_count here
+        # would put the absence rule in two places, and two copies of a moat
+        # rule diverge — the failure this file has already paid for. The
+        # display's job is to report what was CONSULTED and to name the rule
+        # that narrows it; the verdict remains the single authority on how many
+        # qualified. Display must never become decision (D-34).
         listed = "; ".join(f'"{q}"' for q in queries)
         return (f"An absence claim is checked against what was SEARCHED, not "
                 f"what was cited. Complete record consulted: "
@@ -3689,7 +3707,11 @@ def evidence_basis(claim: Claim, store: dict[str, RetrievedSource]) -> str:
                 f"{_plural(len(queries), 'query', 'queries')} and the text of "
                 f"{n_src} retrieved {_plural(n_src, 'source', 'sources')}. "
                 f"The {_plural(len(queries), 'query was', 'queries were')}: "
-                f"{listed}.")
+                f"{listed}. NOTE: this is the complete record consulted, not "
+                f"the set that counted. A query counts toward the minimum only "
+                f"if it addresses the claim's asserted SCOPE and carries the "
+                f"subject's head noun, so fewer of the above may have "
+                f"qualified than are listed.")
 
     if not claim.citations:
         n_src = len(store)
