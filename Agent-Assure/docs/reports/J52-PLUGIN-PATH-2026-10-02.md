@@ -74,9 +74,31 @@ the hook command works when invoked (item 3), the matcher covers the tools
 Code does not register a `--plugin-dir` plugin's hooks at all — which the docs
 say it does.
 
+## ADDENDUM — item 5 reached by another route, and a stranger found a bug
+
+The Goodhart check on this report's own close was correct: it proved
+`/assure-verify` is DISCOVERABLE, not that it WORKS. That path IS reachable
+non-interactively, because it needs a store to EXIST, not the hook to FIRE.
+
+**It works.** `claude -p "/assure-verify draft.md" --plugin-dir …` against the
+fabricated demo draft returned **FAIL, 50.0**, caught the fabricated `[S3]` as
+`UNVERIFIED_CITATION` and the invented "100×" as `UNVERIFIED_NUMBER`, attributed
+both grounded claims correctly, and volunteered the limitations unprompted.
+
+**And it found J-56, which 750 tests had not.** It noticed that the engine's own
+message said a missing citation "was NEVER RETRIEVED **this session**" while no
+`--session-id` had been passed. That is the same overclaim CLAIM-1 retired from
+the four shipped surfaces, surviving one layer down in RUNTIME OUTPUT — the drift
+guard reads documents, never the strings the engine prints. Fixed, guarded, and
+the new AST guard then caught a sibling in the absence branch that a three-kind
+grep had missed.
+
+So the plugin path is now proven end to end for the stranger's actual
+experience. What remains is only the live hook firing (J-54).
+
 ## Verdict
 
-**The plugin path is validated except for live interactive hook firing, which no
+**The plugin path is validated end to end for a stranger's actual experience** — install, the engine, the hook command, discovery, AND `/assure-verify` returning a correct verdict through the plugin. The only unreached step is the live hook FIRING (J-54, two minutes, interactive). The ship verdict is **ready as both CLI and plugin**, with that one confirmation outstanding plus the print-mode caveat, now documented.
 automated test can reach.** The ship verdict moves from "not ready as a plugin"
 to **ready, with one two-minute human confirmation (J-54) outstanding** — plus
 the print-mode caveat above, which is a documentation fix, now done.
