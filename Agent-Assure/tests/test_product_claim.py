@@ -238,6 +238,84 @@ def test_LIMITATION_a_multi_line_authoring_note_is_scored(tmp_path):
     assert rep["gate"] == "FAIL", "J-48 was fixed — update the claim text"
 
 
+def test_LIMITATION_a_relational_claim_is_never_certified_by_corroboration(tmp_path):
+    """NOT PROMISED, since ADR-007: that a causal or correlational claim is
+    certified because two sources corroborate it.
+
+    Round 12 demonstrated seven Error-B shapes on that rule, so it was demoted:
+    a RELATIONAL claim now reaches the ordinary verbatim path, and certifies
+    only when a cited source contains the claim itself. The corroboration
+    result is still computed and REPORTED — as information, never a verdict.
+
+    This store corroborates the relation across two sources as strongly as the
+    old rule ever required. The claim must still be refused.
+    """
+    recs = [
+        _rec(sid="S1", qp="q1",
+             text="Insulin resistance impairs glucose uptake and is a central "
+                  "mechanism that causes type 2 diabetes to develop."),
+        _rec(sid="S2", qp="q2",
+             text="Type 2 diabetes develops when insulin resistance "
+                  "progresses and the pancreas cannot compensate."),
+    ]
+    rep = _verdicts(tmp_path, "Insulin resistance causes type 2 diabetes "
+                              "[S1][S2].\n", recs)
+    pc = rep["per_claim"][0]
+    assert pc["kind"] == "RELATIONAL"
+    assert pc["relation_diagnostic"] == g.RELATION_CORROBORATED, (
+        "the diagnostic must still measure corroboration — a demotion that "
+        "stops computing the thing is a deletion, not a demotion")
+    assert pc["verdict"] == "UNGROUNDED", (
+        "ADR-007 was reverted — update the claim text before this test"
+    )
+    assert rep["gate"] == "FAIL"
+
+
+def test_the_verdict_path_does_not_consult_the_RELATIONAL_DIAGNOSTIC():
+    """ADR-007's load-bearing guard, checked over the AST.
+
+    A diagnostic that creeps back into the verdict path is how a demotion
+    silently un-demotes itself — and this repo has the scar: ADR-006 demoted T2
+    and kept `tier_sensitive` precisely so a future change could not quietly
+    re-threshold verdicts that are supposed to be unable to move.
+
+    `ground` must reference NONE of the demoted machinery, and
+    `UNVERIFIED_RELATION` must no longer be reachable from it.
+    """
+    import ast
+    import inspect
+    import textwrap
+
+    tree = ast.parse(textwrap.dedent(inspect.getsource(g.ground)))
+    referenced = {n.id for n in ast.walk(tree) if isinstance(n, ast.Name)} | {
+        n.attr for n in ast.walk(tree) if isinstance(n, ast.Attribute)}
+    for name in ("relational_diagnostic", "ground_relational",
+                 "extract_arguments", "spelled_quantity_ok",
+                 "_endpoint_in_window", "UNVERIFIED_RELATION"):
+        assert name not in referenced, (
+            f"ground() references {name!r} — ADR-007 demoted it to a "
+            f"diagnostic, so the verdict path must not read it")
+
+
+def test_the_demoted_machinery_is_KEPT_not_deleted():
+    """The other half of ADR-007, and the one a cleanup would quietly undo.
+
+    The repo's standing rule is that a demoted computation stays a VISIBLE
+    no-op (the `tier_sensitive` precedent). If someone deletes these in a
+    tidy-up, every round-10 and round-12 tripwire written against the
+    diagnostic disappears with them, and the record of seven findings goes too.
+    """
+    for name in ("relational_diagnostic", "ground_relational",
+                 "extract_arguments", "spelled_quantity_ok",
+                 "_endpoint_in_window", "RELATION_CORROBORATED",
+                 "RELATION_NOT_CORROBORATED", "RELATION_FIGURE_ABSENT"):
+        assert hasattr(g, name), (
+            f"{name} was deleted. ADR-007 says KEPT as a visible no-op — "
+            f"deleting it takes the tripwires and the findings record with it")
+    assert g.Verdict.UNVERIFIED_RELATION, (
+        "UNVERIFIED_RELATION must stay in the taxonomy: retired, not deleted")
+
+
 # ===========================================================================
 # 3. THE SHIPPED SURFACES must not re-acquire a claim the code cannot keep
 # ===========================================================================

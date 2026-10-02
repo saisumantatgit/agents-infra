@@ -171,6 +171,7 @@ a certificate of truth, and the boundary is deliberate:
 | Not proven | Why |
 |---|---|
 | Where the evidence came from | The gate checks the draft against what the session READ. The drafting agent's tool choices are trusted, so a file it wrote and read back is a verbatim source. |
+| **A causal or correlational claim, unless a source states it** | **ADR-007 (2026-10-02): corroboration no longer certifies anything.** A claim like "X causes Y" is certified only if a cited source contains that claim verbatim — never because two sources each mention one end of it. A red-team round demonstrated seven ways two unrelated documents could satisfy the old rule, so it was demoted to a reported DIAGNOSTIC (`relation_diagnostic`) that decides nothing. **Consequence: a draft containing a causal sentence will usually not PASS.** That is deliberate. |
 | That the meaning is supported | Verbatim provenance only. A faithful paraphrase is REFUSED (Error-A 0.320, n=52, CR-004). `UNGROUNDED` means "not mechanically traceable", never "false". |
 | That the source is right | The gate certifies source-support, not truth. |
 | That an absence was really searched for | The searches behind "no evidence of X" are supplied by the agent, not observed. |

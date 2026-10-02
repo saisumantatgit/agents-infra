@@ -12,6 +12,7 @@ Fixtures are built via classify(...) (real classifier) and plain store dicts,
 so each test exercises the dispatcher against genuinely classified claims.
 """
 
+from scripts import ground_check as g
 from scripts.ground_check import (
     Claim,
     ClaimKind,
@@ -110,17 +111,20 @@ def test_relational_delegates_to_ground_relational():
 
 
 def test_relational_delegation_unverified_relation():
-    """Single verbatim source → ground_relational returns UNVERIFIED_RELATION.
+    """Single verbatim source → the relational rule reports NOT_CORROBORATED.
 
-    This verdict is UNIQUE to the relational path, so observing it proves the
-    dispatcher delegated rather than running the factual/tier path.
+    Under ADR-007 the relational rule is a diagnostic, not a verdict:
+    relational_diagnostic carries the old UNVERIFIED_RELATION conclusion, and
+    ground() itself falls through to the ordinary path (UNGROUNDED here, since
+    S1 does not contain the claim verbatim).
     """
     s1 = _src("S1", "Insulin resistance is a metabolic condition.")
     claim = _classified("Insulin resistance causes type 2 diabetes [S1].")
     assert claim.kind == ClaimKind.RELATIONAL
+    assert g.relational_diagnostic(claim, _store(s1)) == g.RELATION_NOT_CORROBORATED
     result = ground(claim, _store(s1))
-    assert result == Verdict.UNVERIFIED_RELATION, (
-        f"Expected UNVERIFIED_RELATION via delegation, got {result}"
+    assert result == Verdict.UNGROUNDED, (
+        f"Expected UNGROUNDED via the ordinary path, got {result}"
     )
 
 

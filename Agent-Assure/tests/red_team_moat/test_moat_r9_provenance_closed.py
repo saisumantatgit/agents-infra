@@ -120,11 +120,17 @@ def test_unresolved_citation_verdict_is_reported_per_claim(tmp_path):
 
 # --- controls: the fix must not have bought its refusals too widely ---------
 
-def test_relational_control_without_fabrication_still_passes(tmp_path):
-    """Keeps every tripwire above honest: the real two-source claim DOES pass."""
+def test_relational_control_without_fabrication_is_still_CORROBORATED(tmp_path):
+    """Keeps every tripwire above honest: the real two-source claim is still
+    corroborated.
+
+    Under ADR-007 this control moved from the verdict to the diagnostic: corroboration is still measured (relation_diagnostic), it just no longer votes on the gate, so this is not a weakening.
+    """
     rep = _run(tmp_path,
                "Insulin resistance causes type 2 diabetes [S2][S3].\n", REL)
-    assert rep["gate"] == "PASS"
+    assert rep["per_claim"][0]["relation_diagnostic"] == g.RELATION_CORROBORATED
+    assert rep["per_claim"][0]["verdict"] == "UNGROUNDED"
+    assert rep["gate"] == "FAIL"
 
 
 @pytest.mark.xfail(strict=True, reason=(

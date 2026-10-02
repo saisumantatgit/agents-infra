@@ -77,7 +77,7 @@ DRAFT = "The ingestion pipeline causes silent data loss [S1][S2].\n"
 def test_the_modifiers_are_part_of_the_endpoint(tmp_path):
     """The documented J-39 attack: one common noun per side is a coincidence."""
     rep = _report(tmp_path, DRAFT, UNRELATED)
-    assert rep["per_claim"][0]["verdict"] == "UNVERIFIED_RELATION"
+    assert rep["per_claim"][0]["relation_diagnostic"] == g.RELATION_NOT_CORROBORATED
     assert rep["gate"] != "PASS"
 
 

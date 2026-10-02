@@ -57,6 +57,35 @@ These are scope, not bugs — each is pinned by a test in
 `tests/test_product_claim.py`, so if one ever stops being true this list is
 wrong and must be updated.
 
+## Causal claims are reported, never certified (ADR-007)
+
+A RELATIONAL claim — "X causes Y", "A drives B", "C is responsible for D" — is
+grounded by exactly one thing: **a cited source containing that claim
+verbatim.** It is NEVER grounded because two sources each mention one end of it.
+
+The old two-source corroboration rule was demoted on 2026-10-02 after a
+red-team round demonstrated seven ways to satisfy it with documents that assert
+nothing of the kind — a negated endpoint grounded by the positive, a window that
+DENIES the relation, the reverse direction, two unrelated pages sharing a common
+noun. Seven shapes on one rule is a class, not a backlog.
+
+The rule still RUNS and still reports, as `relation_diagnostic` on each
+relational claim:
+
+| value | meaning |
+|---|---|
+| `corroborated_by_two_sources` | the old rule would have been satisfied |
+| `not_corroborated` | it would not |
+| `figure_not_in_cited_sources` | a figure in the claim is absent from the cited sources |
+
+**Read it as a lead, never as a verdict.** `corroborated_by_two_sources` with
+`UNGROUNDED` is the normal, expected output for an honest causal claim: it means
+the sources support the shape of the relation but none of them states it, so the
+gate will not certify it and the author must quote a source or soften the claim.
+
+**Tell the user this when it happens.** A draft of causal prose will come back
+mostly UNGROUNDED, and that is the gate working, not failing.
+
 ## The moat: mechanical, not model-judged
 
 Deep-research agents hallucinate citations 11–57% of the time in production. The

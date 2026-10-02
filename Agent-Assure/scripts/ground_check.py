@@ -3205,6 +3205,50 @@ def _relation_asserted(
     return False
 
 
+# ADR-007 diagnostic values. A closed set, like the verdict taxonomy — a new
+# one needs the ADR amended, for the same reason.
+RELATION_CORROBORATED = "corroborated_by_two_sources"
+RELATION_NOT_CORROBORATED = "not_corroborated"
+RELATION_FIGURE_ABSENT = "figure_not_in_cited_sources"
+
+
+def relational_diagnostic(claim: Claim, store: dict[str, RetrievedSource]) -> str:
+    """Report what the DEMOTED relational rule would have concluded. Decides nothing.
+
+    This is the whole of the pre-ADR-007 relational branch, moved intact out of
+    the verdict path: the two-source corroboration rule (`ground_relational`),
+    the numeric check (R10C-04) and the spelled-figure check (J-43). It is kept
+    rather than deleted on this repo's standing rule that a demoted computation
+    stays a VISIBLE no-op — `tier_sensitive` is kept for the same reason — so
+    that a future change cannot silently re-enable a path nobody re-validated.
+
+    Keeping it whole also keeps every tripwire written against it STRICT. Round
+    10's and round 12's findings are assertions about what this function
+    returns, not about a gate verdict, so they stay red-able at full strength
+    instead of being softened to "the claim does not PASS" — which would have
+    been true for the wrong reason and would have stopped measuring anything.
+
+    Returns one of RELATION_CORROBORATED / RELATION_NOT_CORROBORATED /
+    RELATION_FIGURE_ABSENT. Pure function — no mutation, no LLM/network/
+    random/wall-clock.
+    """
+    if ground_relational(claim, store) != Verdict.GROUNDED:
+        return RELATION_NOT_CORROBORATED
+
+    cited_verbatim = [
+        source
+        for source in (resolve(c, store) for c in claim.citations)
+        if source is not None
+        and source.full_text_source == "verbatim"
+        and source.text
+    ]
+    if claim.numeric_tokens and not numeric_ok(claim, cited_verbatim):
+        return RELATION_FIGURE_ABSENT
+    if not spelled_quantity_ok(claim, cited_verbatim):
+        return RELATION_FIGURE_ABSENT
+    return RELATION_CORROBORATED
+
+
 def ground_relational(claim: Claim, store: dict[str, RetrievedSource]) -> Verdict:
     """Return GROUNDED or UNVERIFIED_RELATION for a RELATIONAL claim.
 
@@ -3364,54 +3408,52 @@ def ground(
     if any(resolve(c, store) is None for c in claim.citations):
         return Verdict.UNVERIFIED_CITATION
 
-    if claim.kind == ClaimKind.RELATIONAL:
-        verdict = ground_relational(claim, store)
-        # R10C-04 (round 10): a number inside a RELATIONAL claim was NEVER
-        # checked. `classify` orders RELATIONAL ahead of NUMERIC and this branch
-        # returns above the numeric branch, so "causes 97% of all silent data
-        # loss" certified GROUNDED at PASS 100.0 against a store containing no
-        # percentage at all. The relation was corroborated and the FIGURE —
-        # the part a reader actually quotes — was never looked at.
-        #
-        # Fail-closed: this can only downgrade an otherwise-GROUNDED relational
-        # claim to UNVERIFIED_NUMBER. It never creates a PASS.
-        #
-        # ABSENCE is deliberately NOT given the same treatment. numeric_ok asks
-        # "does this figure appear in a source", which is the wrong question for
-        # a claim asserting that something is missing. Absence is incidentally
-        # protected today because a digit becomes a strong anchor — that is a
-        # CEILING, not a defence, and it is recorded as such in J-40.
-        if verdict == Verdict.GROUNDED and (
-            claim.numeric_tokens or _spelled_quantity_phrases(claim.text)
-        ):
-            # R11B-03 (round 11): this drew from store.values(), so a figure
-            # appearing ONLY in an uncited, unrelated source satisfied the
-            # check. The NUMERIC branch below has always used the claim's OWN
-            # cited sources, and this must match it — a number is grounded by
-            # what the claim CITES, not by what happens to be in the session.
-            cited_verbatim = [
-                source
-                for source in (resolve(c, store) for c in claim.citations)
-                if source is not None
-                and source.full_text_source == "verbatim"
-                and source.text
-            ]
-            if not numeric_ok(claim, cited_verbatim):
-                return Verdict.UNVERIFIED_NUMBER
-            # J-43 (Sai's ruling, 2026-10-02): the SPELLED form of a figure was
-            # never checked, because _NUMERIC_RE requires a digit and the guard
-            # above therefore ran vacuously. Scoped to RELATIONAL on purpose —
-            # FACTUAL is already protected, since verbatim containment forces
-            # the figure's own characters to appear in the source whatever
-            # alphabet they are written in. Same verdict as the digit case:
-            # a figure the cited sources do not carry is UNVERIFIED_NUMBER.
-            #
-            # Fail-closed. It can only downgrade an otherwise-GROUNDED
-            # relational claim; it never creates a PASS, and a claim with no
-            # spelled phrase reaches exactly the code it reached before.
-            if not spelled_quantity_ok(claim, cited_verbatim):
-                return Verdict.UNVERIFIED_NUMBER
-        return verdict
+    # ======================================================================
+    # RELATIONAL GROUNDING IS DEMOTED (ADR-007, Sai's ruling 2026-10-02).
+    #
+    # It decides NOTHING. A RELATIONAL claim falls through to the ordinary
+    # citation/verbatim path below, exactly as a FACTUAL claim does, and the
+    # two-source corroboration result is reported as a DIAGNOSTIC only
+    # (`relation_diagnostic` in the per-claim report).
+    #
+    # WHY. Round 12 demonstrated SEVEN Error-B shapes on this branch, two of
+    # them CRITICAL, every one of them pre-existing: a negated endpoint
+    # grounded by the positive, a trailing clause replacing the asserted
+    # object, a trigger merely CO-LOCATED in the window rather than relating
+    # the endpoints, direction-blindness ("B because of A" grounding "A causes
+    # B"), a window that DENIES the relation satisfying it, both endpoints
+    # resolving to the same phrase, and the absence variant. They are not a
+    # backlog, they are a CLASS: this rule was reconstructing "X asserts a
+    # relation between A and B" from token co-occurrence, against an adversary
+    # who writes the document. That is the same structural trap the HTML
+    # comment stripper lost five rounds to (J-41).
+    #
+    # THE PRICE, MEASURED, NOT ESTIMATED. Across the n=52 gold corpus the
+    # relational rule earned exactly TWO certifications (q12, q36) — five of
+    # its seven rows are gold VIOLATIONS it was already refusing. Demoting it
+    # moves Error-A from 0.320 to 0.400 (8/25 -> 10/25) and leaves Error-B at
+    # 0/27, while removing the entire unrecoverable class. Eight points of a
+    # RECOVERABLE error to close an UNRECOVERABLE one is the trade the moat
+    # invariant exists to make.
+    #
+    # WHY FALL-THROUGH AND NOT A FLAT REFUSAL. A flat `return
+    # UNVERIFIED_RELATION` would also have worked and was the simpler change.
+    # Fall-through is better because it DELETES A RULE instead of adding one:
+    # a relational claim is now grounded by exactly the guarantee the product
+    # actually makes — the cited source contains the claim verbatim — with no
+    # bespoke path of its own. If a source literally states the causal
+    # sentence, certifying it is correct; if it does not, no amount of
+    # co-occurrence should have. Verified before landing: NONE of the five
+    # gold-violation relational rows certifies through the verbatim path.
+    #
+    # PRECEDENT: ADR-006 demoted T2 the same way, and this repo's own rule
+    # says a demoted computation is KEPT as a visible no-op rather than
+    # deleted, so a future change cannot silently re-enable a path nobody
+    # re-validated. `ground_relational`, `extract_arguments`,
+    # `_endpoint_in_window` and `spelled_quantity_ok` all still run, still
+    # have their tripwires, and still report — they just do not vote.
+    # ======================================================================
+
     if claim.kind == ClaimKind.ABSENCE:
         # R10C-03: a store of ONLY haiku_summary records certified an absence at
         # PASS 100.0, breaking the named invariant that a summary can never
@@ -3739,13 +3781,21 @@ def score_report(
 
     for claim in claims:
         verdict = ground(claim, store, lex_tau)
-        per_claim.append({
+        entry = {
             "index": claim.index,
             "text": claim.text,
             "kind": claim.kind.value,
             "verdict": verdict.value,
             "evidence_basis": evidence_basis(claim, store),
-        })
+        }
+        # ADR-007: the relational corroboration result is INFORMATION, not a
+        # verdict. It is reported so a human can see what the two-source rule
+        # would have said, and it is deliberately NOT consulted by `ground` —
+        # pinned by an AST guard, because a diagnostic that creeps back into
+        # the verdict path is how a demotion silently un-demotes itself.
+        if claim.kind == ClaimKind.RELATIONAL:
+            entry["relation_diagnostic"] = relational_diagnostic(claim, store)
+        per_claim.append(entry)
 
         if verdict == Verdict.UNVERIFIED_CITATION:
             has_unverified_citation = True

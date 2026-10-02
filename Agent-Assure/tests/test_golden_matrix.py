@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import pytest
 
+from scripts import ground_check as g
 from scripts.ground_check import (
     _LEX_TAU_DEFAULT,
     t2_lexical_score,
@@ -231,11 +232,13 @@ MATRIX = [
     ),
 
     # ------------------------------------------------------------------
-    # ROW 7: UNVERIFIED_RELATION — single verbatim source
+    # ROW 7: relational claim, single verbatim source (id kept: unverified_relation)
     #
-    # Claim is RELATIONAL (contains "causes"). ground_relational requires
-    # ≥2 DISTINCT verbatim sources. Only S1 is in the store →
-    # len(verbatim_sources) < 2 → UNVERIFIED_RELATION.
+    # Claim is RELATIONAL (contains "causes"). Under ADR-007 it falls through
+    # to the ordinary citation/verbatim path: S1 does not contain the claim
+    # verbatim → UNGROUNDED. The two-source rule (needs ≥2 DISTINCT verbatim
+    # sources; only S1 is present) is now a diagnostic, pinned separately by
+    # test_golden_relational_diagnostic_single_source.
     # ------------------------------------------------------------------
     pytest.param(
         "unverified_relation",
@@ -246,7 +249,7 @@ MATRIX = [
                 "Insulin resistance is a metabolic condition affecting cells.",
             )
         ),
-        Verdict.UNVERIFIED_RELATION,
+        Verdict.UNGROUNDED,
         id="unverified_relation",
     ),
 ]
@@ -277,6 +280,20 @@ def test_golden_verdict_matrix(
         f"  numeric_tokens: {claim.numeric_tokens}\n"
         f"  store keys: {list(store.keys())}"
     )
+
+
+def test_golden_relational_diagnostic_single_source() -> None:
+    """Row unverified_relation, rule half: one verbatim source is not two.
+
+    The relational rule moved from the verdict to the diagnostic under ADR-007;
+    it is still measured and still strict, it just no longer votes.
+    """
+    claim = _classified("Insulin resistance causes type 2 diabetes [S1].")
+    store = _store(
+        _src("S1", "Insulin resistance is a metabolic condition affecting cells.")
+    )
+    assert claim.kind == ClaimKind.RELATIONAL
+    assert g.relational_diagnostic(claim, store) == g.RELATION_NOT_CORROBORATED
 
 
 # ---------------------------------------------------------------------------

@@ -64,27 +64,33 @@ def test_a_figure_absent_from_the_store_is_refused(tmp_path, figure):
     rep = _report(tmp_path,
                   f"Insulin resistance causes {figure} type 2 diabetes "
                   f"[S2][S3].\n", NO_NUMBER)
-    assert rep["per_claim"][0]["verdict"] == "UNVERIFIED_NUMBER"
+    assert rep["per_claim"][0]["relation_diagnostic"] == g.RELATION_FIGURE_ABSENT
     assert rep["gate"] != "PASS"
 
 
 def test_the_relation_is_still_corroborated_without_a_figure(tmp_path):
     """CONTROL. The fix must not break relational grounding itself — otherwise
-    it is 'refuse all relational claims' wearing a numeric costume."""
+    it is 'refuse all relational claims' wearing a numeric costume.
+
+    Under ADR-007 this control moved from the verdict to the diagnostic: corroboration is still measured (relation_diagnostic), it just no longer votes on the gate, so this is not a weakening."""
     rep = _report(tmp_path,
                   "Insulin resistance causes type 2 diabetes [S2][S3].\n",
                   NO_NUMBER)
-    assert rep["per_claim"][0]["verdict"] == "GROUNDED"
-    assert rep["gate"] == "PASS"
+    assert rep["per_claim"][0]["relation_diagnostic"] == g.RELATION_CORROBORATED
+    assert rep["per_claim"][0]["verdict"] == "UNGROUNDED"
+    assert rep["gate"] == "FAIL"
 
 
-def test_a_figure_PRESENT_in_the_store_still_certifies(tmp_path):
-    """The control that matters most: this must not become 'any number fails'."""
+def test_a_figure_PRESENT_in_the_store_leaves_the_diagnostic_clean(tmp_path):
+    """The control that matters most: this must not become 'any number fails'.
+
+    Under ADR-007 this control moved from the verdict to the diagnostic: corroboration is still measured (relation_diagnostic), it just no longer votes on the gate, so this is not a weakening."""
     rep = _report(tmp_path,
                   "Insulin resistance causes 97% of all type 2 diabetes "
                   "[S2][S3].\n", WITH_97)
-    assert rep["per_claim"][0]["verdict"] == "GROUNDED"
-    assert rep["gate"] == "PASS"
+    assert rep["per_claim"][0]["relation_diagnostic"] == g.RELATION_CORROBORATED
+    assert rep["per_claim"][0]["verdict"] == "UNGROUNDED"
+    assert rep["gate"] == "FAIL"
 
 
 def test_percent_does_not_match_a_bare_number(tmp_path):
@@ -118,17 +124,20 @@ def test_a_figure_in_an_uncited_source_does_not_ground_the_claim(tmp_path):
     rep = _report(tmp_path,
                   "Insulin resistance causes 97% of all type 2 diabetes "
                   "[S2][S3].\n", NO_NUMBER + [distractor])
-    assert rep["per_claim"][0]["verdict"] == "UNVERIFIED_NUMBER"
+    assert rep["per_claim"][0]["relation_diagnostic"] == g.RELATION_FIGURE_ABSENT
     assert rep["gate"] != "PASS"
 
 
-def test_the_figure_still_grounds_when_the_CITED_source_carries_it(tmp_path):
-    """CONTROL for the above: cited-only must not become 'never grounds'."""
+def test_the_figure_satisfies_the_diagnostic_when_the_CITED_source_carries_it(tmp_path):
+    """CONTROL for the above: cited-only must not become 'never grounds'.
+
+    Under ADR-007 this control moved from the verdict to the diagnostic: corroboration is still measured (relation_diagnostic), it just no longer votes on the gate, so this is not a weakening."""
     rep = _report(tmp_path,
                   "Insulin resistance causes 97% of all type 2 diabetes "
                   "[S2][S3].\n", WITH_97)
-    assert rep["per_claim"][0]["verdict"] == "GROUNDED"
-    assert rep["gate"] == "PASS"
+    assert rep["per_claim"][0]["relation_diagnostic"] == g.RELATION_CORROBORATED
+    assert rep["per_claim"][0]["verdict"] == "UNGROUNDED"
+    assert rep["gate"] == "FAIL"
 
 
 # J-43 — CLOSED 2026-10-02 for the SPELLED-NUMBER class (Sai's ruling).
@@ -160,7 +169,7 @@ def test_a_figure_spelled_in_words_is_also_checked(tmp_path, figure):
                   f"Insulin resistance causes {figure} type 2 diabetes "
                   f"[S2][S3].\n", NO_NUMBER)
     assert rep["gate"] != "PASS"
-    assert rep["per_claim"][0]["verdict"] == "UNVERIFIED_NUMBER"
+    assert rep["per_claim"][0]["relation_diagnostic"] == g.RELATION_FIGURE_ABSENT
 
 
 # R12-05 — the lexicon's own omission, which is NOT the open-class trap above.
@@ -179,15 +188,17 @@ def test_a_plural_scale_word_is_checked_R12_05(tmp_path, figure):
     rep = _report(tmp_path,
                   f"Insulin resistance causes {figure} type 2 diabetes "
                   f"[S2][S3].\n", NO_NUMBER)
-    assert rep["per_claim"][0]["verdict"] == "UNVERIFIED_NUMBER"
+    assert rep["per_claim"][0]["relation_diagnostic"] == g.RELATION_FIGURE_ABSENT
     assert rep["gate"] != "PASS"
 
 
-def test_a_spelled_figure_the_CITED_SOURCE_CARRIES_still_certifies(tmp_path):
+def test_a_spelled_figure_the_CITED_SOURCE_CARRIES_satisfies_the_diagnostic(tmp_path):
     """The other direction, which is what makes this a check and not a ban.
 
     Without this, `spelled_quantity_ok` returning False unconditionally would
     satisfy every test above — the tautology INS-005 exists to catch.
+
+    Under ADR-007 this control moved from the verdict to the diagnostic: corroboration is still measured (relation_diagnostic), it just no longer votes on the gate, so this is not a weakening.
     """
     spelled = [
         _rec("S2", "Insulin resistance impairs glucose uptake and causes "
@@ -198,8 +209,9 @@ def test_a_spelled_figure_the_CITED_SOURCE_CARRIES_still_certifies(tmp_path):
     rep = _report(tmp_path,
                   "Insulin resistance causes ninety-seven percent of all type 2 "
                   "diabetes [S2][S3].\n", spelled)
-    assert rep["per_claim"][0]["verdict"] == "GROUNDED"
-    assert rep["gate"] == "PASS"
+    assert rep["per_claim"][0]["relation_diagnostic"] == g.RELATION_CORROBORATED
+    assert rep["per_claim"][0]["verdict"] == "UNGROUNDED"
+    assert rep["gate"] == "FAIL"
 
 
 def test_a_spelled_phrase_may_not_be_ASSEMBLED_from_two_sources(tmp_path):
@@ -213,17 +225,20 @@ def test_a_spelled_phrase_may_not_be_ASSEMBLED_from_two_sources(tmp_path):
     rep = _report(tmp_path,
                   "Insulin resistance causes ninety-seven percent of all type 2 "
                   "diabetes [S2][S3].\n", split)
-    assert rep["per_claim"][0]["verdict"] == "UNVERIFIED_NUMBER"
+    assert rep["per_claim"][0]["relation_diagnostic"] == g.RELATION_FIGURE_ABSENT
 
 
 def test_a_relational_claim_with_no_spelled_figure_is_untouched(tmp_path):
     """The guard must be invisible to every claim that does not spell a figure —
-    otherwise J-43's fix is an Error-A tax on the whole relational class."""
+    otherwise J-43's fix is an Error-A tax on the whole relational class.
+
+    Under ADR-007 this control moved from the verdict to the diagnostic: corroboration is still measured (relation_diagnostic), it just no longer votes on the gate, so this is not a weakening."""
     rep = _report(tmp_path,
                   "Insulin resistance causes type 2 diabetes [S2][S3].\n",
                   NO_NUMBER)
-    assert rep["per_claim"][0]["verdict"] == "GROUNDED"
-    assert rep["gate"] == "PASS"
+    assert rep["per_claim"][0]["relation_diagnostic"] == g.RELATION_CORROBORATED
+    assert rep["per_claim"][0]["verdict"] == "UNGROUNDED"
+    assert rep["gate"] == "FAIL"
 
 
 @pytest.mark.xfail(strict=True, reason=(
@@ -241,11 +256,15 @@ def test_a_vague_quantifier_is_still_not_checked(tmp_path):
     rep = _report(tmp_path,
                   "Insulin resistance causes almost all type 2 diabetes "
                   "[S2][S3].\n", NO_NUMBER)
+    assert rep["per_claim"][0]["relation_diagnostic"] == g.RELATION_FIGURE_ABSENT
     assert rep["gate"] != "PASS"
 
 
 def test_per_cent_refuses_an_UNRELATED_digit_J53(tmp_path):
     """J-53 — inserting the words "per cent" flips an unrelated digit's verdict.
+
+    The control moved from the verdict to the diagnostic under ADR-007: corroboration
+    is still measured, it just no longer votes, so this is not a weakening.
 
     RE-PINNED 2026-10-02 (D-46). This test used to use the claim "... causes
     ninety-seven per cent of all type 2 diabetes", and J-43's fix would now
@@ -273,13 +292,14 @@ def test_per_cent_refuses_an_UNRELATED_digit_J53(tmp_path):
     control = _report(tmp_path,
                       "Insulin resistance causes diabetes in 2 distinct ways "
                       "[S2][S3].\n", two_ways)
-    assert control["per_claim"][0]["verdict"] == "GROUNDED", (
-        "the control must certify, or this test proves nothing about per cent")
+    assert control["per_claim"][0]["relation_diagnostic"] == g.RELATION_CORROBORATED, (
+        "the control must corroborate, or this test proves nothing about per cent")
+    assert control["per_claim"][0]["verdict"] == "UNGROUNDED"
 
     rep = _report(tmp_path,
                   "Insulin resistance causes per cent diabetes in 2 distinct "
                   "ways [S2][S3].\n", two_ways)
-    assert rep["per_claim"][0]["verdict"] == "UNVERIFIED_NUMBER"
+    assert rep["per_claim"][0]["relation_diagnostic"] == g.RELATION_FIGURE_ABSENT
     assert _spelled_quantity_phrases_absent(rep), (
         "the fixture must contain no spelled number word, or J-43's guard "
         "would be what refuses it and J-53 would be masked again")

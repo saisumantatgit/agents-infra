@@ -129,7 +129,7 @@ def test_the_modifiers_are_still_required_with_stemming_on(tmp_path):
     rep = _report(tmp_path,
                   "The ingestion pipeline causes silent data loss [S5][S6].\n",
                   unrelated)
-    assert rep["per_claim"][0]["verdict"] == "UNVERIFIED_RELATION"
+    assert rep["per_claim"][0]["relation_diagnostic"] == g.RELATION_NOT_CORROBORATED
 
 
 def test_a_relation_trigger_is_NOT_stemmed(tmp_path):
@@ -144,7 +144,7 @@ def test_a_relation_trigger_is_NOT_stemmed(tmp_path):
     rep = _report(tmp_path,
                   "Chronic sleep deprivation causes severe migraines "
                   "[S7][S8].\n", no_trigger)
-    assert rep["per_claim"][0]["verdict"] == "UNVERIFIED_RELATION"
+    assert rep["per_claim"][0]["relation_diagnostic"] == g.RELATION_NOT_CORROBORATED
 
 
 def test_no_endpoint_token_is_matched_by_a_STEM_COLLISION():

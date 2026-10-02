@@ -136,9 +136,18 @@ def test_marker_refused_only_because_its_digits_leak(tmp_path, marker):
                f"{marker} Insulin resistance causes type 2 diabetes [S2][S3].\n",
                REL)
     assert rep["gate"] != "PASS"
-    assert rep["per_claim"][0]["verdict"] == "UNVERIFIED_NUMBER", (
-        "if this stops being UNVERIFIED_NUMBER the masking has gone and J-33 "
+    assert rep["per_claim"][0]["relation_diagnostic"] == g.RELATION_FIGURE_ABSENT, (
+        "if this stops being FIGURE_ABSENT the masking has gone and J-33 "
         "is live again for this spelling")
+    # RESTORED after the ADR-007 migration audit. Re-pointing the assertion at
+    # the diagnostic lost the J-33 signal itself: the FINDING is that the marker
+    # is never checked AS A CITATION, and only the VERDICT can say that. Without
+    # this line the day someone teaches _CITATION_RE these spellings, the
+    # diagnostic goes on reading FIGURE_ABSENT and the tripwire passes in
+    # silence — blind, while looking healthy.
+    assert rep["per_claim"][0]["verdict"] != "UNVERIFIED_CITATION", (
+        "J-33 is CLOSED for this spelling — the marker is now checked as a "
+        "citation. Move it out of MASKED_BY_DIGIT_LEAK and update J-33.")
 
 # Markers a reader ALSO reads as citations, which _CITATION_RE likewise fails to
 # match, but which are refused anyway - by ACCIDENT, because their leftover text
@@ -177,9 +186,13 @@ def test_leading_unrecognised_marker_is_refused_by_ACCIDENT(tmp_path, marker):
                f"{marker} Insulin resistance causes type 2 diabetes [S2][S3].\n",
                REL)
     assert rep["gate"] != "PASS"
-    assert rep["per_claim"][0]["verdict"] == "UNVERIFIED_RELATION", (
-        "if this is now UNVERIFIED_CITATION, J-33 is CLOSED for this shape — "
-        "move the marker out of MASKED_BY_ENDPOINT_PHRASE and update J-33")
+    assert rep["per_claim"][0]["relation_diagnostic"] == g.RELATION_NOT_CORROBORATED, (
+        "the endpoint accident is what refuses this, not the citation")
+    # The assertion this message used to carry. See the note above: the
+    # diagnostic cannot express "J-33 is closed", only the verdict can.
+    assert rep["per_claim"][0]["verdict"] != "UNVERIFIED_CITATION", (
+        "J-33 is CLOSED for this shape — move the marker out of "
+        "MASKED_BY_ENDPOINT_PHRASE and update J-33")
 
 
 @pytest.mark.parametrize("marker", ["[s99]", "[Ѕ99]"])
@@ -212,7 +225,12 @@ def test_trailing_position_is_refused_by_accident_not_by_design(tmp_path):
     assert rep["gate"] != "PASS"
 
 
-def test_honest_relational_claim_still_passes(tmp_path):
+def test_honest_relational_claim_is_corroborated_but_NOT_certified(tmp_path):
+    """Under ADR-007 this control moved from the verdict to the diagnostic:
+    corroboration is still measured (relation_diagnostic), it just no longer
+    votes on the gate, so this is not a weakening."""
     rep = _run(tmp_path,
                "Insulin resistance causes type 2 diabetes [S2][S3].\n", REL)
-    assert rep["gate"] == "PASS"
+    assert rep["per_claim"][0]["relation_diagnostic"] == g.RELATION_CORROBORATED
+    assert rep["per_claim"][0]["verdict"] == "UNGROUNDED"
+    assert rep["gate"] == "FAIL"

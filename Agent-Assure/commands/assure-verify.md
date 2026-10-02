@@ -29,4 +29,12 @@ ONE line: only a same-line `<!-- ... -->` is stripped, so a multi-line comment
 block is scored as claims and does not prove anything (J-48). Neither is a bug;
 both over-flag rather than under-flag.
 
+**Causal claims are reported, never certified (ADR-007).** "X causes Y" is
+grounded only if a cited source contains that claim verbatim — never because two
+sources each mention one end of it. Each relational claim carries a
+`relation_diagnostic` field; `corroborated_by_two_sources` alongside
+`UNGROUNDED` is the normal result for an honest causal claim, and it means the
+author must quote a source or soften the claim. Expect a draft of causal prose
+to come back mostly UNGROUNDED.
+
 **The verdict comes from the engine, not from your reading.** Do not judge grounding yourself — run the script and report exactly what it returns. If you believe the engine is wrong, that is a bug to file, not a verdict to adjust.
