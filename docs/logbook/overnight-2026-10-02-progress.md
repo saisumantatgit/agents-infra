@@ -138,3 +138,42 @@ Baseline Error-A/Error-B **independently re-derived from current code: 10/25 =
 quoted.
 
 **New tokens cumulative:** ~1.05M of 3.5M sanctioned (output + cache creation).
+
+### CYCLE 3 — 18:1x UTC — DISARMED at diff zero
+
+**Diff: ZERO.** Every row of the committed set is BUILT or OWNED BY A NAMED
+HUMAN with its blocking reason stated. Disarm per §3.6, in the same turn.
+
+| Row | State |
+|---|---|
+| J-68 round 14 | BUILT — run, reproduced, reported, tripwired, PR updated |
+| J-62+J-71 | **Sai** — Escalation #1, priced (Error-A 0.400 unchanged) |
+| J-67 → J-70 | **Sai** — Escalation #1, priced, recommendation withdrawn and revised |
+| J-69 | **Sai** — Escalation #1, recommendation: do not fix this way |
+| J-37 | BUILT — found already closed; missing control added |
+| J-45 (stretch) | BUILT |
+| CR-008 + 7-step close | BUILT |
+| J-42 | **Deliberately not started.** The instrument said do not open it below 40% budget; the real reason is that it has two opposing directions in one function and already cost one self-inflicted Error-B. 23:40 is the wrong time. |
+| J-72 | Registered, after launch |
+
+**Why disarm rather than spend the remaining 1.8M.** Every open row is blocked
+on Sai, and the two that are not are ones I judged wrong to start unattended.
+Continuing would mean working outside the agreed scope on the branch where
+round 14 just found three CRITICAL holes. Budget is a ceiling, not a target
+(Goodhart) — ~1.7M of 3.5M consumed, measure: new tokens = output + cache creation.
+
+**Close, all seven steps, verified first-hand.**
+
+| Step | Evidence |
+|---|---|
+| 1 Memory | synced; an unverified suite count I had written was removed before it stood |
+| 2 Git audit | clean tree, `--untracked-files=all` empty, branch asserted before every commit |
+| 3 Logbook | `2026-10-02D-the-refusal-that-one-word-walked-around.md`, with all three withdrawals |
+| 4 Handoff | `RESUME-HERE.md` rewritten; `MORNING-REPORT-2026-10-03.md`; J-69…J-72 with owners |
+| 5 Environment | no temp files in the repo; `caffeinate` released; other sessions' `wf_*` worktrees untouched |
+| 6 Push | pushed to `delivery-queue-2026-10-02` |
+| 7 Verify | **797 passed · 2 skipped · 66 xfailed · exit 0**; gold md5 `6215b526…d171f`; **0 `PRICING PATCH` strings left in the gate**; `main` untouched at `009c646` |
+
+**Cron `e3ad95d4` DISARMED.** Three-hat audit run on my own work before claiming
+done — it caught the inflated CRITICAL count, which is now stated as a re-grade
+in all five places it appeared.
