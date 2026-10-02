@@ -1476,3 +1476,69 @@ authorised closing the gap, not editing his machine. So:
 
 If (5) proves impossible from inside a Claude Code session, that is reported as
 the residue with the exact human command, and J-52 closes only to (4).
+
+---
+
+## D-60 — J-52 closed to its closable extent; print mode cannot run hooks, and that is a PRODUCT caveat
+
+| id | Decision | Basis | Undo | Status |
+|---|---|---|---|---|
+| D-60 | **Close J-52 items 1-4 with tests, prove item 5 unreachable non-interactively, and DOCUMENT the print-mode limitation it exposed.** | Four of five validated and pinned. The fifth is not "unfinished" — it is proven impossible from a non-interactive process, by a three-way control. | `git revert` this commit (tests + docs only). | DONE |
+
+Report: `Agent-Assure/docs/reports/J52-PLUGIN-PATH-2026-10-02.md`.
+
+**Items 1-4 CLOSED**, pinned by `tests/test_plugin_contract.py` (10 tests). The
+one that earns its keep is the **matcher-parity guard**: `_RETRIEVAL_TOOLS` is
+what the hook captures, `hooks.json`'s matcher is what Claude Code invokes it
+for, and a tool in one but not the other means the hook silently never fires and
+every claim citing it is silently uncited. Both directions now asserted.
+
+**`claude plugin validate --strict` passes — and was NOT allowed to count as hook
+evidence.** Its own help says it validates "the skills, agents, and commands";
+hooks are not mentioned, and its JSON report returns `"contents": []`.
+
+### Item 5: the plugin is exonerated BY CONTROL, not by assertion
+
+A real `claude -p --plugin-dir` run answered correctly (so `Read` ran) and wrote
+no store. Rather than conclude, three registrations were tried:
+
+| Registration | `Read` ran | hook fired |
+|---|---|---|
+| plugin via `--plugin-dir` | yes | **no** |
+| plain project `.claude/settings.json` | yes | **no** |
+| explicit `--settings <file>` | yes | **no** |
+
+**`claude -p` does not execute PostToolUse hooks however they are registered.**
+
+**A misquote corrected on the way, and it mattered.** A research agent reported
+`-p`'s help as "settings files silently ignored". It actually says "settings
+files **that fail validation** are silently ignored" — a materially different
+claim that briefly pointed me at a defect in our own `hooks.json`. Reading the
+help text myself killed the false lead. **An agent's paraphrase of a primary
+source is testimony, not the source.**
+
+### The product caveat this found, which is the real deliverable
+
+**In `claude -p` / CI / piped mode the capture hook never runs, so the store stays
+EMPTY and every claim reads `UNCITED` — the gate fails everything for a reason
+unrelated to the draft.** Nobody had written this down. Now on the README and the
+skill, and pinned in `tests/test_product_claim.py` as a disclosed limitation
+(the test asserts the DOCUMENTATION exists, since the behaviour belongs to Claude
+Code and cannot be asserted from pytest).
+
+Second time in two days the honest-claim discipline found a gap between the tin
+and the code.
+
+### What is left, and it is genuinely one human step
+
+**J-54** — an interactive `claude --plugin-dir`, `/hooks`, one file read,
+`/assure-verify`. Everything it would confirm is already proven in parts: the
+hook command works when invoked, the matcher covers the tools, and the layout is
+the documented one. The residual risk is that Claude Code does not register a
+`--plugin-dir` plugin's hooks at all — which the docs say it does.
+
+**SHIP VERDICT MOVES:** from "ready as a CLI, not as a plugin" to **ready as
+both, with one two-minute human confirmation (J-54) outstanding.**
+
+Suite 739 → **750 passed, 2 skipped, 63 xfailed**. Corpus byte-identical, gold
+md5 unchanged.
