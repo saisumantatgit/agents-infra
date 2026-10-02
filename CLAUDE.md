@@ -188,10 +188,10 @@ uv run python -m calibration.run_calibration   # sweep + LOO + emit CR (module f
   attack**: `_stem` maps the noun "news" to the adjective "new", and a
   fabricated causal claim certified PASS 100.0. J-44 landed and was withdrawn
   the same day. Ask of any new lexicon: *which way does a missing member point?*
-- **The relational branch has six demonstrated Error-B shapes, registered and
-  NOT fixed (J-57 … J-62, round 12).** Negated endpoints, the side_B anchor, a
-  co-located trigger, direction-blindness, denial windows, absence spelled
-  counts. They are pre-existing — each reproduces against `1c00bdc` — so they do
+- **The relational branch has SEVEN demonstrated Error-B shapes, registered and
+  NOT fixed (J-57 … J-62, J-64; round 12).** Negated endpoints, the side_B
+  anchor, a co-located trigger, direction-blindness, denial windows, absence
+  spelled counts, and two endpoints resolving to the same phrase. They are pre-existing — each reproduces against `1c00bdc` — so they do
   not regress CR-005, but do NOT read the relational branch as settled.
 - **Citation placement matters.** Markers go inside the sentence before the final
   period; a marker after the period detaches and reads `UNCITED` (fail-safe).

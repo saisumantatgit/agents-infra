@@ -61,8 +61,8 @@ Solo gate: `challenged | CORRECTED`.
 - **It caught my own lexicon's omission** (plural scale words, D-70), correctly
   named as an ordinary bug rather than the open-class trap.
 - **It caught two near-vacuous assertions in tests I had just written.**
-- Six Error-B findings are PRE-EXISTING (identical against `1c00bdc`),
-  registered as J-57 … J-62, NOT fixed (D-72).
+- SEVEN Error-B findings are PRE-EXISTING (identical against `1c00bdc`),
+  registered as J-57 … J-62 and J-64, NOT fixed (D-72).
 
 ## The one structural lesson
 
@@ -75,6 +75,6 @@ legitimate for exactly the reason J-44's cannot be.
 ## Launch claim
 
 **Unchanged by this window, and now in question for a different reason.** Nothing
-here moved a rate. But round 12 demonstrated six pre-existing Error-B shapes on
-the relational branch, two of them CRITICAL. Whether CLAIM-1 must narrow is
+here moved a rate. But round 12 demonstrated seven pre-existing Error-B shapes
+on the relational branch, two of them CRITICAL. Whether CLAIM-1 must narrow is
 Escalation #1 and #5 — Sai's, with J-57 … J-63 as the evidence.
