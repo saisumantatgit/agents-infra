@@ -64,6 +64,56 @@ provenance and nothing else. The surfaces disclose it. T3/NLI was the fix and th
 HHEM diagnostic measured it as adding **zero**. Put it on the README's first
 screen and ship as an alpha.
 
+# ALL RULINGS MADE 2026-10-02. Here is the queue, in order.
+
+## Sai's three (≈12 minutes total)
+
+1. **J-54 — THE LAST LAUNCH GATE. 2 min, interactive terminal.**
+   ```
+   claude --plugin-dir /path/to/Agent-Assure
+   #   /hooks          -> expect PostToolUse listing capture_hook.py
+   #   read any file   -> expect .assure/evidence-store.jsonl to appear
+   #   /assure-verify <draft>
+   ```
+   Everything around it is proven. `claude -p` runs NO PostToolUse hooks under
+   any of three registrations, so this is genuinely unreachable from a script.
+2. **J-51** — add two lines to `install.sh`: mention `--session-id`, and say where
+   a session id comes from. Its closing message is the one thing every new user
+   reads and it never mentions the feature.
+3. **q25** — one gold label: a causal claim supported by two correlational
+   sources. Never Claude's to set.
+
+## Claude's, in a FRESH session, in this order
+
+4. **J-48** — documentation only: "keep authoring notes on one line." Four
+   designs have lost trying to strip multi-line comments safely.
+5. **J-43** — on RELATIONAL claims, a quantity phrase must appear VERBATIM in a
+   cited source. **Not a number parser.** Measured: FACTUAL is already protected
+   (verbatim containment forces the figure to appear); the hole is relational
+   only. The corpus extension that would MEASURE the Error-A is Sai's (gold
+   labels).
+6. **`extract_arguments` tightening** (the open half of J-39) — keep more than
+   one token per side. **Must land BEFORE J-44.**
+7. **J-44** — plural stemming on relation ENDPOINTS, symmetric, never on
+   triggers. Loosening endpoint matching before step 6 would make the weakest
+   surface weaker.
+8. **One adversarial round** over 5-7, then **CR-006** (mandatory after any
+   classify/tier change).
+
+**ETA: ~3.5M new tokens, ~5h. START A NEW SESSION.** Cost scales with session
+LENGTH, not work: this session's output was 0.54M and its cache creation 7.51M;
+the first 282 turns cost 2.7M and the next 142 cost 5.33M for the same kind of
+work. Extending a long session is the expensive choice.
+
+## Ruled OUT, do not reopen without new evidence
+
+- **J-55 / CI mode** — interactive-only. `claude -p` runs no PostToolUse hooks,
+  so in CI the store is empty and the gate fails everything. Disclosed on the
+  README and the skill; Sai ruled CI is not a launch target.
+- **T3 / any NLI tier** — standing no, and HHEM measured union gain as ZERO.
+
+---
+
 # What changed
 
 | | |
