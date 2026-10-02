@@ -2288,6 +2288,138 @@ def numeric_ok(claim: Claim, sources: list[RetrievedSource]) -> bool:
 
 
 # ---------------------------------------------------------------------------
+# J-43 — a figure SPELLED IN WORDS, inside a relational claim.
+#
+# `_NUMERIC_RE` requires a digit, so "ninety-seven percent of all type 2
+# diabetes" produced no numeric_tokens, the R10C-04 guard was skipped
+# vacuously, and the claim certified GROUNDED at PASS 100.0 against a store
+# holding no such figure. One keystroke separated "97%" (refused) from
+# "ninety-seven percent" (certified) — and the spelled form is the one a
+# reader quotes without noticing it was never checked.
+#
+# WHY THIS IS NOT THE ENUMERATION THE PROJECT'S OWN LAW FORBIDS. The law says
+# never key a moat rule on a surface property the AUTHOR CONTROLS (round 3's
+# token count, round 4's Title Case). The set below is not such a property: the
+# English cardinal number words are a CLOSED lexicon — a writer cannot invent a
+# new word for 97 and still be understood, which is the whole point of writing
+# the figure in words. That is the difference between this set and, say, a list
+# of comment syntaxes (J-41r), where the space of ways to write the same thing
+# is genuinely open.
+#
+# WHAT IT DOES NOT DO. It does not parse. There is no value, no unit, no
+# comparison — "ninety-seven" is never turned into 97, and therefore never
+# matched against a source's "97%". The rule is pure VERBATIM PRESENCE, exactly
+# as Sai ruled on 2026-10-02: the spelled phrase must occur, contiguously, in a
+# source the claim CITES. A source that spells the figure the same way grounds
+# it; a source that writes it in digits does not, and the honest verdict there
+# is a refusal, because proving "ninety-seven" means "97" requires a parser the
+# moat does not have.
+#
+# "one" IS DELIBERATELY ABSENT. Its determiner and pronoun uses ("one of the
+# mechanisms", "no one") dominate its numeric use by a wide margin, and every
+# one of them would become a refusal. A spelled figure of one that carries a
+# scale word is still checked, because the scale word is in the set
+# ("one million" -> the phrase "one million" is checked via "million").
+# CEILING: a bare spelled "one" with no scale word is NOT checked; it breaks on
+# a draft asserting a fabricated count of exactly one. Upgrade path is
+# part-of-speech disambiguation, which needs a tagger the verdict path may not
+# import — so the hole is recorded rather than closed.
+#
+# ORDINALS AND VAGUE QUANTIFIERS ARE ALSO ABSENT, for opposite reasons:
+# ordinals ("the third mechanism") are overwhelmingly non-quantitative in this
+# position, and vague quantifiers ("almost all", "the vast majority") are an
+# OPEN class — there is no closed lexicon of ways to be vague, so enumerating
+# them is precisely the trap this comment opens by naming. That residue stays
+# pinned as a strict xfail in test_moat_r10c04_relational_numeric.py.
+_SPELLED_NUMBER_WORDS: frozenset[str] = frozenset({
+    "zero", "two", "three", "four", "five", "six", "seven", "eight", "nine",
+    "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen",
+    "seventeen", "eighteen", "nineteen", "twenty", "thirty", "forty", "fifty",
+    "sixty", "seventy", "eighty", "ninety",
+    "hundred", "thousand", "million", "billion", "trillion", "dozen",
+})
+
+
+def _spelled_quantity_phrases(text: str) -> tuple[str, ...]:
+    """Return the maximal runs of spelled number words in *text*, in order.
+
+    "causes ninety-seven percent of all type 2 diabetes" -> ("ninety seven",).
+    Each run is the tokenizer's view of the phrase, space-joined, so hyphenation
+    and NFKC variants collapse into one canonical form ("ninety-seven",
+    "ninety seven" and full-width digits-as-words all normalise together).
+
+    Runs break at any non-number word, including the connector "and" — so
+    "two hundred and fifty" yields ("two hundred", "fifty"). That is
+    deliberate via-negativa: both runs still occur contiguously inside a source
+    that spells the whole figure out, so an honest source is unaffected, and
+    handling the connector would add a rule whose only effect is on drafts.
+
+    Duplicates are preserved: a claim naming two different spelled figures must
+    have both of them present.
+
+    Pure function — no mutation, no LLM/network/random/wall-clock.
+    """
+    tokens = _tokenize(_strip_citations(text))
+    phrases: list[str] = []
+    run: list[str] = []
+    for tok in tokens:
+        if tok in _SPELLED_NUMBER_WORDS:
+            run.append(tok)
+            continue
+        if run:
+            phrases.append(" ".join(run))
+            run = []
+    if run:
+        phrases.append(" ".join(run))
+    return tuple(phrases)
+
+
+def spelled_quantity_ok(
+    claim: Claim, sources: list[RetrievedSource]
+) -> bool:
+    """True iff every spelled quantity phrase in *claim* occurs VERBATIM in one
+    of *sources*.
+
+    Each phrase must appear, contiguously and on word boundaries, in a SINGLE
+    source — not assembled across two. A relational claim cites the sources
+    that corroborate its relation, and a figure belongs to one statement, so a
+    "ninety" in one document and a "seven" in another is not evidence of
+    "ninety-seven".
+
+    - No spelled phrase in the claim  -> True (nothing asserted, nothing to
+      check). This is the vacuous case and it is the status quo for every claim
+      written in digits.
+    - A spelled phrase and NO sources -> False. Every "I don't know" points
+      away from PASS.
+
+    CEILING: one claim combining two spelled figures that live in two different
+    cited sources ("causes seventy percent of A and thirty percent of B") is
+    satisfied phrase-by-phrase, each against whichever source carries it — so
+    that case works. What does NOT work is a single phrase split across
+    sources, and that is the intended refusal.
+
+    Pure function — no LLM, no network, no random, no wall-clock.
+    """
+    phrases = _spelled_quantity_phrases(claim.text)
+    if not phrases:
+        return True
+    if not sources:
+        return False
+
+    # Compare token stream to token stream: both sides go through _tokenize, so
+    # a phrase match is a match on WORDS, never on a substring that happens to
+    # straddle them. Sentinel spaces make the containment test exact without a
+    # second regex dialect ( _contains_word's lookarounds are for needles that
+    # carry punctuation; these never do).
+    streams = [" " + " ".join(_tokenize(source.text)) + " " for source in sources]
+    for phrase in phrases:
+        needle = " " + phrase + " "
+        if not any(needle in stream for stream in streams):
+            return False
+    return True
+
+
+# ---------------------------------------------------------------------------
 # ---------------------------------------------------------------------------
 # Absence check — verdict against query log
 # ---------------------------------------------------------------------------
@@ -3038,7 +3170,9 @@ def ground(
         # a claim asserting that something is missing. Absence is incidentally
         # protected today because a digit becomes a strong anchor — that is a
         # CEILING, not a defence, and it is recorded as such in J-40.
-        if verdict == Verdict.GROUNDED and claim.numeric_tokens:
+        if verdict == Verdict.GROUNDED and (
+            claim.numeric_tokens or _spelled_quantity_phrases(claim.text)
+        ):
             # R11B-03 (round 11): this drew from store.values(), so a figure
             # appearing ONLY in an uncited, unrelated source satisfied the
             # check. The NUMERIC branch below has always used the claim's OWN
@@ -3052,6 +3186,19 @@ def ground(
                 and source.text
             ]
             if not numeric_ok(claim, cited_verbatim):
+                return Verdict.UNVERIFIED_NUMBER
+            # J-43 (Sai's ruling, 2026-10-02): the SPELLED form of a figure was
+            # never checked, because _NUMERIC_RE requires a digit and the guard
+            # above therefore ran vacuously. Scoped to RELATIONAL on purpose —
+            # FACTUAL is already protected, since verbatim containment forces
+            # the figure's own characters to appear in the source whatever
+            # alphabet they are written in. Same verdict as the digit case:
+            # a figure the cited sources do not carry is UNVERIFIED_NUMBER.
+            #
+            # Fail-closed. It can only downgrade an otherwise-GROUNDED
+            # relational claim; it never creates a PASS, and a claim with no
+            # spelled phrase reaches exactly the code it reached before.
+            if not spelled_quantity_ok(claim, cited_verbatim):
                 return Verdict.UNVERIFIED_NUMBER
         return verdict
     if claim.kind == ClaimKind.ABSENCE:

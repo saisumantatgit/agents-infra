@@ -1600,3 +1600,24 @@ remains J-54, two minutes, interactive — but the stranger's actual experience,
 
 Suite 750 → **751 passed, 2 skipped, 63 xfailed**. Corpus byte-identical, gold
 md5 unchanged.
+
+## 2026-10-02 (delivery queue, post-merge) — D-62…
+
+Sai's rulings of 2026-10-02 authorised this queue; each row below is one
+autonomous call made INSIDE a ruling, with its undo.
+
+| id | Decision | Basis | UNDO | status |
+|---|---|---|---|---|
+| D-62 | **J-48 closed as DOCUMENTATION on all three Markdown surfaces, and the prose given a runtime.** Two parametrised guards in `test_product_claim.py` assert that every surface states the one-line-notes rule (with syntax) and the citation-placement rule. | Sai ruled documentation, not code. But a doc fix has no runtime — nothing fails when prose is deleted — and an undisclosed limitation is a trap rather than a boundary. PROVEN RED: 4 of the 6 assertions had zero hits against HEAD's blobs. | `git revert` this commit (docs + tests only; no verdict logic). | DONE |
+| D-63 | **J-43 closed for the SPELLED-NUMBER class only, scoped to RELATIONAL, by verbatim presence.** A closed lexicon of English cardinal/scale words; each maximal run must occur contiguously, on word boundaries, inside a SINGLE cited verbatim source. No parsing, no value, no unit — "ninety-seven" is never turned into 97. | Sai's ruling, 2026-10-02. PROVEN RED: all four variants certified PASS 100.0 pre-fix. Fail-closed: it can only downgrade an otherwise-GROUNDED relational claim. Three deliberate exclusions, each named in the code: `one` (determiner/pronoun use dominates — CEILING recorded), ordinals, and vague quantifiers (`almost all` — an OPEN class, still a strict xfail). | `git revert` this commit; `_SPELLED_NUMBER_WORDS`, `_spelled_quantity_phrases` and `spelled_quantity_ok` are additive and the call site is one `if`. | DONE |
+| D-64 | **J-53's tripwire RE-PINNED to its isolated repro, and guarded against being masked again.** The old fixture spelled "ninety-seven per cent", which J-43 now refuses for a genuine reason — leaving the J-53 assertion passing while proving nothing. | D-46: a fix that makes an unrelated tripwire pass has MASKED it until proven otherwise. The new fixture is a bare digit with no number word anywhere, and a helper asserts that no claim in the report contains one, so a later edit cannot silently re-mask it. J-53 itself is untouched: fixing it is PASS-ENABLING, which is Escalation #1 and Sai's. | `git revert` this commit (test file only). | DONE |
+
+**Measurement, stated as non-measurement.** The n=52 corpus is BYTE-IDENTICAL
+after D-63 (`feature_rows-v2.jsonl` and `labeling-v2.csv` both diff clean; gold
+md5 `6215b526d03147295b003d7ccb0d171f` untouched). That is not evidence of
+safety. It is evidence that **no corpus row carries the shape**: 7 rows are
+RELATIONAL and none of them contains a spelled number word; 3 rows contain a
+spelled number word (q01 "twelve", q33 "million", q52 "twelve") and none of them
+is RELATIONAL. So the intersection the guard acts on is empty by construction,
+and **the Error-A cost of D-63 is UNMEASURED.** Measuring it needs corpus rows
+carrying the shape, and those need gold labels — Sai's gate, Escalation #2.
