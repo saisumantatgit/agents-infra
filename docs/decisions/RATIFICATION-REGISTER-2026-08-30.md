@@ -1679,3 +1679,18 @@ was changing sits on the unrecoverable side of the invariant. **Inside a ruling
 that touches the moat, a refinement needs its own adversary BEFORE it lands, not
 after.** Round 13 cost nothing to run and caught six shapes; had PR #7 been
 merged on the fall-through, it would have shipped them.
+
+---
+
+### The overnight run of 2026-10-02 → 03. Sanctioned by Sai at 22:1x IST with "AGREED", J-37 confirmed separately with "yes J-37".
+
+| id | Decision | Basis | UNDO | status |
+|---|---|---|---|---|
+| D-78 | **An AUTONOMOUS overnight run is armed on branch `delivery-queue-2026-10-02`**: cron `e3ad95d4`, ticks at :03/:28/:53, hard stop 06:00 IST, budget 3.5M new tokens (output + cache creation) with a 4.2M ceiling. Committed set: **J-68** (round 14 against the flat refusal), **J-62**, **J-67** (characterise only), **J-37 builder half**, CR-008 + the 7-step close. Stretch: J-45. Instrument: `docs/planning/OVERNIGHT-2026-10-02.md`. | Sai's §0 handshake, answered in nine parts and agreed. The night's goal is a merge decision on PR #7 that rests on an adversary having seen the shipping code: **two implementations in this area were refuted within hours of landing**, and round 13 attacked a fall-through that no longer exists. PR #7 is explicitly DO-NOT-MERGE until round 14 is reported. | `CronDelete e3ad95d4` disarms the run. Everything it produces is on `delivery-queue-2026-10-02`, which `main` does not contain — `main` is untouched at `009c646`. Any single change is `git revert`-able by its own commit; the branch as a whole is abandonable by closing PR #7 without merging. | ARMED |
+| D-79 | **J-37's builder half is IN tonight's committed set** — the corpus builder will construct its stores through `load_store` instead of building `RetrievedSource` directly. | I recommended it in the handshake with the default "I will add it unless you say otherwise"; Sai then confirmed explicitly. The reason is not tidiness: `build_corpus_v2.py` builds with `tool="calibration_fixture"`, which `load_store` now REFUSES, so **the project's own mandatory corpus adversary cannot detect any loader change**, and CR-005's A=0.400 / B=0.000 is measured on stores the shipped gate would reject. Without it every number the night reports describes a store that cannot exist in production. | `git revert` the builder commit. **Whether CR-005 must be RE-DERIVED afterwards is Sai's call, not mine** — it will be registered to him, not decided. | QUEUED |
+
+**What this register may NOT be read as saying.** It does not say round 14 found
+nothing; at the time of arming it has not run. It does not say PR #7 is
+mergeable. And the budget figure is a SANCTION, not a measurement — the measure
+is new tokens (output + cache creation) and it will be derived from artifacts in
+the morning report, never from a run's own summary.
