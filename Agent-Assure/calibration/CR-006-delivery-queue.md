@@ -1,8 +1,7 @@
 # CR-006 — the delivery queue (J-48, J-43, J-39, J-44) + round 12
 
 Window: 2026-10-02, branch `delivery-queue-2026-10-02`, after PR #6 merged.
-Ratifications: **D-62 … D-72**. Supersedes nothing; CR-005 remains the deployed
-operating point because **no error rate moved**.
+Ratifications **D-62 … D-72**. CR-005 remains deployed: **no rate moved**.
 
 ## Projection vs actual
 
