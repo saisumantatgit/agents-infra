@@ -117,10 +117,18 @@ def test_relational_is_refused_while_the_DIAGNOSTIC_corroborates():
 def test_relational_delegation_unverified_relation():
     """Single verbatim source → the relational rule reports NOT_CORROBORATED.
 
-    Under ADR-007 the relational rule is a diagnostic, not a verdict:
-    relational_diagnostic carries the old UNVERIFIED_RELATION conclusion, and
-    ground() itself falls through to the ordinary path (UNGROUNDED here, since
-    S1 does not contain the claim verbatim).
+    Under ADR-007 the relational rule is a DIAGNOSTIC, not a verdict:
+    `relational_diagnostic` carries the old conclusion, while `ground()`
+    REFUSES the claim outright — `UNVERIFIED_RELATION`, unconditionally, for
+    every RELATIONAL claim regardless of what the sources say.
+
+    This docstring described a FALL-THROUGH to the ordinary verbatim path
+    (D-74). That implementation was withdrawn the same day it landed (D-76):
+    round 13 showed T1 certifying a reversed, denied or negated relation at
+    PASS 100.0 via its 8-token span + coverage rule, because T1 and
+    corroboration are not nested. The assertion below was corrected then; this
+    prose and the failure message were not, and a test that misdescribes why it
+    passes teaches the next reader the withdrawn behaviour.
     """
     s1 = _src("S1", "Insulin resistance is a metabolic condition.")
     claim = _classified("Insulin resistance causes type 2 diabetes [S1].")
@@ -128,7 +136,7 @@ def test_relational_delegation_unverified_relation():
     assert g.relational_diagnostic(claim, _store(s1)) == g.RELATION_NOT_CORROBORATED
     result = ground(claim, _store(s1))
     assert result == Verdict.UNVERIFIED_RELATION, (
-        f"Expected UNGROUNDED via the ordinary path, got {result}"
+        f"ADR-007 / D-76: a RELATIONAL claim is never certified, got {result}"
     )
 
 
