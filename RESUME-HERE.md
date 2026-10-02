@@ -1,72 +1,85 @@
-# RESUME HERE — 2026-10-02B, after the delivery queue
+# RESUME HERE — 2026-10-02C
 
-**Branch** `delivery-queue-2026-10-02` · **PR open, needs Sai's GO** · base
-`agent-assure-calibration-run` (PR #6 merged) · `main` untouched at `009c646`.
+**Branch** `delivery-queue-2026-10-02` · **PR #7 OPEN — DO NOT MERGE YET** (see
+below) · base `agent-assure-calibration-run` · `main` untouched at `009c646`.
 
-**Suite: 789 passed · 2 skipped · 61 xfailed.** Gold md5
-`6215b526d03147295b003d7ccb0d171f` unchanged; zero labels touched; corpus
-byte-identical at all four regenerations.
+**Suite: 793 passed · 2 skipped · 61 xfailed.** Gold md5
+`6215b526d03147295b003d7ccb0d171f` unchanged; zero labels touched ever.
+**Error-A 0.400 (10/25) · Error-B 0.000 (0/27)** — CR-007 supersedes CR-005.
 
 ---
 
-## THE ONE THING THAT CHANGED THE PICTURE
+## THE ONE THING TO KNOW
 
-Round 12 demonstrated **seven pre-existing ERROR-B shapes on the relational
-branch**, two of them CRITICAL, and **refuted my own J-44 fix** (which I
-withdrew the same day — `_stem` maps the noun "news" to the adjective "new", and
-a fabricated causal claim certified PASS 100.0 through the CLI).
+**Relational grounding is DEMOTED (ADR-007, Sai's ruling).** A RELATIONAL claim
+returns `UNVERIFIED_RELATION`, always. The two-source corroboration rule still
+runs and still reports, as `relation_diagnostic`, and **decides nothing**.
 
-Nothing here regresses CR-005: every one of the seven reproduces against
-`1c00bdc`. What they put in question is **whether CLAIM-1 is still accurate** —
-Escalation #1 and #5, Sai's, with J-57 … J-64 as the evidence.
+It was implemented TWICE in one sitting. The first implementation let relational
+claims fall through to the verbatim path (cheaper: Error-A 0.360) and **round 13
+found six new Error-B shapes in it, five CRITICAL** — T1 certifies on an 8-token
+span anchored at the claim's SUBJECT plus coverage, so direction reversals,
+denied relations and negation flips all certified PASS 100.0. **Withdrawn
+(D-76).** The flat refusal is what is in the tree.
 
-**Do not read the relational branch as settled.**
+## DO NOT MERGE PR #7 UNTIL ROUND 14 RUNS (J-68)
 
-## SAI'S QUEUE
+No adversary has seen the current code. Round 13 attacked an implementation that
+no longer exists, and **two implementations in this area have been refuted
+within hours of landing** (D-68→D-69, D-74→D-76). That is the whole reason this
+instruction exists.
 
-1. **J-54** — the launch gate, 2 min, interactive: `claude --plugin-dir` →
-   `/hooks` → read a file → `/assure-verify`.
-2. **J-51** — two lines in `install.sh`. **q25** — one gold label.
-3. **NEW: does CLAIM-1 narrow?** (J-57 … J-64). Also **J-44's two designs**:
-   a real morphological analyser, or accept the Error-A permanently and say so.
+## QUEUES
 
-## CLAUDE'S QUEUE, in this order
+**Sai's:** J-54 (2 min, interactive `claude --plugin-dir` → `/hooks` → read a
+file → `/assure-verify`) · J-51 (two lines in `install.sh`) · q25 · and now
+**J-66** — 0.400 understates the real-draft Error-A, because ADR-005's hard cap
+means ANY draft with an unquoted causal sentence fails.
 
-1. **J-61** (denial window grounds the relation) and **J-64** (both endpoints
-   the same phrase). Both repairs are fail-closed and small. **Each gets its own
-   adversary — a same-day commit is how J-44 happened.**
-2. **J-62** — the absence path's spelled-figure hole; same guard, other branch.
-3. Then stop. J-57 … J-60 are Sai's (they move the trade-off).
+**Claude's, in this order:**
+1. **J-68 — round 14 against the flat refusal.** First item. Nothing ships first.
+2. **J-67** — T1's 8-token span + set-membership coverage rule, and the
+   hedge/denial check that did NOT fire. Moot for relational (refused outright),
+   **live for FACTUAL**, and **invisible to the corpus**.
+3. **J-62** — the absence branch's spelled-figure hole; the one round-12 Error-B
+   ADR-007 does not close.
 
 ## READ THESE FIRST, IN ORDER
 
-1. `docs/logbook/2026-10-02B-the-queue-and-the-stem.md` — this window, with six
-   withdrawals and the reflection.
-2. `Agent-Assure/reports/RED-TEAM-R12-2026-10-02.md` — 702 lines, every finding
-   reproduced, plus "WHAT I COULD NOT BREAK".
-3. `Agent-Assure/calibration/CR-006-delivery-queue.md` — what is measured and
-   what is not.
-4. `docs/decisions/RATIFICATION-REGISTER-2026-08-30.md` — D-62 … D-72, each
-   with its undo. Three are withdrawals.
-5. `docs/jobs/REGISTER.md` — J-57 … J-64, every row with an owner.
+1. `docs/logbook/2026-10-02C-the-demotion-and-two-refinements-too-many.md`
+2. `docs/decisions/ADR-007-demote-relational-grounding.md` — **read the
+   Amendments section**; the body describes the withdrawn implementation.
+3. `Agent-Assure/reports/RED-TEAM-R13-2026-10-02.md` — 16 findings, and its
+   "WHAT I COULD NOT BREAK" section is where the moat actually holds.
+4. `Agent-Assure/calibration/CR-007-relational-demotion.md`
+5. `docs/decisions/RATIFICATION-REGISTER-2026-08-30.md` — D-62…D-77, each with
+   its undo. Four are withdrawals.
+6. `docs/jobs/REGISTER.md` — every open row has a named owner.
 
 ## TRAPS — DO NOT RELEARN THESE
 
+- **A measurement is only evidence about the shapes your instrument can
+  represent.** The corpus said fall-through was better and was structurally
+  incapable of saying otherwise: **no corpus row has a subject phrase of 8+
+  tokens**, which is exactly what T1's span rule needs. For Error-A the
+  instrument is the corpus; **for Error-B the instrument is an adversary, never
+  a corpus.**
+- **Inside a ruling that touches the moat, a refinement needs its own adversary
+  BEFORE it lands.** Twice in one day a refinement argued from a correct
+  measurement created Error-B (D-68 J-44's stem; D-74 the fall-through).
 - **Ask of any new word list: which way does a MISSING MEMBER point?** A list
-  that drives a REFUSAL is safe to get wrong (add strings). A list that licenses
-  an ACCEPTANCE makes its own gap the attack. J-43 and J-44 look identical and
-  are opposites. This is the most expensive lesson in the file.
-- **`claude -p` runs NO PostToolUse hooks.** Agent-Assure cannot capture in CI.
-  Not a plugin defect; ruled out as a launch target.
-- **A byte-identical corpus is NON-MEASUREMENT unless the rows carry the shape.**
-  J-39 is measured (7/7 relational rows now carry multi-token endpoints and no
-  verdict moved). J-43 is not. None of round 12's nine Error-B shapes has a row.
-- **When a fix makes an unrelated tripwire pass, it MASKED it** (D-46). It fired
-  three times in this window: the vague-quantifier xfail, J-33's last relational
-  demonstrator, and J-53's fixture.
-- **Measure the fix before believing the fix.** The R12-11 preposition repair
-  looked obviously right and produced a one-token endpoint.
-- **"Design judgment is yours" licenses DECIDING, not overriding a ruling Sai
-  has already made.**
-- Estimates have now run high three times (7M→2.6M, 3.1M→2.8M, **3.5M→0.65M**).
-  Build the next one from TURN COUNT × a short-session rate.
+  driving a REFUSAL is safe to get wrong. A list licensing an ACCEPTANCE makes
+  its own gap the attack.
+- **A check gated on a classifier branch is routable by adding one word.** The
+  numeric gate read `kind == NUMERIC` while `classify` ranks RELATIONAL higher,
+  so a figure in a causal sentence was checked by nothing. Figure checks are
+  kind-independent now (D-77).
+- **When a fix makes an unrelated tripwire pass, it MASKED it** (D-46). Fired
+  three times today.
+- **A tripwire re-pointed at a different field can go BLIND.** The J-33 `[Sxx]`
+  test kept a message about `UNVERIFIED_CITATION` while asserting only the
+  diagnostic, which cannot express it.
+- **Locate every edit by its own function, never by first-occurrence or blanket
+  string replace.** Both forms bit me today; both were caught by reading, not by
+  the suite.
+- `claude -p` runs **no** PostToolUse hooks. CI is not a launch target.
