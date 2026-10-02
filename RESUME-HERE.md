@@ -1,16 +1,75 @@
 # RESUME HERE — Agent-Assure
 
-**Last session:** overnight 2026-10-01, ratified at a §0 handshake (D-38).
-**Branch:** `provenance-fix-2026-10-01`, a child of `agent-assure-calibration-run`.
-**Pushed. NOT merged — the merge is your GO.** `agent-assure-calibration-run`
-is untouched at `b4d4e39`; undo the whole night with
-`git branch -D provenance-fix-2026-10-01`.
-**Suite:** `cd Agent-Assure && uv run pytest -q` → 664 passed, 2 skipped,
-61 xfailed. Trust the RUN, not this number.
+**Last session:** overnight 2026-10-01→02, ratified at a §0 handshake (D-51).
+**Branch:** `launch-claim-2026-10-01`, child of `agent-assure-calibration-run`.
+**Pushed. NOT merged — the merge is your GO.** Undo the night with
+`git branch -D launch-claim-2026-10-01`; `main` untouched.
+**Suite:** `cd Agent-Assure && uv run pytest -q` → 739 passed, 2 skipped,
+63 xfailed. Trust the RUN, not this number.
 
-Read in this order: this file → `docs/logbook/overnight-2026-10-01-progress.md`
-→ `docs/decisions/RATIFICATION-REGISTER-2026-08-30.md` (D-38…D-50) →
-`docs/jobs/REGISTER.md`.
+Read: this file → `docs/logbook/overnight-2026-10-01B-progress.md` (the morning
+report, §0 answers "is it ready to ship?") → `docs/decisions/RATIFICATION-REGISTER-2026-08-30.md`
+(D-51…D-58) → `docs/jobs/REGISTER.md`.
+
+---
+
+# IS IT READY TO SHIP? Ready as a CLI. Not as a plugin.
+
+**The gap is one item wide: J-52.**
+
+Proven in a stranger repo last night (`docs/reports/ALPHA4-INSTALL-VALIDATION-2026-10-02.md`):
+`install.sh` → exit 0; demo grounded PASS / fabricated FAIL; the hook writes a
+real store with a `session_id`; the gate PASSes the captured citation; **the same
+store under a different session is REFUSED**; a fabricated citation FAILs.
+
+**J-52 — what is NOT proven: the Claude Code PLUGIN path.** `claude --plugin-dir`,
+the marketplace entry, and the hook firing from a live session. α4 fed the hook a
+real-shaped event on stdin, which is not Claude Code invoking it. All three need
+hook registration — Escalation #4, yours, likely an hour.
+
+**The thing not to launch quietly: Error-A is 0.320.** A third of honest claims
+read UNGROUNDED, because the gate certifies verbatim provenance and nothing else.
+The surfaces now disclose it. But a first user meets a gate that objects to one
+honest sentence in three, and that — not any Error-B — is what loses them in week
+one. T3/NLI was the fix and the HHEM diagnostic measured it as adding **zero**, so
+this is a property of the product, not a bug to close.
+
+**Recommendation: ship as an alpha CLI with 0.320 on the README's first screen;
+gate the plugin launch on J-52.** Narrow-and-true ships better than
+broad-and-false, which is what the tin said two days ago.
+
+# What changed
+
+| | |
+|---|---|
+| **CLAIM-1** | All four shipped surfaces promised "actually retrieved this session" — there was no session boundary. Rewritten to what is enforced, each with a limitations block. `tests/test_product_claim.py` pins promises AND limitations, so closing a limitation fails the suite and forces the claim text to change. **"No LLM calls during grounding" had ZERO tests before this**; it is now an AST import walk. |
+| **J-38** | `session_id` on every captured record; `--session-id` REFUSES a foreign-session store. It raises rather than filters, because a filtered store is fail-OPEN on the absence path (D-54). |
+| **J-41r** | Comment stripping is SAME-LINE only — the 4th design; three earlier ones lost rounds 9, 10 and 11. |
+| **J-22** | `conclude*`/`indicate*` added, `report*` out, `found`≡`concluded` parity pinned. |
+| **CR-005** | A=0.320 / B=0.000 re-derived. Its load-bearing section: **a zero delta is NON-MEASUREMENT, not safety** — no corpus row carries the shapes any of these changes touch. |
+| **α4** | Run for the first time ever. Found the defect eleven red-team rounds could not. |
+
+# Withdrawn last night — read #3 before trusting my judgment on a trade-off
+
+1. "Delete comment stripping" — deletion failed every draft containing a comment.
+2. "Annotate CR-004 instead of CR-005" — failure-mode 9 makes the CR mandatory.
+3. **D-52: I extended the comment rule BEYOND your ruling to protect a UX finding.
+   An adversary found 3 ERROR-B in my extension within the hour. Reverted.** I
+   traded an unrecoverable error for a recoverable one — the one trade the moat
+   invariant forbids. §1 licenses deciding; it does not license overriding a
+   ratified SAFETY decision to buy UX.
+4. "Renderer-faithful by construction" — it assumed `-->` is the only comment close.
+5. "Stamp `fetched_at` for real" — the sentinel is deliberate; scoping needs an
+   identity, not a clock.
+
+# Yours
+
+**J-52** (plugin path, the launch gate) · **J-43** + **J-44** (both move the
+Error-A/Error-B trade-off on unmeasured prose) · **J-48** (multi-line notes
+scored; cheapest mitigation is documentation) · **J-51** (`install.sh` text) ·
+**J-37** (whether CR-004 must be re-derived) · **J-49** (expose a session id to
+the skill) · **q25** · **J-24** (the product call, still unmade — but round 10
+reframed it: see the previous section below).
 
 ---
 

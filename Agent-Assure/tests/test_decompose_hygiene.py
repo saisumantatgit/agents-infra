@@ -24,6 +24,8 @@ sentence fragments when they were not.
 
 from __future__ import annotations
 
+import pytest
+
 from scripts.ground_check import classify, decompose
 
 
@@ -33,6 +35,16 @@ def _texts(draft: str) -> list[str]:
 
 # --- OI-DEC-03: comments are not prose --------------------------------------
 
+@pytest.mark.xfail(strict=True, reason=(
+    "J-48 OPEN — OI-DEC-03 REOPENED 2026-10-01 (D-54). The ratified comment rule "
+    "strips only SAME-LINE comments, so a multi-line working note is decomposed "
+    "into scored claims again. A block branch that kept this closed was shipped "
+    "and then REMOVED the same night: an adversary found 3 ERROR-B in it, one "
+    "unconditional (a CRLF blank line voided its guard, deleting unbounded "
+    "multi-paragraph prose at PASS 100.0). Error-A here is recoverable; that was "
+    "not. The finding is NOT retracted — this test states the product behaviour "
+    "we want and do not currently have. Owner: Sai (the repair moves the "
+    "Error-A/Error-B trade-off)."))
 def test_html_comment_block_is_not_decomposed_into_claims() -> None:
     draft = (
         "<!--\nInternal note: [Sn] anchors are working-draft verification tags\n"

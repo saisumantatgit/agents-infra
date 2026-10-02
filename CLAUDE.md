@@ -157,7 +157,8 @@ uv run python -m calibration.run_calibration   # sweep + LOO + emit CR (module f
 | `Agent-Assure/calibration/run_calibration.py` | Bootstrap sweep entry (legacy `labeling.csv`, n=12, inline labels — frozen, CR-001 depends on it) |
 | `Agent-Assure/calibration/labeling-v2.csv` | **Scaffold** — DERIVED (claim, evidence, **source_type**, candidate, rationale). No human column; regenerate freely |
 | `Agent-Assure/calibration/labels-v2.csv` | **Labels** — AUTHORED. **RATIFIED GOLD 2026-09-02** (52 rows, Sai). No generator writes it |
-| `Agent-Assure/calibration/CR-004-absence-scope.md` | **Current CR**: absence SCOPE rule, A=0.320 B=0.000 — deployed 2026-09-03 |
+| `Agent-Assure/calibration/CR-005-launch-claim.md` | **Current CR**: launch-claim window (J-25…J-41r, J-22, J-38), A=0.320 B=0.000 — deployed 2026-10-02. **Zero delta is NON-MEASUREMENT, not safety**: no corpus row carries the shapes these changes touch |
+| `Agent-Assure/calibration/CR-004-absence-scope.md` | Superseded by CR-005: absence SCOPE rule, A=0.320 B=0.000 — deployed 2026-09-03 |
 | `Agent-Assure/calibration/CR-003-t2-demotion.md` | T2 demoted, lex_tau RETIRED (A=0.320 B=0.074) |
 | `docs/decisions/ADR-006-demote-t2.md` | Why T2 cannot be sufficient, why the coverage repair was rejected, what quote-mining costs |
 | `Agent-Assure/calibration/CR-002-gold-lex-tau.md` | Superseded by CR-003 (lex_tau=0.76, A=0.200 B=0.111) |

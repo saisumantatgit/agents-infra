@@ -19,6 +19,7 @@ import json
 # survivable.
 import re as _re
 import unicodedata
+from pathlib import Path
 from collections import Counter
 from dataclasses import dataclass
 from enum import Enum
@@ -66,6 +67,12 @@ class RetrievedSource:
     full_text_source: str
     captured_via: str
     query_provenance: str
+    # J-38. DEFAULTS TO "" so every store written before 2026-10-01 keeps
+    # loading (close-after-open: the demo and 47 corpus fixtures predate this).
+    # The default is safe because an EMPTY session_id is treated as
+    # UNATTRIBUTABLE by assert_single_session and therefore refuses under
+    # enforcement — "I don't know" points away from PASS.
+    session_id: str = ""
 
 
 @dataclass(frozen=True)
@@ -193,6 +200,49 @@ def _validate_record(obj: dict[str, object], lineno: int) -> None:
         )
 
 
+def assert_single_session(
+    store: dict[str, RetrievedSource], session_id: str
+) -> None:
+    """Raise unless every record in *store* belongs to *session_id*. Pure.
+
+    J-38. The founding spec promises a claim traces to a source "actually
+    retrieved THIS SESSION". Before this, nothing in the code expressed a
+    session at all: no record carried an id and the store was appended to
+    forever, so a prior session's [S2] certified at PASS 100.0.
+
+    IT RAISES; IT DOES NOT FILTER, and that is the whole design decision.
+
+    Dropping foreign records looks safer and is not. The store reaches
+    check_absence through two arguments at once and shrinking it moves them in
+    OPPOSITE directions (proven 2026-10-01, D-54):
+
+      - fewer cited sources    -> citations do not resolve   -> refuse  (closed)
+      - fewer source_texts     -> fewer refutations found    -> CERTIFY (OPEN)
+      - fewer distinct queries -> may drop below the 2-query bar -> refuse,
+        but ALSO disables the blanket-corpus-word refusal -> CERTIFY   (OPEN)
+
+    So a filtered store is not a weaker store, it is a DIFFERENTLY weak one.
+    Refusing to produce a verdict is the only unambiguously fail-closed answer:
+    a store holding another session's evidence is not this session's audit
+    record, and the gate should say so rather than quietly score a subset.
+
+    An EMPTY session_id is UNATTRIBUTABLE and also raises. A record that cannot
+    be placed in this session cannot be certified against in it.
+    """
+    foreign = sorted(
+        {source.session_id or "<no session_id>" for source in store.values()
+         if source.session_id != session_id}
+    )
+    if foreign:
+        raise ValueError(
+            f"evidence store holds records from outside this session "
+            f"{session_id!r}: {', '.join(foreign)}. The store is append-only and "
+            f"is never rotated, so this is the expected state of a reused store. "
+            f"Point --store at a fresh file for this session, or omit "
+            f"--session-id to score without session enforcement."
+        )
+
+
 def load_store(path: str) -> dict[str, RetrievedSource]:
     """Read a JSONL file and return a dict indexed by NFKC-normalized source_id.
 
@@ -221,6 +271,20 @@ def load_store(path: str) -> dict[str, RetrievedSource]:
     sweep the fixtures in the same commit. Tracked as J-32.
     """
     store: dict[str, RetrievedSource] = {}
+    # α4 friction 1 (2026-10-02): the FIRST command the installer prints points
+    # at .assure/evidence-store.jsonl, which does not exist on a fresh install
+    # because no research has happened yet. A raw FileNotFoundError traceback was
+    # the first thing a new user saw. Still an exception and still exit 1 — loud,
+    # not silent — but now it says what to do.
+    if not Path(path).exists():
+        raise FileNotFoundError(
+            f"no evidence store at {path!r}. The store is written by the "
+            f"PostToolUse capture hook as your session retrieves sources, so it "
+            f"does not exist until the hook has fired at least once. Either run "
+            f"some research first with the plugin installed, or point --store at "
+            f"an existing store (the shipped demo has one: "
+            f"demo/evidence-store.jsonl)."
+        )
     with open(path, encoding="utf-8") as fh:
         for lineno, raw_line in enumerate(fh, start=1):
             line = raw_line.strip()
@@ -236,7 +300,14 @@ def load_store(path: str) -> dict[str, RetrievedSource]:
                     f"replaced, making the verdict for a claim citing "
                     f"[{source_id}] depend on line order alone."
                 )
+            session_id = obj.get("session_id", "")
+            if not isinstance(session_id, str):
+                raise TypeError(
+                    f"line {lineno}: field 'session_id' must be a str or absent, "
+                    f"got {type(session_id).__name__}"
+                )
             source = RetrievedSource(
+                session_id=_nfkc(session_id),
                 source_id=source_id,
                 url=obj.get("url"),
                 file_path=obj.get("file_path"),
@@ -552,57 +623,65 @@ def _is_escaped(text: str, index: int) -> bool:
 # Otherwise leave the text alone. This keys on document STRUCTURE, not on a
 # surface character the author picks, which is the property the project's own
 # law demands.
-_BLANK_LINE_RE = _re.compile(r"\n[ \t]*\n")
-_HTML_BLOCK_OPENER_PREFIX_RE = _re.compile(r" {0,3}\Z")
-_BLOCKQUOTE_PREFIX_RE = _re.compile(r"[ \t]*((?:>[ \t]*)*)")
-
-
-def _line_start(text: str, index: int) -> int:
-    """Index just after the newline preceding *index*, or 0. Pure."""
-    return text.rfind("\n", 0, index) + 1
-
-
-def _opens_html_block(text: str, index: int) -> bool:
-    """True if `<!--` at *index* begins a line with <= 3 spaces indent. Pure.
-
-    This is CommonMark's HTML-block-type-2 opener condition. A comment that
-    really opens an HTML block runs to its `-->` however many blank lines it
-    spans, so stripping across them is renderer-faithful.
-    """
-    prefix = text[_line_start(text, index):index]
-    return _HTML_BLOCK_OPENER_PREFIX_RE.fullmatch(prefix) is not None
-
-
-def _blockquote_depth(line: str) -> int:
-    """Number of leading `>` block markers on *line*. Pure."""
-    return _BLOCKQUOTE_PREFIX_RE.match(line).group(1).count(">")
-
-
-def _spans_one_block(text: str, start: int, end: int) -> bool:
-    """True if [start, end) contains no blank line and no blockquote-depth change.
-
-    Pure. Used for an opener that does NOT open an HTML block: such an opener is
-    literal text, so it may only be honoured as a comment inside its own block.
-    """
-    segment = text[start:end]
-    if _BLANK_LINE_RE.search(segment) is not None:
-        return False
-    lines = segment.split("\n")
-    opening_depth = _blockquote_depth(text[_line_start(text, start):].split("\n")[0])
-    return all(_blockquote_depth(line) == opening_depth for line in lines[1:])
-
+# J-41r (2026-10-01, ratified by Sai). The rule is now STRUCTURAL and tiny:
+# a comment is stripped only if its opener and closer sit on the SAME LINE.
+#
+# Why this ends a sequence that three previous designs did not. Every attack in
+# rounds 9, 10 and 11 worked by pairing an opener with a closer in a DIFFERENT
+# block, so that the reader-visible prose between them was deleted from the
+# scored denominator. All of them need the two delimiters on different lines —
+# that is what "spanning" means. A comment that cannot cross a line cannot
+# cross a block, so there is no renderer block-model to get wrong, and nothing
+# left to enumerate. The three predecessors (backtick-only, a code-region
+# scanner, a block-structure rule) were each a blacklist over "ways to be code"
+# or "ways to end a block", and each lost the next round.
+#
+# Measured before ratification: 9 of 9 known attacks score the fabrication, and
+# every single-line authoring note still PASSes.
+#
+# D-54 (2026-10-01): the multi-line BLOCK branch I added beyond Sai's
+# ratification is REMOVED. An adversary found 3 ERROR-B in it within the hour,
+# and I reproduced the unconditional one: `_BLANK_LINE_BETWEEN_RE` (`\n[ \t]*\n`)
+# never matches a CRLF blank line, so the no-blank-line guard was VOID on every
+# CRLF document and the branch deleted unbounded multi-paragraph prose —
+# gate PASS, score 100.0, fabrication absent from the report.
+#
+# The claim "renderer-faithful BY CONSTRUCTION" was FALSE. The construction
+# assumed `-->` is the only way an HTML comment closes; the abrupt-close forms
+# `<!-->`, `<!--->` and `<!-- x --!>` end it on the opener line.
+#
+# The cost of removing it: OI-DEC-03 reopens — a MULTI-LINE authoring note is
+# scored again. That is Error-A, recoverable, and registered as J-48 for Sai. I
+# traded an unrecoverable error for a recoverable one in the wrong direction
+# once; the invariant says do not do it twice.
+#
+# TWO PROTECTIONS SURVIVE, and both were checked rather than assumed:
+#   - `_is_escaped`: `\<!--` renders as LITERAL text, so a same-line
+#     `\<!-- ... -->` leaves the text between VISIBLE. Stripping it would be a
+#     NEW Error-B introduced by this very rule. Deleting this helper was the
+#     mistake this comment exists to prevent.
+#   - `_code_line_spans` + `_CODE_SPAN_RE`: keep the rule from deleting
+#     comment-shaped text inside code, which is scored today.
+#
+# CEILING: `_code_line_spans` remains an incomplete detector (round 11 showed it
+# misses `>`-prefixed fences and space+tab indents). The consequence is now much
+# smaller than it was — at worst a same-line comment inside undetected code is
+# stripped, removing CODE text from the denominator, never reader-visible prose,
+# because the same-line rule bounds the damage to one line. It is no longer on
+# the Error-B path.
+_SAME_LINE_COMMENT_RE = _re.compile(r"<!--[^\n]*?-->")
 
 def _strip_html_comments_outside_code(text: str) -> str:
-    """Strip well-formed HTML comments, honouring block structure.
+    """Strip SAME-LINE HTML comments, outside code, unescaped. Pure function.
 
-    A comment is removed only when ALL of these hold:
+    A comment is removed only when all three hold:
+      - opener and closer are on the SAME LINE;
       - neither delimiter sits inside a code region;
-      - the opener is not backslash-escaped;
-      - the opener either OPENS AN HTML BLOCK (line start, <= 3 spaces indent)
-        or lies in the SAME BLOCK as its closer.
+      - the opener is not backslash-escaped.
 
     Any doubt leaves the text in place, which can only ADD claims to the scored
-    denominator. Pure function.
+    denominator — the fail-closed direction, because stripping is what REMOVES
+    text from scoring.
     """
     protected: list[tuple[int, int]] = _code_line_spans(text)
     protected += [(m.start(), m.end()) for m in _CODE_SPAN_RE.finditer(text)]
@@ -612,13 +691,13 @@ def _strip_html_comments_outside_code(text: str) -> str:
 
     out: list[str] = []
     last = 0
-    for m in _HTML_COMMENT_RE.finditer(text):
+    # D-54: iterate the SAME-LINE pattern directly. Driving the loop from the
+    # multi-line _HTML_COMMENT_RE and classifying afterwards is what let the
+    # block branch exist, and that branch cost an unrecoverable Error-B.
+    for m in _SAME_LINE_COMMENT_RE.finditer(text):
         if (_protected(m.start())
                 or _protected(m.end() - 1)
                 or _is_escaped(text, m.start())):
-            continue
-        if not (_opens_html_block(text, m.start())
-                or _spans_one_block(text, m.start(), m.end())):
             continue
         out.append(text[last:m.start()])
         out.append(" ")
@@ -1237,6 +1316,26 @@ _FACTIVE_VERBS: frozenset[str] = frozenset({
     "measure", "measures", "measured",
     "verify", "verifies", "verified",
     "document", "documents", "documented",
+    # J-22, ratified by Sai 2026-10-01 (D-51 ruling 4). PASS-ENABLING, so it was
+    # his call, not mine.
+    #
+    # The argument that decided it was CONSISTENCY, not taste: `find/finds/found`
+    # is already above, and "Smith found that P" carries exactly the same
+    # attribution ambiguity as "Smith concluded that P". Excluding `conclude`
+    # while including `find` was an inconsistency, not a caution. `indicate` is
+    # safer still — its subject is typically the evidence ("the data indicates").
+    #
+    # `report*` is DELIBERATELY ABSENT and must stay absent. Its canonical
+    # subject is a PUBLICATION relaying someone else's claim: "The blog reported
+    # that P" does not assert P. Admitting it would make attribution
+    # indistinguishable from assertion, which is the confusion rounds 3-8 kept
+    # exploiting. A test pins that negative.
+    #
+    # CEILING: this whitelist is SUBJECT-BLIND. The real distinction is who the
+    # verb's subject is, not which verb it is, so "Critics concluded that P" is
+    # the next attack on this surface.
+    "conclude", "concludes", "concluded",
+    "indicate", "indicates", "indicated",
 })
 
 _NEGATION_TOKENS: frozenset[str] = frozenset({
@@ -3339,6 +3438,9 @@ def main() -> None:
       --store PATH      Path to the evidence JSONL store (required).
       --threshold FLOAT Grounding score threshold (default 90.0).
       --json            Print JSON report to stdout; skip writing YAML file.
+      --session-id STR  Assert every record was captured in this session; the
+                        gate REFUSES a store containing any other session's
+                        evidence (J-38). Omitted => no session enforcement.
 
     Exit codes:
       0  gate == "PASS"
@@ -3366,6 +3468,11 @@ def main() -> None:
                              "it is an error rather than a no-op: a flag that "
                              "silently does nothing is the silent-fallback "
                              "failure this codebase forbids.")
+    parser.add_argument("--session-id", dest="session_id", default=None,
+                        metavar="STR",
+                        help="Assert every record was captured in this session; "
+                             "REFUSE a store containing another session's "
+                             "evidence (J-38). Omit for no enforcement.")
     parser.add_argument("--json", dest="json_mode", action="store_true",
                         help="Print JSON report to stdout; skip writing YAML file.")
     args = parser.parse_args()
@@ -3387,6 +3494,11 @@ def main() -> None:
         draft_text = fh.read()
 
     store = load_store(args.store)
+    # J-38: enforce BEFORE any scoring, so a foreign-session store never
+    # produces a verdict at all. Raising here rather than filtering is
+    # deliberate — see assert_single_session.
+    if args.session_id is not None:
+        assert_single_session(store, args.session_id)
     claims = [classify(c) for c in decompose(draft_text)]
     report = score_report(claims, store, threshold=args.threshold)
 

@@ -278,6 +278,7 @@ def make_record(
     source_id: str,
     query_provenance: str,
     fetched_at: str,
+    session_id: str = "",
 ) -> RetrievedSource | None:
     """Map a tool event to a RetrievedSource, or None for non-retrieval tools.
 
@@ -322,6 +323,7 @@ def make_record(
         file_path = None
 
     return RetrievedSource(
+        session_id=session_id,
         source_id=source_id,
         url=url,
         file_path=file_path,
@@ -415,6 +417,7 @@ def append_record(record: RetrievedSource, store_path: str) -> None:
         "full_text_source": record.full_text_source,
         "captured_via": record.captured_via,
         "query_provenance": record.query_provenance,
+        "session_id": record.session_id,
     }
     line = json.dumps(obj, ensure_ascii=False)
     with path.open(mode="a", encoding="utf-8") as fh:
@@ -437,6 +440,7 @@ except ImportError:  # pragma: no cover - POSIX-only; absent on Windows
 def _record_with_source_id(record: RetrievedSource, source_id: str) -> RetrievedSource:
     """Return a copy of *record* with its source_id replaced (pure)."""
     return RetrievedSource(
+        session_id=record.session_id,
         source_id=source_id,
         url=record.url,
         file_path=record.file_path,

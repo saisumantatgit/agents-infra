@@ -131,13 +131,59 @@ def test_the_figure_still_grounds_when_the_CITED_source_carries_it(tmp_path):
     assert rep["gate"] == "PASS"
 
 
+# J-43: a figure a reader would quote, written without a digit, is never
+# extracted by _NUMERIC_RE and therefore never checked. Each of these certifies.
+#
+# WHY IT IS NOT FIXED HERE. Every candidate design is an ENUMERATION, and the
+# project's own law forbids keying a moat rule on a property the author controls:
+#   (a) a number-word list is a blacklist over ways to WRITE a number — miss a
+#       spelling and the attack survives ("ninety-seven" / "ninety seven" /
+#       "0.97" / "97 per cent");
+#   (b) unit-anchoring (refuse when a unit word appears with no verified digit)
+#       looks like a whitelist over the small closed set of units, but the
+#       attacker simply drops the unit: "ninety-seven OF ALL CASES".
+# Either way it refuses honest prose that the n=52 corpus does not contain, so
+# the Error-A cost is UNMEASURED. That moves the Error-A/Error-B trade-off, which
+# is Escalation #1 and Sai's. Registered with both designs.
+#
+# The variants below exist so round 12 inherits the shape of the class rather
+# than one fixture of it.
+@pytest.mark.parametrize("figure", [
+    "ninety-seven percent of all",
+    "ninety seven percent of all",
+    "ninety-seven of all",            # the unit dropped — defeats design (b)
+    "almost all",                     # a quantity with no number at all
+])
 @pytest.mark.xfail(strict=True, reason=(
-    "J-43 OPEN (round 11): the guard keys on claim.numeric_tokens, and "
+    "J-43 OPEN (round 11): the numeric guard keys on claim.numeric_tokens and "
     "_NUMERIC_RE requires a DIGIT, so a figure spelled in words is never "
-    "extracted and never checked. One keystroke separates '97%' (refused) "
-    "from 'ninety-seven percent' (certified)."))
-def test_a_figure_spelled_in_words_is_also_checked(tmp_path):
+    "extracted and never checked. One keystroke separates '97%' (refused) from "
+    "'ninety-seven percent' (certified). Both candidate fixes are enumerations "
+    "and both refuse unmeasured honest prose - Escalation #1, see D-58."))
+def test_a_figure_spelled_in_words_is_also_checked(tmp_path, figure):
     rep = _report(tmp_path,
-                  "Insulin resistance causes ninety-seven percent of all type "
-                  "2 diabetes [S2][S3].\n", NO_NUMBER)
+                  f"Insulin resistance causes {figure} type 2 diabetes "
+                  f"[S2][S3].\n", NO_NUMBER)
     assert rep["gate"] != "PASS"
+
+
+def test_per_cent_refuses_by_accident_not_by_design_J53(tmp_path):
+    """"ninety-seven PER CENT of all" is refused where "ninety-seven PERCENT of
+    all" certifies — and NOT because the spelled figure was detected.
+
+    Isolated: inserting the words "per cent" anywhere in a claim flips an
+    UNRELATED digit from GROUNDED to UNVERIFIED_NUMBER. Same claim, same source,
+    the only difference being two words that have nothing to do with the digit:
+
+        "... causes diabetes in 2 distinct ways [S2][S3]"            -> GROUNDED
+        "... causes per cent diabetes in 2 distinct ways [S2][S3]"   -> UNVERIFIED_NUMBER
+
+    So "per cent" makes a bare digit read as a percentage, and the source's
+    absolute 2 then fails to match. That is Error-A (J-53), and it is the only
+    reason this J-43 variant does not certify. Pinned as an ACCIDENT so nobody
+    reads it as coverage: fix J-53 and this spelling joins the other four.
+    """
+    rep = _report(tmp_path,
+                  "Insulin resistance causes ninety-seven per cent of all type "
+                  "2 diabetes [S2][S3].\n", NO_NUMBER)
+    assert rep["per_claim"][0]["verdict"] == "UNVERIFIED_NUMBER"

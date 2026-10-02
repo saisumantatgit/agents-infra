@@ -135,6 +135,12 @@ def test_a_genuine_single_line_comment_is_still_stripped(tmp_path):
     assert rep["gate"] == "PASS", "a plain authoring note must not be scored"
 
 
+@pytest.mark.xfail(strict=True, reason=(
+    "J-48 OPEN (D-54): the ratified rule strips SAME-LINE comments only, so a "
+    "multi-line note is scored. The behaviour this test wants is the right one "
+    "and the finding is NOT retracted — it is simply not what the code does "
+    "today. Owned by test_moat_j41r_comment_rule.py; kept here because this "
+    "file is where the requirement was first written down."))
 def test_a_genuine_multi_line_comment_is_still_stripped(tmp_path):
     """Multi-line notes are normal. Stripping must survive a line break."""
     draft = (f"{GOOD}\n\n<!--\nTODO: check this figure before sending.\nAsk the "

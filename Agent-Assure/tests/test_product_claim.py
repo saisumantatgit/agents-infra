@@ -1,0 +1,304 @@
+"""CLAIM-1 — every sentence of the product claim, pinned to behaviour.
+
+WHY THIS FILE EXISTS. On 2026-10-01 a red-team round found that the shipped
+surfaces (`plugin.json`, `README.md`, `commands/`, `skills/`) promised a claim is
+"grounded in a source actually retrieved **this session**" while the code had no
+session boundary at all. The tin and the code had drifted, and nothing could
+detect that, because a product claim written in Markdown is not executable.
+
+Worse, a three-kind search found that **"no LLM calls during grounding" — the
+project's loudest claim, which CLAUDE.md calls "the product, not a style choice"
+— was asserted on four surfaces and enforced by ZERO tests.** Its only appearance
+in the suite was as prose inside a determinism fixture's draft text.
+
+So this file is the executable version of the claim. Two halves, and the second
+is the unusual one:
+
+  1. WHAT WE PROMISE — each guarantee has a test. If a guarantee breaks, the
+     suite fails before the claim becomes a lie.
+  2. WHAT WE DO NOT PROMISE — each DISCLOSED LIMITATION also has a test,
+     asserting the limitation is still real. If someone later closes one, THIS
+     FILE FAILS, and whoever closed it must update the claim text to match.
+
+That second half is what keeps the tin honest in both directions. A claim can
+drift from the code by the code getting worse OR by the code getting better
+while the documentation stays timid.
+"""
+from __future__ import annotations
+
+import ast
+import json
+import sys
+import tempfile
+from pathlib import Path
+
+import pytest
+
+_SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
+sys.path.insert(0, str(_SCRIPTS))
+
+import ground_check as g  # noqa: E402
+
+
+# ===========================================================================
+# 1. WHAT WE PROMISE
+# ===========================================================================
+
+# Every module the verdict path is allowed to import. stdlib + syntok only.
+# syntok is a deterministic sentence segmenter, not a model.
+_ALLOWED_IMPORTS = frozenset({
+    "__future__", "collections", "collections.abc", "dataclasses", "enum",
+    "json", "re", "typing", "unicodedata", "argparse", "sys", "yaml",
+    "syntok", "syntok.segmenter", "hashlib", "pathlib", "os", "itertools",
+    "functools", "math", "string", "textwrap",
+})
+
+# Anything here in the verdict path would make the central claim false.
+_FORBIDDEN_SUBSTRINGS = (
+    "anthropic", "openai", "cohere", "mistral", "google.generativeai", "genai",
+    "transformers", "torch", "tensorflow", "sentence_transformers", "litellm",
+    "langchain", "requests", "httpx", "urllib", "http.client", "socket",
+    "aiohttp", "subprocess", "random",
+)
+
+
+def _imported_modules(path: Path) -> set[str]:
+    """Every module name imported anywhere in *path*, including lazily."""
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    names: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            names.update(a.name for a in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            names.add(node.module)
+    return names
+
+
+def test_the_verdict_path_imports_no_model_and_no_network():
+    """THE CENTRAL CLAIM: "proven by a deterministic gate, not asserted by the
+    model that wrote the claim."
+
+    Checked over the AST so a LAZY import inside a function is caught too — the
+    `syntok` import is lazy, which proves lazy imports are a real pattern here.
+    """
+    imported = _imported_modules(_SCRIPTS / "ground_check.py")
+    for name in sorted(imported):
+        for forbidden in _FORBIDDEN_SUBSTRINGS:
+            assert forbidden not in name.lower(), (
+                f"ground_check.py imports {name!r}, which contains {forbidden!r}. "
+                f"The verdict path must not reach a model, the network, a "
+                f"subprocess, or a random source — that is the product claim."
+            )
+        assert name in _ALLOWED_IMPORTS, (
+            f"ground_check.py imports {name!r}, which is not on the verdict "
+            f"path allowlist. If it is genuinely deterministic and local, add "
+            f"it to _ALLOWED_IMPORTS in this test ON PURPOSE, with a reason."
+        )
+
+
+def test_the_no_model_guard_can_actually_fail():
+    """Proves the guard above is not a tautology, by running its own logic over
+    a synthetic module that imports a model client. A guard nobody has seen fail
+    is a guard nobody can trust."""
+    with tempfile.TemporaryDirectory() as d:
+        bad = Path(d) / "bad.py"
+        bad.write_text("import anthropic\n", encoding="utf-8")
+        assert "anthropic" in _imported_modules(bad)
+
+
+def _store(tmp_path, records):
+    p = tmp_path / "s.jsonl"
+    p.write_text("".join(json.dumps(r) + "\n" for r in records), encoding="utf-8")
+    return g.load_store(str(p))
+
+
+def _rec(sid="S1", text="Redis replicates to three replicas.",
+         fts="verbatim", tool="Read", qp="q1"):
+    return {"source_id": sid, "url": None, "file_path": "/tmp/a",
+            "fetched_at": "2026-09-13T00:00:00Z", "tool": tool,
+            "content_sha256": "a" * 64, "text": text,
+            "full_text_source": fts, "captured_via": "inline",
+            "query_provenance": qp}
+
+
+def _verdicts(tmp_path, draft, records):
+    rep = g.score_report([g.classify(c) for c in g.decompose(draft)],
+                         _store(tmp_path, records))
+    return rep
+
+
+def test_a_cited_marker_that_names_nothing_is_refused(tmp_path):
+    """PROMISE: a citation must resolve to a source in the store."""
+    rep = _verdicts(tmp_path,
+                    "Redis replicates to three replicas [S1][S99].\n", [_rec()])
+    assert rep["gate"] != "PASS"
+    assert "UNVERIFIED_CITATION" in [c["verdict"] for c in rep["per_claim"]]
+
+
+def test_a_summarised_source_can_never_ground_a_claim(tmp_path):
+    """PROMISE: native WebFetch is Haiku-summarised, so it is not evidence of
+    what a page said. The gate refuses to certify against it."""
+    rep = _verdicts(tmp_path, "Redis replicates to three replicas [S1].\n",
+                    [_rec(fts="haiku_summary", tool="WebFetch")])
+    assert rep["gate"] != "PASS"
+    assert rep["per_claim"][0]["verdict"] == "UNGROUNDABLE"
+
+
+def test_a_figure_not_in_the_cited_source_is_refused(tmp_path):
+    """PROMISE: numbers are checked against the cited source, value AND unit."""
+    rep = _verdicts(tmp_path, "Redis handles 250K ops per second [S1].\n",
+                    [_rec(text="Redis handles 100K ops per second.")])
+    assert rep["gate"] != "PASS"
+
+
+def test_a_pass_requires_an_empty_retained_appendix(tmp_path):
+    """PROMISE (ADR-005): a ratio can never buy a PASS past a retained
+    violation. Any violation-class verdict blocks PASS outright."""
+    rep = _verdicts(
+        tmp_path,
+        "Redis replicates to three replicas [S1]. MongoDB lost all data.\n",
+        [_rec()])
+    assert rep["retained_appendix"], "expected a retained violation"
+    assert rep["gate"] != "PASS"
+
+
+def test_the_same_draft_and_store_always_give_the_same_verdict(tmp_path):
+    """PROMISE: deterministic. An audit artifact that changes between runs is
+    not an audit artifact."""
+    draft = "Redis replicates to three replicas [S1].\n"
+    first = _verdicts(tmp_path, draft, [_rec()])
+    second = _verdicts(tmp_path, draft, [_rec()])
+    assert first == second
+
+
+# ===========================================================================
+# 2. WHAT WE DO NOT PROMISE — limitations, pinned so the tin cannot overclaim
+#
+# Each test below asserts a LIMITATION IS STILL REAL. If one fails, the code
+# improved and the claim text in README.md / plugin.json / commands/ / skills/
+# must be updated in the same commit.
+# ===========================================================================
+
+def test_LIMITATION_paraphrase_is_not_verified(tmp_path):
+    """NOT PROMISED: that an honest paraphrase passes. The gate certifies
+    VERBATIM provenance, not meaning. T2 was demoted (ADR-006) and no NLI tier
+    exists, so a faithful restatement reads UNGROUNDED. This is the measured
+    Error-A of 0.320 (n=52, CR-004) and it is a FEATURE of the claim's scope,
+    not a defect to hide: the gate says "I could not mechanically trace this",
+    which is true."""
+    rep = _verdicts(tmp_path,
+                    "Redis keeps three copies of the data [S1].\n",
+                    [_rec(text="Redis replicates to three replicas.")])
+    assert rep["per_claim"][0]["verdict"] == "UNGROUNDED", (
+        "paraphrase now grounds — the claim text may now promise more")
+
+
+def test_LIMITATION_a_file_the_agent_wrote_itself_is_trusted(tmp_path):
+    """NOT PROMISED: that the agent cannot manufacture its own evidence.
+
+    ACCEPTED DESIGN, ruled by Sai 2026-10-01: the drafting agent's TOOL CHOICES
+    are trusted. `Read` is mapped to `verbatim` unconditionally and no field
+    records a file's ORIGIN, so an agent that writes a file and reads it back
+    produces a verbatim source. The gate verifies that the draft matches what
+    the session READ; it does not verify where what it read came from.
+
+    This test exists so the claim can never quietly imply otherwise."""
+    rep = _verdicts(tmp_path,
+                    "The Zentara trial reported a 62% response rate [S1].\n",
+                    [_rec(text="The Zentara trial reported a 62% response "
+                               "rate.", tool="Read")])
+    assert rep["gate"] == "PASS", (
+        "agent-authored evidence is no longer trusted — if this was fixed "
+        "deliberately, update the product claim and this docstring")
+
+
+def test_LIMITATION_absence_queries_are_chosen_by_the_agent(tmp_path):
+    """NOT PROMISED: that "we found no evidence of X" was checked against a real
+    search. ACCEPTED DESIGN (Sai, 2026-10-01): no search tool is captured, so
+    the "distinct searches" behind an absence claim are strings the agent
+    supplied as `query_provenance`."""
+    recs = [_rec("SA1", "Nothing was found in the recall archive for the X200.",
+                 qp="recall evidence search X200 drone"),
+            _rec("SA2", "The recall database returned zero results for X200.",
+                 qp="regulatory database evidence query X200")]
+    rep = _verdicts(tmp_path,
+                    "We found no evidence of a safety recall affecting the "
+                    "X200 drone.\n", recs)
+    assert rep["gate"] == "PASS", (
+        "absence certification changed — update the claim text")
+
+
+def test_LIMITATION_a_multi_line_authoring_note_is_scored(tmp_path):
+    """NOT PROMISED: that authoring comments are ignored. J-48: the comment rule
+    strips SAME-LINE comments only, so a multi-line note is scored as claims and
+    fails the draft. Keep notes on one line."""
+    rep = _verdicts(tmp_path,
+                    "Redis replicates to three replicas [S1].\n\n<!--\nTODO: "
+                    "check this.\nAsk the team.\n-->\n", [_rec()])
+    assert rep["gate"] == "FAIL", "J-48 was fixed — update the claim text"
+
+
+# ===========================================================================
+# 3. THE SHIPPED SURFACES must not re-acquire a claim the code cannot keep
+# ===========================================================================
+
+_SURFACES = (
+    ".claude-plugin/plugin.json",
+    "README.md",
+    "commands/assure-verify.md",
+    "skills/verify-grounding/SKILL.md",
+)
+
+# Phrases that assert something the gate does NOT enforce. Each was on a shipped
+# surface until 2026-10-01 and each was false.
+_RETIRED_CLAIMS = (
+    "actually retrieved this session",
+    "retrieved this session",
+    "proves every factual claim",
+    "this session's evidence store",
+)
+
+_ROOT = Path(__file__).resolve().parents[1]
+
+
+@pytest.mark.parametrize("surface", _SURFACES)
+def test_no_shipped_surface_overclaims(surface):
+    """A product claim written in Markdown is not executable, so it drifts.
+
+    This is the cheap half of keeping the tin honest: the expensive half is the
+    behaviour tests above. Together they catch drift in both directions — the
+    code getting worse, and the prose getting braver.
+
+    If a phrase here becomes TRUE (e.g. J-38 lands a real session boundary),
+    delete it from _RETIRED_CLAIMS in the same commit that makes it true. Do not
+    delete it to make this test pass.
+    """
+    text = (_ROOT / surface).read_text(encoding="utf-8").lower()
+    for phrase in _RETIRED_CLAIMS:
+        # The skill is allowed to QUOTE a retired phrase in order to forbid it.
+        if phrase in text and 'never "retrieved this session"' not in text:
+            pytest.fail(
+                f"{surface} contains the retired claim {phrase!r}. The gate does "
+                f"not enforce it — see the limitations block on that surface."
+            )
+
+
+@pytest.mark.parametrize("surface", _SURFACES)
+def test_every_surface_states_a_limitation(surface):
+    """An honest claim names its boundary. A surface that promises without
+    disclosing is how the 2026-10-01 drift happened in the first place."""
+    text = (_ROOT / surface).read_text(encoding="utf-8").lower()
+    assert any(k in text for k in ("does not", "not prove", "refuses")), (
+        f"{surface} makes a promise but discloses no boundary")
+
+
+def test_a_missing_store_says_what_to_do(tmp_path):
+    """α4 friction 1: the first command the installer prints points at a store
+    that does not exist on a fresh install (no research has happened yet). A raw
+    FileNotFoundError traceback was the first thing a new user saw. Still an
+    exception, still exit 1 — but it must now name the cause and a remedy."""
+    with pytest.raises(FileNotFoundError) as exc:
+        g.load_store(str(tmp_path / "nope.jsonl"))
+    message = str(exc.value)
+    assert "capture hook" in message, "does not explain WHY it is missing"
+    assert "demo/evidence-store.jsonl" in message, "offers no working remedy"

@@ -1,11 +1,12 @@
 ---
 name: verify-grounding
 description: >
-  Verify that every factual claim in a draft is grounded in a source actually
-  retrieved this session. Runs the deterministic Agent-Assure grounding engine
-  (no LLM judgment) against the captured evidence store and returns a
+  Verify that every factual claim in a draft can be traced, mechanically, to a
+  source captured in the evidence store. Runs the deterministic
+  Agent-Assure engine (no model, no network) and returns a
   PASS / NEEDS_WORK / FAIL gate with per-claim verdicts. The engine — not your
-  reading — decides grounding.
+  reading — decides grounding. It checks the draft against what the session
+  READ; it does not judge whether the source is right.
 license: MIT
 metadata:
   domain: verification-first-research
@@ -16,12 +17,39 @@ allowed-tools: Bash Read
 
 # Verify Grounding
 
-Prove that an AI-generated draft is grounded: every factual claim must be
-supported by a source that was **actually retrieved this session** and captured
-verbatim in the evidence store. The verdict is produced by a deterministic
-Python engine (`scripts/ground_check.py`) — no model judges grounding. Your job
-is to run the engine, surface its verdict, and help remediate — never to decide
-grounding yourself.
+Show whether an AI-generated draft is **traceable**: every factual claim must be
+supported by a source captured verbatim in the evidence store. The verdict is
+produced by a deterministic Python engine (`scripts/ground_check.py`) — no model
+judges grounding. Your job is to run the engine, surface its verdict, and help
+remediate — never to decide grounding yourself.
+
+## What this gate does NOT prove
+
+Say this plainly when you report a PASS. A PASS is not a certificate of truth.
+
+- **It does not verify where the evidence came from.** The gate checks the draft
+  against what the session READ. The agent's own tool choices are trusted, so a
+  file the agent wrote and then read back counts as a verbatim source.
+- **It checks verbatim provenance, not meaning.** A faithful paraphrase is
+  REFUSED, not passed. Roughly a third of honest claims read `UNGROUNDED` on the
+  calibration corpus (Error-A 0.320, n=52, CR-004). An `UNGROUNDED` verdict means
+  "I could not mechanically trace this", never "this is false".
+- **It does not check whether the source is correct**, current, or competent.
+- **"We found no evidence of X" is only as good as the searches recorded.** The
+  searches behind an absence claim are supplied by the agent, not observed.
+- **A multi-line `<!-- ... -->` note is scored as claims** and will fail the
+  draft (J-48). Keep authoring notes on one line.
+- **The store is not session-bounded unless you ask it to be.** Every captured
+  record carries a `session_id`, and passing `--session-id <id>` makes the gate
+  REFUSE a store holding any other session's evidence. Without that flag the
+  store is appended to and never rotated, so a claim can trace to a source
+  captured in an EARLIER session. So: describe evidence as "captured in the
+  evidence store" by default, and describe a run as session-scoped ONLY when it
+  actually passed `--session-id` (J-38).
+
+These are scope, not bugs — each is pinned by a test in
+`tests/test_product_claim.py`, so if one ever stops being true this list is
+wrong and must be updated.
 
 ## The moat: mechanical, not model-judged
 
@@ -47,7 +75,7 @@ Activate this skill when:
 - verifying an AI-generated research report, analysis, or memo BEFORE it reaches
   a human reader
 - the user runs `/assure-verify <draft>`
-- any point where "every claim must trace to a source retrieved this session" is
+- any point where "every claim must trace to a captured source" is
   the standard
 
 Do NOT activate when:
@@ -69,7 +97,7 @@ Do NOT activate when:
 Default is `.assure/evidence-store.jsonl` in the project root (populated by the
 capture hook during this session's research). If it is missing or empty, STOP
 and tell the user: the gate has nothing to ground against — either no research
-was captured this session, or the hook is not installed/firing. Do not present a
+was captured, or the hook is not installed/firing. Do not present a
 verdict against an empty store as meaningful (the engine correctly reports
 NEEDS_WORK + `vacuous: true` there — surface that, do not spin it as a pass).
 
