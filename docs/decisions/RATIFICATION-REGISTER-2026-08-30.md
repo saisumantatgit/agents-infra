@@ -1445,3 +1445,34 @@ so it can only ADD groundings: **PASS-enabling, Escalation #1, Sai's.** Noted in
 the register with the reuse pointer so the next session does not re-derive it.
 
 Suite 735 → **739 passed, 2 skipped, 63 xfailed**.
+
+---
+
+## D-59 — autonomous run to close J-52 (the plugin path), RATIFIED 2026-10-02
+
+| id | Decision | Basis | Undo | Status |
+|---|---|---|---|---|
+| D-59 | **Close J-52: validate the Claude Code PLUGIN path, so the verdict changes from "ready as a CLI, not as a plugin" to ready as both.** Branch `plugin-validation-2026-10-02`. Re-armed until done. | Sai, 2026-10-02: "Merge all if any… 'Ready as a CLI under the claim you approved. Not ready as a plugin. The gap is one item wide.' do this… Rearm until done." **This explicitly un-parks the one item that had been Escalation #4**, because closing the gap IS the instruction. | `git branch -D plugin-validation-2026-10-02`; `agent-assure-calibration-run` stays at `8fd5282`. `CronDelete` the tick job. | ARMED |
+
+**THE ESCALATION #4 BOUNDARY STILL APPLIES TO HIS LIVE ENVIRONMENT.** He
+authorised closing the gap, not editing his machine. So:
+
+- **ALLOWED:** a throwaway project directory with its own PROJECT-LOCAL
+  `.claude/settings.json`, `claude --plugin-dir` pointed at a scratch copy,
+  `hooks.json` exercised exactly as Claude Code invokes it.
+- **STILL BARRED:** any write to `~/.claude/settings.json`, the global plugin
+  registry, or `install.sh`. A validation that requires mutating his live config
+  is reported, not performed.
+
+**What "done" means for J-52**, decided now so it cannot drift later:
+
+1. the plugin manifest is structurally valid for discovery;
+2. `hooks.json`'s matcher actually matches the shipped retrieval tool names;
+3. the hook command line works with `CLAUDE_PLUGIN_ROOT` resolved as Claude Code
+   resolves it;
+4. the command and skill frontmatter are discoverable;
+5. **a real `claude` process, given `--plugin-dir`, fires the PostToolUse hook and
+   a store appears** — the step α4 could not reach.
+
+If (5) proves impossible from inside a Claude Code session, that is reported as
+the residue with the exact human command, and J-52 closes only to (4).
