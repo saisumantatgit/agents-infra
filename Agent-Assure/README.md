@@ -47,6 +47,25 @@ With `--json`: prints the full report as JSON to stdout (no file written).
 
 ---
 
+## Drafting conventions (two rules, both fail-safe)
+
+1. **Citation markers go INSIDE the sentence, before the final period** —
+   `... 128000 operations per second [S1].`, not `... per second. [S1]`. A marker
+   after the period becomes its own segment and detaches from its claim, which
+   then reads `UNCITED`.
+2. **Keep authoring notes on ONE line** — `<!-- TODO: check this -->`. Only a
+   comment that opens and closes on the same line is stripped. A multi-line
+   `<!-- ... -->` block is decomposed and SCORED as claims, so the draft fails on
+   sentences nobody meant to publish (J-48).
+
+Both rules over-flag rather than under-flag. The second one is permanent: a
+block-comment stripper is an unbounded deletion primitive, and four designs for
+one have been tried and rejected — one deleted multi-paragraph prose and
+certified the remainder at PASS 100.0 when a CRLF blank line voided its guard.
+Refusing a note is recoverable in one keystroke; deleting a claim is not.
+
+---
+
 ## EvidenceStore JSONL Format
 
 One JSON object per line. Blank lines are skipped.

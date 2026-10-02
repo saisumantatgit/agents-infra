@@ -166,6 +166,30 @@ after the sentence-final period is parsed as its own segment and detaches from i
 claim (which then reads as UNCITED). This is fail-safe (it over-flags, never
 under-flags), but note it when a draft's claims come back UNCITED unexpectedly.
 
+## Authoring notes: keep them on ONE line
+
+An HTML comment is stripped only when it OPENS AND CLOSES ON THE SAME LINE:
+`<!-- check this -->`. A note spread over several lines is NOT stripped — its
+inner prose is decomposed and scored as claims, and the draft fails on sentences
+nobody meant to publish.
+
+```markdown
+<!-- TODO: confirm the replica count with infra -->   <- stripped, invisible to the gate
+<!--
+TODO: confirm the replica count with infra            <- SCORED. Reads UNCITED, fails the draft.
+-->
+```
+
+This is deliberate and it is not going to change (J-48). Four designs for a
+block-comment stripper have been tried and all four lost: a stripper is an
+UNBOUNDED DELETION primitive, and every version found a way to swallow real
+claims instead of a note — one of them deleted multi-paragraph prose and
+certified the remainder at PASS 100.0 because a CRLF blank line voided its
+guard. **Refusing a note is Error-A: loud, recoverable, and the author fixes it
+in one keystroke. Deleting a claim is Error-B: silent and unrecoverable.** The
+burden stays with the author because only the author can tell a note from a
+claim.
+
 ## Verdict → gate summary (ADR-005 semantics, accepted 2026-07-12)
 
 | Gate | Condition |

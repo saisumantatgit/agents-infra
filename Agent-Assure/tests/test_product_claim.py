@@ -292,6 +292,46 @@ def test_every_surface_states_a_limitation(surface):
         f"{surface} makes a promise but discloses no boundary")
 
 
+# The two drafting rules J-48 and the citation-placement finding resolved to.
+# Both are DOCUMENTATION fixes, which is the weakest kind of fix there is: prose
+# has no runtime, so nothing fails when it is deleted. These two guards give the
+# prose a runtime.
+_MARKDOWN_SURFACES = ("README.md", "commands/assure-verify.md",
+                      "skills/verify-grounding/SKILL.md")
+
+
+@pytest.mark.parametrize("surface", _MARKDOWN_SURFACES)
+def test_every_markdown_surface_tells_authors_to_keep_notes_on_one_line(surface):
+    """J-48's ruling was documentation, not code — so the documentation is the fix.
+
+    `test_LIMITATION_a_multi_line_authoring_note_is_scored` pins the BEHAVIOUR
+    (a multi-line note fails the draft). This pins the only MITIGATION that
+    exists: the author must be told, on every surface they might read, that a
+    note has to fit on one line. If the guidance is deleted the limitation stops
+    being disclosed and starts being a trap, and nothing else in the suite
+    notices — prose has no runtime of its own.
+    """
+    text = (_ROOT / surface).read_text(encoding="utf-8").lower()
+    assert "one line" in text, (
+        f"{surface} does not tell authors to keep authoring notes on one line "
+        f"(J-48). The gate strips SAME-LINE comments only; an undisclosed "
+        f"multi-line note is scored as claims.")
+    assert "<!--" in text, f"{surface} states the rule without showing the syntax"
+
+
+@pytest.mark.parametrize("surface", _MARKDOWN_SURFACES)
+def test_every_markdown_surface_states_the_citation_placement_rule(surface):
+    """The sibling convention, pinned for the same reason.
+
+    A marker after the sentence-final period detaches and reads UNCITED. That is
+    fail-safe, so it will never show up as a test failure anywhere else — it only
+    ever shows up as a confused author.
+    """
+    text = (_ROOT / surface).read_text(encoding="utf-8").lower()
+    assert "final period" in text, (
+        f"{surface} does not state where citation markers go")
+
+
 def test_a_missing_store_says_what_to_do(tmp_path):
     """α4 friction 1: the first command the installer prints points at a store
     that does not exist on a fresh install (no research has happened yet). A raw
