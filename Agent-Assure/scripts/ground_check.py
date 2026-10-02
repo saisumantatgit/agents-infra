@@ -3027,7 +3027,41 @@ def _endpoint_in_window(window_text: str, endpoint: str) -> bool:
     if not tokens:
         return False
     window = _nfkc(window_text).casefold()
-    return all(_contains_word(window, tok) for tok in tokens)
+
+    # J-44 (Sai's ruling, 2026-10-02): a plural stem, applied SYMMETRICALLY, to
+    # ENDPOINTS ONLY. "migraines" does not occur in "severe migraine", so a
+    # claim whose endpoint the cited source states in the singular was refused
+    # over one letter — Error-A on exactly the honest draft the gate exists to
+    # certify.
+    #
+    # SEQUENCING WAS THE RULING: after J-39, never before. Forgiving the number
+    # of a word while each endpoint was still ONE TOKEN would have widened the
+    # weakest surface in this branch. Now every modifier must still be present
+    # and only the number is forgiven, so the needle stays long.
+    #
+    # SYMMETRIC means both sides are stemmed: a rule that stems only the claim
+    # behaves differently depending on who wrote which side, which is not a
+    # rule. The literal check runs first because an endpoint token can carry
+    # punctuation ("state-of-the-art"), which the \w+ tokenizer would split.
+    #
+    # TRIGGERS ARE NEVER STEMMED. `_relation_asserted` matches the trigger
+    # lexicon with `_contains_word` directly, and must keep doing so: "cause"
+    # is a noun as often as a verb, and stemming "causes" would read every
+    # mention of "the cause" as a causal assertion. Pinned by an AST guard in
+    # tests/red_team_moat/test_moat_j44_endpoint_plurals.py.
+    #
+    # CEILING: `_stem` strips a single trailing "s" only, so "-es" plurals do
+    # NOT match ("losses" stems to "losse", never to "loss"), and neither do
+    # irregulars ("analysis"/"analyses", "mouse"/"mice"). Those endpoints are
+    # still refused — Error-A, loud, unchanged. The upgrade path is a real
+    # morphological analyser, which is a dependency the verdict path may not
+    # import; a longer hand-written suffix table is NOT the upgrade, because
+    # English suffix rules are an open set and that is the enumeration trap.
+    window_stems = {_stem(tok) for tok in _tokenize(window)}
+    return all(
+        _contains_word(window, tok) or _stem(tok) in window_stems
+        for tok in tokens
+    )
 
 
 def window_supports(source: RetrievedSource, argument_text: str) -> bool:
