@@ -192,3 +192,36 @@ gate. Adversaries attack what you built. Nobody had been the stranger.
 | 2026-10-02 01:45 | **J-52 items 1-4 CLOSED and pinned** (`tests/test_plugin_contract.py`, 10 tests): manifest discoverable; **hook matcher covers every shipped retrieval tool, both directions**; the exact `hooks.json` command line fires with `CLAUDE_PLUGIN_ROOT` resolved and writes a store carrying the session id; command + skill frontmatter discoverable. `claude plugin validate --strict` passes — but note it covers "skills, agents, and commands", **not hooks**, so it is not evidence about `hooks.json`. | ~0.30M | FMEA detectability (a capture gap is invisible by construction — the matcher-parity guard is the point) · Calibration (did not read a passing validator as hook evidence) |
 | 2026-10-02 02:00 | **Item 5 measured and it did NOT pass — then cleared our plugin.** A real `claude -p --plugin-dir` ran (exit 0, answered `47219`, so `Read` definitely ran) and **no store appeared**. Discriminators: the nested session reports `/assure-verify` IS available (weak — model self-report), and **a PLAIN project-local `.claude/settings.json` PostToolUse hook ALSO did not fire**. So the suppression is not plugin-specific. **Corrected the guide agent's misquote**: `-p`'s help says "settings files **that fail validation** are silently ignored", not "settings files are ignored" — a materially different claim that briefly pointed me at a defect in our own `hooks.json`. | ~0.35M | Contradiction-as-locator (plugin loads but hook does not fire → isolate with a plain hook) · Calibration (checked the quoted help text myself; the paraphrase was wrong) · Three-kind search (named the absence "not found by this method", not "absent") |
 | 2026-10-02 02:40 | **J-52 item 5 substantially REACHED, and the tick's Goodhart warning was right about my close.** It said J-52 is "a stranger can install and use it", not "five boxes ticked" — and I had proven `/assure-verify` DISCOVERABLE, never that it WORKS. That path is reachable non-interactively (needs a store to EXIST, not the hook to FIRE), so I pre-made one. **It works:** `claude -p "/assure-verify draft.md" --plugin-dir …` returned FAIL 50.0, caught the fabricated `[S3]` and the invented "100×", attributed both grounded claims, and volunteered the limitations unprompted. **It also found J-56, which 750 tests had not:** the engine's own output said "NEVER RETRIEVED **this session**" with no `--session-id` passed — the same overclaim CLAIM-1 retired from the four doc surfaces, surviving one layer down in RUNTIME STRINGS, where my drift guard never looked. Fixed; the new AST guard then caught the sibling in the absence branch that my own three-kind grep had missed. Suite 750 → 751. | ~0.40M | Goodhart (the checkbox was not the thing; acting on the warning found a real gap) · FMEA detectability (the guard found the sibling the grep missed — an AST walk beats a phrase grep for this class) · Jobs to be Done (the stranger's path is `/assure-verify`, not the engine I had been testing) · Contradiction-as-locator (plugin loads but hook silent → three-way control) · Calibration (strengthened the pinning assertions with a negative so the overclaim cannot return) |
+
+## BUDGET STOP — 2026-10-02 02:50 UTC
+
+**Sanctioned 8M new tokens (output + cache creation). Consumed 8.28M.** Over the
+sanctioned figure, under the 9.6M ceiling. **Stopping: no new work started.**
+Cron already disarmed; J-52 done to its reachable extent.
+
+Derived from the session JSONL, measure named:
+
+| | |
+|---|---|
+| turns | 424 |
+| output | 0.54M |
+| **cache_creation** | **7.51M** |
+| subagents (2) | 0.23M |
+| **total new tokens** | **8.28M / 8M sanctioned** |
+
+**The calibration lesson is about session LENGTH, not the task.** Output was only
+0.54M across 424 turns — **the budget went on cache creation.** A long session
+re-creates a large context every turn, so cost per unit of delivered value climbs
+steeply no matter how much is being done: the first 282 turns cost 2.7M, today's
+142 turns cost 5.33M. Same kind of work, roughly double the rate.
+
+Practical consequence, and it contradicts how this session was run: **a long-lived
+session should be SPLIT, not extended.** Two nights of work in one session was
+convenient for continuity and expensive in tokens. Next time, close the session at
+the night boundary and resume from `RESUME-HERE.md` — which is exactly what that
+file exists for.
+
+Frameworks: **Unit economics of the work** (cost per unit of delivered value, not
+per run) · **Degradation under constraint** (honouring the ceiling IS the
+decision, not stalling) · **Calibration** (measured rather than assumed; the
+earlier 2.69M reading was correct for its window and I did not re-quote it).
