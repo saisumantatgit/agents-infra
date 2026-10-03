@@ -38,10 +38,12 @@ it is the reason the rates appear here as a *result* rather than a reassurance.
 | All scored claims (n=52) | 10/52 = **0.192** |
 | **Claims the GATE passes** | **4/15 = 0.267** ← the false-alarm rate that matters |
 | Claims a human LABELLED grounded | **7/25 = 0.280** |
+| **RECALL — denials it CATCHES** | **7/14 = 0.500** (named 14-vector set, 2026-10-03) |
 
 **R15-02, corrected.** This row first read `7/27 = 0.259`, using the labelled-VIOLATION denominator. Gold is **25 grounded / 27 violation**, so the figure is 7/25 = 0.280. Round 15 reproduced the 26.7% headline, the 10/52, Error-A 0.400 and Error-B 0.000 exactly — this one row was wrong, in a CR about a diagnostic's own error rate.
 
-**Roughly 1 in 4 of its flags is a false alarm.** Tolerable for an advisory that
+**Roughly 1 in 4 of its flags is a false alarm, and it misses about half the
+denials we could construct.** Misses: a denial in the NEXT sentence, `retracted`, `erroneous`, `lacks`, `absent`, `zero`, and a denial after a semicolon. **And one apparent catch is spurious** — *"a claim since debunked"* fires on `claim`, a hedge token, not on `debunked`, the same artefact as `per` in "operations per second" (J-79). **So both headline numbers are slightly wrong, in opposite directions**, and that is recorded rather than smoothed. Tolerable for an advisory that
 refuses nothing; intolerable for a gate — which is precisely why ADR-008 ships
 it as a measurement. **It is published rather than tuned** because tuning a
 signal nobody has re-validated is how 2026-10-02 produced two Error-Bs. The
@@ -63,15 +65,10 @@ number appears in the function's docstring, in `README.md`, in `SKILL.md` and in
 
 ## Defects found while doing other work
 
-- **Two stale error rates on claim surfaces** (`README.md`, `SKILL.md`): still
-  0.320 / CR-004 after ADR-007 raised it to 0.400. An understatement of the cost
-  to the user by a fifth, on the two documents a user reads first.
-- **A commit (`3ba4216`) was made on a RED gate with a message stating a false
-  result.** `test_per_claim_fields` pins the per-claim field set EXACTLY and went
-  red when `support_diagnostic` was added. Corrected in `49d1bfa`, and the
-  underlying cause recorded: the pre-check searched for a top-level report key
-  set and not a per-claim one — one KIND of search where three are required.
-  **The test worked as designed; the process around it did not.**
+Two stale error rates on claim surfaces (0.320/CR-004 after ADR-007 had raised
+it to 0.400), and a commit made on a RED gate with a message stating a false
+result (`3ba4216` → `49d1bfa`). **Narrative extracted per ADR-025's 80-line
+ceiling:** `docs/logbook/2026-10-03B-four-censuses-and-the-shapes-they-could-not-see.md`.
 
 ## Verdict
 
