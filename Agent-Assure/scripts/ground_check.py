@@ -3592,9 +3592,22 @@ def ground(
         )
         if absence_verdict is not Verdict.ABSENCE_SUPPORTED:
             return absence_verdict
+        # R18-01 — THE FOURTH INSTANCE OF THE PLACEMENT CLASS, AND IT IS FOUR
+        # LINES BELOW THE THIRD. R17-01 narrowed the BASIS check above to
+        # exclude self-sources; this list, which feeds the two FIGURE checks,
+        # was left reading `store.values()`. Adding ONE `Read` record of the
+        # draft flipped `UNVERIFIED_NUMBER` -> `ABSENCE_SUPPORTED` at PASS
+        # 100.0 for a figure present in no retrieved source, because the draft
+        # contains the figure and so "verifies" it.
+        #
+        # The cross-kind guard did not catch it: its ABSENCE fixture carries no
+        # figure, so it never reached this return. That is the CEILING that
+        # file's own docstring records — it enumerates KINDS, not the 15 return
+        # statements — biting within the hour. The fixture now carries a figure.
         _absence_verbatim = [
             source for source in store.values()
             if source.full_text_source == "verbatim" and source.text
+            and source.source_id not in self_source_ids
         ]
         if claim.numeric_tokens and not numeric_ok(claim, _absence_verbatim):
             return Verdict.UNVERIFIED_NUMBER

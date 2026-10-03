@@ -511,3 +511,22 @@ note), and writing a SUBSTRING guard that failed on its own docstring for
 containing the word "verdict" while explaining that it consults no verdict —
 the identical trap this file records from 2026-10-01, with the AST fix sitting
 two tests above it.
+
+### Round 18 — the FOURTH instance of the placement class, four lines below the third
+
+| id | Finding | Owner | State |
+|---|---|---|---|
+| R18-01 | **CRITICAL, FIXED.** R17-01 narrowed the BASIS check to exclude self-sources; `_absence_verbatim` — which feeds the two FIGURE checks, **four lines below** — was left reading `store.values()`. Adding ONE `Read` of the draft flipped `UNVERIFIED_NUMBER` → `ABSENCE_SUPPORTED` at **PASS 100.0 / exit 0** for a figure present in no retrieved source. Reproduced, fixed, and the cross-kind guard extended with a MIXED-store fixture. | Claude — done |
+| — | **THE GUARD COULD NOT REACH THE BUG, AND I NEARLY CLAIMED IT COULD.** Its fixtures make every record the draft, so the BASIS rule refuses first and the figure returns never execute. Run against the broken gate the guard stayed GREEN. **A guard that cannot reach the return it protects is indistinguishable from no guard**, and only running it against the known-broken gate revealed that. A mixed-store fixture now reproduces R18-01 exactly and is proven red at `HEAD`. | Claude — done |
+| J-84 | **CRITICAL, NOT FIXED — the basis rule is a TRIPWIRE, not a grounding requirement.** Two self-`Read`s of the draft supply BOTH qualifying queries while **one wholly irrelevant real source (a rainfall report)** satisfies the new basis rule → **PASS 100.0**. One unrelated document licenses an absence the draft argued for itself. | Claude | next session — needs `check_absence`'s signature to change |
+| J-85 | **CRITICAL, NOT FIXED — GROWING the query list is fail-open, which D-54 only recorded for SHRINKING.** The draft's own `query_provenance` dilutes the blanket-corpus-word **denominator** and switches a live refusal off. It also works with genuine irrelevant sources, so it is not only a self-citation bug. **D-54 says a filtered store is "differently weak"; round 18 shows an INFLATED store is weak through the same gate.** | Claude | next session — same function, same signature change |
+| R18-05 | **DOC — my "proven red against HEAD~1" was off by one.** The red is at `HEAD~2` (`88b1312`). Substance held; the reference did not. | Claude — corrected below |
+
+**WHY J-84 AND J-85 ARE NOT FIXED TONIGHT.** Both need `check_absence` to
+distinguish queries that may COUNT from queries that may form the DENOMINATOR —
+the same signature change J-42 has needed since 2026-10-01, in the function that
+has already produced one self-inflicted Error-B (D-54, withdrawn the same day it
+landed). It is 17:00, this run has found and fixed four criticals, and §2-A says
+**error compounds unattended while delay costs one afternoon.** Starting a
+two-directional change in that function now is how today's mistakes were made.
+Both reproduce at `754911b` and `88b1312`, so neither regresses CR-010.
