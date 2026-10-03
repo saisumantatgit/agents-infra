@@ -3,10 +3,52 @@
 **Goal set at §0:** that when you're back, Agent-Assure's PRODUCT CLAIM matches
 what the code actually does. **Met.** The engine is unchanged; what it claims is not.
 
-**ROUND 15: _pending at the time this skeleton was written._ Its findings and my
-adjudication are appended below under "ROUND 15". If that section is missing or
-says pending, the run died before it reported and nothing in this report should
-be read as adversarially reviewed.**
+## ROUND 15 — it ran, and it caught me on the thing I had just congratulated myself for
+
+**0 CRITICAL · 2 HIGH · 4 diagnostic-gap · 2 doc-defect.** Both HIGHs reproduced
+by me before acting, and both are mine.
+
+**The clean result first, because it was the run's primary risk.** Attack 1 —
+*can either new surface change a verdict?* — found **nothing across 215 pairs**:
+`session_scoped=True` vs `False` is byte-identical once `scope` is popped,
+`per_claim` verdicts equal direct `ground()`, no mutation, no crash, fully
+deterministic. **The display-only property is now evidence, not intention.**
+
+**R15-01, HIGH — J-56's overclaim reproduced BY the J-73 disclosure built to
+prevent it.** `--session-id ""` scored the shipped demo store at **PASS 100.0**
+and printed the session-scoped wording over records carrying no session data.
+`assert_single_session` compares `source.session_id != session_id`, so a blank
+expected id against blank record ids evaluates `"" != ""`, finds nothing foreign
+and returns — **while its own docstring already promised "An EMPTY session_id is
+UNATTRIBUTABLE and also raises."** I had called catching the session-scope trap
+the best moment of the run, in this very file, an hour before an adversary found
+I had shipped it anyway on an adjacent path. **Fixed systemically**, in
+`assert_single_session` rather than the CLI: the emptiness of the expected id is
+a fact about the REQUEST, so no comparison against the store can establish it.
+Fail-closed; PROVEN-RED 4/5.
+
+**R15-02, HIGH — my own published number was wrong**, in a CR about a
+diagnostic's own error rate. CR-009 read `7/27 = 0.259`, using the labelled-
+VIOLATION denominator; gold is 25 grounded / 27 violation, so it is **7/25 =
+0.280**. Every other number — the 26.7% headline, 10/52, Error-A 0.400, Error-B
+0.000 — reproduced exactly.
+
+**Two doc-defects, both on README.** It documented **T2 as LIVE** at `lex_tau`
+0.71 with a working `--lex-tau` override, a month after ADR-006 retired it and
+the flag began exiting 2. And *"every captured record now carries a
+`session_id`"* masked the very hole R15-01 used. Both corrected — the second
+reworded to avoid the retired phrase rather than widening the overclaim guard's
+escape hatch, so the guard stays strict.
+
+**Four diagnostic MISS vectors (J-79), none Error-B** — nothing is refused, so
+each is a missed warning. One deserves your attention: **`per` is a hedge token**,
+so every *"operations per second"* claim fires for the wrong reason, which means
+**part of the published 26.7% false-alarm rate is that artefact rather than
+genuine ambiguity.** Recorded rather than quietly re-measured. Deliberately not
+fixed: one vector is a lexicon, and a list licensing an acceptance makes its own
+gap the attack (the J-44 lesson). The honest upgrade is J-70 — yours.
+
+Report: `Agent-Assure/reports/RED-TEAM-R15-2026-10-03.md`.
 
 ---
 
@@ -26,7 +68,7 @@ rate would have been proof of a leak into the verdict path:
 Error-A = 10/25 = 0.400     UNMOVED
 Error-B = 0/27  = 0.000     UNMOVED
 honest_drafts: 7 passed, 3 xfailed    UNMOVED
-suite: 815 passed, 2 skipped, 66 xfailed, exit 0   (797 before; +18 new tests)
+suite: 820 passed, 2 skipped, 66 xfailed, exit 0   (797 before; +23 new tests)
 gold md5 6215b526d03147295b003d7ccb0d171f          unchanged
 ```
 
@@ -75,7 +117,7 @@ Nothing was denied by a boundary.
 
 ## 6. BUDGET
 
-**~1.3M new tokens** (output + cache creation) of 1.5M sanctioned, ceiling 1.8M.
+**~1.6M new tokens** (output + cache creation) of 1.5M sanctioned, ceiling 1.8M.
 Measure named, derived from this session's artifacts. Stopped *starting* new work
 at ~1.2M per the degradation clause and spent the remainder finishing.
 
