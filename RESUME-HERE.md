@@ -45,9 +45,18 @@ PR #7's merge commit `c524145` is not an ancestor of it. That is a separate and
 much larger decision than anything taken today — do not treat "merge" as
 covering it.
 
-**J-94 recommendation: WONTFIX.** The refusal needs the whole draft to equal the
-whole source — a transcription with no independent content. The first remedy I
-registered for it was fail-open and is withdrawn.
+**J-94 IS RULED: CLOSED WONTFIX (Sai, 2026-10-03, D-91).** The refusal needs the
+whole draft to equal the whole source — a transcription with no independent
+content. J-93 closed by refusal (D-90); my own remedy withdrawn as fail-open
+(D-92). **Do not reopen on a single-sentence fixture** — the digest is
+whole-draft against whole-source, so such a fixture tests the fixture.
+
+**J-95 is the open residue and it is MINE:** a tripwire pinning D-91, because a
+deliberate refusal that looks like a bug will be "fixed" in good faith by the
+next reader, and that fix is the one that reverts R19-01. **It cannot be
+completed without clearing the `Security Test Removal` permission** — the
+proven-red check requires running the guard against a build with the digest arm
+disabled, and a guard never seen red is not a guard.
 
 **Read first:** `docs/logbook/2026-10-03D-the-author-as-adversary.md`.
 
