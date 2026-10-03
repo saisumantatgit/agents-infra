@@ -803,3 +803,72 @@ the dependency rather than writing an unvalidated guard — a guard never seen r
 is not a guard, which is this repo's own rule, earned twice today.
 
 **Direction:** additive test only. No change to `ground_check.py`.
+
+---
+
+## J-84 + J-85 — CLOSED 2026-10-03. ONE HOLE, NOT TWO, AND NO SIGNATURE CHANGE.
+
+**Status: CLOSED** · gated at **851 passed · 2 skipped · 68 xfailed · exit 0** ·
+gold md5 unchanged · corpus md5 `affd3f9f…010` identical before and after.
+Branch `j84-j85-absence-denominator-2026-10-03`, commit `fbf710a`. **CR-011.**
+
+**The fix.** `_session_queries(store, self_source_ids)` — the draft's own
+`Read` records no longer enter the absence query population at all. A self-read
+is not a search, so it may form neither the COUNT, the blanket-word
+DENOMINATOR, nor that gate's `len(distinct) >= 3` activation. One call-site
+change plus one helper parameter; `check_absence` itself is untouched.
+
+**WHERE THIS REGISTER WAS WRONG, re-derived from code per the §2 rule.** Both
+rows said the fix needed COUNT and DENOMINATOR separated. True of **J-42** — a
+`haiku_summary` IS a real search, so it must leave the numerator and STAY in the
+denominator — and **false here**. That mattered: the projected change was
+two-directional in the function that produced D-54, and the actual change is
+one-directional and much smaller.
+
+**AND J-84 WAS NOT REPRODUCIBLE AS WRITTEN.** The shape the row describes
+refuses today — but on the blanket-word gate (`len=3, head_in=2, 4>3`), not on
+anything about self-sources. It refused for the **wrong reason**. J-85's padding
+is what silences that gate and exposes the count; with self queries removed both
+shapes refuse at `match_count=0` with the gate not firing at all, so the fix
+does not rest on a gate an author can switch off by searching more.
+
+**What the guards caught, recorded because it is the argument for having them.**
+My first version left `evidence_basis` reading the whole store while the verdict
+read the filtered one — **round 11-B's defect, recreated** — and
+`test_display_matches_verdict.py` failed on it immediately. Its sibling "only
+one query source exists" then rejected my better-named second helper, which is
+why `_session_queries` was extended in place. `self_source_ids` has **no
+default** on either function: a default would silently reinstate the behaviour
+this closes.
+
+**One control's premise embedded the bug.** The J-83 positive control certified
+on ONE genuine search because the self-record supplied the second. Amended to
+rest on two real searches; it still fails if the basis rule becomes a blanket
+refusal, so its job is intact.
+
+---
+
+## J-96 — the blanket-word proportion test is Goodhart-able by extra real searches
+
+**Status:** OPEN · **Owner: Sai** (Escalation #1 — it moves the Error-A/Error-B
+trade-off) · **Raised:** 2026-10-03, as the named CEILING of the J-84/J-85 fix.
+
+**The residue.** J-84/J-85 closed the SELF-read vector. The gate
+`len(distinct) >= 3 and 2 * head_bearing > len(distinct)` is still a
+**proportion**, so an author willing to run genuinely irrelevant real searches
+can raise the denominator until a live refusal goes silent. D-54 recorded that
+shrinking this list is fail-open; round 18 showed growing it is fail-open; **both
+remain true for real queries.**
+
+**Why it is not an agent's call.** The `>= 3` activation was deliberately
+re-validated on 2026-08-30: removing it rejected four legitimate absences
+(a changelog searched twice, corpus q37's antidote+toxin pair,
+contraindications) — Error-A on exactly the claims the absence path exists to
+support. Any replacement trades Error-A against Error-B by construction, and
+**no change may reduce one by raising the other.** Escalation #1, either
+direction.
+
+**What a remedy would have to do, so the next session does not start cold:**
+separate "did this session search for the subject" from "is the subject's head
+noun a blanket word in this corpus" — the second is a property of the corpus and
+cannot be a ratio over a list the author controls the length of.
