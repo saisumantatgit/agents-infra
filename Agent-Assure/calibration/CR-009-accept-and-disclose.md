@@ -31,8 +31,6 @@ it is the reason the rates appear here as a *result* rather than a reassurance.
 
 ## The new diagnostic's own error rate — PUBLISHED, NOT TUNED
 
-`support_diagnostic` fires `cited_sentence_may_not_assert_claim` on:
-
 | Population | Fire rate |
 |---|---|
 | All scored claims (n=52) | 10/52 = **0.192** |
@@ -40,18 +38,13 @@ it is the reason the rates appear here as a *result* rather than a reassurance.
 | Claims a human LABELLED grounded | **7/25 = 0.280** |
 | **RECALL — denials it CATCHES** | **7/14 = 0.500** (named 14-vector set, 2026-10-03) |
 
-**R15-02, corrected.** This row first read `7/27 = 0.259`, using the labelled-VIOLATION denominator. Gold is **25 grounded / 27 violation**, so the figure is 7/25 = 0.280. Round 15 reproduced the 26.7% headline, the 10/52, Error-A 0.400 and Error-B 0.000 exactly — this one row was wrong, in a CR about a diagnostic's own error rate.
-
-**1 in 4 of its flags is a false alarm; it misses about half the denials we
-could construct.** Misses: next-sentence denial, `retracted`, `erroneous`,
-`lacks`, `absent`, `zero`, post-semicolon. **One apparent catch is spurious** —
-*"a claim since debunked"* fires on `claim`, not `debunked` (same artefact as
-`per`, J-79) — **so both headline numbers are wrong in opposite directions.** Tolerable for an advisory that
-refuses nothing; intolerable for a gate — which is precisely why ADR-008 ships
-it as a measurement. **It is published rather than tuned** because tuning a
-signal nobody has re-validated is how 2026-10-02 produced two Error-Bs. The
-number appears in the function's docstring, in `README.md`, in `SKILL.md` and in
-`commands/assure-verify.md`, so a user meets it in the same breath as the flag.
+**1 in 4 flags is a false alarm; recall 0.500.** Misses: next-sentence denial,
+`retracted`, `erroneous`, `lacks`, `absent`, `zero`, post-semicolon. One apparent
+catch is spurious — *"a claim since debunked"* fires on `claim`, not `debunked`
+(same artefact as `per`, J-79) — **so both numbers are wrong in opposite
+directions.** Published in four places and deliberately NOT tuned: adding the
+missing words would raise recall on the fourteen cases I invented and leave the
+class open (J-44, D-69). Narrative: `docs/logbook/2026-10-03B-*.md`.
 
 ## Non-measurement, named explicitly
 
