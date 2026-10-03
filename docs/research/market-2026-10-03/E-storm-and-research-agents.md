@@ -1,0 +1,102 @@
+# E. STORM and cited-research agents: feature comparison (2026-10-03)
+
+Method: WebSearch/WebFetch, `gh` API, and the papers read as PDF text (pdftotext). Exa MCP was rate-limited (free tier) after one call, so everything below is WebSearch/WebFetch/gh. Every cell cites a source; `UNVERIFIED` means the docs I could read do not say. "(sec.)" = secondary source (aggregator/news), weaker than a vendor doc or paper.
+
+## Conclusion (5 bullets)
+
+1. **Complement, not competitor.** No tool I could read documents a post-generation, claim-by-claim verifier inside its own pipeline. STORM has none (its paper scores citations with a Mistral-7B judge as an evaluation metric only, and Co-STORM's ethics section says "more robust modules to verify the accuracy of information can be implemented"). Anthropic's blog describes a CitationAgent that "identif[ies] specific locations for citations", and says nothing about verifying claims against sources.
+2. **The size of the problem is measured, but only by LLM judges and the numbers disagree by instrument: roughly 15% to 97% of statements unsupported.** STORM's own paper: 84.83% citation recall / 85.18% precision (about 15% of sentences unsupported; Mistral-7B judge, 2024). Liu et al. 2023, human auditors, Bing Chat/NeevaAI/Perplexity/YouChat: only 51.5% of sentences fully supported, 74.5% citation precision. DeepTRACE (Sep 2025, GPT-5 judge): unsupported statements GPT-5 Deep Research 12.5%, Gemini DR 53.6%, Perplexity DR 97.5%. DeepResearch Bench (Jun 2025): citation accuracy 77.96% (OpenAI DR) to 90.24% (Perplexity DR). **There is no single "citation error rate"; do not quote one.**
+3. **These numbers measure semantic support ("does the source back the sentence"). Agent-Assure's T1 measures lexical presence.** The market's measured problem is therefore only partly the one our gate solves. STORM's error taxonomy (10 articles, one author, manual) says 47% of its flagged "unsupported" sentences simply lacked a citation, 14% were improper inferential linking, 7% inaccurate paraphrase (paper App. C.3, Figure 6). The first two plausibly map to UNCITED/UNGROUNDED; this mapping is INFERRED, never run.
+4. **Best integration: STORM.** It writes `storm_gen_article.txt` + `url_to_info.json` + `raw_search_results.json` + `llm_call_history.jsonl` to disk (engine.py). That is a ready-made draft + evidence pair. The adapter is not free: the `[n]` to `[S#]` mapping and the snippet-fragment granularity are untested.
+5. **Weakest claim:** that STORM's `snippets` are verbatim page text. I read `rm.py`/`storm_dataclass.py` (keys `snippets`, `snippet_chunk_size=1000`) but did not run STORM or diff snippets against live pages. If they are model-rewritten, the "verbatim" tag would be false and the whole integration premise fails.
+
+## 1. Feature matrix
+
+Columns: (a) cited drafts; (b) verifies own citations post-generation; (c) auditable record of what was retrieved; (d) verbatim vs model-summary distinction; (e) any deterministic/reproducible check; (f) detects source contradicting the claim; (g) usable as a gate in another pipeline.
+
+| Tool | (a) | (b) | (c) | (d) | (e) | (f) | (g) |
+|---|---|---|---|---|---|---|---|
+| **STORM / Co-STORM** | Yes: "full-length report with citations" [R1][P1][P2] | No in pipeline. Paper scores citations with Mistral-7B as eval (84.83/85.18) [P1 s.4.2, Tab.4]; Co-STORM says verification modules "can be implemented" [P2 Ethics] | Yes: engine.py dumps `conversation_log.json`, `raw_search_results.json`, `url_to_info.json`, `llm_call_history.jsonl` [R2] | UNVERIFIED, docs do not say. rm.py returns `snippets` (chunked page text, INFERRED verbatim) [R3] | No. Eval judge is an LLM [P1] | No. Paper lists "over-association" and "source bias transfer" as open problems [P1 abstract] | Yes: MIT Python lib + files on disk [R1]. Repo last push 2025-09-30, 110 open issues [R4] |
+| **GPT Researcher** | Yes: "reports with citations" [R5] | UNVERIFIED, README makes no such claim; says it aims to "reduce" bias, not eliminate [R5] | Partial: `get_source_urls()`, `get_research_context()`, `get_research_sources()` [D1] | UNVERIFIED | UNVERIFIED | UNVERIFIED | Yes: pip package, MCP, PDF/Word export [R5][D1] |
+| **Perplexity (Sonar / Deep Research)** | Yes [P3][P4] | UNVERIFIED | Partial: API returns `search_results` (title, url, snippet, date) [D2]; community reports empty `citations`/`search_results` on async deep-research jobs [F1] and a citation-mapping bug [F2] | UNVERIFIED | UNVERIFIED | UNVERIFIED | API only; model closed [D2] |
+| **OpenAI Deep Research** | Yes: `url_citation` annotations with `start_index`/`end_index` [D3] | UNVERIFIED. (OpenAI's launch page returned 403; only secondary reports a hallucination/"citation formatting" caveat [S1]) | Yes: output array holds `web_search_call` (search/open_page/find_in_page), `code_interpreter_call`, `mcp_tool_call` [D3]. Whether page TEXT is returned: UNVERIFIED | UNVERIFIED | UNVERIFIED | UNVERIFIED | API yes [D3]; model closed |
+| **Gemini Deep Research** | Yes [D4] | UNVERIFIED | UNVERIFIED (docs summary shows structured steps + optional thought summaries) [D4] | UNVERIFIED | UNVERIFIED | UNVERIFIED | Interactions API, Preview, agents `deep-research-preview-04-2026` / `deep-research-max-preview-04-2026` [D4] |
+| **NotebookLM** | Yes: inline citations to uploaded sources (sec.) [S2] | UNVERIFIED. Carries "may contain inaccuracies" notice (sec.) [S3] | Sources are user uploads; click-through to passage (sec.) [S2] | N/A (user-supplied text), UNVERIFIED otherwise | UNVERIFIED | UNVERIFIED | UNVERIFIED (no API found; closed UI) |
+| **Elicit** | Yes: reports with cited claims [E1] | UNVERIFIED; Elicit evaluates with 17 human researchers over 29 own + 120 competitor reports, top 5 claims per report, support graded full/partial/none [E1] | Partial: supporting quotes per extraction [E1/E2 sec.] | UNVERIFIED | No: repeat extractions agree 90% on values but only 46% on quotes (sec., independent study) [S4] | UNVERIFIED | Closed product |
+| **Consensus** | Yes (50 citations in Deep Search, sec.) [S5] | UNVERIFIED | UNVERIFIED | UNVERIFIED | UNVERIFIED | Partial, topic-level: "Consensus Meter" shows agreement across papers (sec.) [S5]; not claim-vs-source for a draft | Closed product |
+| **SciSpace** | Yes (sec.) [S6] | UNVERIFIED; third-party guidance says "verify any claim ... against the original paper" [S6] | UNVERIFIED | UNVERIFIED | UNVERIFIED | UNVERIFIED | Closed product, UNVERIFIED API |
+| **Semantic Scholar (S2AG API)** | No (data layer) | n/a | Yes: paper/citation metadata, full text "where available" (sec.) [S7] | n/a | API data is deterministic (INFERRED) | Partial: citation-context supportive/contrasting labels between papers (sec.) [S7] | Yes: free public API [S7] |
+| **scite** | No (index) | n/a | Index of 1.2B citation statements (sec.) [S8] | n/a | No: ML classifier; reported accuracy 97% mentioning / 64% supporting / 59% contrasting (sec., metric definition unclear) [S8] | Partial: labels supporting/mentioning/contrasting citations between papers [S8]; not a draft's claim vs its cited source | API/closed, UNVERIFIED |
+| **Anthropic Citations API** | Yes [D5] | Structural only: docs say citations are "guaranteed to contain valid pointers to the provided documents" [D5]; says nothing guaranteeing the pointed text supports the claim | Yes for caller-supplied documents; `cited_text` extracted directly [D5] | Yes in effect: `cited_text` is source text, not a summary [D5] | Pointer validity is mechanical (parse + extract) [D5]; semantic support is model-chosen | No | Yes: API [D5] |
+| **Anthropic web search tool** | Yes: citations always on [D6] | No | Partial: `cited_text` capped at 150 chars; page content returned only as `encrypted_content` [D6] | No (150-char excerpt) | No | No | API [D6] |
+| **Claude Research (multi-agent)** | Yes [D7] | Blog: a CitationAgent "identif[ies] specific locations for citations". Rubric scored "citation accuracy" [D7]. No claim that it verifies | UNVERIFIED | UNVERIFIED | UNVERIFIED | UNVERIFIED | Product feature; UNVERIFIED API |
+| **OpenScholar (Ai2/UW)** (not in your list) | Yes [S9] | Authors report citation accuracy "on par with human experts" (sec.; I did not read the paper) [S9] | UNVERIFIED | UNVERIFIED | UNVERIFIED | UNVERIFIED | Open source (sec.) [S9] |
+| *Agent-Assure (reference, from your brief)* | No | Yes, deterministic, lexical-presence only | Yes, via hook | Yes (`verbatim` / `haiku_summary`) | Yes | **No (known limit)** | Yes, CLI/exit code |
+
+## 2. Competitor, complement, or distribution channel?
+
+**Recommendation: complement, with STORM-class open pipelines as the distribution channel. Do not treat the closed products (Perplexity, OpenAI, Gemini, NotebookLM, Elicit) as a channel.**
+
+Why, from the evidence:
+
+- **Redundancy check.** STORM: no verifier in the pipeline [P1, P2]. Anthropic Research: CitationAgent places citations; verification not claimed [D7]. For OpenAI/Gemini/Perplexity I could not read internal pipelines, so "they do not verify" is NOT_LOCATED, not absent. Caveat: DeepTRACE's 12.5% (GPT-5 DR) vs 97.5% (Perplexity DR) unsupported rates [P5] suggest verification quality differs hugely by vendor.
+- **Demand evidence that STORM users want an independent verifier: NOT_LOCATED.** Queries: gh issue search in stanford-oval/storm for "citation", "hallucinat", "verify" (25 / 0 / 10 hits, none a verification request); WebSearch "storm github issue citation does not support sentence". What exists is indirect: issue #168 (open since 2024-09) reports `[1]`/`[2]` markers with no references and invalid links [R6]; #573 (opened 2026-09-29) reports citations dropped after trimming unfinished sentences [R7]. Those are structural citation bugs, which a presence gate catches at the UNCITED/UNVERIFIED_CITATION level, but they are not requests for a verifier. The STORM README itself states output "cannot produce publication-ready articles that often require a significant number of edits" [R1].
+- **The problem-size numbers (the most valuable find).**
+
+| Source | Date | System | Measure | Result | Instrument |
+|---|---|---|---|---|---|
+| STORM paper s.4.2, Tab.4 [P1] | 2024 | STORM | citation recall / precision | 84.83% / 85.18% (about 15% sentences unsupported) | Mistral-7B-Instruct entailment judge, Gao et al. definition |
+| Liu et al. [P6] | 2023 | Bing Chat, NeevaAI, Perplexity.ai, YouChat | sentences fully supported / citation precision | 51.5% / 74.5% (averaged over the four) | human auditors |
+| DeepTRACE Tab.1 [P5] | Sep 2025 | GPT-5 DR / YouChat DR / Perplexity DR / Copilot TD / Gemini DR | unsupported statements | 12.5% / 74.6% / 97.5% / 90.2% / 53.6% | GPT-5 judge; Pearson 0.62 vs humans on 100 items ("moderate") |
+| DeepTRACE Tab.1 [P5] | Sep 2025 | same order | citation accuracy | 79.1 / 72.3 / 58.0 / 62.1 / 50.3% (text says Gemini 40.3%; internal inconsistency) | same |
+| DeepResearch Bench Tab.1 [P7] | Jun 2025 | OpenAI DR / Gemini DR / Perplexity DR / Grok Deeper Search | citation accuracy | 77.96 / 81.44 / 90.24 / 83.59% | Gemini-2.5-Flash judge on statement-URL pairs |
+
+  Reading these honestly: (i) all are LLM-judge or human "does the source support it" measures, so **none measures what T1 measures**; (ii) DeepTRACE and DeepResearch Bench contradict each other on Perplexity DR (58.0% citation accuracy and 97.5% unsupported vs 90.24% accuracy). Per the contradiction-is-a-locator rule I did not average them. The likely locus is definitions (DeepTRACE counts a statement unsupported if no listed source supports it; Bench scores only extracted statement-URL pairs) but I did not trace this to a root cause; (iii) no third-party measurement of STORM specifically was located, and the only STORM figure is the authors' own, on 2024-era models.
+- **A real structural mismatch for closed vendors.** Agent-Assure's value is "evidence = what the model saw". For Perplexity/OpenAI/Gemini, retrieval happens server-side; the hook never fires. A user would have to re-fetch cited URLs, which gives "what the URL says now", not "what the model saw". OpenAI returns `web_search_call` records [D3] but whether they carry page text is UNVERIFIED; Anthropic web search returns a 150-char excerpt and encrypted content [D6]. STORM, GPT Researcher and Anthropic's Citations API (caller-supplied documents) are the only ones where the evidence can plausibly be the model's real input.
+
+## 3. What STORM does better (blunt)
+
+- **It generates; we do not.** Perspective-guided question asking and simulated multi-turn research are the contribution: editors found STORM articles more organized (+25% absolute) and broader (+10%) than an outline-driven RAG baseline [P1 abstract]; 70,000+ people tried the live preview [R1]. We should not compete here.
+- **It tolerates paraphrase; we reject it.** Our CR-004 Error-A is 0.320 (n=52): honest paraphrase reads UNGROUNDED. STORM's own checker is an entailment model, which handles paraphrase but is neither deterministic nor reliable (0.62 judge/human correlation is the best independent figure I found for this class of judge [P5]). This is the trade we chose; it is a cost, not a feature, for anyone whose drafts are synthesized.
+- **It surfaces "over-association" as a named failure** [P1]: editors found unverifiable connections between true facts. Our gate is blind to exactly that unless the joined words appear in one span; the relational branch has seven registered Error-B shapes (our CLAUDE.md).
+- **Ecosystem and openness:** 31k stars, MIT, ten retriever backends (YouRM, Bing, VectorRM, Serper, Brave, SearXNG, DuckDuckGo, Tavily, Google, Azure AI Search) [R1]. We have none of that distribution.
+- **Do not claim parity on staleness either:** STORM's last push was 2025-09-30 [R4], but we are a pre-adoption tool; neither has a market position yet.
+
+## 4. Integration surface (ranked)
+
+| Rank | Target | What we could gate | Fit and gap |
+|---|---|---|---|
+| 1 | **STORM** | `storm_gen_article.txt` (draft) + `url_to_info.json` (url to `snippets`, `title`, `description`) [R2][R8] | File-based, no API needed. Observed STORM example puts the marker before the final period (`...event[5].`) [P1 App. C.3 Tab.9], which matches our placement rule. Gaps (all INFERRED, untested): `[n]` indexes into STORM's URL ordering, we use `[S#]`; snippets are 1000-char chunks (`snippet_chunk_size`) so a span crossing a chunk boundary cannot match; multi-marker `[2][11]` handling vs our J-33 unrecognised-marker xfails; snippets must be tagged `verbatim` only after diffing against the fetched page. |
+| 2 | **Anthropic Citations API** | response blocks with `cited_text` + document location, over documents the caller supplied [D5] | The store IS the caller's documents, verbatim by construction. Gap: citations are model-chosen, so we would verify that the model's cited span actually carries the claim's words. |
+| 3 | **GPT Researcher** | `get_research_context()` / `get_research_sources()` + `write_report()` output [D1] | Python-callable. Gap: UNVERIFIED whether `content` is verbatim or summarized; must be read in source before trusting. |
+| 4 | **OpenAI Deep Research API** | `url_citation` annotations + tool-call array [D3] | Citation spans with offsets are the best structured citation format I saw. Gap: page text likely not in the output, so evidence must be re-fetched (breaks the "what the model saw" invariant). |
+| 5 | Gemini DR, Perplexity | text + source URLs | Same re-fetch problem; Perplexity API has a reported empty-citations failure [F1]. |
+
+Easiest real integration: STORM, via a ~one-file converter (`url_to_info.json` to our JSONL store, article markers to `[S#]`). Recommendation: build that converter as a measurement harness first (run STORM on N topics, gate the output, hand-label a sample), because it would produce the one number nobody has: how often a presence-only gate agrees with human support judgments on STORM output. That decides whether "complement" is true in practice.
+
+## WHAT I SEARCHED AND DID NOT FIND
+
+NOT_LOCATED_UNDER (my queries); fewer than three kinds of search means "not found by these", not "absent".
+
+- **Independent third-party citation-error rate for STORM.** Kinds used: label ("STORM citation accuracy evaluation", gh issues "citation"), noun ("unsupported sentences", "hallucinat", "verify"), and the paper's own numbers read directly. Exa's first query for it failed (rate limit), so semantic search was NOT run for STORM specifically. Verdict: not found by these.
+- **Any GPT Researcher citation-accuracy measurement.** Not in DeepResearch Bench Tab.1 or DeepTRACE as I read them; no dedicated search beyond README/docs. Verdict: not found.
+- **Evidence users request an independent verifier.** gh issue search only; no forum/HN/Reddit search was run. Verdict: not found in STORM's issue tracker only.
+- **Whether OpenAI/Gemini/Perplexity run internal citation verification.** OpenAI launch page 403; Perplexity deep-research guide 404; Gemini docs summary silent. UNVERIFIED, not "no".
+- **Elicit report-eval numbers.** The page I fetched gave method and sample sizes but no scores beyond "several tools performed statistically equivalently as Elicit"; I did not obtain the figures.
+- **Consensus, SciSpace, NotebookLM API availability/internals:** only secondary pages read.
+- **scite's 97/64/59 figures:** aggregator page; the underlying metric (precision? recall?) not checked.
+- **OpenScholar:** news/aggregator coverage only; I did not read arXiv 2411.14199. The "GPT-4o fabricated 78-90% of citations" line is from secondary coverage.
+
+## IF I WERE WRONG
+
+- **If STORM snippets are not verbatim** (my weakest claim), integration rank 1 collapses and Anthropic Citations API becomes the only clean fit. Test: run STORM once, diff 20 snippets against the live pages.
+- **If the market's real problem is semantic (source says X, draft says not-X), not presence**, then our gate addresses a minority slice. The STORM error figure supports this partly (only improper linking and wrong-citation cases look catchable by presence; paraphrase errors are not). The 47% "lack citation" share is the part we catch cleanly.
+- **If the DeepTRACE and DeepResearch Bench disagreement is a measurement artifact in either direction**, my 15%-97% range overstates the spread. All figures are LLM-judged; DeepTRACE's own judge validation was "moderate" (0.62).
+- **Staleness:** DeepTRACE (Sep 2025), DeepResearch Bench (Jun 2025), Liu et al. (2023) predate current models; vendor systems have changed since. STORM's paper figures are from 2024-era models. Treat all rates as lower-confidence for today's products.
+
+## Sources
+
+Papers: [P1] STORM, arxiv.org/abs/2402.14207 (PDF read) | [P2] Co-STORM, arxiv.org/abs/2408.15232 (PDF read) | [P3]/[P4] Perplexity product, via D2/E1 context | [P5] DeepTRACE, arxiv.org/abs/2509.04499 (PDF read, submitted 2025-09-02) | [P6] Liu et al., arxiv.org/abs/2304.09848 (abstract) | [P7] DeepResearch Bench, arxiv.org/abs/2506.11763 (PDF read, 2025-06-16).
+Repos: [R1] github.com/stanford-oval/storm README | [R2] .../knowledge_storm/storm_wiki/engine.py | [R3] .../knowledge_storm/rm.py | [R4] gh api repo metadata, pushed_at 2025-09-30, open_issues 110, fetched 2026-10-03 | [R5] github.com/assafelovic/gpt-researcher | [R6] issue #168 | [R7] issue #573 | [R8] .../storm_wiki/modules/storm_dataclass.py.
+Docs: [D1] docs.gptr.dev/docs/gpt-researcher/gptr/pip-package | [D2] docs.perplexity.ai/guides/search-guide | [D3] developers.openai.com/api/docs/guides/deep-research | [D4] ai.google.dev/gemini-api/docs/deep-research | [D5] platform.claude.com/docs/en/build-with-claude/citations | [D6] platform.claude.com/docs/en/agents-and-tools/tool-use/web-search-tool | [D7] anthropic.com/engineering/multi-agent-research-system.
+Other: [E1] elicit.com/blog/elicit-reports-eval (2025-03-04) | [F1] community.perplexity.ai thread "Sonar Deep Research async returns empty citations" (2026-06-13) | [F2] community.perplexity.ai "Incorrect Citation Mapping in Pro Search API" | [S1] computing.co.uk OpenAI DR launch coverage | [S2][S3] NotebookLM explainers (simplilearn, horadecodar.com.br) | [S4] ecoevorxiv.org Elicit repeatability study | [S5] library.virginia.edu Consensus note, pasqualepillitteri.it | [S6] casrai.org SciSpace guide | [S7] casrai.org Semantic Scholar guide | [S8] help.scite.ai, HKUST library scite page | [S9] washington.edu/news/2026/02/04 OpenScholar. All accessed 2026-10-03.
