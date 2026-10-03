@@ -1740,3 +1740,18 @@ broader claim about agreement, faithfulness or truth.
 **What this register may NOT be read as saying.** It does not say J-35 is closed.
 It does not say the product is published — D-83 approved the release; Escalation
 #5 reserves the act, and no session has performed it.
+
+### The night of 2026-10-03C. Sai ruled on the one job the run returned to him.
+
+| id | Decision | Basis | UNDO | status |
+|---|---|---|---|---|
+| D-90 | **J-93 is CLOSED BY REFUSAL. Its remedy was never implemented.** The ruling said drop the content-digest arm of `_self_source_ids`, keeping path + `samefile`. | `os.path.samefile` compares `(st_dev, st_ino)` and sees a hardlink and an APFS case variant; `Path.resolve()` sees a symlink. **None of the three sees a plain COPY** of the draft — different inode, different path, identical bytes. **R19-01 was exactly that copy and it certified itself at PASS 100.0 / exit 0**, closed hours earlier by the normalised digest. Dropping the arm therefore reverts R19-01 and re-opens a demonstrated Error-B, which Escalation #1 reserves to Sai in **either** direction. | **Nothing to undo — no code was changed.** `scripts/ground_check.py` is byte-identical across the whole night; `git diff` is 0 lines. | CLOSED |
+| D-91 | **J-94 is CLOSED WONTFIX, ratified by Sai.** The honest-full-quote refusal stands. No code change. | `_self_source_ids` hashes the **whole** `draft_text` against the **whole** `source.text` (`ground_check.py:4065`; `_identity_digest` normalises but does not segment), so the refusal fires only when **the entire draft IS the entire source** — a transcription carrying no claim its source did not already make, and no second source to be grounded against. The gate asks whether evidence *independent of the draft* supports the draft; for a whole-draft copy there is none, whichever of the three documents it is. Asymmetry of error cost: the Error-B is demonstrated, the Error-A is degenerate. | Nothing to undo. **To REOPEN:** produce one realistic draft — several claims, its own framing, more than one cited source — that still reproduces the refusal. No such fixture exists today. | RULED — Sai, 2026-10-03 |
+| D-92 | **My own J-94 remedy is WITHDRAWN as fail-open, and the withdrawal is on the record rather than quietly dropped.** | *"Exclude on digest match only when a non-self verbatim survivor exists"* inverts on the degenerate store: one digest-matching record means **no** survivor, the condition fails, nothing is excluded, and the draft grounds against a copy of itself — R19-01 restored. I had certified it as *"refuses more, never fewer"* without tracing a store. | Nothing to undo — it was never built. The register entry carries the trace table so the next reader sees the inversion rather than the label. | WITHDRAWN |
+
+**What this section may NOT be read as saying.** It does not say the
+self-citation class is fully closed — **J-84 and J-85 remain OPEN and CRITICAL**
+in `check_absence`, both fail-open in both directions. It does not say PR #8 is
+merged; `gh pr merge` was denied `[Merge Without Review]` and the click is Sai's.
+It does not say `main` has received any of this work — `main` is `009c646` and
+PR #7's merge commit is **not** an ancestor of it.

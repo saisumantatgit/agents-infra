@@ -760,3 +760,46 @@ whether its draft is a single sentence equal to a single source; if it is, the
 instrument caught a fixture artifact and the xfail should be re-labelled, not
 chased with a code change.** Not verified tonight — see the boundary note in
 `docs/logbook/overnight-2026-10-03C-progress.md`.
+
+### J-94 AMENDMENT 2 (2026-10-03) — RULED. CLOSED WONTFIX BY SAI.
+
+**Status: CLOSED — WONTFIX, ratified by Sai 2026-10-03 (D-91).** The
+honest-full-quote refusal stands; no code changed. J-93 closed by refusal the
+same night (D-90); my own remedy withdrawn as fail-open (D-92).
+
+**Reopen condition, kept live:** one realistic draft — several claims, its own
+framing, more than one cited source — that still reproduces the refusal. **A
+single-sentence fixture does not qualify**, because the digest is whole-draft
+against whole-source and such a fixture reproduces a property of the fixture,
+not of the gate.
+
+---
+
+## J-95 — pin the WONTFIX with a tripwire, so a later session cannot "fix" it
+
+**Status:** OPEN · **Owner: me** · **Raised:** 2026-10-03 night, out of D-91.
+
+**The risk this closes.** D-91 is a deliberate refusal that *looks like a bug*.
+Nothing in the suite asserts it, so the next reader who finds a draft reading
+`UNGROUNDABLE` against its own content has every incentive to "fix" it — and the
+fix is the one that reverts R19-01. **A decision with no tripwire is a decision
+waiting to be undone by someone acting in good faith.**
+
+**The assertion, stated so it cannot pass vacuously.** A store holding exactly
+one verbatim record whose `text` digest-matches the whole draft ⇒ the claim is
+**NOT** `GROUNDED` and the gate does **NOT** exit 0. Plus the companion that
+makes it non-trivial: the same draft with **one additional non-self verbatim
+source** it genuinely cites **does** ground — so the test fails if someone
+closes the hole by refusing everything.
+
+**Proven-red requirement.** This pins CURRENT behaviour, so it is green on
+arrival and INS-005's red-first rule cannot apply as written. **The substitute
+is explicit: run it against a build with the digest arm disabled and SEE IT
+FAIL**, then restore. That is the only way to know the tripwire watches the arm
+rather than the path arm. **That experiment is what the harness denied tonight
+(`Security Test Removal`), so J-95 cannot be completed without Sai either
+clearing that permission or running the two-command check himself.** Recording
+the dependency rather than writing an unvalidated guard — a guard never seen red
+is not a guard, which is this repo's own rule, earned twice today.
+
+**Direction:** additive test only. No change to `ground_check.py`.
