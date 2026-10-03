@@ -679,3 +679,38 @@ that exists only in a conversation is not one the next session can act on.**
 to the person who made it is worse than the ordinary stale-register problem —
 it invites him to re-decide something already settled, and it would have cost
 him a second deliberation on the exact question D-83 answered.
+
+---
+
+## J-94 — the honest full-quote Error-A, and why J-93's remedy was the wrong one
+
+**Status:** OPEN · **Owner: Sai** (Escalation #1 — it moves an Error-A)
+**Raised:** 2026-10-03, overnight 03C row 1, in place of executing J-93 as written.
+
+**The real defect.** An honest draft that quotes its source IN FULL has
+`_identity_digest(draft) == _identity_digest(source.text)` at a different path.
+`_self_source_ids` therefore classes the TRUE source as the draft, excludes it,
+and the honest claim reads `UNGROUNDABLE`. A real false alarm.
+
+**Why J-93's remedy cannot be taken.** Dropping the digest arm leaves only
+`samefile` (hardlink, APFS case variant) and `resolve()` (symlink). **Neither
+sees a plain COPY** — different inode, different path, identical bytes. R19-01
+was that copy and certified itself PASS 100.0 / exit 0; the normalised digest is
+what closed it. Dropping the arm reverts R19-01 and re-opens a demonstrated
+Error-B, which the invariant forbids regardless of the Error-A it buys.
+
+**The shape that separates the cases, NOT YET BUILT.** Narrow the digest arm by
+the BASIS rule the absence branch already applies: a digest match excludes a
+source only when **at least one non-self verbatim source still survives in the
+store**. An honest draft quoting one source among several keeps its evidence; a
+draft whose store is nothing but copies of itself still cannot certify.
+**Direction: it can only refuse more than today, never fewer** — fail-closed on
+the arm it narrows. Reuses an existing rule rather than adding a lexicon or a
+constant (Chesterton's Fence: change one thing).
+
+**What it does NOT fix, named.** A draft with one honest source AND one
+self-copy still grounds against the self-copy. That is the residue, and it is
+smaller than the hole J-93 would have opened.
+
+**Blocking reason:** Escalation #1. It alters the Error-A/Error-B trade-off, so
+it is not an agent's call in either direction. **Do not implement on a tick.**
