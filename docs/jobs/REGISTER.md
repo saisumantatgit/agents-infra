@@ -276,3 +276,35 @@ risk and it is now evidence rather than intention.
 | **J-33** | **STILL OPEN — and it nearly stopped looking that way.** The fix made the J-33 absence tripwire XPASS, which under strict xfail reads as "fixed". It was not: the draft's subject is `the X200 drone`, `X200` extracts as the numeric token `200` (**J-72**), `200` appears in no source, and the claim was refused as `UNVERIFIED_NUMBER` **while the marker was still never checked.** D-46, caught by its own forcing function. |
 | **J-80** | **A `gate != "PASS"` assertion cannot tell refused from refused-for-the-right-reason — and that is a class, not an incident.** My first repair of the J-33 tripwire dropped the model number from the subject; that introduced a SECOND mask, because the store's queries read `recall evidence search X200 drone` and a subject of `the drone fleet` no longer matched the query ledger, so it was refused as `UNVERIFIED_ABSENCE` instead. Two different wrong reasons in one afternoon. The fixture was never the problem. **Repair: assert the VERDICT, not the gate.** The J-33 tripwire now requires `verdict == "UNVERIFIED_CITATION"`, so it xfails today and will XPASS only when the citation is what refuses it. **Sweep every other `gate != "PASS"` tripwire for the same weakness** — a refusal-only assertion is satisfiable by any unrelated fail-closed change. | Claude | open — the sweep is the work |
 | **J-72** | **Promoted from "after launch".** It is no longer only an Error-A curiosity: the model-number misparse is now load-bearing in two places — it is what masked J-33, and it is what two of the corpus's ABSENCE rows exercise the new figure check with, so the measured zero delta for J-62+J-71 rests partly on a misparse rather than on a quantity. | Claude | open, raised priority |
+
+### J-80 swept 2026-10-03 — measured, with the remainder named
+
+**AST sweep of every `xfail` tripwire in the suite: 10 assert only a non-PASS
+gate; 13 also assert a verdict or a diagnostic.** A gate-only assertion is
+satisfiable by ANY unrelated fail-closed change, which is how J-62+J-71's figure
+check made an open J-33 finding read as closed.
+
+**Strengthened (3 — mine, written 2026-10-02, guarding CRITICAL classes):**
+`test_a_causal_claim_its_source_DENIES_is_refused_whatever_verb_it_uses` and
+`test_a_factual_claim_its_source_denies_or_withdraws_is_refused` now assert
+`verdict != "GROUNDED"` (the finding is "it certifies", so only a non-certifying
+verdict expresses closure); `test_a_fabricated_magnitude_spelled_with_one_is_refused`
+now requires `verdict == "UNVERIFIED_NUMBER"`, because any other refusal would
+mean the spelled-figure guard is still blind and something else caught the draft.
+
+**NOT touched (7), deliberately — each needs its own judgement about what its
+"right reason" verdict IS, and a blanket edit across tripwires I did not author
+is how four unrelated calibrate rows were damaged on 2026-10-02:**
+
+| Tripwire | The question to answer before strengthening it |
+|---|---|
+| `test_moat_j27::test_a_genuine_multi_line_comment_is_still_stripped` | What verdict means "the comment was stripped" rather than "the draft failed"? |
+| `test_moat_oi_moat_21::test_verb_synonym_claim_must_still_ground` | This one expects a PASS, so the weakness is inverted — it needs `verdict == GROUNDED`, not a non-PASS gate. |
+| `test_moat_r10c03::test_summaries_cannot_supply_the_distinct_searches` | `UNVERIFIED_ABSENCE` for the query-count reason, vs for the verbatim-basis reason — the two are different findings. |
+| `test_moat_r8_display_open` (×2) | Both are DISPLAY findings; the right assertion is on `evidence_basis` text, not on any verdict. |
+| `test_moat_r9::test_absence_control_with_real_citations_still_passes` | A control expecting PASS — same inversion as the oi_moat_21 row. |
+| `test_moat_red_team_r4::test_verb_final_header_must_not_escape_denominator` | The property is about `scored_claims`, not about the gate at all. |
+
+| id | Work | Owner | State |
+|---|---|---|---|
+| J-80 | 3 of 10 strengthened; **7 named above with the specific question each needs answered.** The two marked "inversion" are the interesting ones: a control that expects PASS is weakened by a gate-only assertion in the OPPOSITE direction — it would keep passing if the gate started certifying for a wrong reason. | Claude | open — 7 remain, one at a time |

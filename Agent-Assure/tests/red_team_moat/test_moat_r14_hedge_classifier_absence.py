@@ -89,7 +89,19 @@ _DENIAL_CLAIM = (
     "The one-word delta 'causes'->'triggered' flips FAIL 0.0/exit 1 to "
     "PASS 100.0/exit 0 on the same store."))
 def test_a_causal_claim_its_source_DENIES_is_refused_whatever_verb_it_uses(tmp_path):
+    """J-80: asserts the VERDICT, not just the gate.
+
+    A `gate != "PASS"` assertion is satisfiable by ANY unrelated fail-closed
+    change — on 2026-10-03 the J-62+J-71 figure check satisfied a J-33 tripwire
+    that way and made an open finding read as closed (D-46). This finding is
+    "the claim is CERTIFIED", so the closed state is a non-GROUNDED verdict and
+    nothing weaker expresses it.
+    """
     report, code = _gate(tmp_path, _DENIAL_CLAIM, [_row("S1", _DENIAL_SOURCE, "q")])
+    entry = report["per_claim"][0]
+    assert entry["verdict"] != "GROUNDED", (
+        f"still certified: {entry['verdict']} — if this now refuses for some "
+        f"OTHER reason, that is masking, not closure")
     assert report["gate"] != "PASS", report
     assert code != 0
 
@@ -135,7 +147,11 @@ _AUDIT_CLAIM = (
     "causal word in the sentence."))
 def test_a_factual_claim_its_source_denies_or_withdraws_is_refused(
         tmp_path, source, label):
+    """J-80: asserts the VERDICT, not just the gate — see the note above."""
     report, code = _gate(tmp_path, _AUDIT_CLAIM, [_row("S1", source, "q")])
+    entry = report["per_claim"][0]
+    assert entry["verdict"] != "GROUNDED", (
+        f"[{label}] still certified: {entry['verdict']}")
     assert report["gate"] != "PASS", (label, report)
     assert code != 0
 
@@ -164,6 +180,12 @@ def test_CONTROL_the_same_denial_BEFORE_the_span_is_caught(tmp_path):
     "'ninety million' and '1 million' controls are refused. The recorded "
     "ceiling is the attack."))
 def test_a_fabricated_magnitude_spelled_with_one_is_refused(tmp_path):
+    """J-80: a fabricated FIGURE must be refused AS a figure problem.
+
+    `UNVERIFIED_NUMBER` is the only verdict that means "the number is not in the
+    source". Any other refusal here — UNGROUNDED, UNCITED — would mean the
+    spelled-figure guard is still blind and something else caught the draft.
+    """
     report, code = _gate(
         tmp_path,
         "The 2019 federal review of interbank settlement latency across the "
@@ -171,6 +193,10 @@ def test_a_fabricated_magnitude_spelled_with_one_is_refused(tmp_path):
         [_row("S1", "The 2019 federal review of interbank settlement latency "
                     "across the eurozone documented nine million customer "
                     "refunds in one quarter.", "eurozone settlement review")])
+    entry = report["per_claim"][0]
+    assert entry["verdict"] == "UNVERIFIED_NUMBER", (
+        f"refused as {entry['verdict']}, not as a figure problem — the spelled "
+        f"guard may still be blind and something else caught this")
     assert report["gate"] != "PASS", report
     assert code != 0
 
