@@ -1710,3 +1710,19 @@ nothing; at arming it has not run. It does not say PR #7 is mergeable — three
 CRITICAL Error-B classes remain open and all three are Sai's. And the budget
 figure is a SANCTION, not a measurement: the measure is new tokens (output +
 cache creation), derived from artifacts in the midday report.
+
+---
+
+### Sai's rulings of 2026-10-03, "GO on all" — and what that GO could and could not reach
+
+| id | Decision | Basis | UNDO | status |
+|---|---|---|---|---|
+| D-83 | **RELEASE IS APPROVED on the current disclosure.** Agent-Assure ships as a provenance gate: it certifies TRACEABILITY, not agreement, and says so on every report. J-70 stays OPEN as the upgrade path and is NOT scheduled. | ADR-008 plus the 2026-10-03 research. The decisive argument is that **the structural repair cannot deliver what its name implies**: widening the hedge scan is still a token heuristic, and real entailment is 65–75% accurate (MiniCheck-FT5 74.7, GPT-4 75.3 on LLM-AggreFact), so no version of J-70 permits an honest agreement claim. *Whiting v. City of Athens* (6th Cir., 2026-03-13) holds verification cannot be delegated, so a tool refusing to certify agreement behaves as the court expects. | Reversible until the moment of publication. **The publish itself was NOT performed by this session — Escalation #5 (anything that publishes externally) and the standing order against outward-facing actions both reserve it.** The exact commands are queued in the midday report. | APPROVED, publish queued for Sai |
+| D-84 | **J-66: ADR-005's hard cap STANDS. No relational exemption.** A draft containing an unquoted causal sentence continues to FAIL. | Relaxing the cap for relational claims specifically would reintroduce a PASS-enabling path, which is the one direction the invariant forbids. The cost is real and is now DISCLOSED rather than hidden, which is the material difference. Measure it on real drafts before revisiting. | A future ADR amending ADR-005; nothing in code to revert. | RULED |
+| D-85 | **J-78: NOT EXECUTED, precondition unmet.** Sai said GO; my recommendation was explicitly conditional on `ival_2.0` and `iPay` being idle. **Checked: `ival_2.0` has a file modified within the last 30 minutes and 3 live processes reference those projects.** Deleting 1.9 GB of a live session's working state is a one-way door and would be cross-session interference. | Honouring the condition I stated when he approved the conditional recommendation IS obeying the decision, not overriding it. §2-A REVERSIBILITY. | Nothing to undo — not performed. Re-run the idle check and delete when it comes back clean. | BLOCKED, re-offer when idle |
+| D-86 | **q25 and J-54 remain SAI'S and cannot be delegated by a GO.** q25 is a gold-label ratification (Escalation #2, standing gate — no generator may write an authored label). J-54 needs an interactive terminal and was proven unreachable non-interactively (D-60: `claude -p` runs no PostToolUse hooks under any of three registrations). | These are not permission questions, they are capability and authorship questions. A GO cannot make me the ratifier of a human label. | n/a | SAI'S |
+
+**What this register may NOT be read as saying.** It does not say the product is
+published. It does not say J-69, J-70 or J-80 are closed. And D-83 approves
+release **of the provenance claim as disclosed** — it is not approval of any
+broader claim about agreement, faithfulness or truth.
