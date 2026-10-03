@@ -59,13 +59,6 @@ class open (J-44, D-69). Narrative: `docs/logbook/2026-10-03B-*.md`.
   read PASS as "traceable", not "supported". Five buyer interviews would settle
   it. Nothing in this CR substitutes.
 
-## Defects found while doing other work
-
-Two stale error rates on claim surfaces (0.320/CR-004 after ADR-007 had raised
-it to 0.400), and a commit made on a RED gate with a message stating a false
-result (`3ba4216` → `49d1bfa`). **Narrative extracted per ADR-025's 80-line
-ceiling:** `docs/logbook/2026-10-03B-four-censuses-and-the-shapes-they-could-not-see.md`.
-
 ## Round 16 correction to this CR's own evidence
 
 **The zero delta is close to NON-MEASUREMENT, not the measurement this CR
