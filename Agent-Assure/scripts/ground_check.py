@@ -3771,6 +3771,87 @@ def evidence_basis(claim: Claim, store: dict[str, RetrievedSource]) -> str:
 
 
 # ======================================================================
+# THE SUPPORT DIAGNOSTIC (J-74, 2026-10-03) — A MEASUREMENT, NEVER A VERDICT.
+#
+# WHAT IT REPORTS. For a claim that cites a verbatim source, it finds the
+# sentence in that source with the greatest content-word overlap with the claim
+# — the sentence the claim is effectively resting on — and reports whether that
+# sentence carries an attribution, denial or conditional token. "We found no
+# evidence that X" fires. "X happened in three regions" does not.
+#
+# WHY IT IS NOT A VERDICT, AND MUST NEVER BECOME ONE. The thing it approximates
+# is entailment, and the state of the art at entailment is 65-75% balanced
+# accuracy (MiniCheck-FT5 74.7, GPT-4 75.3 on LLM-AggreFact, EMNLP 2024;
+# HHEM-2.1-Open 64.4/74.3 on RAGTruth). Godbole & Jia (arXiv 2501.14883) find
+# SOTA evaluators disagree per instance and miss close paraphrases. A token
+# scan is cruder still. **Gating on it would manufacture Error-A at scale while
+# still missing cases** — so it reports, and `ground()` never sees it. ADR-008.
+#
+# WHY IT CAN BE SENTENCE-SCOPED WHERE `_span_is_hedged` CANNOT. That function
+# receives a TOKEN LIST, and `_tokenize` strips punctuation, so sentence
+# boundaries are unrecoverable inside it (measured 2026-10-02 — this is the
+# reason J-70's narrow repair cannot be written at that layer). This runs on the
+# RAW source text, which still has its full stops.
+#
+# WHY IT REUSES `_SPAN_HEDGE_TOKENS` RATHER THAN A NEW LIST. A new lexicon would
+# own new gaps, and this project has paid for one of those already (J-44's stem,
+# D-69). The vocabulary is not what is wrong with the verdict path; the SCOPE
+# is. Chesterton's Fence: change one thing.
+#
+# CEILING: a token scan cannot tell "the study found no link" from "no study
+# found a link" — both fire. It over-flags by construction, which is the safe
+# direction for a REPORT (nothing is refused because of it) and the wrong
+# direction for a verdict. Its false-positive rate on `tests/honest_drafts/`
+# and on the n=52 gold corpus is published in CR-009 rather than tuned away:
+# tuning a signal nobody has re-validated is how 2026-10-02 went. Upgrade path
+# is J-70, which is Sai's (Escalation #1).
+SUPPORT_NO_CITED_SOURCE = "no_cited_verbatim_source"
+SUPPORT_SENTENCE_MAY_NOT_ASSERT = "cited_sentence_may_not_assert_claim"
+SUPPORT_NO_HEDGE_FOUND = "no_hedge_in_cited_sentence"
+
+
+def _most_overlapping_sentence(claim_text: str, source_text: str) -> str:
+    """Return the sentence of *source_text* sharing most content words with the claim.
+
+    Empty string when the source has no sentences. Ties go to the first, which
+    is arbitrary but deterministic — and determinism is the point: this function
+    must return the same answer on the same bytes forever. Pure.
+    """
+    claim_words = set(_content_words(_tokenize(_strip_citations(claim_text))))
+    best, best_score = "", -1
+    for sentence in _split_sentences(source_text):
+        overlap = len(claim_words & set(_content_words(_tokenize(sentence))))
+        if overlap > best_score:
+            best, best_score = sentence, overlap
+    return best
+
+
+def support_diagnostic(claim: Claim, store: dict[str, RetrievedSource]) -> str:
+    """Report whether the cited sentence appears to ASSERT the claim. Pure.
+
+    DIAGNOSTIC ONLY. No verdict path may reference this function; an AST guard
+    in tests/test_support_diagnostic.py enforces it, exactly as one does for
+    evidence_basis (D-34: display must never become decision).
+    """
+    cited = [
+        source for source in (resolve(c, store) for c in claim.citations)
+        if source is not None
+        and source.full_text_source == "verbatim"
+        and source.text
+    ]
+    if not cited:
+        return SUPPORT_NO_CITED_SOURCE
+    for source in cited:
+        sentence = _most_overlapping_sentence(claim.text, source.text)
+        if not sentence:
+            continue
+        tokens = set(_tokenize(sentence))
+        if tokens & _SPAN_HEDGE_TOKENS:
+            return SUPPORT_SENTENCE_MAY_NOT_ASSERT
+    return SUPPORT_NO_HEDGE_FOUND
+
+
+# ======================================================================
 # THE SCOPE STATEMENT (J-73, 2026-10-03). Every report carries it.
 #
 # WHY IT IS IN THE PRODUCT AND NOT IN THE README. Ding et al. (AAAI 2025)
@@ -3899,6 +3980,10 @@ def score_report(
         # the verdict path is how a demotion silently un-demotes itself.
         if claim.kind == ClaimKind.RELATIONAL:
             entry["relation_diagnostic"] = relational_diagnostic(claim, store)
+        # J-74: emitted for EVERY claim, not gated on kind. A check gated on a
+        # classifier branch is a check an author routes around by adding one
+        # word — that was R14-01, and D-77 learned it the expensive way.
+        entry["support_diagnostic"] = support_diagnostic(claim, store)
         per_claim.append(entry)
 
         if verdict == Verdict.UNVERIFIED_CITATION:
