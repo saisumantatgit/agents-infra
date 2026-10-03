@@ -556,3 +556,25 @@ act on a remembered breakdown.*
 | id | Outcome | Owner |
 |---|---|---|
 | J-78 | **Partially resolved by the owning session, not by deletion.** ~700 MB recovered. **Still not mine to delete** — `iSuite` is another project's live working state. This run's own scratchpad is **0 B**; the 7.5 M remaining in its session directory is harness-owned (pasted screenshots, subagent transcripts). | **Sai**, when convenient — and re-measure first |
+
+### BRANCH-A — HQ asks for P(grounded). Answered 2026-10-03; one part is Sai's.
+
+**HQ (session `claude-0f`) asked Agent-Assure to emit `P(grounded)` beside the
+verdict, framed as "permission to relax safely — recovering those 10 false
+alarms without surrendering the 1.000 recall".** Relayed via `agent-assure-f7`
+on Sai's instruction. I re-derived HQ's profile from
+`calibration/feature_rows-v2.jsonl` before answering rather than adopting it:
+**every number reproduces exactly** (15/0/10/27; accuracy 0.8077; recall 1.000;
+precision 0.7297; false-alarm 0.400; `t2_f1 = 0.0` on 20/52; 52/52 join).
+
+| id | Position | Owner |
+|---|---|---|
+| J-86 | **Measuring ECE/Brier OFF-REPO: supported, no repo change needed.** `feature_rows-v2.jsonl` already carries `t2_f1` and `predicted_verdict` on all 52 rows. HQ's "not computable at any size" is overstated — a hard 0/1 verdict is a degenerate probability, so **Brier = (fp+fn)/n = 10/52 = 0.1923** today. | HQ — measurement is theirs |
+| J-87 | **A probability fitted from `t2_f1` is NOT VIABLE, and this is the blocking technical objection.** Measured: **20 of 52 rows sit at `t2_f1 = 0.0`, and 3 of those 20 are gold-GROUNDED.** Any fitted P assigns all twenty a single value — a base rate, not a calibration. HQ's AUC 0.875 is carried by the rows where T2 works and is blind to the rest: ADR-006 demoted T2 because a true and a false claim can be one token apart with an IDENTICAL `t2_f1` (5 matched pairs), and **the corpus cannot contain those pairs, so no corpus-derived AUC can see them.** A calibration fitted there will look well-calibrated and be wrong exactly where it matters. | Claude — stated |
+| J-88 | **PASS-ENABLING, SO IT IS SAI'S — and the brief does not name it.** "Relax safely / recover the 10" moves claims toward PASS. Escalation #1. Also: 0/27 Error-B carries a **~10.5% Wilson upper bound**, so "1.000 recall" is an observation on 27 rows, not a property. **Secondary cost, also unnamed:** a fitted P would be the first fitted parameter since `lex_tau` retired, and CR-004's rates are "held-out BY CONSTRUCTION, since with zero fitted parameters the in-sample bias LOO existed to remove does not arise" — fitting re-introduces it, so the deployed numbers would need re-deriving under LOO rather than inheriting. | **Sai** | Escalation #1 |
+| J-89 | **POSITIONING, which is Sai's and came out of this repo's own market research.** ADR-008 ships Agent-Assure as a gate that REFUSES what it cannot trace, and the 2026-10-03 research found that is the OPEN position — competitors score. Clearbrief states its cite-checking is "not generative AI", yet patent AU2022223275A1 describes vectors with a learned relevancy score 0–1 and a threshold. **Emitting `P(grounded)` moves us onto the crowded, patented side of the exact axis we differentiate on.** | **Sai** | a product call, not an engineering one |
+
+**Nothing in the gate was changed and nothing was promised to HQ.** The reply
+supports the off-repo measurement, states the `t2_f1` objection with its
+measurement, and routes the relaxation and the positioning to Sai rather than
+settling them between two agents.
