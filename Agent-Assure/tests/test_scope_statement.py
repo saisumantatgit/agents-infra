@@ -127,3 +127,36 @@ def test_no_verdict_path_consults_the_scope_statement():
         assert "scope_statement" not in referenced, f"{name} consults the display layer"
         assert "_SCOPE_SESSION" not in referenced, f"{name} consults the display layer"
         assert "_SCOPE_STORE" not in referenced, f"{name} consults the display layer"
+
+
+# ---------------------------------------------------------------------------
+# R15-01 — round 15 found J-56's overclaim reproduced BY the J-73 disclosure.
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("blank", ["", " ", "\t", "   \n "])
+def test_an_empty_session_id_REFUSES_rather_than_claiming_session_scope(blank):
+    """`--session-id ""` scored the demo store at PASS 100.0 and printed
+    "retrieved this session" over records carrying no session id at all.
+
+    `assert_single_session`'s docstring already promised that an empty id
+    raises. It did not: the test is `source.session_id != session_id`, so a
+    blank expected id against blank record ids evaluates `"" != ""`, finds
+    nothing foreign and returns. The emptiness of the expected id is a fact
+    about the REQUEST, so no comparison against the store can establish it —
+    the guard has to be explicit and first.
+    """
+    store = {"S1": _src("S1", "Redis handles 100K ops per second.")}
+    with pytest.raises(ValueError, match="UNATTRIBUTABLE"):
+        g.assert_single_session(store, blank)
+
+
+def test_a_REAL_session_id_still_enforces_normally(tmp_path):
+    """POSITIVE CONTROL — the guard must not have broken real enforcement."""
+    foreign = g.RetrievedSource(
+        source_id="S1", url=None, file_path="/tmp/x",
+        fetched_at="2026-10-03T00:00:00Z", tool="Read", content_sha256="sha",
+        text="t", full_text_source="verbatim", captured_via="hook",
+        query_provenance="q", session_id="OTHER",
+    )
+    with pytest.raises(ValueError, match="outside this session"):
+        g.assert_single_session({"S1": foreign}, "MINE")

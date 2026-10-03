@@ -37,7 +37,9 @@ it is the reason the rates appear here as a *result* rather than a reassurance.
 |---|---|
 | All scored claims (n=52) | 10/52 = **0.192** |
 | **Claims the GATE passes** | **4/15 = 0.267** ← the false-alarm rate that matters |
-| Claims a human LABELLED grounded | 7/27 = 0.259 |
+| Claims a human LABELLED grounded | **7/25 = 0.280** |
+
+**R15-02, corrected.** This row first read `7/27 = 0.259`, using the labelled-VIOLATION denominator. Gold is **25 grounded / 27 violation**, so the figure is 7/25 = 0.280. Round 15 reproduced the 26.7% headline, the 10/52, Error-A 0.400 and Error-B 0.000 exactly — this one row was wrong, in a CR about a diagnostic's own error rate.
 
 **Roughly 1 in 4 of its flags is a false alarm.** Tolerable for an advisory that
 refuses nothing; intolerable for a gate — which is precisely why ADR-008 ships

@@ -228,7 +228,31 @@ def assert_single_session(
 
     An EMPTY session_id is UNATTRIBUTABLE and also raises. A record that cannot
     be placed in this session cannot be certified against in it.
+
+    R15-01 (2026-10-03), found by round 15 on the surface built to CLOSE this
+    class. The paragraph above was TRUE AS A STATEMENT OF INTENT and FALSE AS A
+    DESCRIPTION OF THE CODE: the comparison below is `source.session_id !=
+    session_id`, so with a blank expected id and records that also carry a blank
+    id it evaluates `"" != ""`, finds nothing foreign, and does not raise.
+    `--session-id ""` therefore scored the shipped demo store at PASS 100.0
+    **and printed the "retrieved this session" scope statement over records that
+    carry no session information at all** — J-56's overclaim, reproduced by the
+    J-73 disclosure meant to prevent it.
+
+    The guard is now explicit and FIRST, because the emptiness of the expected
+    id is a fact about the REQUEST, not about the store, and no amount of
+    comparing it against records can establish it. Fail-closed: a run that
+    previously produced a verdict now refuses.
     """
+    if not session_id.strip():
+        raise ValueError(
+            "--session-id was given but is empty or whitespace. An empty "
+            "session id is UNATTRIBUTABLE: it matches records that carry no "
+            "session id at all, so enforcing it would assert session scope "
+            "over evidence that has none. Pass a real session id, or omit "
+            "--session-id to score without session enforcement (the report "
+            "then says so explicitly)."
+        )
     foreign = sorted(
         {source.session_id or "<no session_id>" for source in store.values()
          if source.session_id != session_id}
