@@ -650,3 +650,32 @@ laundering shape — so once the digest was normalised it began matching and the
 test failed, appearing to say J-35 had closed. The planted file now holds the
 fabricated claim **alongside other content**, which is what a real write-then-Read
 looks like. J-35 is open again for the right reason.
+
+### CORRECTION 2026-10-03 21:50 — I told Sai he had never ruled on J-70. He had, and I wrote the row.
+
+**D-83 states it plainly: "J-70 stays OPEN as the upgrade path and is NOT
+SCHEDULED."** That is a ruling — decided to defer indefinitely and ship with the
+gap disclosed — with its reasoning recorded: the structural repair cannot
+deliver what its name implies, because real entailment is 65–75% accurate
+(MiniCheck-FT5 74.7, GPT-4 75.3 on LLM-AggreFact), so no version of J-70 permits
+an honest agreement claim.
+
+**In the 2026-10-03C §0.3 Hamming answer I described J-70 as something "you've
+never ruled on". That was false, and I had written the row four hours earlier.**
+He challenged it; I checked the register rather than defending the sentence; he
+was right.
+
+**The narrower thing that IS open:** whether to ever BUILD the structural repair.
+D-83 left that unscheduled, not unanswered. **J-70 must not be put back to him
+as an open decision.**
+
+**What genuinely has no ruling: the capture contract — J-35, J-36, J-38.** The
+register holds characterisation and ownership (Escalation #4, every remedy being
+`install.sh` or hook registration) but no decision. **If a ruling on those exists
+in another session or was given verbally, it is not findable here, and a ruling
+that exists only in a conversation is not one the next session can act on.**
+
+**Why this is recorded rather than quietly fixed:** misreporting a decision back
+to the person who made it is worse than the ordinary stale-register problem —
+it invites him to re-decide something already settled, and it would have cost
+him a second deliberation on the exact question D-83 answered.
