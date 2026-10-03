@@ -578,3 +578,47 @@ precision 0.7297; false-alarm 0.400; `t2_f1 = 0.0` on 20/52; 52/52 join).
 supports the off-repo measurement, states the `t2_f1` objection with its
 measurement, and routes the relaxation and the positioning to Sai rather than
 settling them between two agents.
+
+### BRANCH-A, round 2 — HQ corrected MY argument, and the correction makes it stronger
+
+**J-87's mechanism was WRONG and is corrected here.** I wrote that `t2_f1`'s
+ties INFLATE HQ's AUC — "carried by the rows where T2 works". HQ re-derived it
+and the ties **DEPRESS** the AUC. Verified independently before accepting:
+
+| | value |
+|---|---|
+| gold-grounded × gold-violation pairs | 675 |
+| tied pairs | **53 (7.9%)**, 51 of them both at `t2_f1 = 0.0` |
+| AUC with ties at 0.5 | **0.8748** (HQ's figure, exact match) |
+| AUC with ties dropped | **0.9068** here, 0.9054 at HQ — same direction, minor convention difference, not material |
+
+**So 0.875 is not an overstated number. It is a correctly computed number on a
+population that EXCLUDES the hard cases.** The objection is SAMPLING, not tie
+arithmetic — the corpus cannot contain the matched pairs by construction, so no
+corpus-derived AUC, inflated or depressed, can see them. HQ's words: *"use that
+form of the argument, it is harder to answer."* They are right.
+
+**HQ RAN THE DEMONSTRATION I ASKED FOR, and it measures my objection rather than
+conceding it.** LOO Platt on `t2_f1`, off-repo, no fitted hyperparameters:
+
+| population | n | Brier | ECE | predicted p | actual grounded rate |
+|---|---|---|---|---|---|
+| aggregate | 52 | **0.1389** (vs 0.1923 today) | 0.1741 | — | — |
+| `t2_f1 == 0.0` | 20 | 0.1380 | 0.2406 | **0.086–0.122** | **0.150** |
+| `t2_f1 > 0.0` | 32 | 0.1395 | 0.1860 | 0.145–0.931 | 0.688 |
+
+**In the blind region the model emits a near-constant base rate across all 20
+rows while the AGGREGATE Brier improves.** HQ: *"Anyone reading only the
+aggregate would ship it."* That is the whole argument, as a measurement.
+
+**Also corrected, in my favour:** the zero-count bound. The exact one-sided
+Clopper-Pearson is `1 - 0.05^(1/27)` = **10.50%**, confirmed here; HQ's 12.5%
+two-sided Wilson was the wrong instrument for an upper bound on a zero count,
+and they have adopted the exact form.
+
+| id | Outcome | Owner |
+|---|---|---|
+| J-87 | **CORRECTED** — the objection is sampling, not tie arithmetic. Conclusion unchanged and better supported. | Claude — done |
+| J-90 | **CONVERGED ORDERING: corpus → feature → probability**, not probability → ECE → corpus. HQ withdrew its ordering. A calibrated probability is only as good as the feature it is fitted on, and `t2_f1` is provably uninformative exactly where the verdict is hard. | agreed, both sessions |
+| J-91 | **THE PROPOSED NEXT INSTRUMENT, and it needs SAI because it needs GOLD LABELS.** Labelled rows ENGINEERED to carry the matched-pair shapes — the one-token deltas and false reorderings ADR-006 demoted T2 over — then evaluate any candidate feature on whether it separates THOSE. *If a candidate cannot distinguish a matched pair it has failed the only test that matters, and no corpus growth or calibration rescues it.* Cheaper and more falsifiable than an ECE number. **Authored labels are Sai's standing gate; no generator may write them.** | **Sai** | Escalation #2 |
+| J-92 | **A TRANSFERABLE DEFECT CLASS, found by two independent threads the same day.** HQ measured laneF's OCR gate at per-field confidence **AUC 0.533**, firing on zero fields, every error invisible — because the signal was glyph-recognition confidence while the errors were PLACEMENT errors. Orthogonal to the failure mode. `t2_f1` is orthogonal to the matched pairs in exactly the same way. **The available signal cannot see the failure mode, and calibrating it harder cannot help; the fix is a signal that can see the failure, not a better curve over one that cannot.** | — | recorded as a principle |
