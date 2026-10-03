@@ -3864,8 +3864,54 @@ def evidence_basis(claim: Claim, store: dict[str, RetrievedSource]) -> str:
         note = (f" {', '.join(summaries)} "
                 f"{_plural(len(summaries), 'was', 'were')} also cited but is "
                 f"an AI summary and was excluded.")
+    # J-72 (display half, 2026-10-03). A figure refusal used to read only
+    # "Checked verbatim against 1 cited source: S1 (70 chars)." — the user was
+    # told a number failed but never WHICH number, and the commonest cause is
+    # not a number at all: `X200` yields the token `200`, `ISO 27001` yields
+    # `27001`, and 20/20 tested identifiers do the same (round 16, R16-05). A
+    # reader who sees `200` listed beside their claim about the X200 drone
+    # diagnoses it instantly; a reader shown `UNVERIFIED_NUMBER` cannot.
+    #
+    # NARROWING THE REFUSAL ITSELF IS **NOT** MINE: dropping `200` from
+    # numeric_tokens turns a refusal into a pass, which is PASS-ENABLING and
+    # Escalation #1 (J-72, owner Sai). So the refusal stays and becomes legible.
+    #
+    # DELIBERATELY DOES NOT SAY WHICH FIGURE FAILED. That would re-derive
+    # numeric_ok's value+unit+rate-qualifier rule in the display layer, and two
+    # copies of a moat rule diverge — the reason J-45 was fixed by removing
+    # false precision rather than by recomputing a count. Listing what the claim
+    # ASSERTS is read-only and duplicates nothing.
+    figures = ""
+    if claim.numeric_tokens:
+        quoted = ", ".join(f'"{tok}"' for tok in claim.numeric_tokens)
+        figures = (
+            f" The claim asserts {len(claim.numeric_tokens)} "
+            f"{_plural(len(claim.numeric_tokens), 'figure', 'figures')}: "
+            f"{quoted} — each must appear in a cited source with the same "
+            f"value, unit and rate qualifier."
+        )
+        # THE IDENTIFIER NOTE IS UNCONDITIONAL, after a conditional version was
+        # written and withdrawn in the same sitting (2026-10-03).
+        #
+        # The gate was `[A-Za-z]\d|\d[A-Za-z]` — a digit against a letter. It
+        # fired on `100K`, an ordinary quantity, and MISSED `iPhone 15` and
+        # `ISO 27001`, which are space-separated. Over- and under-inclusive at
+        # once, which is precisely J-72's own difficulty and the reason J-72 is
+        # an open job owned by Sai rather than a tidy-up. **Distinguishing an
+        # identifier from a quantity is the hard problem; it does not get easier
+        # because the answer is only being displayed.**
+        #
+        # So the note states a FACT about the extractor rather than a judgement
+        # about this sentence. Always true, never a false positive, and it still
+        # gives a reader staring at `"200"` the insight they need.
+        figures += (
+            " Figures are extracted from the sentence as written, so a model, "
+            "standard or version number (X200, ISO 27001, 5G) is read as a "
+            "figure too and must then be found in a source."
+        )
     return (f"Checked verbatim against {len(verbatim)} cited "
-            f"{_plural(len(verbatim), 'source', 'sources')}: {checked}.{note}")
+            f"{_plural(len(verbatim), 'source', 'sources')}: {checked}."
+            f"{note}{figures}")
 
 
 # ======================================================================

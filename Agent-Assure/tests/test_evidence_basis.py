@@ -185,3 +185,65 @@ def test_basis_is_not_consulted_by_any_verdict_path():
         assert "evidence_basis" not in referenced, (
             f"{name} consults the display layer"
         )
+
+
+# ---------------------------------------------------------------------------
+# J-72, DISPLAY HALF (2026-10-03) — a figure refusal must be diagnosable.
+# ---------------------------------------------------------------------------
+
+def _basis_for(draft: str, source_text: str) -> str:
+    store = {"S1": _src("S1", source_text)}
+    return _report(draft, store)["per_claim"][0]["evidence_basis"]
+
+
+def test_a_figure_refusal_names_the_figures_the_claim_asserts():
+    """A user shown only `UNVERIFIED_NUMBER` cannot act; one shown `"200"` can.
+
+    Round 16 measured that 20/20 tested identifiers (iPhone 15, ISO 27001,
+    Section 409A, 5G, COVID-19) produce numeric tokens, so the commonest cause
+    of a figure refusal is not a figure at all. The basis used to read only
+    "Checked verbatim against 1 cited source: S1 (70 chars)."
+    """
+    basis = _basis_for(
+        "The audit of the X200 drone programme recorded 94 advisories [S1].",
+        "The audit of the X200 drone programme recorded 17 advisories in total.")
+    assert '"200"' in basis and '"94"' in basis, basis
+    assert "value, unit and rate qualifier" in basis
+
+
+def test_the_identifier_note_is_a_FACT_about_the_extractor_not_a_judgement():
+    """A conditional version of this note was written and withdrawn the same day.
+
+    The gate was `[A-Za-z]\\d|\\d[A-Za-z]` — a digit against a letter. It fired
+    on `100K`, an ordinary quantity, and MISSED `iPhone 15` and `ISO 27001`,
+    which are space-separated. Over- and under-inclusive at once — which is
+    J-72's own difficulty, and it does not get easier because the answer is only
+    being DISPLAYED. So the note states how the extractor behaves rather than
+    judging this sentence: always true, no false positives, same insight.
+    """
+    for draft, source in (
+        ("The audit of the X200 drone programme recorded 94 advisories [S1].",
+         "The audit of the X200 drone programme recorded 17 advisories in total."),
+        ("Redis handles 100K ops per second [S1].",
+         "Redis handles 100K ops per second in sustained testing."),
+    ):
+        basis = _basis_for(draft, source)
+        assert "model, standard or version number" in basis, basis
+        # It describes the EXTRACTOR, so it never claims this sentence contains
+        # an identifier.
+        assert "One of these" not in basis, basis
+
+
+def test_the_display_does_not_re_derive_which_figure_failed():
+    """It lists what the claim ASSERTS and stops there.
+
+    Saying WHICH figure failed would re-implement numeric_ok's value+unit+rate
+    rule in the display layer, and two copies of a moat rule diverge — the
+    reason J-45 was fixed by removing false precision rather than recomputing a
+    count. This pins the restraint so a later 'improvement' has to argue with it.
+    """
+    basis = _basis_for(
+        "The audit of the X200 drone programme recorded 94 advisories [S1].",
+        "The audit of the X200 drone programme recorded 17 advisories in total.")
+    for forbidden in ("not found", "missing", "does not appear", "failed"):
+        assert forbidden not in basis.lower(), (forbidden, basis)
