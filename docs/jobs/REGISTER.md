@@ -353,3 +353,22 @@ caught any of these.
 |---|---|---|---|
 | J-81 | **Six test files build evidence stores with source ids that can NEVER be cited** — `SA1`/`SA2` in `test_moat_j33_unrecognised_citation_open.py`, `test_moat_r9_provenance_closed.py` and `test_product_claim.py`; `UNASSIGNED` in `test_capture_concurrency.py` and `test_session_scope.py`; `S_BASH` in `test_capture_integration.py`. For the three moat files this matters: a draft cannot cite those sources, the marker stays in the claim text, and its digits reach `numeric_tokens` — so since J-62+J-71 the absence path can refuse on them. **`test_moat_j33` is the one I de-masked earlier today, so its store shares this defect and its `ABS` fixture needs the same treatment the r9 one got.** The capture-test ids are probably harmless (those tests exercise the hook, not citation resolution) but each needs a one-line judgement, not an assumption. | Claude | open — three moat files first |
 | — | A `SyntaxWarning: invalid escape sequence '\\['` was introduced into the r9 docstring by my own J-81 annotation and removed in the same sitting. Caught by running `pytest -W error::SyntaxWarning`, not by reading. | Claude | fixed |
+
+### J-81 CLOSED by READING, not by editing — 6 files found, 1 note needed, 0 changes
+
+The AST census found uncitable source ids in 6 files. **Reading each one reduced
+the actionable surface to a single annotation.** Recorded per file, because "the
+census found 6" and "6 need fixing" are different claims and only the first was
+measured:
+
+| File | id | Does it matter? |
+|---|---|---|
+| `test_moat_r9_provenance_closed.py` | `SA1`/`SA2` | **Did.** Handled: the old tripwire is annotated and a superseding instrument remaps the ids locally so J-31's drafts cite sources that actually resolve. |
+| `test_moat_j33_unrecognised_citation_open.py` | `SA1`/`SA2` | **No.** Its absence drafts cite only the *unrecognised* marker under test and never reference `[SA1]`, so uncitable ids change nothing. Its real exposure was `X200`, already pinned by the masking control added earlier today. |
+| `test_product_claim.py` | `SA1`/`SA2` | **Only as fragility.** `test_LIMITATION_absence_queries_are_chosen_by_the_agent` expects PASS and now survives **only because both source texts happen to contain "X200"**, so the `200` token resolves. Annotated: its failure message would otherwise misdirect a future reader toward the absence rules rather than J-72's misparse. No behavioural change. |
+| `test_capture_concurrency.py`, `test_session_scope.py` | `UNASSIGNED` | **No.** These exercise the capture hook and session enforcement; no draft cites them and citation resolution is not the property under test. |
+| `test_capture_integration.py` | `S_BASH` | **No.** Same reason. |
+
+| id | Outcome | Owner |
+|---|---|---|
+| J-81 | **CLOSED.** One annotation, no behavioural change. The finding was real and its blast radius was one sixth of what the census implied — which is itself the point: a census locates candidates, reading decides. | Claude — done |
