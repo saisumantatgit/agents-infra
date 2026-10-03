@@ -122,3 +122,21 @@ wrong twice, then another wrong twice more; a guard that stayed GREEN against
 the bug it was written for; and a mechanism I published that HQ had to correct.
 **Every claim tonight gets its measurement in the same command that makes it,
 and every guard gets run against a broken gate before it is trusted.**
+
+---
+
+## §9 ARMING RECORD — written at the arm, not claimed before it
+
+**2026-10-03 22:11 local — job `bb24422b`, `13,43 * * * *`, recurring,
+session-only. Verified by `CronList` AFTER the create, not asserted before it.**
+
+The first attempt to arm this run **did not happen**. At 21:44 I told Sai
+"arming now" and never called `CronCreate`; `CronList` at the close returned
+*No scheduled jobs*, which is how it was caught — by a measurement, not by
+memory. That is §8's failure mode exactly: **a state asserted without being
+measured.** The remedy is the same one that worked all day — the claim and its
+measurement in the same breath, which is why the create above is followed by a
+list and why this paragraph was written after reading that list.
+
+Hard stop 06:00 local, carried in the tick prompt itself rather than here, so a
+tick that never re-reads this file still stops. §6 runs before the disarm.
