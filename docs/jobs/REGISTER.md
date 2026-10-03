@@ -466,3 +466,26 @@ the session doing the test rather than by an adversary.
 | J-54 | **CLOSED — the last unproven launch step is proven.** | Sai — done |
 | J-38 | **Narrowed:** `session_id` IS written in live sessions; only the no-rotation half remains. | **Sai** (Escalation #4) |
 | J-35 | **Confirmed live, unprompted:** a Read of the draft makes the draft its own verbatim source. | **Sai** (Escalation #4 — capture contract) |
+
+### J-54's evidence CORRECTED by the peer session, and a NEW Error-B from the same test
+
+**Two corrections to the J-54 row above, both raised by `agent-assure-f7` and
+both right.** I wrote them; neither was caught by me.
+
+1. **"`.assure/evidence-store.jsonl` did not exist before" is NOT ATTESTED.**
+   That session never listed `.assure/` prior to the Read, so prior absence was
+   never observed — **I asserted an absence with no control, on the same day I
+   wrote that exact failure into an instrument file as my competence boundary.**
+   What IS attested, and is stronger: **the record carries THIS session's id
+   (`3622f696-…`) and the file path THIS session read** (`/tmp/j54/DRAFT.md`).
+   Only the hook, firing in that session, could have written that pair. **The
+   conclusion — J-54 closed — stands on better evidence than the claim I made.**
+2. **The `/hooks` listing was Sai's keystroke, not that session's tool call.**
+   It is a read-only UI menu; the session can attest its own Read and nothing
+   more. The observation is still valid evidence (I read it from his screenshot)
+   — its PROVENANCE was mis-recorded.
+
+| id | Finding | Owner | State |
+|---|---|---|---|
+| J-83 | **A DRAFT CAN CERTIFY ITSELF. New Error-B, found by accident in the first real plugin session — no adversary involved.** The capture hook's matcher includes `Read`, so reading the draft captures the draft as a source. Add a citation to it and the gate checks the draft against its own text: **`gate=PASS score=100.0 exit=0 verdict=GROUNDED`**. Reproduced by me against the store Sai's J-54 test wrote. **`--session-id` does NOT close it** — the draft genuinely was retrieved this session, so session scoping is satisfied. An agent reading the draft it is about to verify is ordinary behaviour, not an attack, which is what makes this worse than a crafted fixture. **Gate-side fix is mine and strictly fail-closed:** refuse a cited source whose `file_path` resolves to the `--draft` path or whose `content_sha256` equals the draft's → `UNVERIFIED_CITATION`. | Claude | **next — the run's first item** |
+| J-35 | **Unchanged and still Sai's.** J-83's gate-side fix does NOT close the general write-then-Read class: write claims to a DIFFERENT file, Read it, cite it, and the laundering still works because the file path and digest both differ from the draft's. That remains capture-side (`capture_core.py` maps `Read` → `verbatim` unconditionally) and Escalation #4. **Do not let J-83's closure be read as closing J-35.** | **Sai** | Escalation #4 |
