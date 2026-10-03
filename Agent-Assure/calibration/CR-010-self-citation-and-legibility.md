@@ -25,13 +25,10 @@
 | Suite | 822 / 2 / 66 | **838 / 2 / 66** | +16 tests only |
 | Gold md5 | `6215b526…d171f` | `6215b526…d171f` | **no** |
 
-**J-83 changes the verdict path and the rates still did not move** — because no
-corpus row cites a source that IS its own draft. **That zero is therefore
-NON-MEASUREMENT for J-83, not safety**: the corpus cannot represent the shape.
-The evidence that J-83 works is the direct reproduction (PASS 100.0 → exit 1 on
-the store Sai's own J-54 test wrote), plus 4-of-7 PROVEN-RED tests. For the
-three display changes the same zero IS the right evidence, since a display
-change that moved a rate would prove a leak into the verdict path.
+**J-83 changed the verdict path and the rates still did not move — that is
+NON-MEASUREMENT for J-83, not safety**: no corpus row cites a source that IS
+its own draft. Its evidence is the direct reproduction plus proven-red tests.
+For the three DISPLAY changes the same zero IS the right evidence.
 
 ## The diagnostic's two rates, both re-measured
 
@@ -50,27 +47,29 @@ recall down on one specific shape.
 Published in five places; all five were corrected when the number moved, within
 an hour of the previous correction.
 
-## What was withdrawn
+## Rounds 17 and 18 — four CRITICALs, all the same class
 
-- **A conditional identifier note**, gated on a digit sitting against a letter.
-  My own test caught it: it fires on `100K`, an ordinary quantity, and misses
-  `iPhone 15` and `ISO 27001`, which are space-separated. **Over- and
-  under-inclusive at once — J-72's own difficulty, which does not get easier
-  because the answer is only being displayed.** Replaced by a note that states a
-  fact about the extractor rather than a judgement about the sentence.
-- **J-72's narrowing**, withdrawn from the committed set at tick 1 because it is
-  PASS-enabling and I had queued a parked item.
+| Round | Finding | State |
+|---|---|---|
+| 17 | J-83's filter never reached the ABSENCE branch; a store of only self-`Read`s certified at PASS 100.0 | fixed |
+| 17 | the digest test trusted `content_sha256`, which nothing recomputes (J-32) | fixed |
+| 17 | a NUL byte raised `ValueError`, not `OSError` — the gate crashed | fixed |
+| 18 | `_absence_verbatim` still read `store.values()` **four lines below** the R17 fix | fixed |
+| 18 | **J-84** — the basis rule is a tripwire: one irrelevant real source licenses an absence the draft argued for itself | **open** |
+| 18 | **J-85** — GROWING the query list is fail-open; D-54 recorded only SHRINKING | **open** |
 
-## Non-measurement and limits, named
+**The class: `ground()` has 15 returns across 6 kinds; a check at one protects
+one.** Four instances in two days, each per-instance fix correct and leaving the
+class open. A cross-product guard now covers every `ClaimKind` — **and round 18
+proved that guard could not reach its own target**, staying green against a
+broken gate because an all-self store refuses at the BASIS rule before the
+figure returns execute. A mixed-store fixture now reaches it.
 
-- **J-83's corpus delta is non-measurement** (above). A corpus row citing its own
-  draft would be needed, and that is a gold-label change — Sai's.
-- **J-35 is NOT closed and a test asserts so.** Write claims to a DIFFERENT file,
-  Read it, cite it: path and digest both differ, nothing in J-83 fires.
-- **`self_source_ids` defaults to EMPTY**, so a library caller that omits it gets
-  no protection. Fail-OPEN by choice, recorded as a `CEILING:` in the code.
-- The 14-vector denial set is **my own construction**; round 17 was asked to
-  build its own and compare.
+**J-84 and J-85 are NOT fixed deliberately.** Both need `check_absence` to
+separate queries that may COUNT from queries that may form the DENOMINATOR — the
+signature change J-42 has needed since 2026-10-01, in the function that already
+produced one self-inflicted Error-B. Both reproduce at the pre-run commits, so
+neither regresses this CR.
 
 ## Verdict
 
