@@ -1,11 +1,15 @@
 # RESUME HERE — written 2026-10-03 22:0x, after a 57-commit day
 
-# THE OVERNIGHT RUN DID NOT HAPPEN. The cron was never armed.
+# THE OVERNIGHT RUN WAS ARMED LATE, AND THE LATENESS IS THE FINDING.
 
-Sai approved it and went to bed; I said "arming now" and **never made the call**.
-`CronList` at close: *No scheduled jobs.* The plan survives at
-`docs/planning/OVERNIGHT-2026-10-03C.md` and is still the right plan — **it has
-simply not been executed.** Start there, or re-arm it.
+Sai approved it and went to bed; I said "arming now" at 21:44 and **never made
+the call**. `CronList` at the close: *No scheduled jobs.* It is armed now —
+**job `bb24422b`, `13,43 * * * *`, hard stop 06:00, verified by `CronList`
+AFTER the create** — so the plan at `docs/planning/OVERNIGHT-2026-10-03C.md` is
+executing rather than waiting. The arming record is §9 of that file.
+
+The cron is **session-only**: it dies with this session. If you are reading this
+in a fresh session, assume nothing is armed until `CronList` says otherwise.
 
 **Read first:** `docs/logbook/2026-10-03D-the-author-as-adversary.md`.
 
