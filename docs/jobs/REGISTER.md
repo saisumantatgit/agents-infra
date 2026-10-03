@@ -267,3 +267,608 @@ risk and it is now evidence rather than intention.
 | R15-03 | **DOC-DEFECT — README documented T2 as LIVE** at `lex_tau` 0.71 with a working `--lex-tau` override, a month after ADR-006 retired it and the flag began exiting 2. Corrected to state the demotion, why it happened, and the current operating point. | Claude | **CORRECTED** |
 | R15-04 | **DOC-DEFECT — README's "every captured record now carries a `session_id`" masked the hole R15-01 used.** Records written before the field existed carry a blank one. Corrected, and reworded to avoid the retired phrase rather than widening the guard's escape hatch. | Claude | **CORRECTED** |
 | J-79 | **The support diagnostic has four demonstrated MISS vectors — all missed WARNINGS, nothing is refused, so none is Error-B.** (a) the denial sits one sentence away from the highest-overlap sentence; (b) the denial is inside the inspected sentence but in words absent from `_SPAN_HEDGE_TOKENS` — `debunked`, `erroneous`, `retracted`; (c) **the equal-overlap tie-break discards the denying sentence, so sentence ORDER in the source flips the flag**; (d) `per` is a hedge token, so every "operations per second" claim fires **for the wrong reason** — which means part of the published 26.7% false-alarm rate is this artefact and not genuine ambiguity. **Deliberately NOT fixed:** (b) is a lexicon, and a list licensing an ACCEPTANCE makes its own gap the attack — the J-44 lesson — while (a), (c) and (d) are the same structural limit the recorded `CEILING:` names. The honest upgrade is J-70, which is Sai's. | Claude (characterised) + **Sai** (J-70 is the real fix) | open, tripwire-worthy |
+
+### J-62+J-71 CLOSED 2026-10-03 under Sai's GO — and it masked a J-33 tripwire on the way
+
+| id | Outcome |
+|---|---|
+| **J-62 + J-71** | **CLOSED.** The two figure checks now run before the absence verdict, verbatim-only (a summary may refuse, never certify — R10C-03), against `store.values()` rather than citations because an absence claim is checked against what was SEARCHED and often cites nothing at all. Strictly fail-closed. **Measured: Error-A 10/25 = 0.400 and Error-B 0/27 = 0.000 UNCHANGED**; 2 of the corpus's 7 ABSENCE rows carry a figure, so the zero delta is a measurement, not non-measurement. R14-03a's strict-xfail tripwire converted to a passing test. |
+| **J-33** | **STILL OPEN — and it nearly stopped looking that way.** The fix made the J-33 absence tripwire XPASS, which under strict xfail reads as "fixed". It was not: the draft's subject is `the X200 drone`, `X200` extracts as the numeric token `200` (**J-72**), `200` appears in no source, and the claim was refused as `UNVERIFIED_NUMBER` **while the marker was still never checked.** D-46, caught by its own forcing function. |
+| **J-80** | **A `gate != "PASS"` assertion cannot tell refused from refused-for-the-right-reason — and that is a class, not an incident.** My first repair of the J-33 tripwire dropped the model number from the subject; that introduced a SECOND mask, because the store's queries read `recall evidence search X200 drone` and a subject of `the drone fleet` no longer matched the query ledger, so it was refused as `UNVERIFIED_ABSENCE` instead. Two different wrong reasons in one afternoon. The fixture was never the problem. **Repair: assert the VERDICT, not the gate.** The J-33 tripwire now requires `verdict == "UNVERIFIED_CITATION"`, so it xfails today and will XPASS only when the citation is what refuses it. **Sweep every other `gate != "PASS"` tripwire for the same weakness** — a refusal-only assertion is satisfiable by any unrelated fail-closed change. | Claude | open — the sweep is the work |
+| **J-72** | **Promoted from "after launch".** It is no longer only an Error-A curiosity: the model-number misparse is now load-bearing in two places — it is what masked J-33, and it is what two of the corpus's ABSENCE rows exercise the new figure check with, so the measured zero delta for J-62+J-71 rests partly on a misparse rather than on a quantity. | Claude | open, raised priority |
+
+### J-80 swept 2026-10-03 — measured, with the remainder named
+
+**AST sweep of every `xfail` tripwire in the suite: 10 assert only a non-PASS
+gate; 13 also assert a verdict or a diagnostic.** A gate-only assertion is
+satisfiable by ANY unrelated fail-closed change, which is how J-62+J-71's figure
+check made an open J-33 finding read as closed.
+
+**Strengthened (3 — mine, written 2026-10-02, guarding CRITICAL classes):**
+`test_a_causal_claim_its_source_DENIES_is_refused_whatever_verb_it_uses` and
+`test_a_factual_claim_its_source_denies_or_withdraws_is_refused` now assert
+`verdict != "GROUNDED"` (the finding is "it certifies", so only a non-certifying
+verdict expresses closure); `test_a_fabricated_magnitude_spelled_with_one_is_refused`
+now requires `verdict == "UNVERIFIED_NUMBER"`, because any other refusal would
+mean the spelled-figure guard is still blind and something else caught the draft.
+
+**NOT touched (7), deliberately — each needs its own judgement about what its
+"right reason" verdict IS, and a blanket edit across tripwires I did not author
+is how four unrelated calibrate rows were damaged on 2026-10-02:**
+
+| Tripwire | The question to answer before strengthening it |
+|---|---|
+| `test_moat_j27::test_a_genuine_multi_line_comment_is_still_stripped` | What verdict means "the comment was stripped" rather than "the draft failed"? |
+| `test_moat_oi_moat_21::test_verb_synonym_claim_must_still_ground` | This one expects a PASS, so the weakness is inverted — it needs `verdict == GROUNDED`, not a non-PASS gate. |
+| `test_moat_r10c03::test_summaries_cannot_supply_the_distinct_searches` | `UNVERIFIED_ABSENCE` for the query-count reason, vs for the verbatim-basis reason — the two are different findings. |
+| `test_moat_r8_display_open` (×2) | Both are DISPLAY findings; the right assertion is on `evidence_basis` text, not on any verdict. |
+| `test_moat_r9::test_absence_control_with_real_citations_still_passes` | A control expecting PASS — same inversion as the oi_moat_21 row. |
+| `test_moat_red_team_r4::test_verb_final_header_must_not_escape_denominator` | The property is about `scored_claims`, not about the gate at all. |
+
+| id | Work | Owner | State |
+|---|---|---|---|
+| J-80 | 3 of 10 strengthened; **7 named above with the specific question each needs answered.** The two marked "inversion" are the interesting ones: a control that expects PASS is weakened by a gate-only assertion in the OPPOSITE direction — it would keep passing if the gate started certifying for a wrong reason. | Claude | open — 7 remain, one at a time |
+
+### J-80 corrected twice, and the X200 family unravelled — 2026-10-03 afternoon
+
+**MY OWN CENSUS WAS WRONG TWICE, in the same direction, and that is the finding.**
+The first AST sweep reported **10** gate-only tripwires; it matched only literal
+dict keys in a test's own body, so any test whose strong assertion lives in a
+HELPER was misreported as weak. The second sweep followed helpers and reported
+**3**; it still missed `test_moat_j27`, because my own keyword list did not
+include `per_claim`. **The real count is 2.** A control correct about what it
+examines and silent about what it does not — this estate's signature defect,
+committed by the audit tool written to find it. `test_moat_j27`'s helper has
+asserted the right property all along, and says so in its docstring.
+
+| id | Finding | Owner | State |
+|---|---|---|---|
+| J-80 | **CLOSED.** The 2 genuinely weak tripwires are strengthened to assert the VERDICT: `test_summaries_cannot_supply_the_distinct_searches` now requires `UNVERIFIED_ABSENCE` (its finding is the query count, so any other refusal means something else fired first), and the J-31 control is superseded by an instrument that asserts `ABSENCE_SUPPORTED`. The other 8 were already strong. | Claude | **DONE** |
+| J-81 | **`[SA1]` IS NOT A CITATION, and a whole fixture family was built on the assumption that it is.** `_CITATION_RE` is `\[(?:S\d+[a-zA-Z]*\|source:[^\]]+)\]` — `S` then DIGITS — so `[S1]`, `[S1a]` match and `[SA1]` does not. `test_moat_r9`'s absence store names its sources **`SA1`/`SA2`: ids that can never be cited.** Two consequences: the markers stay in the claim text, and their digits become numeric tokens (`('200','1','2')` for that draft); and since J-62+J-71 reached the ABSENCE branch, the claim is refused as `UNVERIFIED_NUMBER` while `check_absence` alone still returns `UNVERIFIED_ABSENCE`. **The figure check masked the original mechanism** — the third masking instance of the day. The old tripwire is kept and annotated (its xfail is the historical record of how J-31 was first reported), superseded by a correct instrument. **Sweep every other fixture for source ids that cannot be cited.** | Claude | open — the sweep is the work |
+| J-31 | **CONFIRMED REAL, not a fixture artefact — and re-specified.** With citable ids the same absence claim is `ABSENCE_SUPPORTED` uncited and `UNVERIFIED_ABSENCE` when it cites the two sources that support it. `numeric_tokens` is `('200',)` in BOTH and `200` is present in S2's text, so the figure check does not fire and cannot be what refuses it. The gate penalises the one behaviour the product asks authors for. Error-A, fail-closed, no moat breach. | Claude | open, now with an honest instrument |
+| J-72 | **Second mechanism found.** Beyond `X200` → `200` and `X200 manual` → `200 m`, an UNRECOGNISED citation marker leaks its digits into `numeric_tokens` (`[SA1][SA2]` → `('1','2')`; `[S7]` and `[S12][S34]` correctly strip). So an author adding a marker the gate does not recognise changes the claim's numeric content — and since this morning, on the absence path, that can decide the verdict. | Claude | open, raised again |
+
+### J-81's real reach, found on the THIRD census — and the censuses are the lesson
+
+**THREE sweeps, three under-reports, one shape.** A regex for `source_id=`
+missed the dict-literal form. A regex allowing both missed `_rec("SA1", ...)`,
+where the id is **positional**. Only an AST sweep over call arguments — carrying
+a positive control that it can see `SA1` at all — found the truth:
+
+| Instrument | Uncitable ids found |
+|---|---|
+| regex `source_id=` | 3 files |
+| regex, quotes allowed | 3 files (same) |
+| **AST over call args + kwargs + dict keys** | **6 files, 17 distinct ids** |
+
+**The pattern, stated once because it recurred four times today:** an audit
+instrument can only report the shapes it can represent, and nothing in its
+output says which shapes those are. The J-80 census under-reported for the same
+reason (assertions delegated to helpers), and so did its correction (`per_claim`
+missing from my own keyword list). **Every census now carries a positive control
+asserting it can see a case I already know exists** — that is the only step that
+caught any of these.
+
+| id | Finding | Owner | State |
+|---|---|---|---|
+| J-81 | **Six test files build evidence stores with source ids that can NEVER be cited** — `SA1`/`SA2` in `test_moat_j33_unrecognised_citation_open.py`, `test_moat_r9_provenance_closed.py` and `test_product_claim.py`; `UNASSIGNED` in `test_capture_concurrency.py` and `test_session_scope.py`; `S_BASH` in `test_capture_integration.py`. For the three moat files this matters: a draft cannot cite those sources, the marker stays in the claim text, and its digits reach `numeric_tokens` — so since J-62+J-71 the absence path can refuse on them. **`test_moat_j33` is the one I de-masked earlier today, so its store shares this defect and its `ABS` fixture needs the same treatment the r9 one got.** The capture-test ids are probably harmless (those tests exercise the hook, not citation resolution) but each needs a one-line judgement, not an assumption. | Claude | open — three moat files first |
+| — | A `SyntaxWarning: invalid escape sequence '\\['` was introduced into the r9 docstring by my own J-81 annotation and removed in the same sitting. Caught by running `pytest -W error::SyntaxWarning`, not by reading. | Claude | fixed |
+
+### J-81 CLOSED by READING, not by editing — 6 files found, 1 note needed, 0 changes
+
+The AST census found uncitable source ids in 6 files. **Reading each one reduced
+the actionable surface to a single annotation.** Recorded per file, because "the
+census found 6" and "6 need fixing" are different claims and only the first was
+measured:
+
+| File | id | Does it matter? |
+|---|---|---|
+| `test_moat_r9_provenance_closed.py` | `SA1`/`SA2` | **Did.** Handled: the old tripwire is annotated and a superseding instrument remaps the ids locally so J-31's drafts cite sources that actually resolve. |
+| `test_moat_j33_unrecognised_citation_open.py` | `SA1`/`SA2` | **No.** Its absence drafts cite only the *unrecognised* marker under test and never reference `[SA1]`, so uncitable ids change nothing. Its real exposure was `X200`, already pinned by the masking control added earlier today. |
+| `test_product_claim.py` | `SA1`/`SA2` | **Only as fragility.** `test_LIMITATION_absence_queries_are_chosen_by_the_agent` expects PASS and now survives **only because both source texts happen to contain "X200"**, so the `200` token resolves. Annotated: its failure message would otherwise misdirect a future reader toward the absence rules rather than J-72's misparse. No behavioural change. |
+| `test_capture_concurrency.py`, `test_session_scope.py` | `UNASSIGNED` | **No.** These exercise the capture hook and session enforcement; no draft cites them and citation resolution is not the property under test. |
+| `test_capture_integration.py` | `S_BASH` | **No.** Same reason. |
+
+| id | Outcome | Owner |
+|---|---|---|
+| J-81 | **CLOSED.** One annotation, no behavioural change. The finding was real and its blast radius was one sixth of what the census implied — which is itself the point: a census locates candidates, reading decides. | Claude — done |
+
+### J-76 ANSWERED — the support diagnostic's recall is 0.50, measured and published
+
+**Both of its error rates are now numbers, not adjectives:**
+
+| Measure | Value | Instrument |
+|---|---|---|
+| False alarms | **26.7%** of claims the gate passes (4/15) | n=52 gold corpus |
+| **Recall** | **7/14 = 0.500** | a named 14-vector denial set, 2026-10-03 |
+| Positive control | asserting source NOT flagged | same set |
+
+**Catches:** plain negation · prefix denial (`It is not true that…`) · withdrawn
+finding · attribution (`Critics claim…`) · conditional (`If…`) · hearsay
+(`reportedly`).
+**Misses:** a denial in the NEXT sentence · `retracted` · `erroneous` · `lacks` ·
+`absent` · `zero` · a denial after a semicolon.
+
+**One "catch" is for the wrong reason, and that matters more than the count.**
+*"a claim since debunked by the regulator"* is flagged because **`claim` is in
+`_SPAN_HEDGE_TOKENS`**, not because of `debunked` — the same artefact as `per`
+firing on "operations per second" (J-79). So the true recall against the
+mechanism intended is **lower than 0.500**, and the 26.7% false-alarm figure is
+inflated by the same cause.
+
+| id | Outcome | Owner |
+|---|---|---|
+| J-76 | **ANSWERED.** Recall 0.500, measured with a positive control, published on all three claim surfaces alongside the false-alarm rate and with the specific misses named. **Deliberately NOT tuned**: adding `retracted`/`erroneous`/`lacks`/`absent`/`zero` to the lexicon would raise recall on exactly the fourteen cases I invented and leave the class open — the pattern that lost five rounds to the comment stripper, and a list licensing an ACCEPTANCE makes its own gap the attack (J-44, D-69). The honest upgrade is J-70, which is Sai's. | Claude — done |
+| J-79 | **Quantified.** The `per` / `claim` artefact is no longer only a curiosity: it inflates the published false-alarm rate AND it accounts for at least one apparent recall hit. Both headline numbers are therefore slightly wrong in opposite directions, and that is now recorded rather than smoothed. | Claude | open |
+
+### Round 16 — 2026-10-03, against the one verdict-path change of the day
+
+**0 CRITICAL. The change IS fail-closed, proven two ways:** structurally
+(`UNVERIFIED_NUMBER` is not in `_NUMERATOR_VERDICTS`) and empirically (**0
+toward-PASS moves in 3,705 differential absence comparisons across 57 stores**).
+That was the question it was dispatched to answer.
+
+| id | Finding | Action |
+|---|---|---|
+| R16-01 | **HIGH — the checks were PLACED WRONG, and masking was the default, not a one-off.** Of the 1,910 verdicts the change altered, **1,904 were `UNVERIFIED_ABSENCE` → `UNVERIFIED_NUMBER` relabels** — including RT3-04's content-contradiction verdict, the absence branch's STRONGEST refusal. It was pre-empting better reasons and reporting a weaker one, which is why it masked J-33, J-31, J-42 and the r9 control within hours. **FIXED by placement: the figure checks now run only on a claim `check_absence` would CERTIFY** — the only population the hole ever existed in, since R14-03a was a fabricated figure inside a SUPPORTED absence. The early return makes `ABSENCE_SUPPORTED → UNVERIFIED_NUMBER` the only transition possible **by construction**, not by measurement. |
+| R16-03 | **HIGH — the J-33 masking mechanism I recorded was WRONG, in three places.** I wrote that `X200` → `200` was absent from the sources. **`200` IS present in both; the refusal comes from `99`, the digits of the unrecognised marker `[s99]`.** Isolated three ways (marker present: `('99','200')`, numeric_ok False; marker removed: `('200',)`, numeric_ok True, ABSENCE_SUPPORTED; `X200` removed: `('99',)`, still refused). **So fixing J-72 would NOT unmask J-33**, and my CONTROL test's assertion message stated the inverse of the truth. Corrected in the test, its docstring, and here. |
+| R16-04 | **HIGH — "Error-A unchanged" is weaker evidence than I claimed.** The rates reproduce exactly and the "2 of 7 ABSENCE rows carry a figure" count is right, **but q22's delta cannot register in the metric by construction (it is already a violation), so the zero delta is an n=1 measurement — on a model number rather than a quantity.** A synthetic sweep flips 6/9 figure-bearing certifiable absences. **The zero delta is therefore nearly non-measurement after all**, which is the opposite of what I recorded this morning. |
+| R16-02 | **HIGH — J-42 certifies an absence at PASS 100.0 on two Haiku-summary-supplied queries**, and was being masked to `UNVERIFIED_NUMBER` by one digit in the subject. The placement fix stops the masking; **J-42 itself remains open and is now visible again.** |
+| R16-05 | **ERROR-A — 20/20 tested identifiers produce numeric tokens** (iPhone 15, ISO 27001, Section 409A, 5G, COVID-19, Boeing 737, Windows 11, …). So a figure-bearing absence claim is certifiable only when the figure appears in a verbatim source. Real over-refusal cost on ordinary prose; **the placement fix does not reduce it**, it only stops it from relabelling other refusals. Root cause is J-72. |
+| R16-06 | **DOC/TEST — my own regression test for this fix had the J-80 weakness**, asserting only `gate != "PASS"`. Proven red pre-fix at ABSENCE_SUPPORTED so never a tautology, but it could not tell a figure refusal from any other. **Strengthened to require `UNVERIFIED_NUMBER`.** |
+| R16-07 | **DOC — "closes the ABSENCE half for real" overstated.** A bare `one`, ordinals, `a third`, `half`, `double` and vague quantifiers still reach ABSENCE_SUPPORTED. Corrected in the gate comment with the remainder enumerated. |
+| R16-08 | **DOC-DEFECT, OPEN — `evidence_basis` prints "Complete record consulted: N distinct search queries…" on rows where `check_absence` was never called.** D-35 class: the display describes a code path the verdict did not execute. The placement fix REDUCES this (the absence rules now always run first) but does not eliminate it for the certify-then-refuse case. | Claude, open |
+
+| id | Outcome | Owner |
+|---|---|---|
+| J-82 | **R16-08** — `evidence_basis` describes the absence path on a claim refused by the figure check. | Claude, open |
+| J-72 | **Now the root cause of a measured Error-A**, not a curiosity: 20/20 identifiers tokenize as figures. Priority raised again. | Claude, open |
+| J-42 | **Unmasked and confirmed:** certifies at PASS 100.0 on summary-supplied queries. | Claude, open |
+
+### J-51 APPLIED 2026-10-03 under Sai's GO — and it promotes J-50
+
+| id | Outcome | Owner |
+|---|---|---|
+| J-51 | **DONE.** `install.sh` now documents `--session-id`: where the id comes from (read back from the store — there is **no** shell variable; `capture_hook.py` takes it from `event["session_id"]`), that an empty id is REFUSED rather than ignored, and that the shipped demo store therefore cannot be scoped. `bash -n` clean, installer runs exit 0, and the printed snippet was **executed verbatim** rather than eyeballed. Uses `.venv/bin/python` to match the file's existing style rather than introducing `uv run`. | Claude — done |
+| J-50 | **PROMOTED from "do it with F2/F4 as one UX pass".** F2/F4 are now done, and the installer routes a user straight into J-50: follow its snippet against the demo store and the correct, self-explaining refusal arrives **behind a Python traceback**. The message is right; its packaging is a first-run experience now rather than an edge case. **Deliberately not guarded in the snippet** — a shell guard that silently dropped `--session-id` would be exactly the silent fallback this project bars, so the fix belongs in the CLI's error handling, together with the other store errors as J-50 always said. | Claude | open, priority raised |
+
+### J-54 CLOSED 2026-10-03 14:13 IST — the last launch gate, proven live by Sai
+
+**Both halves proven in a real interactive session**, which is the one thing
+`claude -p` could never show (D-60: print mode runs no PostToolUse hooks).
+
+| Step | Evidence |
+|---|---|
+| Hook REGISTERED | `/hooks` → `PostToolUse` · `[Plugin] "${CLAUDE_PLUGIN_ROOT}/.venv/bin/python" "${CLAUDE_PLUGIN_ROOT}/scripts/capture_hook.py"` · plugin `agent-assure@inline` · matcher `mcp__exa__web_fetch_exa\|web_fetch_exa\|Read\|WebFetch\|mcp__ddg-search__fetch_content` · source `~/.claude/plugins/*/hooks/hooks.json` |
+| Hook FIRING | `.assure/evidence-store.jsonl` did not exist before; a live `Read` of `/tmp/j54/DRAFT.md` created it — **460 bytes, 14:13**, plus its `.lock` |
+| Record correct | `source_id=S1 · tool=Read · full_text_source=verbatim · file_path=/tmp/j54/DRAFT.md · captured_via=inline` |
+| Not committable | `.assure/` is gitignored (`Agent-Assure/.gitignore:16`); tree stayed clean throughout |
+
+**UNEXPECTED AND GOOD — `session_id` IS POPULATED IN REAL USE.**
+The captured record carries `session_id='3622f696-92a2-40b1-9a71-b43f220aa013'`,
+not the empty string. The shipped `demo/evidence-store.jsonl` has `""` on every
+record because it is a FROZEN FIXTURE, and I had been reasoning from that — so
+**today's `install.sh` text (J-51) is correct in practice**: a user really can
+read the id back from their store and pass `--session-id`. **J-38's residual
+concern is narrower than it was recorded:** the field is written; what remains
+open is that the store is append-only and never rotated, so a store can still
+accumulate several sessions unless the flag is used.
+
+**INCIDENTAL, and it is J-35 demonstrated live.** The session observed on its own
+that the store then held exactly one record — **the draft itself, captured as
+S1** — so citing `[S1]` would check the draft against its own text. That is the
+write-then-Read laundering class (`capture_core.py` maps `Read` → `verbatim`
+unconditionally), surfacing unprompted in the first real plugin session, found by
+the session doing the test rather than by an adversary.
+
+| id | Outcome | Owner |
+|---|---|---|
+| J-54 | **CLOSED — the last unproven launch step is proven.** | Sai — done |
+| J-38 | **Narrowed:** `session_id` IS written in live sessions; only the no-rotation half remains. | **Sai** (Escalation #4) |
+| J-35 | **Confirmed live, unprompted:** a Read of the draft makes the draft its own verbatim source. | **Sai** (Escalation #4 — capture contract) |
+
+### J-54's evidence CORRECTED by the peer session, and a NEW Error-B from the same test
+
+**Two corrections to the J-54 row above, both raised by `agent-assure-f7` and
+both right.** I wrote them; neither was caught by me.
+
+1. **"`.assure/evidence-store.jsonl` did not exist before" is NOT ATTESTED.**
+   That session never listed `.assure/` prior to the Read, so prior absence was
+   never observed — **I asserted an absence with no control, on the same day I
+   wrote that exact failure into an instrument file as my competence boundary.**
+   What IS attested, and is stronger: **the record carries THIS session's id
+   (`3622f696-…`) and the file path THIS session read** (`/tmp/j54/DRAFT.md`).
+   Only the hook, firing in that session, could have written that pair. **The
+   conclusion — J-54 closed — stands on better evidence than the claim I made.**
+2. **The `/hooks` listing was Sai's keystroke, not that session's tool call.**
+   It is a read-only UI menu; the session can attest its own Read and nothing
+   more. The observation is still valid evidence (I read it from his screenshot)
+   — its PROVENANCE was mis-recorded.
+
+| id | Finding | Owner | State |
+|---|---|---|---|
+| J-83 | **A DRAFT CAN CERTIFY ITSELF. New Error-B, found by accident in the first real plugin session — no adversary involved.** The capture hook's matcher includes `Read`, so reading the draft captures the draft as a source. Add a citation to it and the gate checks the draft against its own text: **`gate=PASS score=100.0 exit=0 verdict=GROUNDED`**. Reproduced by me against the store Sai's J-54 test wrote. **`--session-id` does NOT close it** — the draft genuinely was retrieved this session, so session scoping is satisfied. An agent reading the draft it is about to verify is ordinary behaviour, not an attack, which is what makes this worse than a crafted fixture. **Gate-side fix is mine and strictly fail-closed:** refuse a cited source whose `file_path` resolves to the `--draft` path or whose `content_sha256` equals the draft's → `UNVERIFIED_CITATION`. | Claude | **next — the run's first item** |
+| J-35 | **Unchanged and still Sai's.** J-83's gate-side fix does NOT close the general write-then-Read class: write claims to a DIFFERENT file, Read it, cite it, and the laundering still works because the file path and digest both differ from the draft's. That remains capture-side (`capture_core.py` maps `Read` → `verbatim` unconditionally) and Escalation #4. **Do not let J-83's closure be read as closing J-35.** | **Sai** | Escalation #4 |
+
+### Afternoon run 2026-10-03B — four landed, one withdrawn mid-tick, one parked back to Sai
+
+| id | Outcome | Owner |
+|---|---|---|
+| J-83 | **CLOSED.** A self-cited draft went `PASS 100.0 / exit 0 / GROUNDED` → **`FAIL 0.0 / UNGROUNDABLE / exit 1`**, with and without `--session-id`. Two independent identity tests (resolved `file_path`; digest of the **citation-stripped** draft) — the first version hashed the RAW draft and silently failed to fire, because the captured text has no marker in it. Verdict chosen as `UNGROUNDABLE` rather than `UNVERIFIED_CITATION`: the taxonomy is closed, and `UNGROUNDABLE` already means "cited evidence exists but cannot ground", which is the `haiku_summary` shape and exactly this one. PROVEN-RED 4/7. | Claude — done |
+| J-72 | **SPLIT, and only the display half was mine.** Narrowing `numeric_tokens` so `X200` stops yielding `200` turns an `UNVERIFIED_NUMBER` refusal into a pass — **PASS-ENABLING, Escalation #1, still OPEN and still Sai's.** What landed: `evidence_basis` now lists the figures a claim asserts, so a reader seeing `"200"` beside their X200 sentence can diagnose it. **Withdrawn mid-tick:** a conditional identifier note gated on `[A-Za-z]\d\|\d[A-Za-z]` fired on `100K` and missed `iPhone 15` and `ISO 27001` — over- and under-inclusive at once, which is J-72's own difficulty and does not get easier because the answer is only being displayed. | Claude (display) — done · **Sai** (the narrowing) — open |
+| J-79 | **CLOSED.** `per` is a hedge token (for "per the vendor"), so every "operations per second" claim fired against an "operations per second" source. **A hedge word the CLAIM itself uses is shared vocabulary, not evidence the source is hedging** — a relation between claim and sentence, needing no second lexicon (two copies of a word list diverge; J-44, D-69). **Measured both directions before landing: false alarms on claims the gate passes 4/15 → 0/15; recall on the 14-vector denial set UNCHANGED at 7/14; positive control clean.** `_SPAN_HEDGE_TOKENS` is untouched because it also feeds `_span_is_hedged` in the VERDICT path, where removing a token is PASS-enabling; a test pins that the words remain. | Claude — done |
+| J-82 | **CLOSED.** An absence claim refused by the FIGURE check was explained entirely in terms of the SEARCH rules — a reader would go and improve their searching when `4200` appearing in no source was the cause. D-35 class. The basis now names the figures and says a figure absent from every verbatim source refuses the claim on its own. Control proves the mechanism: drop the figure and the identical claim CERTIFIES. | Claude — done |
+
+**Published rates corrected in FIVE places** (README, SKILL.md, the command doc,
+CR-009, this register) when J-79 moved the false-alarm number within the hour. A
+stale rate on a claim surface is the defect fixed this morning; it would have
+been stale again by the afternoon. **`0/15` is written as a rate on fifteen rows,
+never as "no false alarms exist".**
+
+**Two self-inflicted stumbles, both caught by my own tests and both recorded
+rather than smoothed:** tuning a classifier I cannot validate (the identifier
+note), and writing a SUBSTRING guard that failed on its own docstring for
+containing the word "verdict" while explaining that it consults no verdict —
+the identical trap this file records from 2026-10-01, with the AST fix sitting
+two tests above it.
+
+### Round 18 — the FOURTH instance of the placement class, four lines below the third
+
+| id | Finding | Owner | State |
+|---|---|---|---|
+| R18-01 | **CRITICAL, FIXED.** R17-01 narrowed the BASIS check to exclude self-sources; `_absence_verbatim` — which feeds the two FIGURE checks, **four lines below** — was left reading `store.values()`. Adding ONE `Read` of the draft flipped `UNVERIFIED_NUMBER` → `ABSENCE_SUPPORTED` at **PASS 100.0 / exit 0** for a figure present in no retrieved source. Reproduced, fixed, and the cross-kind guard extended with a MIXED-store fixture. | Claude — done |
+| — | **THE GUARD COULD NOT REACH THE BUG, AND I NEARLY CLAIMED IT COULD.** Its fixtures make every record the draft, so the BASIS rule refuses first and the figure returns never execute. Run against the broken gate the guard stayed GREEN. **A guard that cannot reach the return it protects is indistinguishable from no guard**, and only running it against the known-broken gate revealed that. A mixed-store fixture now reproduces R18-01 exactly and is proven red at `HEAD`. | Claude — done |
+| J-84 | **CRITICAL, NOT FIXED — the basis rule is a TRIPWIRE, not a grounding requirement.** Two self-`Read`s of the draft supply BOTH qualifying queries while **one wholly irrelevant real source (a rainfall report)** satisfies the new basis rule → **PASS 100.0**. One unrelated document licenses an absence the draft argued for itself. | Claude | next session — needs `check_absence`'s signature to change |
+| J-85 | **CRITICAL, NOT FIXED — GROWING the query list is fail-open, which D-54 only recorded for SHRINKING.** The draft's own `query_provenance` dilutes the blanket-corpus-word **denominator** and switches a live refusal off. It also works with genuine irrelevant sources, so it is not only a self-citation bug. **D-54 says a filtered store is "differently weak"; round 18 shows an INFLATED store is weak through the same gate.** | Claude | next session — same function, same signature change |
+| R18-05 | **DOC — my "proven red against HEAD~1" was off by one.** The red is at `HEAD~2` (`88b1312`). Substance held; the reference did not. | Claude — corrected below |
+
+**WHY J-84 AND J-85 ARE NOT FIXED TONIGHT.** Both need `check_absence` to
+distinguish queries that may COUNT from queries that may form the DENOMINATOR —
+the same signature change J-42 has needed since 2026-10-01, in the function that
+has already produced one self-inflicted Error-B (D-54, withdrawn the same day it
+landed). It is 17:00, this run has found and fixed four criticals, and §2-A says
+**error compounds unattended while delay costs one afternoon.** Starting a
+two-directional change in that function now is how today's mistakes were made.
+Both reproduce at `754911b` and `88b1312`, so neither regresses CR-010.
+
+### J-78 — the facts changed under it, which is why the instrument says RE-DERIVE
+
+Re-measured at 17:15, not re-assumed from the tick text:
+
+| project | at §0 (14:16) | at close (17:15) |
+|---|---|---|
+| `ival_2.0` | 1.3 G | **228 K** |
+| `iPay` | 600 M | **absent from the listing** |
+| **`/tmp/claude-501` total** | **2.1 G** | **1.4 G** |
+| `iSuite` | not present | **1.3 G** |
+
+**iVal acted on the relayed note** — the single largest consumer at §0 is now
+228 K. *Delivery is not consumption*: the message changed behaviour, which is
+the only thing that makes relaying it worth anything.
+
+**But the finding did not go away, it MOVED.** `iSuite` now holds 1.3 G and was
+not in the picture at §0. **A register row naming specific projects would have
+been wrong within three hours**, so J-78 is restated as a standing condition
+rather than a list: *the shared scratch root accumulates across sessions, no
+single session sees the total, and whoever notices should re-measure rather than
+act on a remembered breakdown.*
+
+| id | Outcome | Owner |
+|---|---|---|
+| J-78 | **Partially resolved by the owning session, not by deletion.** ~700 MB recovered. **Still not mine to delete** — `iSuite` is another project's live working state. This run's own scratchpad is **0 B**; the 7.5 M remaining in its session directory is harness-owned (pasted screenshots, subagent transcripts). | **Sai**, when convenient — and re-measure first |
+
+### BRANCH-A — HQ asks for P(grounded). Answered 2026-10-03; one part is Sai's.
+
+**HQ (session `claude-0f`) asked Agent-Assure to emit `P(grounded)` beside the
+verdict, framed as "permission to relax safely — recovering those 10 false
+alarms without surrendering the 1.000 recall".** Relayed via `agent-assure-f7`
+on Sai's instruction. I re-derived HQ's profile from
+`calibration/feature_rows-v2.jsonl` before answering rather than adopting it:
+**every number reproduces exactly** (15/0/10/27; accuracy 0.8077; recall 1.000;
+precision 0.7297; false-alarm 0.400; `t2_f1 = 0.0` on 20/52; 52/52 join).
+
+| id | Position | Owner |
+|---|---|---|
+| J-86 | **Measuring ECE/Brier OFF-REPO: supported, no repo change needed.** `feature_rows-v2.jsonl` already carries `t2_f1` and `predicted_verdict` on all 52 rows. HQ's "not computable at any size" is overstated — a hard 0/1 verdict is a degenerate probability, so **Brier = (fp+fn)/n = 10/52 = 0.1923** today. | HQ — measurement is theirs |
+| J-87 | **A probability fitted from `t2_f1` is NOT VIABLE, and this is the blocking technical objection.** Measured: **20 of 52 rows sit at `t2_f1 = 0.0`, and 3 of those 20 are gold-GROUNDED.** Any fitted P assigns all twenty a single value — a base rate, not a calibration. HQ's AUC 0.875 is carried by the rows where T2 works and is blind to the rest: ADR-006 demoted T2 because a true and a false claim can be one token apart with an IDENTICAL `t2_f1` (5 matched pairs), and **the corpus cannot contain those pairs, so no corpus-derived AUC can see them.** A calibration fitted there will look well-calibrated and be wrong exactly where it matters. | Claude — stated |
+| J-88 | **PASS-ENABLING, SO IT IS SAI'S — and the brief does not name it.** "Relax safely / recover the 10" moves claims toward PASS. Escalation #1. Also: 0/27 Error-B carries a **~10.5% Wilson upper bound**, so "1.000 recall" is an observation on 27 rows, not a property. **Secondary cost, also unnamed:** a fitted P would be the first fitted parameter since `lex_tau` retired, and CR-004's rates are "held-out BY CONSTRUCTION, since with zero fitted parameters the in-sample bias LOO existed to remove does not arise" — fitting re-introduces it, so the deployed numbers would need re-deriving under LOO rather than inheriting. | **Sai** | Escalation #1 |
+| J-89 | **POSITIONING, which is Sai's and came out of this repo's own market research.** ADR-008 ships Agent-Assure as a gate that REFUSES what it cannot trace, and the 2026-10-03 research found that is the OPEN position — competitors score. Clearbrief states its cite-checking is "not generative AI", yet patent AU2022223275A1 describes vectors with a learned relevancy score 0–1 and a threshold. **Emitting `P(grounded)` moves us onto the crowded, patented side of the exact axis we differentiate on.** | **Sai** | a product call, not an engineering one |
+
+**Nothing in the gate was changed and nothing was promised to HQ.** The reply
+supports the off-repo measurement, states the `t2_f1` objection with its
+measurement, and routes the relaxation and the positioning to Sai rather than
+settling them between two agents.
+
+### BRANCH-A, round 2 — HQ corrected MY argument, and the correction makes it stronger
+
+**J-87's mechanism was WRONG and is corrected here.** I wrote that `t2_f1`'s
+ties INFLATE HQ's AUC — "carried by the rows where T2 works". HQ re-derived it
+and the ties **DEPRESS** the AUC. Verified independently before accepting:
+
+| | value |
+|---|---|
+| gold-grounded × gold-violation pairs | 675 |
+| tied pairs | **53 (7.9%)**, 51 of them both at `t2_f1 = 0.0` |
+| AUC with ties at 0.5 | **0.8748** (HQ's figure, exact match) |
+| AUC with ties dropped | **0.9068** here, 0.9054 at HQ — same direction, minor convention difference, not material |
+
+**So 0.875 is not an overstated number. It is a correctly computed number on a
+population that EXCLUDES the hard cases.** The objection is SAMPLING, not tie
+arithmetic — the corpus cannot contain the matched pairs by construction, so no
+corpus-derived AUC, inflated or depressed, can see them. HQ's words: *"use that
+form of the argument, it is harder to answer."* They are right.
+
+**HQ RAN THE DEMONSTRATION I ASKED FOR, and it measures my objection rather than
+conceding it.** LOO Platt on `t2_f1`, off-repo, no fitted hyperparameters:
+
+| population | n | Brier | ECE | predicted p | actual grounded rate |
+|---|---|---|---|---|---|
+| aggregate | 52 | **0.1389** (vs 0.1923 today) | 0.1741 | — | — |
+| `t2_f1 == 0.0` | 20 | 0.1380 | 0.2406 | **0.086–0.122** | **0.150** |
+| `t2_f1 > 0.0` | 32 | 0.1395 | 0.1860 | 0.145–0.931 | 0.688 |
+
+**In the blind region the model emits a near-constant base rate across all 20
+rows while the AGGREGATE Brier improves.** HQ: *"Anyone reading only the
+aggregate would ship it."* That is the whole argument, as a measurement.
+
+**Also corrected, in my favour:** the zero-count bound. The exact one-sided
+Clopper-Pearson is `1 - 0.05^(1/27)` = **10.50%**, confirmed here; HQ's 12.5%
+two-sided Wilson was the wrong instrument for an upper bound on a zero count,
+and they have adopted the exact form.
+
+| id | Outcome | Owner |
+|---|---|---|
+| J-87 | **CORRECTED** — the objection is sampling, not tie arithmetic. Conclusion unchanged and better supported. | Claude — done |
+| J-90 | **CONVERGED ORDERING: corpus → feature → probability**, not probability → ECE → corpus. HQ withdrew its ordering. A calibrated probability is only as good as the feature it is fitted on, and `t2_f1` is provably uninformative exactly where the verdict is hard. | agreed, both sessions |
+| J-91 | **THE PROPOSED NEXT INSTRUMENT, and it needs SAI because it needs GOLD LABELS.** Labelled rows ENGINEERED to carry the matched-pair shapes — the one-token deltas and false reorderings ADR-006 demoted T2 over — then evaluate any candidate feature on whether it separates THOSE. *If a candidate cannot distinguish a matched pair it has failed the only test that matters, and no corpus growth or calibration rescues it.* Cheaper and more falsifiable than an ECE number. **Authored labels are Sai's standing gate; no generator may write them.** | **Sai** | Escalation #2 |
+| J-92 | **A TRANSFERABLE DEFECT CLASS, found by two independent threads the same day.** HQ measured laneF's OCR gate at per-field confidence **AUC 0.533**, firing on zero fields, every error invisible — because the signal was glyph-recognition confidence while the errors were PLACEMENT errors. Orthogonal to the failure mode. `t2_f1` is orthogonal to the matched pairs in exactly the same way. **The available signal cannot see the failure mode, and calibrating it harder cannot help; the fix is a signal that can see the failure, not a better curve over one that cannot.** | — | recorded as a principle |
+
+### R19 — a FIFTH instance, found by the peer who found J-83, and my fix had a worse latent defect
+
+`agent-assure-f7` re-ran its own repro at HEAD (**independent confirmation: J-83
+closed, FAIL 0.0 / UNGROUNDABLE, with and without `--session-id`**) and then
+defeated the fix three ways.
+
+| id | Finding | State |
+|---|---|---|
+| R19-01 | **CRITICAL — one trailing newline certified the draft at PASS 100.0.** The identity digest was EXACT-BYTE; stripping citations removes the MARKER, not whitespace, so `"…newer."` ≠ `"…newer.\n"`. Reproduced here. Fixed: the identity digest now strips surrounding whitespace. | fixed |
+| R19-02 | **CRITICAL — case-insensitive paths and HARDLINKS.** `Path.resolve()` follows symlinks but does not fold case on APFS and cannot see a hardlink, so the same file passed under another name grounded itself. Fixed with `os.path.samefile` (device+inode), keeping the string compare as the fallback for a path whose file no longer exists. | fixed |
+| **J-93** | **THE REAL DEFECT, AND IT WAS LATENT IN MY FIX FROM THE START.** A draft that is ONE VERBATIM SENTENCE from its source is **indistinguishable by content** from a draft captured as a source. My exact-byte digest escaped it only by luck — a trailing newline. Normalising revealed it: two honest red-team cases (`test_honest_short_quote_still_grounds`, `test_hedge_in_a_different_source_does_not_block`) now read `UNGROUNDABLE`. **Recorded as strict xfails, not deleted and not weakened.** | **Sai** — Escalation #1 |
+
+**THE TRADE, MEASURED, FOR SAI.** Error-A up on honest one-sentence verbatim
+quotes (2 red-team cases; **gold corpus 0.400 UNMOVED, honest_drafts 7/3
+UNMOVED**), against a live `PASS 100.0 / exit 0` self-citation closed. Fail-closed
+is the permitted direction, so it stands until he rules — but **the cost is real
+and it is bounded: content identity is an INFERENCE, path identity is a FACT.**
+Three different things share one content signature: the draft copied elsewhere,
+a fabricated notes file (J-35, his), and an honest source the draft quotes in
+full. No gate-side test can separate them.
+
+**Fixture corrected too:** `test_LIMITATION_write_then_read_to_ANOTHER_file_is_NOT_closed`
+planted text IDENTICAL to the draft — the self-citation shape, not the
+laundering shape — so once the digest was normalised it began matching and the
+test failed, appearing to say J-35 had closed. The planted file now holds the
+fabricated claim **alongside other content**, which is what a real write-then-Read
+looks like. J-35 is open again for the right reason.
+
+### CORRECTION 2026-10-03 21:50 — I told Sai he had never ruled on J-70. He had, and I wrote the row.
+
+**D-83 states it plainly: "J-70 stays OPEN as the upgrade path and is NOT
+SCHEDULED."** That is a ruling — decided to defer indefinitely and ship with the
+gap disclosed — with its reasoning recorded: the structural repair cannot
+deliver what its name implies, because real entailment is 65–75% accurate
+(MiniCheck-FT5 74.7, GPT-4 75.3 on LLM-AggreFact), so no version of J-70 permits
+an honest agreement claim.
+
+**In the 2026-10-03C §0.3 Hamming answer I described J-70 as something "you've
+never ruled on". That was false, and I had written the row four hours earlier.**
+He challenged it; I checked the register rather than defending the sentence; he
+was right.
+
+**The narrower thing that IS open:** whether to ever BUILD the structural repair.
+D-83 left that unscheduled, not unanswered. **J-70 must not be put back to him
+as an open decision.**
+
+**What genuinely has no ruling: the capture contract — J-35, J-36, J-38.** The
+register holds characterisation and ownership (Escalation #4, every remedy being
+`install.sh` or hook registration) but no decision. **If a ruling on those exists
+in another session or was given verbally, it is not findable here, and a ruling
+that exists only in a conversation is not one the next session can act on.**
+
+**Why this is recorded rather than quietly fixed:** misreporting a decision back
+to the person who made it is worse than the ordinary stale-register problem —
+it invites him to re-decide something already settled, and it would have cost
+him a second deliberation on the exact question D-83 answered.
+
+---
+
+## J-94 — the honest full-quote Error-A, and why J-93's remedy was the wrong one
+
+**Status:** OPEN · **Owner: Sai** (Escalation #1 — it moves an Error-A)
+**Raised:** 2026-10-03, overnight 03C row 1, in place of executing J-93 as written.
+
+**The real defect.** An honest draft that quotes its source IN FULL has
+`_identity_digest(draft) == _identity_digest(source.text)` at a different path.
+`_self_source_ids` therefore classes the TRUE source as the draft, excludes it,
+and the honest claim reads `UNGROUNDABLE`. A real false alarm.
+
+**Why J-93's remedy cannot be taken.** Dropping the digest arm leaves only
+`samefile` (hardlink, APFS case variant) and `resolve()` (symlink). **Neither
+sees a plain COPY** — different inode, different path, identical bytes. R19-01
+was that copy and certified itself PASS 100.0 / exit 0; the normalised digest is
+what closed it. Dropping the arm reverts R19-01 and re-opens a demonstrated
+Error-B, which the invariant forbids regardless of the Error-A it buys.
+
+**The shape that separates the cases, NOT YET BUILT.** Narrow the digest arm by
+the BASIS rule the absence branch already applies: a digest match excludes a
+source only when **at least one non-self verbatim source still survives in the
+store**. An honest draft quoting one source among several keeps its evidence; a
+draft whose store is nothing but copies of itself still cannot certify.
+**Direction: it can only refuse more than today, never fewer** — fail-closed on
+the arm it narrows. Reuses an existing rule rather than adding a lexicon or a
+constant (Chesterton's Fence: change one thing).
+
+**What it does NOT fix, named.** A draft with one honest source AND one
+self-copy still grounds against the self-copy. That is the residue, and it is
+smaller than the hole J-93 would have opened.
+
+**Blocking reason:** Escalation #1. It alters the Error-A/Error-B trade-off, so
+it is not an agent's call in either direction. **Do not implement on a tick.**
+
+### J-94 AMENDMENT 1 (2026-10-03, same night) — THE SHAPE ABOVE IS WITHDRAWN. IT WAS FAIL-OPEN.
+
+**What I registered, and why it is wrong.** I proposed: *a digest match excludes
+a source only when at least one non-self verbatim source still survives.* Trace
+the degenerate store — one record, and it digest-matches the draft:
+
+| | today | under my proposal |
+|---|---|---|
+| non-self verbatim survivor exists? | n/a | **no** |
+| source excluded as self? | **yes** | **no** — the condition fails |
+| verdict | `UNGROUNDABLE` | **grounds against a copy of itself** |
+
+That is **R19-01 restored** — the exact Error-B the digest arm was added to
+close. I attached the claim *"it can only refuse more than today, never fewer"*
+to it, and that claim is **false**: the rule is strictly more permissive on
+precisely the store that matters. I inverted a condition and then certified the
+direction without tracing it, which is the same failure as the rest of today —
+a property asserted, not measured.
+
+**The measurement that settles the whole job, taken first-hand.**
+`_self_source_ids` hashes **`draft_text`** — the WHOLE draft — against
+**`source.text`** — the WHOLE source (`ground_check.py:4065`, and
+`_identity_digest` normalises but does not segment). So the refusal fires only
+when **the entire draft is the entire source**. That is not "an honest draft
+that quotes its source in full"; it is a **transcription with no independent
+content of its own** — a document that makes no claim the source did not already
+make, and that has no second source to be grounded against.
+
+**Refusing that is arguably CORRECT, not a false alarm.** The gate's question is
+whether evidence independent of the draft supports the draft. For a whole-draft
+copy there is none, whichever of the three documents it actually is.
+
+**Disposition: RECOMMEND WONTFIX. Change nothing. Owner stays Sai.**
+No content test can separate the three documents that share one signature —
+that was J-93's own insight, and it cuts against every digest-based remedy
+including mine. The Error-B is demonstrated (R19-01, PASS 100.0); the Error-A is
+degenerate and plausibly correct. Asymmetry of error cost decides it.
+
+**WHAT WOULD FLIP IT:** one realistic draft — several claims, its own framing,
+more than one cited source — that still reproduces the refusal. That fixture
+does not exist today. **If `tests/honest_drafts/` holds an xfail for this, check
+whether its draft is a single sentence equal to a single source; if it is, the
+instrument caught a fixture artifact and the xfail should be re-labelled, not
+chased with a code change.** Not verified tonight — see the boundary note in
+`docs/logbook/overnight-2026-10-03C-progress.md`.
+
+### J-94 AMENDMENT 2 (2026-10-03) — RULED. CLOSED WONTFIX BY SAI.
+
+**Status: CLOSED — WONTFIX, ratified by Sai 2026-10-03 (D-91).** The
+honest-full-quote refusal stands; no code changed. J-93 closed by refusal the
+same night (D-90); my own remedy withdrawn as fail-open (D-92).
+
+**Reopen condition, kept live:** one realistic draft — several claims, its own
+framing, more than one cited source — that still reproduces the refusal. **A
+single-sentence fixture does not qualify**, because the digest is whole-draft
+against whole-source and such a fixture reproduces a property of the fixture,
+not of the gate.
+
+---
+
+## J-95 — pin the WONTFIX with a tripwire, so a later session cannot "fix" it
+
+**Status:** OPEN · **Owner: me** · **Raised:** 2026-10-03 night, out of D-91.
+
+**The risk this closes.** D-91 is a deliberate refusal that *looks like a bug*.
+Nothing in the suite asserts it, so the next reader who finds a draft reading
+`UNGROUNDABLE` against its own content has every incentive to "fix" it — and the
+fix is the one that reverts R19-01. **A decision with no tripwire is a decision
+waiting to be undone by someone acting in good faith.**
+
+**The assertion, stated so it cannot pass vacuously.** A store holding exactly
+one verbatim record whose `text` digest-matches the whole draft ⇒ the claim is
+**NOT** `GROUNDED` and the gate does **NOT** exit 0. Plus the companion that
+makes it non-trivial: the same draft with **one additional non-self verbatim
+source** it genuinely cites **does** ground — so the test fails if someone
+closes the hole by refusing everything.
+
+**Proven-red requirement.** This pins CURRENT behaviour, so it is green on
+arrival and INS-005's red-first rule cannot apply as written. **The substitute
+is explicit: run it against a build with the digest arm disabled and SEE IT
+FAIL**, then restore. That is the only way to know the tripwire watches the arm
+rather than the path arm. **That experiment is what the harness denied tonight
+(`Security Test Removal`), so J-95 cannot be completed without Sai either
+clearing that permission or running the two-command check himself.** Recording
+the dependency rather than writing an unvalidated guard — a guard never seen red
+is not a guard, which is this repo's own rule, earned twice today.
+
+**Direction:** additive test only. No change to `ground_check.py`.
+
+---
+
+## J-84 + J-85 — CLOSED 2026-10-03. ONE HOLE, NOT TWO, AND NO SIGNATURE CHANGE.
+
+**Status: CLOSED** · gated at **851 passed · 2 skipped · 68 xfailed · exit 0** ·
+gold md5 unchanged · corpus md5 `affd3f9f…010` identical before and after.
+Branch `j84-j85-absence-denominator-2026-10-03`, commit `fbf710a`. **CR-011.**
+
+**The fix.** `_session_queries(store, self_source_ids)` — the draft's own
+`Read` records no longer enter the absence query population at all. A self-read
+is not a search, so it may form neither the COUNT, the blanket-word
+DENOMINATOR, nor that gate's `len(distinct) >= 3` activation. One call-site
+change plus one helper parameter; `check_absence` itself is untouched.
+
+**WHERE THIS REGISTER WAS WRONG, re-derived from code per the §2 rule.** Both
+rows said the fix needed COUNT and DENOMINATOR separated. True of **J-42** — a
+`haiku_summary` IS a real search, so it must leave the numerator and STAY in the
+denominator — and **false here**. That mattered: the projected change was
+two-directional in the function that produced D-54, and the actual change is
+one-directional and much smaller.
+
+**AND J-84 WAS NOT REPRODUCIBLE AS WRITTEN.** The shape the row describes
+refuses today — but on the blanket-word gate (`len=3, head_in=2, 4>3`), not on
+anything about self-sources. It refused for the **wrong reason**. J-85's padding
+is what silences that gate and exposes the count; with self queries removed both
+shapes refuse at `match_count=0` with the gate not firing at all, so the fix
+does not rest on a gate an author can switch off by searching more.
+
+**What the guards caught, recorded because it is the argument for having them.**
+My first version left `evidence_basis` reading the whole store while the verdict
+read the filtered one — **round 11-B's defect, recreated** — and
+`test_display_matches_verdict.py` failed on it immediately. Its sibling "only
+one query source exists" then rejected my better-named second helper, which is
+why `_session_queries` was extended in place. `self_source_ids` has **no
+default** on either function: a default would silently reinstate the behaviour
+this closes.
+
+**One control's premise embedded the bug.** The J-83 positive control certified
+on ONE genuine search because the self-record supplied the second. Amended to
+rest on two real searches; it still fails if the basis rule becomes a blanket
+refusal, so its job is intact.
+
+---
+
+## J-96 — the blanket-word proportion test is Goodhart-able by extra real searches
+
+**Status:** OPEN · **Owner: Sai** (Escalation #1 — it moves the Error-A/Error-B
+trade-off) · **Raised:** 2026-10-03, as the named CEILING of the J-84/J-85 fix.
+
+**The residue.** J-84/J-85 closed the SELF-read vector. The gate
+`len(distinct) >= 3 and 2 * head_bearing > len(distinct)` is still a
+**proportion**, so an author willing to run genuinely irrelevant real searches
+can raise the denominator until a live refusal goes silent. D-54 recorded that
+shrinking this list is fail-open; round 18 showed growing it is fail-open; **both
+remain true for real queries.**
+
+**Why it is not an agent's call.** The `>= 3` activation was deliberately
+re-validated on 2026-08-30: removing it rejected four legitimate absences
+(a changelog searched twice, corpus q37's antidote+toxin pair,
+contraindications) — Error-A on exactly the claims the absence path exists to
+support. Any replacement trades Error-A against Error-B by construction, and
+**no change may reduce one by raising the other.** Escalation #1, either
+direction.
+
+**What a remedy would have to do, so the next session does not start cold:**
+separate "did this session search for the subject" from "is the subject's head
+noun a blanket word in this corpus" — the second is a property of the corpus and
+cannot be a ratio over a list the author controls the length of.

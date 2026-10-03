@@ -1,73 +1,136 @@
-# RESUME HERE — written 2026-10-03, overnight run D-78
+# RESUME HERE — written 2026-10-03 22:0x, after a 57-commit day
 
-# PR #7 IS STILL **DO-NOT-MERGE** — and now for a demonstrated reason
+# THE OVERNIGHT RUN WAS ARMED, RAN ONE ROW, AND DISARMED ITSELF. SAI'S CALL NEXT.
 
-Round 14 ran. It did **not** come back clean. Three CRITICAL Error-B classes are
-open against the code that ships, all of them Sai's (Escalation #1). Last
-night's handoff said "no adversary has seen the current code"; one has now, and
-it routed around the refusal with a single word.
+Armed at 22:11 (job `bb24422b`, verified by `CronList` after the create — the
+21:44 "arming now" had never been called, which the close caught). **Disarmed at
+22:16 by the circuit breaker, §6 hygiene first. `CronList`: No scheduled jobs.**
 
-**Read first:** `docs/logbook/MORNING-REPORT-2026-10-03.md`, then
-`docs/logbook/2026-10-02D-the-refusal-that-one-word-walked-around.md`.
+**Row 1, J-93, was HALTED and NOT executed.** The ruling said drop the
+content-digest arm of `_self_source_ids`. `samefile` catches a hardlink and an
+APFS case variant, `resolve()` catches a symlink — **none catches a plain COPY
+of the draft**, and R19-01 was that copy certifying itself at PASS 100.0. The
+digest is the only arm that sees it, so dropping it reverts R19-01 and re-opens
+a demonstrated Error-B. Escalation #1. `scripts/ground_check.py` is
+byte-unchanged.
 
-## State, verified not quoted
+**The Error-A behind the ruling is real** — an honest draft quoting its source
+in full gets its own source excluded. Open as **J-94**, owner Sai, with the
+fail-closed shape that separates the cases (narrow the digest arm by the
+existing BASIS rule rather than deleting it).
 
-- Suite **797 passed · 2 skipped · 66 xfailed · exit 0**
-- **Error-A 0.400 (10/25) · Error-B 0.000 (0/27)** — re-derived from current
-  code this run, matching CR-007. **CR-007 still governs**; CR-008 records only
-  priced candidates, none landed.
-- Gold md5 `6215b526d03147295b003d7ccb0d171f` — never touched, zero labels changed.
-- `main` untouched at `009c646`. Branch `delivery-queue-2026-10-02`.
-- `ground_check.py` is byte-identical to last night **apart from two corrected
-  comment blocks and one display string.** Nothing in the verdict logic moved.
+**Why the whole run stopped and not just the row:** two harness denials of one
+class (`Security Test Removal`, then `Security Weaken` on a read-only grep).
+Tonight's entire priority list — J-93, J-84/J-85, the matched-pair runner — is
+moat-internal work in that one file, so a tick would have hit the same wall
+every 30 minutes. Neither denial was worked around or routed elsewhere.
 
-## SAI'S DECISIONS — the night's actual output
+**J-84 and J-85 remain the first real item** and are untouched: both CRITICAL,
+both fail-open in both directions, in `check_absence`. They are *strengthening*
+changes, so they are not what the denials were about — but they were not
+attempted tonight, and that is a fact, not a hedge.
 
-| # | Decision | The measured price |
-|---|---|---|
-| 1 | **J-70 — the root cause.** Choose: (a) **structural repair**, give T1 sentence-scoped source text; or (b) **accept and disclose**, state that the gate verifies *presence* in a source, not *agreement* with it. | The blunt repair is **withdrawn**: corpus said +0.160 Error-A, the honest-draft harness said **7 passing drafts → 5 failing**, including a verbatim quote reading UNGROUNDED. |
-| 2 | **J-62+J-71 — the cheap one.** Say GO and it lands with a proven-red test. | Closes R14-03a at **Error-A 0.400 unchanged, Error-B 0.000**. The only candidate with no observed Error-A cost. |
-| 3 | **J-69 — the causal lexicon.** | **Recommendation: do NOT fix this way.** Wrong layer — J-70 reproduces with no causal word at all, so a lexicon closes 22 fixtures and leaves the class open. The comment stripper's five-round pattern. |
-| 4 | J-54 · J-51 · q25 | Unchanged, ~12 min, his terminal. |
+Full account: `docs/logbook/overnight-2026-10-03C-progress.md`.
 
-## WHAT ROUND 14 FOUND — do not re-derive these
+## PR #8 IS OPEN AND WAITING ON SAI'S MERGE CLICK
 
-- **R14-01** `causes`→`triggered` flips the same sentence on the same store from
-  FAIL/exit 1 to **PASS 100.0/exit 0**. The refusal is gated on `classify`, and
-  `_RELATIONAL_RE` is ten surface forms over an open class.
-- **R14-04, THE ROOT CAUSE** (supersedes J-67's framing). T1's span anchors in
-  the claim's long SUBJECT; `_span_is_hedged` reads only the 5 tokens BEFORE the
-  span. **The same denial moved before the subject refuses; left after it,
-  certifies.** Reproduces on plain FACTUAL with no causal vocabulary. *"We found
-  no evidence that X"* is how real sources report negative findings — this
-  arises from honest retrieval, not an attack.
-- **R14-02** `_SPELLED_NUMBER_WORDS` excludes `"one"` — a `CEILING:` recorded
-  during J-43 — and that breaks the word run, so `one million` is checked only
-  as `million`. **The recorded ceiling was the attack.**
-- **R14-03a** ABSENCE returns above the figure checks; digit `4200` in no source
-  certifies PASS 100.0.
-- All five tripwired strict-xfail in
-  `tests/red_team_moat/test_moat_r14_hedge_classifier_absence.py`, with three
-  **passing** controls proving the guards work and only their scope is wrong.
+https://github.com/saisumantatgit/agents-infra/pull/8 — 50 commits, 35 files,
+`ground_check.py` +352. Base `agent-assure-calibration-run`, as every PR in this
+repo has been. **848 green, gold md5 unchanged and not in the diff, clean merge.**
+`gh pr merge` was denied `[Merge Without Review]` — correctly: the standing order
+says *never merge, PRs only*.
 
-## TRAPS FROM THIS RUN — do not relearn them
+**`main` has NEVER received the calibration work.** It sits at `009c646`, and
+PR #7's merge commit `c524145` is not an ancestor of it. That is a separate and
+much larger decision than anything taken today — do not treat "merge" as
+covering it.
 
-- **The gold corpus is a LABEL instrument, not an Error-A instrument.** It
-  measures only shapes someone thought to label. `tests/honest_drafts/` is the
-  usage instrument; the adversary is the hostility instrument. **Consult all
-  three before recommending a moat change.** Tonight the corpus called a repair
-  cheap that breaks a verbatim quotation.
-- **A register row that states a mechanism in the present tense must be
-  re-derived before it is acted on — including one you wrote.** J-37 had been
-  closed for a day; its row still described the pre-fix state and cost a cycle
-  and a duplicate test.
-- **Do not print a hardcoded gloss next to a search result.** A script of mine
-  printed `(none above = never added before now)` directly beneath output that
-  listed the adding commit, and I read the label instead of the data.
-- **A green round-trip is evidence only while a red one is reachable.** Three
-  tests asserted corpus stores survive `load_store` with no `pytest.raises`
-  anywhere, so all three would pass against a loader whose validation had been
-  deleted. Every such file needs its refusal control.
-- **Three pricing patches were applied and reverted tonight.** If `git status`
-  is ever dirty in `ground_check.py` unexpectedly, check for a `PRICING PATCH`
-  comment before assuming it is real work.
+**J-94 IS RULED: CLOSED WONTFIX (Sai, 2026-10-03, D-91).** The refusal needs the
+whole draft to equal the whole source — a transcription with no independent
+content. J-93 closed by refusal (D-90); my own remedy withdrawn as fail-open
+(D-92). **Do not reopen on a single-sentence fixture** — the digest is
+whole-draft against whole-source, so such a fixture tests the fixture.
+
+**J-95 is the open residue and it is MINE:** a tripwire pinning D-91, because a
+deliberate refusal that looks like a bug will be "fixed" in good faith by the
+next reader, and that fix is the one that reverts R19-01. **It cannot be
+completed without clearing the `Security Test Removal` permission** — the
+proven-red check requires running the guard against a build with the digest arm
+disabled, and a guard never seen red is not a guard.
+
+**Read first:** `docs/logbook/2026-10-03D-the-author-as-adversary.md`.
+
+## State, measured at close
+
+```
+suite    848 passed · 2 skipped · 68 xfailed · exit 0
+Error-A  10/25 = 0.400     Error-B  0/27 = 0.000     (UNMOVED all day)
+gold md5 6215b526d03147295b003d7ccb0d171f   untouched, zero labels changed
+main     009c646 untouched · PR #7 MERGED at c524145 · 0 open PRs · tree clean
+```
+
+## THE TWO CRITICALS WAITING — start here
+
+**J-84** — the absence BASIS rule is a tripwire, not a grounding requirement: two
+self-`Read`s of the draft supply BOTH qualifying queries while **one wholly
+irrelevant real source (a rainfall report)** satisfies the basis → **PASS 100.0**.
+**J-85** — **GROWING the query list is fail-open**, where D-54 recorded only
+SHRINKING: the draft's own `query_provenance` dilutes the blanket-corpus-word
+DENOMINATOR and switches a live refusal off. Works with genuine irrelevant
+sources too, so it is not only a self-citation bug.
+
+Both need `check_absence` to separate queries that may **COUNT** from queries
+that may form the **DENOMINATOR** — the signature change J-42 has needed since
+2026-10-01. **This is the function that produced D-54, a self-inflicted Error-B
+withdrawn the same day it landed, and BOTH directions are fail-open.**
+
+**Sequence it as the instrument says: build the guard FIRST, run it against the
+CURRENT hole, and if it does not go RED, stop and register rather than proceed.**
+
+## SAI'S — and one of these is not an engineering task
+
+1. **The 5-user comprehension test.** `docs/research/user-test-2026-10-03/` —
+   `SHOW-THIS.html` is the whole instrument; users install nothing. **It is the
+   only thing that can reverse D-83's release approval.** Thresholds are written
+   down in `PROTOCOL.md` BEFORE the interviews, on purpose.
+2. **The capture contract — J-35, J-36, J-38. GENUINELY UNRULED**, as distinct
+   from everything else on his list. Every remedy is `install.sh` or hook
+   registration (Escalation #4). J-35 was demonstrated LIVE and unprompted by
+   his own J-54 session.
+3. **J-69** (the causal lexicon — recommendation: do NOT fix it there, wrong
+   layer) · **J-72's narrowing** (PASS-enabling) · **q25** · **the publish**
+   (D-83 approved; Escalation #5 reserves the act).
+
+**DO NOT PUT J-70 BACK TO HIM AS AN OPEN DECISION.** D-83 ruled it: *open as the
+upgrade path, NOT scheduled.* I told him otherwise tonight and was wrong.
+
+## TRAPS FROM THIS DAY — the expensive ones
+
+- **A GUARD THAT HAS NEVER BEEN SEEN RED IS NOT A GUARD.** The cross-kind
+  self-citation guard stayed GREEN against the very bug it was written for: its
+  fixtures made every record the draft, so the BASIS rule refused first and the
+  figure returns never executed. **Run every guard against a gate you know is
+  broken before trusting it.**
+- **`ground()` has 15 returns across 6 kinds; a check at one protects one.**
+  Four instances of that in two days. Fixing one is not fixing the class.
+- **Narrow the BASIS, never the scan, on the absence path.** D-54: shrinking the
+  store moves `source_texts` and the query count in OPPOSITE directions, both
+  fail-open. R18-03: GROWING it is fail-open too, through the same gate.
+- **Path identity is a FACT; content identity is an INFERENCE.** Three different
+  things share one content signature — the draft copied elsewhere, a fabricated
+  notes file, an honest source quoted in full.
+- **Gate the claim on the measurement IN THE SAME COMMAND.** `test N -le 80 &&
+  git add` works; care does not. Nine withdrawals today, most of them a state
+  asserted without being read.
+- **A fixture that refuses for the WRONG reason proves nothing.** State which
+  rule produced every refusal you report.
+
+## CROSS-REPO — live, and not stale
+
+HQ (`claude-0f`) has `docs/specs/matched-pair-probe-shapes.md` on branch
+`agent-assure-design`: ten shapes, **shape 5 is a positive control** (direction
+reversal is an identical multiset, so a bag-of-words feature MUST score ~0.5 —
+anything else means the harness is wrong). **The split Sai ratified:** HQ
+designs, Sai ratifies the labels (Escalation #2), this repo runs candidates and
+reports as predicted-bin × outcome counts. **The runner is unbuilt and needs no
+labels to build.**

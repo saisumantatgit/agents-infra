@@ -87,11 +87,11 @@ uv run python -m calibration.run_calibration   # sweep + LOO + emit CR (module f
   rather than silently no-op'ing. T2 was demoted because a true and a false
   claim can be the same one-token delta and score an identical `t2_f1` (5/5
   matched pairs), and because a bag of words has no order (a false reordering
-  scored 1.000). **Current rates: Error-A=0.320 / Error-B=0.000, n=52 gold
-  (CR-004)** — 'zero' means no KNOWN violation escapes; the 95% upper bound
+  scored 1.000). **Current rates: Error-A=0.400 / Error-B=0.000, n=52 gold
+  (CR-007 — it rose from 0.320 when ADR-007 demoted relational grounding)** — 'zero' means no KNOWN violation escapes; the 95% upper bound
   on 0/27 is ~10.5%, so never quote it as zero — held-out BY CONSTRUCTION, since with zero fitted parameters the
   in-sample bias LOO existed to remove does not arise. Supersedes CR-002
-  (0.76, A=0.200/B=0.111); Error-B monotonicity holds. The 0.320 is real: honest
+  (0.76, A=0.200/B=0.111); Error-B monotonicity holds. The 0.400 is real: honest
   paraphrase now reads UNGROUNDED, counted as strict xfails, recoverable only by
   T3/NLI (ADR-004), which is now LOAD-BEARING rather than optional. Score gate
   default = 90 — but per ADR-005 (accepted 2026-07-12) the score is a
@@ -157,7 +157,8 @@ uv run python -m calibration.run_calibration   # sweep + LOO + emit CR (module f
 | `Agent-Assure/calibration/run_calibration.py` | Bootstrap sweep entry (legacy `labeling.csv`, n=12, inline labels — frozen, CR-001 depends on it) |
 | `Agent-Assure/calibration/labeling-v2.csv` | **Scaffold** — DERIVED (claim, evidence, **source_type**, candidate, rationale). No human column; regenerate freely |
 | `Agent-Assure/calibration/labels-v2.csv` | **Labels** — AUTHORED. **RATIFIED GOLD 2026-09-02** (52 rows, Sai). No generator writes it |
-| `Agent-Assure/calibration/CR-006-delivery-queue.md` | **Current CR**: J-48/J-43/J-39 landed, J-44 LANDED AND WITHDRAWN (D-69, an Error-B I caused), round 12 = 16 findings / 9 Error-B. A=0.320 B=0.000 unchanged, so CR-005 is still the deployed operating point |
+| `Agent-Assure/calibration/CR-010-self-citation-and-legibility.md` | **Current CR** (2026-10-03): J-83 self-citation closed, three refusals made legible, rates unmoved. CR-007 is still the DEPLOYED operating point |
+| `Agent-Assure/calibration/CR-006-delivery-queue.md` | Superseded: J-48/J-43/J-39 landed, J-44 LANDED AND WITHDRAWN (D-69, an Error-B I caused), round 12 = 16 findings / 9 Error-B. A=0.320 B=0.000 unchanged, so CR-005 is still the deployed operating point |
 | `Agent-Assure/calibration/CR-005-launch-claim.md` | Launch-claim window (J-25…J-41r, J-22, J-38), A=0.320 B=0.000 — deployed 2026-10-02. **Zero delta is NON-MEASUREMENT, not safety**: no corpus row carries the shapes these changes touch |
 | `Agent-Assure/calibration/CR-004-absence-scope.md` | Superseded by CR-005: absence SCOPE rule, A=0.320 B=0.000 — deployed 2026-09-03 |
 | `Agent-Assure/calibration/CR-003-t2-demotion.md` | T2 demoted, lex_tau RETIRED (A=0.320 B=0.074) |

@@ -9,7 +9,9 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 
+import hashlib
 import json
+import os
 # `re` is imported HERE, at the top, and not beside its first use. Three
 # separate NameErrors in this file have had one cause: a module-level
 # `_re.compile(...)` constant placed next to the function that needed it, above
@@ -3349,14 +3351,38 @@ def ground_relational(claim: Claim, store: dict[str, RetrievedSource]) -> Verdic
 # Per-claim verdict dispatcher (spec §4.4)
 # ---------------------------------------------------------------------------
 
-def _session_queries(store: dict[str, RetrievedSource]) -> list[str]:
-    """Return the DISTINCT query_provenance values across the store.
+def _session_queries(
+    store: dict[str, RetrievedSource], self_source_ids: frozenset[str]
+) -> list[str]:
+    """DISTINCT query_provenance of the sources that are NOT the draft.
 
     Order-insensitive content (the caller — check_absence — counts distinct
     matches). A list is returned to satisfy check_absence's signature.
+
+    J-84 + J-85: reading your own draft is not a search, so a self-`Read` may
+    form neither the COUNT, the DENOMINATOR, nor the `len(distinct) >= 3`
+    activation of the blanket-corpus-word gate inside `check_absence`.
+
+    **`self_source_ids` has NO DEFAULT, deliberately.** A default would let a
+    caller that forgets it silently restore the fail-open behaviour this closes,
+    and an omitted argument read as "no self-sources" is the round-4
+    anti-pattern this file is full of corrections for: a field too thin to
+    constrain read as a constraint satisfied. An explicit `frozenset()` at a
+    call site is a statement; a default is an assumption.
+
+    **The NAME is load-bearing and was kept.** `test_display_matches_verdict.py`
+    recognises a query source by the substring `session_queries`, and a sibling
+    guard asserts that exactly ONE such function exists — which is what makes
+    the verdict/display agreement structural instead of conventional. Adding a
+    second, better-named helper tripped that guard mid-change; extending this
+    one in place keeps both guards untouched and the invariant intact.
+
     Pure function — no mutation, no LLM/network/random/wall-clock.
     """
-    return _distinct_queries(store.values())
+    return _distinct_queries(
+        source for source_id, source in store.items()
+        if source_id not in self_source_ids
+    )
 
 
 def _distinct_queries(sources: "Iterable[RetrievedSource]") -> list[str]:
@@ -3375,6 +3401,7 @@ def ground(
     claim: Claim,
     store: dict[str, RetrievedSource],
     lex_tau: float = _LEX_TAU_DEFAULT,
+    self_source_ids: frozenset[str] = frozenset(),
 ) -> Verdict:
     """Return the grounding Verdict for a single ALREADY-CLASSIFIED claim.
 
@@ -3489,7 +3516,28 @@ def ground(
         # restricted is the BASIS for certification: at least one verbatim
         # source must exist, and only verbatim records may contribute the
         # distinct searches. A summary may refuse, never approve.
+        # R17-01 (round 17, 2026-10-03) — J-83 DID NOT REACH THIS BRANCH.
+        #
+        # A store containing nothing but `Read` records OF THE DRAFT returned
+        # ABSENCE_SUPPORTED at PASS 100.0, while `_self_source_ids` had
+        # correctly identified 2 of 2 records as the draft. The filter lived in
+        # the verbatim path and this branch returns above it — **the identical
+        # placement error as R16-01, on the same branch, fixed this morning.**
+        # An agent that reads its own draft and nothing else has done no
+        # searching, and an absence claim certified on that is the emptiest
+        # possible PASS.
+        #
+        # WHY ONLY THE *BASIS* NARROWS, AND NOT THE SCAN. D-54: shrinking the
+        # store for check_absence moves its two arguments in OPPOSITE
+        # directions — fewer `source_texts` means fewer refutations found
+        # (CERTIFY, fail-OPEN), and fewer distinct queries can disable the
+        # blanket-corpus-word refusal (CERTIFY, fail-OPEN). So a filtered store
+        # is not a weaker store, it is a DIFFERENTLY weak one. What narrows is
+        # the BASIS requirement, exactly as it already does for summaries
+        # (R10C-03): at least one verbatim source that is NOT the draft must
+        # exist before any absence can be certified. Strictly fail-closed.
         if not any(s.full_text_source == "verbatim" and s.text
+                   and s.source_id not in self_source_ids
                    for s in store.values()):
             return Verdict.UNVERIFIED_ABSENCE
         # R11B-01 (round 11) — WITHDRAWN: passing only VERBATIM queries here was
@@ -3508,11 +3556,126 @@ def ground(
         # closes the original R10C-03 headline (a store of only summaries cannot
         # certify). That a summary can still supply a counting query is OPEN
         # again, registered as J-42 — a smaller hole than the one I created.
-        return check_absence(
+        # J-62 + J-71 (2026-10-03, Sai's GO). THE FIGURE CHECKS REACH ABSENCE.
+        #
+        # Round 14 R14-03a: the digit 4200, present in NO source text, certified
+        # `ABSENCE_SUPPORTED` at PASS 100.0 / exit 0 — because this branch
+        # returns ABOVE the two figure checks, so `numeric_ok` was unreachable
+        # from here. J-62 is the same hole for a figure spelled in words. One
+        # defect, two spellings; they were briefly registered as two jobs with
+        # different owners, which would have made the register incoherent.
+        #
+        # D-77 made those checks kind-agnostic for the claims that REACH them,
+        # and ADR-007's amendment records that it was written up as covering
+        # ABSENCE when it did not — ABSENCE and RELATIONAL both return earlier.
+        # This closes the ABSENCE half for FIGURES THE EXTRACTOR SEES —
+        # NOT the whole class. Round 16 enumerated the remainder: a bare
+        # `one`, ordinals, `a third`, `half`, `double` and vague
+        # quantifiers all still reach ABSENCE_SUPPORTED, because
+        # `_SPELLED_NUMBER_WORDS` excludes them by a recorded CEILING.
+        #
+        # WHY `store.values()` AND NOT THE CITED SOURCES. An absence claim is
+        # checked against what was SEARCHED, not what was cited, and it often
+        # cites nothing at all (`check_absence` never inspects claim.citations).
+        # Restricting to citations would make the check vacuous on exactly the
+        # claims that need it. Verbatim-only, because a summary may refuse but
+        # never certify (R10C-03).
+        #
+        # DIRECTION: strictly fail-closed. It can only return UNVERIFIED_NUMBER
+        # where ABSENCE_SUPPORTED would have been returned, never the reverse.
+        # MEASURED, not assumed: Error-A 10/25 = 0.400 and Error-B 0/27 = 0.000
+        # are UNCHANGED, and the corpus does exercise this path — 2 of its 7
+        # ABSENCE rows carry a figure (q13, q22), so the zero delta is a
+        # measurement rather than non-measurement. CEILING: both of those
+        # figures are product model numbers (`X200` extracts as `200`, and
+        # `X200 manual` as `200 m` — J-72), so the shape the corpus tests with
+        # is not a quantity. A real-quantity absence row would measure this
+        # better and needs a gold label, which is Sai's.
+        # PLACEMENT CORRECTED 2026-10-03 (R16-01). The figure checks ran HERE,
+        # ABOVE check_absence, and round 16 measured the cost: of the 1,910
+        # verdicts the change altered across 57 stores, **1,904 were
+        # UNVERIFIED_ABSENCE -> UNVERIFIED_NUMBER relabels** — including the
+        # RT3-04 content-contradiction verdict, the absence branch's STRONGEST
+        # refusal. The check was pre-empting better reasons and reporting a
+        # weaker one, so D-46 masking became the default rather than a one-off:
+        # it masked J-33, J-31, J-42 and the r9 control within hours.
+        #
+        # So the checks now run only on a claim check_absence would CERTIFY.
+        # That is the only population the hole ever existed in — R14-03a was a
+        # fabricated figure inside a SUPPORTED absence — and it leaves every
+        # existing refusal with its own reason intact.
+        #
+        # Still strictly fail-closed: the only transition it can cause is
+        # ABSENCE_SUPPORTED -> UNVERIFIED_NUMBER. Round 16 confirmed the
+        # direction structurally as well as empirically — UNVERIFIED_NUMBER is
+        # not in _NUMERATOR_VERDICTS — across 3,705 differential comparisons
+        # with zero moves toward PASS.
+        # J-84 + J-85 (2026-10-03, Sai's GO) — A SELF-`Read` IS NOT A SEARCH, SO
+        # IT MAY FORM NEITHER THE COUNT NOR THE DENOMINATOR.
+        #
+        # `check_absence` derives ONE `distinct` list and uses it for three
+        # jobs: the COUNT (`match_count >= min_absence_searches`), the
+        # DENOMINATOR (`2 * head-noun queries > len(distinct)`), and the
+        # ACTIVATION of that gate (`len(distinct) >= 3`). Feeding it the whole
+        # store let the draft's own records play all three.
+        #
+        # MEASURED, NOT ASSUMED (the trace that set this fix):
+        #   2 self-Reads + 1 irrelevant real source  -> UNVERIFIED_ABSENCE
+        #       ...but ONLY because the blanket gate fired: len=3, head_in=2,
+        #       2*2 > 3. It refused for the WRONG REASON.
+        #   + 3 more irrelevant queries               -> ABSENCE_SUPPORTED
+        #       len=6, head_in=2, 4 > 6 is false, so the refusal SWITCHED OFF.
+        #   self queries removed, both shapes         -> UNVERIFIED_ABSENCE
+        #       at match_count=0, with the blanket gate NOT firing at all.
+        # So the two register rows J-84 and J-85 are ONE hole: the self queries
+        # count, and the only thing that was stopping them is a gate that
+        # padding disables. The fix does not depend on that gate.
+        #
+        # WHY NO SIGNATURE CHANGE, against what the register said. The register
+        # claimed both need COUNT and DENOMINATOR separated. Re-derived from the
+        # code: that is true of J-42 and not of these. A `haiku_summary` IS a
+        # real search, so it must leave the numerator and STAY in the
+        # denominator — two populations, genuinely. A self-`Read` is not a
+        # search in any role, so it leaves one population and the D-54
+        # direction trap cannot arise: nothing is kept in one job and dropped
+        # from another.
+        #
+        # WHY `source_texts` STILL READS THE WHOLE STORE, which looks
+        # inconsistent and is not. That argument feeds the CONTRADICTION check,
+        # which can only REFUSE. A draft that contradicts its own absence
+        # should still refuse it, so including self-sources there is
+        # fail-closed. Excluding them would be the fail-open direction — the
+        # mirror-image mistake to the one above, and worth naming because the
+        # placement class has already produced four instances in two days.
+        absence_verdict = check_absence(
             claim,
-            _session_queries(store),
+            _session_queries(store, self_source_ids),
             source_texts=[s.text for s in store.values() if s.text],
         )
+        if absence_verdict is not Verdict.ABSENCE_SUPPORTED:
+            return absence_verdict
+        # R18-01 — THE FOURTH INSTANCE OF THE PLACEMENT CLASS, AND IT IS FOUR
+        # LINES BELOW THE THIRD. R17-01 narrowed the BASIS check above to
+        # exclude self-sources; this list, which feeds the two FIGURE checks,
+        # was left reading `store.values()`. Adding ONE `Read` record of the
+        # draft flipped `UNVERIFIED_NUMBER` -> `ABSENCE_SUPPORTED` at PASS
+        # 100.0 for a figure present in no retrieved source, because the draft
+        # contains the figure and so "verifies" it.
+        #
+        # The cross-kind guard did not catch it: its ABSENCE fixture carries no
+        # figure, so it never reached this return. That is the CEILING that
+        # file's own docstring records — it enumerates KINDS, not the 15 return
+        # statements — biting within the hour. The fixture now carries a figure.
+        _absence_verbatim = [
+            source for source in store.values()
+            if source.full_text_source == "verbatim" and source.text
+            and source.source_id not in self_source_ids
+        ]
+        if claim.numeric_tokens and not numeric_ok(claim, _absence_verbatim):
+            return Verdict.UNVERIFIED_NUMBER
+        if not spelled_quantity_ok(claim, _absence_verbatim):
+            return Verdict.UNVERIFIED_NUMBER
+        return absence_verdict
 
     if not claim.citations:
         return Verdict.UNCITED
@@ -3534,7 +3697,14 @@ def ground(
     if any(not s.text for s in sources):
         return Verdict.UNGROUNDABLE
 
-    verbatim = [s for s in sources if s.full_text_source == "verbatim"]
+    # J-83: a source that IS the draft cannot certify the draft. Narrowed in the
+    # same breath as the summary rule because it is the same shape — present in
+    # the store, incapable of grounding. A claim citing the draft AND a real
+    # source still grounds on the real one.
+    verbatim = [
+        s for s in sources
+        if s.full_text_source == "verbatim" and s.source_id not in self_source_ids
+    ]
     if not verbatim:
         return Verdict.UNGROUNDABLE
 
@@ -3633,7 +3803,40 @@ def _plural(n: int, one: str, many: str) -> str:
     return one if n == 1 else many
 
 
-def evidence_basis(claim: Claim, store: dict[str, RetrievedSource]) -> str:
+def _absence_figure_note(claim: Claim) -> str:
+    """J-82 (2026-10-03): an absence claim carrying a figure can be refused by
+    the FIGURE check, not by the search rules — and the basis described only the
+    search rules.
+
+    Reproduced: "There is no fatality record for the 4200 aviation deaths."
+    against a store whose searches DO qualify returns `UNVERIFIED_NUMBER`, while
+    the explanation listed the queries, the scope rule and the head-noun rule —
+    none of which refused it. A reader would go and improve their searching. The
+    D-35 class: a display describing a code path the verdict did not take.
+
+    Stated UNCONDITIONALLY for any absence claim bearing a figure, so this needs
+    no knowledge of the verdict. Display must not consult the decision (D-34),
+    and a note that is true either way cannot contradict one.
+
+    Pure.
+    """
+    if not claim.numeric_tokens:
+        return ""
+    quoted = ", ".join(f'"{tok}"' for tok in claim.numeric_tokens)
+    return (
+        f" This claim also asserts {len(claim.numeric_tokens)} "
+        f"{_plural(len(claim.numeric_tokens), 'figure', 'figures')}: {quoted}. "
+        f"A figure that appears in no retrieved verbatim source refuses the "
+        f"claim on its own, whatever the search record shows — and a model, "
+        f"standard or version number is read as a figure."
+    )
+
+
+def evidence_basis(
+    claim: Claim,
+    store: dict[str, RetrievedSource],
+    self_source_ids: frozenset[str],
+) -> str:
     """Return a plain sentence naming what the gate CONSULTED for *claim*.
 
     This is a display function, not a decision function. It reports the
@@ -3695,7 +3898,12 @@ def evidence_basis(claim: Claim, store: dict[str, RetrievedSource]) -> str:
                 "so no evidence was sought for it.")
 
     if claim.kind == ClaimKind.ABSENCE:
-        queries = _session_queries(store)
+        # J-84 + J-85: the SAME population the verdict counted. Showing the
+        # draft's own reads here while the verdict excluded them would announce
+        # an evidence basis the verdict never used — round 11-B's defect, which
+        # is what the AST guard in tests/test_display_matches_verdict.py exists
+        # to prevent.
+        queries = _session_queries(store, self_source_ids)
         n_src = sum(1 for s in store.values() if s.text)
         if not queries:
             # J-56, the SIBLING: the same overclaim as the citation branch
@@ -3735,7 +3943,7 @@ def evidence_basis(claim: Claim, store: dict[str, RetrievedSource]) -> str:
                 f"the set that counted. A query counts toward the minimum only "
                 f"if it addresses the claim's asserted SCOPE and carries the "
                 f"subject's head noun, so fewer of the above may have "
-                f"qualified than are listed.")
+                f"qualified than are listed.{_absence_figure_note(claim)}")
 
     if not claim.citations:
         n_src = len(store)
@@ -3790,8 +3998,172 @@ def evidence_basis(claim: Claim, store: dict[str, RetrievedSource]) -> str:
         note = (f" {', '.join(summaries)} "
                 f"{_plural(len(summaries), 'was', 'were')} also cited but is "
                 f"an AI summary and was excluded.")
+    # J-72 (display half, 2026-10-03). A figure refusal used to read only
+    # "Checked verbatim against 1 cited source: S1 (70 chars)." — the user was
+    # told a number failed but never WHICH number, and the commonest cause is
+    # not a number at all: `X200` yields the token `200`, `ISO 27001` yields
+    # `27001`, and 20/20 tested identifiers do the same (round 16, R16-05). A
+    # reader who sees `200` listed beside their claim about the X200 drone
+    # diagnoses it instantly; a reader shown `UNVERIFIED_NUMBER` cannot.
+    #
+    # NARROWING THE REFUSAL ITSELF IS **NOT** MINE: dropping `200` from
+    # numeric_tokens turns a refusal into a pass, which is PASS-ENABLING and
+    # Escalation #1 (J-72, owner Sai). So the refusal stays and becomes legible.
+    #
+    # DELIBERATELY DOES NOT SAY WHICH FIGURE FAILED. That would re-derive
+    # numeric_ok's value+unit+rate-qualifier rule in the display layer, and two
+    # copies of a moat rule diverge — the reason J-45 was fixed by removing
+    # false precision rather than by recomputing a count. Listing what the claim
+    # ASSERTS is read-only and duplicates nothing.
+    figures = ""
+    if claim.numeric_tokens:
+        quoted = ", ".join(f'"{tok}"' for tok in claim.numeric_tokens)
+        figures = (
+            f" The claim asserts {len(claim.numeric_tokens)} "
+            f"{_plural(len(claim.numeric_tokens), 'figure', 'figures')}: "
+            f"{quoted} — each must appear in a cited source with the same "
+            f"value, unit and rate qualifier."
+        )
+        # THE IDENTIFIER NOTE IS UNCONDITIONAL, after a conditional version was
+        # written and withdrawn in the same sitting (2026-10-03).
+        #
+        # The gate was `[A-Za-z]\d|\d[A-Za-z]` — a digit against a letter. It
+        # fired on `100K`, an ordinary quantity, and MISSED `iPhone 15` and
+        # `ISO 27001`, which are space-separated. Over- and under-inclusive at
+        # once, which is precisely J-72's own difficulty and the reason J-72 is
+        # an open job owned by Sai rather than a tidy-up. **Distinguishing an
+        # identifier from a quantity is the hard problem; it does not get easier
+        # because the answer is only being displayed.**
+        #
+        # So the note states a FACT about the extractor rather than a judgement
+        # about this sentence. Always true, never a false positive, and it still
+        # gives a reader staring at `"200"` the insight they need.
+        figures += (
+            " Figures are extracted from the sentence as written, so a model, "
+            "standard or version number (X200, ISO 27001, 5G) is read as a "
+            "figure too and must then be found in a source."
+        )
     return (f"Checked verbatim against {len(verbatim)} cited "
-            f"{_plural(len(verbatim), 'source', 'sources')}: {checked}.{note}")
+            f"{_plural(len(verbatim), 'source', 'sources')}: {checked}."
+            f"{note}{figures}")
+
+
+# ======================================================================
+# A DRAFT MAY NOT CERTIFY ITSELF (J-83, 2026-10-03).
+#
+# FOUND BY ACCIDENT, NOT BY AN ADVERSARY. The capture hook's matcher includes
+# `Read`, so an agent reading the draft it is about to verify captures that
+# draft AS A SOURCE. Add a citation to it and the gate checks the draft against
+# its own text: gate PASS, score 100.0, exit 0, verdict GROUNDED. Reproduced
+# 2026-10-03 against the store Sai's live J-54 plugin test wrote.
+#
+# `--session-id` DOES NOT CLOSE THIS, and that is the uncomfortable part: the
+# draft genuinely was retrieved this session, so session scoping is satisfied by
+# a self-citation. Reading one's own draft is ordinary behaviour, which makes
+# this reachable without any attacker at all.
+#
+# WHY UNGROUNDABLE AND NOT A NEW VERDICT. The taxonomy is closed (a new state
+# needs an ADR first) and `UNGROUNDABLE` already means "the cited evidence
+# exists but cannot ground anything" — which is exactly the summary case. A
+# self-source is the same shape: present in the store, incapable of certifying.
+# So this mirrors the haiku_summary narrowing rather than inventing a state or
+# stretching UNVERIFIED_CITATION, whose documented meaning is that the marker is
+# ABSENT from the store.
+#
+# A claim citing the draft AND a real source still grounds on the real one; only
+# the self-source is removed from the certifying set. Strictly fail-closed.
+#
+# WHAT THIS DOES NOT CLOSE — say it here so no future reader conflates them.
+# **J-35's general write-then-Read laundering is untouched and remains Sai's
+# (Escalation #4).** Write fabricated claims to a DIFFERENT file, Read it, cite
+# it: the path differs from the draft's and so does the digest, so nothing here
+# fires. This closes the degenerate self-citation case only.
+#
+# CEILING: `self_source_ids` defaults to EMPTY, so a library caller that does
+# not pass it gets no protection. The CLI always passes it. That default is
+# fail-OPEN, chosen because a function given no draft identity cannot
+# distinguish "no self-citation" from "I was not told" — and refusing every
+# claim on that basis would be worse. Upgrade path: make the parameter required
+# once every in-repo caller is updated.
+def _identity_digest(text: str) -> str:
+    """Digest of *text* for IDENTITY comparison: NFKC, citation markers removed,
+    whitespace collapsed, casefolded.
+
+    Deliberately coarser than `content_sha256`, which must stay an exact digest
+    of what was captured. This one answers a different question — "is this the
+    same document?" — where a trailing newline, a reflow or a CRLF is not a
+    difference. Coarser means it matches MORE records, so it can only refuse
+    more claims: fail-closed by construction. Pure.
+    """
+    normalised = _nfkc(_strip_citations(text)).strip()
+    return hashlib.sha256(normalised.encode("utf-8")).hexdigest()
+
+
+def _self_source_ids(
+    draft_path: str, draft_text: str, store: dict[str, RetrievedSource]
+) -> frozenset[str]:
+    """Return ids of sources that ARE the draft, by resolved path or by digest.
+
+    Pure. Two independent tests, because either can be defeated alone: a path
+    comparison misses a copy of the draft captured from elsewhere, and a digest
+    comparison misses a draft edited after capture.
+    """
+    try:
+        draft_resolved = str(Path(draft_path).resolve())
+    except (OSError, ValueError):
+        # R17-02: pathlib raises ValueError (not OSError) on a NUL byte, which
+        # escaped this handler and crashed the gate. A crash is worse than any
+        # verdict: it takes down the whole run and bypasses the fail-loud
+        # contract, which promises an error naming the offending line or key.
+        draft_resolved = ""
+    # STRIP CITATIONS BEFORE HASHING. Measured 2026-10-03, not assumed: the
+    # captured source text is the draft WITHOUT markers, because the agent read
+    # the draft before any marker was added — and even when markers are present
+    # they are the gate's own annotation, not content. The gate strips them
+    # before tokenizing everywhere else; the identity test compares the same
+    # thing. Hashing the raw draft misses the realistic case by exactly one
+    # bracketed token, which is how the first version of this check silently
+    # failed to fire.
+    # R19-01 (2026-10-03): THE DIGEST WAS EXACT-BYTE AND ONE NEWLINE DEFEATED IT.
+    # A copy of the draft with no trailing newline certified itself at PASS
+    # 100.0 / exit 0, because stripping citations removes the MARKER and not
+    # the whitespace, so "…newer." != "…newer.\n". The same held for a trailing
+    # space, CRLF, or any reflow. Comparing a normalised, whitespace-collapsed
+    # form instead turns "one byte" into "one word" — still fail-closed,
+    # because collapsing can only make MORE records match and refuse MORE
+    # claims, never fewer.
+    draft_digest = _identity_digest(draft_text)
+    matched: set[str] = set()
+    for source_id, source in store.items():
+        if source.file_path:
+            try:
+                # R19-02: `resolve()` follows symlinks but does NOT fold case on
+                # a case-insensitive volume (APFS), and cannot see a HARDLINK —
+                # both let the same file through under another name.
+                # `os.path.samefile` compares (st_dev, st_ino) and catches both.
+                # It needs BOTH files to exist, so the string compare stays as
+                # the fallback for a path recorded from a file since deleted.
+                if os.path.exists(source.file_path) and os.path.exists(draft_path) \
+                        and os.path.samefile(source.file_path, draft_path):
+                    matched.add(source_id)
+                    continue
+                if str(Path(source.file_path).resolve()) == draft_resolved:
+                    matched.add(source_id)
+                    continue
+            except (OSError, ValueError):
+                pass  # R17-02, as above: a NUL byte raises ValueError.
+        # R17-03: the stored digest is NEVER recomputed against `text` (J-32),
+        # so trusting it alone lets a record whose text IS the draft escape by
+        # carrying a forged `content_sha256` and a different path. Hash the
+        # source's OWN TEXT as well. Both tests are ORs, so this can only match
+        # more records and refuse more claims — strictly fail-closed, and it
+        # does not depend on J-32 ever being fixed.
+        if source.content_sha256 and source.content_sha256 == draft_digest:
+            matched.add(source_id)
+            continue
+        if source.text and _identity_digest(source.text) == draft_digest:
+            matched.add(source_id)
+    return frozenset(matched)
 
 
 # ======================================================================
@@ -3869,8 +4241,31 @@ def support_diagnostic(claim: Claim, store: dict[str, RetrievedSource]) -> str:
         sentence = _most_overlapping_sentence(claim.text, source.text)
         if not sentence:
             continue
-        tokens = set(_tokenize(sentence))
-        if tokens & _SPAN_HEDGE_TOKENS:
+        # J-79 (2026-10-03): A HEDGE WORD THE CLAIM ITSELF USES IS SHARED
+        # VOCABULARY, NOT EVIDENCE THE SOURCE IS HEDGING.
+        #
+        # `per` is in `_SPAN_HEDGE_TOKENS` (for "per the vendor"), so every
+        # claim about "operations per second" matched a source about
+        # "operations per second" and fired — a flag for the wrong reason, and
+        # it was inflating the published false-alarm rate.
+        #
+        # WHY NOT JUST REMOVE `per` FROM THE LEXICON: that set also feeds
+        # `_span_is_hedged`, which is IN THE VERDICT PATH, and removing a hedge
+        # token makes T1 certify MORE. That is PASS-ENABLING and Escalation #1,
+        # so the lexicon is untouched and only this DISPLAY consumer narrows.
+        #
+        # WHY NOT A SECOND LEXICON: two copies of a word list diverge, and this
+        # file has paid for that (J-44, D-69). This needs no list — it is a
+        # relation between the claim and the sentence, computed from both.
+        #
+        # MEASURED before landing, both directions: false alarms on claims the
+        # gate passes **4/15 → 0/15**, recall on the 14-vector denial set
+        # **unchanged at 7/14**, positive control clean. **"0/15" is a rate on
+        # fifteen rows, not a claim that no false alarm exists** — the corpus
+        # cannot represent shapes nobody labelled.
+        claim_tokens = set(_tokenize(_strip_citations(claim.text)))
+        hedges = set(_tokenize(sentence)) & _SPAN_HEDGE_TOKENS
+        if hedges - claim_tokens:
             return SUPPORT_SENTENCE_MAY_NOT_ASSERT
     return SUPPORT_NO_HEDGE_FOUND
 
@@ -3924,6 +4319,7 @@ def score_report(
     threshold: float = 90.0,
     lex_tau: float = _LEX_TAU_DEFAULT,
     session_scoped: bool = False,
+    self_source_ids: frozenset[str] = frozenset(),
 ) -> dict:
     """Compute the grounding SCORE, gate, and retained-violation appendix (spec §4.5).
 
@@ -3989,13 +4385,13 @@ def score_report(
     has_unverified_citation = False
 
     for claim in claims:
-        verdict = ground(claim, store, lex_tau)
+        verdict = ground(claim, store, lex_tau, self_source_ids)
         entry = {
             "index": claim.index,
             "text": claim.text,
             "kind": claim.kind.value,
             "verdict": verdict.value,
-            "evidence_basis": evidence_basis(claim, store),
+            "evidence_basis": evidence_basis(claim, store, self_source_ids),
         }
         # ADR-007: the relational corroboration result is INFORMATION, not a
         # verdict. It is reported so a human can see what the two-source rule
@@ -4007,7 +4403,16 @@ def score_report(
         # J-74: emitted for EVERY claim, not gated on kind. A check gated on a
         # classifier branch is a check an author routes around by adding one
         # word — that was R14-01, and D-77 learned it the expensive way.
-        entry["support_diagnostic"] = support_diagnostic(claim, store)
+        # J-83 sibling (FMEA): the DIAGNOSTIC must not compare the draft to
+        # itself either, or it reports "no hedge in the cited sentence" about
+        # the draft's own prose. Passing a store without the self-sources is
+        # safe here because this function only READS cited sources; it is not
+        # the store-shrinking trap of D-54, which applies to check_absence's
+        # two-argument path.
+        entry["support_diagnostic"] = support_diagnostic(
+            claim,
+            {k: v for k, v in store.items() if k not in self_source_ids},
+        )
         per_claim.append(entry)
 
         if verdict == Verdict.UNVERIFIED_CITATION:
@@ -4026,7 +4431,7 @@ def score_report(
                 "index": claim.index,
                 "text": claim.text,
                 "verdict": verdict.value,
-                "evidence_basis": evidence_basis(claim, store),
+                "evidence_basis": evidence_basis(claim, store, self_source_ids),
             })
 
     vacuous = scored_count == 0
@@ -4139,6 +4544,7 @@ def main() -> None:
     report = score_report(
         claims, store, threshold=args.threshold,
         session_scoped=args.session_id is not None,
+        self_source_ids=_self_source_ids(args.draft, draft_text, store),
     )
 
     gate: str = report["gate"]

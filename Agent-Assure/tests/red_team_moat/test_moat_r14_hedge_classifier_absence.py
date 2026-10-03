@@ -89,7 +89,19 @@ _DENIAL_CLAIM = (
     "The one-word delta 'causes'->'triggered' flips FAIL 0.0/exit 1 to "
     "PASS 100.0/exit 0 on the same store."))
 def test_a_causal_claim_its_source_DENIES_is_refused_whatever_verb_it_uses(tmp_path):
+    """J-80: asserts the VERDICT, not just the gate.
+
+    A `gate != "PASS"` assertion is satisfiable by ANY unrelated fail-closed
+    change — on 2026-10-03 the J-62+J-71 figure check satisfied a J-33 tripwire
+    that way and made an open finding read as closed (D-46). This finding is
+    "the claim is CERTIFIED", so the closed state is a non-GROUNDED verdict and
+    nothing weaker expresses it.
+    """
     report, code = _gate(tmp_path, _DENIAL_CLAIM, [_row("S1", _DENIAL_SOURCE, "q")])
+    entry = report["per_claim"][0]
+    assert entry["verdict"] != "GROUNDED", (
+        f"still certified: {entry['verdict']} — if this now refuses for some "
+        f"OTHER reason, that is masking, not closure")
     assert report["gate"] != "PASS", report
     assert code != 0
 
@@ -135,7 +147,11 @@ _AUDIT_CLAIM = (
     "causal word in the sentence."))
 def test_a_factual_claim_its_source_denies_or_withdraws_is_refused(
         tmp_path, source, label):
+    """J-80: asserts the VERDICT, not just the gate — see the note above."""
     report, code = _gate(tmp_path, _AUDIT_CLAIM, [_row("S1", source, "q")])
+    entry = report["per_claim"][0]
+    assert entry["verdict"] != "GROUNDED", (
+        f"[{label}] still certified: {entry['verdict']}")
     assert report["gate"] != "PASS", (label, report)
     assert code != 0
 
@@ -164,6 +180,12 @@ def test_CONTROL_the_same_denial_BEFORE_the_span_is_caught(tmp_path):
     "'ninety million' and '1 million' controls are refused. The recorded "
     "ceiling is the attack."))
 def test_a_fabricated_magnitude_spelled_with_one_is_refused(tmp_path):
+    """J-80: a fabricated FIGURE must be refused AS a figure problem.
+
+    `UNVERIFIED_NUMBER` is the only verdict that means "the number is not in the
+    source". Any other refusal here — UNGROUNDED, UNCITED — would mean the
+    spelled-figure guard is still blind and something else caught the draft.
+    """
     report, code = _gate(
         tmp_path,
         "The 2019 federal review of interbank settlement latency across the "
@@ -171,6 +193,10 @@ def test_a_fabricated_magnitude_spelled_with_one_is_refused(tmp_path):
         [_row("S1", "The 2019 federal review of interbank settlement latency "
                     "across the eurozone documented nine million customer "
                     "refunds in one quarter.", "eurozone settlement review")])
+    entry = report["per_claim"][0]
+    assert entry["verdict"] == "UNVERIFIED_NUMBER", (
+        f"refused as {entry['verdict']}, not as a figure problem — the spelled "
+        f"guard may still be blind and something else caught this")
     assert report["gate"] != "PASS", report
     assert code != 0
 
@@ -189,14 +215,18 @@ def test_CONTROL_ninety_million_on_the_same_store_is_refused(tmp_path):
     assert code == 1
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "R14-03a OPEN, CRITICAL: ground() returns from the ABSENCE branch ABOVE "
-    "the D-77 figure checks, so numeric_ok is UNREACHABLE for an absence "
-    "claim. The digit 4200 appears in no source text and the claim certifies "
-    "ABSENCE_SUPPORTED at PASS 100.0 / exit 0. Decisive proof that D-77's "
-    "'kind-independent' claim does not reach ABSENCE — and the same text "
-    "shipped in ADR-007 and in ground_check.py (R14-06, corrected)."))
 def test_a_fabricated_figure_inside_a_supported_absence_is_refused(tmp_path):
+    """CLOSED 2026-10-03 (J-62+J-71, Sai's GO). Was a strict xfail; now passes.
+
+    `ground()` returned from the ABSENCE branch ABOVE the D-77 figure checks,
+    so `numeric_ok` was unreachable for an absence claim and the digit 4200 —
+    present in no source text — certified ABSENCE_SUPPORTED at PASS 100.0 /
+    exit 0. The two checks now run before the absence verdict, verbatim-only,
+    strictly fail-closed. Measured: Error-A 0.400 and Error-B 0.000 UNCHANGED.
+
+    It also closed J-62, the same hole for a figure spelled in words — one
+    defect, two spellings. And it MASKED a J-33 tripwire on the way through;
+    see the de-masking note in test_moat_j33_unrecognised_citation_open.py."""
     report, code = _gate(
         tmp_path,
         "There is no fatality record for the 4200 aviation deaths.",
@@ -204,5 +234,12 @@ def test_a_fabricated_figure_inside_a_supported_absence_is_refused(tmp_path):
               "4200 fatality record aviation"),
          _row("S2", "The plant added a second shift in June.",
               "aviation 4200 fatality register")])
+    # R16-06: this asserted only `gate != "PASS"` — the J-80 weakness, in the
+    # regression test for the very change that caused J-80's masking. It was
+    # proven red pre-fix at ABSENCE_SUPPORTED so it was never a tautology; it
+    # simply could not tell a figure refusal from any other refusal.
+    assert report["per_claim"][0]["verdict"] == "UNVERIFIED_NUMBER", (
+        f"refused as {report['per_claim'][0]['verdict']}, not as a figure "
+        f"problem — the absence figure check may not be what caught this")
     assert report["gate"] != "PASS", report
     assert code != 0

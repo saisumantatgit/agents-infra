@@ -197,13 +197,67 @@ def test_leading_unrecognised_marker_is_refused_by_ACCIDENT(tmp_path, marker):
 
 @pytest.mark.parametrize("marker", ["[s99]", "[Ѕ99]"])
 @pytest.mark.xfail(strict=True, reason=(
-    "J-33 OPEN: same gap on the absence path — ABSENCE_SUPPORTED at PASS "
-    "100.0 with a visible citation the gate never checked."))
+    "J-33 OPEN on the absence path: the marker is never checked. Since "
+    "2026-10-03 the claim IS refused — but as UNVERIFIED_NUMBER, because the "
+    "subject names a model number (J-72) that the J-62+J-71 figure check "
+    "cannot find in any source. Refused for the wrong reason is still OPEN."))
 def test_absence_claim_with_unrecognised_marker_is_not_certified(tmp_path, marker):
+    """ASSERTS THE REASON, NOT THE REFUSAL — and that is the whole repair here.
+
+    This test used to assert only `gate != "PASS"`. On 2026-10-03 the J-62+J-71
+    fix gave the ABSENCE branch the two figure checks and this tripwire went
+    XPASS, which under strict xfail reads as "J-33 is fixed". It was not:
+    the claim was refused as UNVERIFIED_NUMBER while **the marker was still
+    never checked**. D-46: when a fix makes an unrelated tripwire pass, assume
+    it MASKED the finding until proven CLOSED.
+
+    MECHANISM CORRECTED 2026-10-03 by round 16 (R16-03). I first recorded the
+    cause as `X200` extracting as the numeric token `200`, absent from the
+    sources. **That was wrong, and measurably so: `200` IS present in both ABS
+    source texts. The refusal comes from `99` — the DIGITS OF THE UNRECOGNISED
+    MARKER `[s99]`, left in the claim text precisely because the gate does not
+    recognise it.** Isolated three ways: with the marker,
+    `numeric_tokens == ('99','200')` and numeric_ok is False; drop the marker
+    and it is `('200',)`, numeric_ok True, verdict ABSENCE_SUPPORTED; drop
+    `X200` instead and it is `('99',)`, still refused. **So fixing J-72's
+    model-number misparse would NOT unmask J-33** — the mechanism I recorded
+    would have sent the next reader at the wrong defect.
+
+    The first attempted repair was to drop the model number from the subject.
+    That introduced a SECOND mask — the store's queries read "recall evidence
+    search X200 drone", so a subject of "the drone fleet" no longer matched the
+    query ledger and the claim was refused as UNVERIFIED_ABSENCE instead. Two
+    different wrong reasons in one afternoon is the signal that the FIXTURE was
+    never the problem: a `gate != "PASS"` assertion cannot tell being refused
+    from being refused for the right reason.
+
+    So the fixture is restored and the ASSERTION is sharpened. J-33's property
+    is that an unrecognised marker is never checked, and only one verdict can
+    express the closed state. This xfails today and will XPASS exactly when
+    J-33 is genuinely closed — never again because something else refused
+    first."""
     rep = _run(tmp_path,
                f"{marker} We found no evidence of a safety recall affecting "
                f"the X200 drone.\n", ABS)
     assert rep["gate"] != "PASS"
+    assert rep["per_claim"][0]["verdict"] == "UNVERIFIED_CITATION", (
+        "J-33 is CLOSED for this shape only when the CITATION is what refuses "
+        "it; any other verdict means something else masked the gap")
+
+
+def test_CONTROL_the_absence_figure_check_is_what_refused_the_old_fixture(tmp_path):
+    """Pins the MASKING MECHANISM itself, so it cannot resurface as a surprise.
+
+    The xfail above says J-33 is open; this says WHY the draft is nonetheless
+    refused today. If this stops being UNVERIFIED_NUMBER the masking has moved,
+    and the xfail's recorded reason is stale.
+    """
+    rep = _run(tmp_path,
+               "[s99] We found no evidence of a safety recall affecting "
+               "the X200 drone.\n", ABS)
+    assert rep["gate"] != "PASS"
+    assert rep["per_claim"][0]["verdict"] == "UNVERIFIED_NUMBER", (
+        "the UNRECOGNISED MARKER'S DIGITS are what refuse this fixture")
 
 
 # --- controls: these keep the tripwires above honest ------------------------

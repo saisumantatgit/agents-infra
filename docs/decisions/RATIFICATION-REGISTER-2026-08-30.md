@@ -1710,3 +1710,48 @@ nothing; at arming it has not run. It does not say PR #7 is mergeable — three
 CRITICAL Error-B classes remain open and all three are Sai's. And the budget
 figure is a SANCTION, not a measurement: the measure is new tokens (output +
 cache creation), derived from artifacts in the midday report.
+
+---
+
+### Sai's rulings of 2026-10-03, "GO on all" — and what that GO could and could not reach
+
+| id | Decision | Basis | UNDO | status |
+|---|---|---|---|---|
+| D-83 | **RELEASE IS APPROVED on the current disclosure.** Agent-Assure ships as a provenance gate: it certifies TRACEABILITY, not agreement, and says so on every report. J-70 stays OPEN as the upgrade path and is NOT scheduled. | ADR-008 plus the 2026-10-03 research. The decisive argument is that **the structural repair cannot deliver what its name implies**: widening the hedge scan is still a token heuristic, and real entailment is 65–75% accurate (MiniCheck-FT5 74.7, GPT-4 75.3 on LLM-AggreFact), so no version of J-70 permits an honest agreement claim. *Whiting v. City of Athens* (6th Cir., 2026-03-13) holds verification cannot be delegated, so a tool refusing to certify agreement behaves as the court expects. | Reversible until the moment of publication. **The publish itself was NOT performed by this session — Escalation #5 (anything that publishes externally) and the standing order against outward-facing actions both reserve it.** The exact commands are queued in the midday report. | APPROVED, publish queued for Sai |
+| D-84 | **J-66: ADR-005's hard cap STANDS. No relational exemption.** A draft containing an unquoted causal sentence continues to FAIL. | Relaxing the cap for relational claims specifically would reintroduce a PASS-enabling path, which is the one direction the invariant forbids. The cost is real and is now DISCLOSED rather than hidden, which is the material difference. Measure it on real drafts before revisiting. | A future ADR amending ADR-005; nothing in code to revert. | RULED |
+| D-85 | **J-78: NOT EXECUTED, precondition unmet.** Sai said GO; my recommendation was explicitly conditional on `ival_2.0` and `iPay` being idle. **Checked: `ival_2.0` has a file modified within the last 30 minutes and 3 live processes reference those projects.** Deleting 1.9 GB of a live session's working state is a one-way door and would be cross-session interference. | Honouring the condition I stated when he approved the conditional recommendation IS obeying the decision, not overriding it. §2-A REVERSIBILITY. | Nothing to undo — not performed. Re-run the idle check and delete when it comes back clean. | BLOCKED, re-offer when idle |
+| D-86 | **q25 and J-54 remain SAI'S and cannot be delegated by a GO.** q25 is a gold-label ratification (Escalation #2, standing gate — no generator may write an authored label). J-54 needs an interactive terminal and was proven unreachable non-interactively (D-60: `claude -p` runs no PostToolUse hooks under any of three registrations). | These are not permission questions, they are capability and authorship questions. A GO cannot make me the ratifier of a human label. | n/a | SAI'S |
+
+**What this register may NOT be read as saying.** It does not say the product is
+published. It does not say J-69, J-70 or J-80 are closed. And D-83 approves
+release **of the provenance claim as disclosed** — it is not approval of any
+broader claim about agreement, faithfulness or truth.
+
+---
+
+### The afternoon run of 2026-10-03B. Sai pre-agreed the standing order and left.
+
+| id | Decision | Basis | UNDO | status |
+|---|---|---|---|---|
+| D-87 | **An AUTONOMOUS run is armed on `delivery-queue-2026-10-02`**: cron `1addc5c3`, ticks at :08/:38, hard stop 18:30 IST, budget 2.5M new tokens (output + cache creation), ceiling 3.0M. Instrument `docs/planning/RUN-2026-10-03B.md`. Committed: **J-83** (a draft must not certify itself), **J-72** (identifiers tokenize as figures), **J-79**, **J-82**, round 17, CR-010 and the close. | Sai pasted the standing order and replied "AGREED" in the same message, then left. **§0's nine were produced for the record rather than for approval** — waiting for a second confirmation from someone who has gone is the stalling §1 forbids. | `CronDelete 1addc5c3` disarms. Everything lands on `delivery-queue-2026-10-02`; `main` is untouched at `009c646`. Each change reverts by its own commit. | ARMED |
+| D-88 | **THE QUEUE CHANGED AT THE HANDSHAKE, which is what Hamming's question is for.** The afternoon was to be J-72 and UX items. Sai's live J-54 test produced a NEW Error-B by accident, so J-83 goes first. | **A draft can certify itself**: the hook's matcher includes `Read`, so reading the draft captures it as a source, and citing it yields `PASS 100.0 / exit 0 / GROUNDED`. Reproduced against the store his own test wrote. `--session-id` does not close it. **No adversary was involved** — an agent reading the draft it is about to verify is ordinary behaviour. | Nothing to undo; this is a plan, not a change. | RULED |
+| D-89 | **J-83's fix is gate-side only, and the register says so explicitly.** Refuse a cited source whose `file_path` resolves to the `--draft` path or whose `content_sha256` equals the draft's. | Strictly fail-closed: it can only move a claim away from PASS. **It does NOT close J-35's general write-then-Read class** — write claims to a DIFFERENT file, Read it, cite it, and both the path and the digest differ from the draft's. That stays capture-side and Sai's (Escalation #4), and the code comment will say so, so no future reader mistakes one for the other. | `git revert` the commit; the check is additive. | QUEUED |
+
+**What this register may NOT be read as saying.** It does not say J-35 is closed.
+It does not say the product is published — D-83 approved the release; Escalation
+#5 reserves the act, and no session has performed it.
+
+### The night of 2026-10-03C. Sai ruled on the one job the run returned to him.
+
+| id | Decision | Basis | UNDO | status |
+|---|---|---|---|---|
+| D-90 | **J-93 is CLOSED BY REFUSAL. Its remedy was never implemented.** The ruling said drop the content-digest arm of `_self_source_ids`, keeping path + `samefile`. | `os.path.samefile` compares `(st_dev, st_ino)` and sees a hardlink and an APFS case variant; `Path.resolve()` sees a symlink. **None of the three sees a plain COPY** of the draft — different inode, different path, identical bytes. **R19-01 was exactly that copy and it certified itself at PASS 100.0 / exit 0**, closed hours earlier by the normalised digest. Dropping the arm therefore reverts R19-01 and re-opens a demonstrated Error-B, which Escalation #1 reserves to Sai in **either** direction. | **Nothing to undo — no code was changed.** `scripts/ground_check.py` is byte-identical across the whole night; `git diff` is 0 lines. | CLOSED |
+| D-91 | **J-94 is CLOSED WONTFIX, ratified by Sai.** The honest-full-quote refusal stands. No code change. | `_self_source_ids` hashes the **whole** `draft_text` against the **whole** `source.text` (`ground_check.py:4065`; `_identity_digest` normalises but does not segment), so the refusal fires only when **the entire draft IS the entire source** — a transcription carrying no claim its source did not already make, and no second source to be grounded against. The gate asks whether evidence *independent of the draft* supports the draft; for a whole-draft copy there is none, whichever of the three documents it is. Asymmetry of error cost: the Error-B is demonstrated, the Error-A is degenerate. | Nothing to undo. **To REOPEN:** produce one realistic draft — several claims, its own framing, more than one cited source — that still reproduces the refusal. No such fixture exists today. | RULED — Sai, 2026-10-03 |
+| D-92 | **My own J-94 remedy is WITHDRAWN as fail-open, and the withdrawal is on the record rather than quietly dropped.** | *"Exclude on digest match only when a non-self verbatim survivor exists"* inverts on the degenerate store: one digest-matching record means **no** survivor, the condition fails, nothing is excluded, and the draft grounds against a copy of itself — R19-01 restored. I had certified it as *"refuses more, never fewer"* without tracing a store. | Nothing to undo — it was never built. The register entry carries the trace table so the next reader sees the inversion rather than the label. | WITHDRAWN |
+
+**What this section may NOT be read as saying.** It does not say the
+self-citation class is fully closed — **J-84 and J-85 remain OPEN and CRITICAL**
+in `check_absence`, both fail-open in both directions. It does not say PR #8 is
+merged; `gh pr merge` was denied `[Merge Without Review]` and the click is Sai's.
+It does not say `main` has received any of this work — `main` is `009c646` and
+PR #7's merge commit is **not** an ancestor of it.

@@ -81,6 +81,15 @@ def test_summaries_cannot_supply_the_distinct_searches(tmp_path):
     """SIBLING: one verbatim source exists, so the basis check passes, but the
     SECOND distinct search comes only from a summary. It must not count."""
     rep = _report(tmp_path, [_verb("SA1", T1, Q1), _summ("SA2", T2, Q2)])
+    # J-80 (2026-10-03): asserts the VERDICT, not the gate. A `gate != "PASS"`
+    # assertion is satisfiable by ANY unrelated fail-closed change — the
+    # J-62+J-71 figure check satisfied two tripwires that way the day it landed
+    # and made open findings read as closed (D-46). This finding is about the
+    # QUERY COUNT, so only UNVERIFIED_ABSENCE expresses it; UNVERIFIED_NUMBER
+    # or UNVERIFIED_CITATION here would mean something else refused first.
+    assert rep["per_claim"][0]["verdict"] == "UNVERIFIED_ABSENCE", (
+        f"refused as {rep['per_claim'][0]['verdict']}, not for the query-count "
+        f"reason this tripwire exists to pin")
     assert rep["gate"] != "PASS"
 
 

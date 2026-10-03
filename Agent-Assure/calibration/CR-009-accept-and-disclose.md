@@ -31,26 +31,24 @@ it is the reason the rates appear here as a *result* rather than a reassurance.
 
 ## The new diagnostic's own error rate — PUBLISHED, NOT TUNED
 
-`support_diagnostic` fires `cited_sentence_may_not_assert_claim` on:
-
 | Population | Fire rate |
 |---|---|
 | All scored claims (n=52) | 10/52 = **0.192** |
-| **Claims the GATE passes** | **4/15 = 0.267** ← the false-alarm rate that matters |
+| **Claims the GATE passes** | **0/15 = 0.000** after J-79 (was 4/15 = 0.267) |
 | Claims a human LABELLED grounded | **7/25 = 0.280** |
+| **RECALL — denials it CATCHES** | **7/14 = 0.500** (named 14-vector set, 2026-10-03) |
 
-**R15-02, corrected.** This row first read `7/27 = 0.259`, using the labelled-VIOLATION denominator. Gold is **25 grounded / 27 violation**, so the figure is 7/25 = 0.280. Round 15 reproduced the 26.7% headline, the 10/52, Error-A 0.400 and Error-B 0.000 exactly — this one row was wrong, in a CR about a diagnostic's own error rate.
-
-**Roughly 1 in 4 of its flags is a false alarm.** Tolerable for an advisory that
-refuses nothing; intolerable for a gate — which is precisely why ADR-008 ships
-it as a measurement. **It is published rather than tuned** because tuning a
-signal nobody has re-validated is how 2026-10-02 produced two Error-Bs. The
-number appears in the function's docstring, in `README.md`, in `SKILL.md` and in
-`commands/assure-verify.md`, so a user meets it in the same breath as the flag.
+**1 in 4 flags is a false alarm; recall 0.500.** Misses: next-sentence denial,
+`retracted`, `erroneous`, `lacks`, `absent`, `zero`, post-semicolon. One apparent
+catch is spurious — *"a claim since debunked"* fires on `claim`, not `debunked`
+(same artefact as `per`, J-79) — **so both numbers are wrong in opposite
+directions.** Published in four places and deliberately NOT tuned: adding the
+missing words would raise recall on the fourteen cases I invented and leave the
+class open (J-44, D-69). Narrative: `docs/logbook/2026-10-03B-*.md`.
 
 ## Non-measurement, named explicitly
 
-- **The diagnostic's RECALL is unmeasured.** The 26.7% above is its false-alarm
+- **The diagnostic's RECALL is 7/14 = 0.500** (measured 2026-10-03). Its false-alarm
   rate. How often it MISSES a denying source is unknown, and the corpus cannot
   say: no corpus row has a long subject phrase, which is the shape R14-04 needs.
   Round 15 was dispatched to attack exactly this; see its report.
@@ -61,17 +59,15 @@ number appears in the function's docstring, in `README.md`, in `SKILL.md` and in
   read PASS as "traceable", not "supported". Five buyer interviews would settle
   it. Nothing in this CR substitutes.
 
-## Defects found while doing other work
+## Round 16 correction to this CR's own evidence
 
-- **Two stale error rates on claim surfaces** (`README.md`, `SKILL.md`): still
-  0.320 / CR-004 after ADR-007 raised it to 0.400. An understatement of the cost
-  to the user by a fifth, on the two documents a user reads first.
-- **A commit (`3ba4216`) was made on a RED gate with a message stating a false
-  result.** `test_per_claim_fields` pins the per-claim field set EXACTLY and went
-  red when `support_diagnostic` was added. Corrected in `49d1bfa`, and the
-  underlying cause recorded: the pre-check searched for a top-level report key
-  set and not a per-claim one — one KIND of search where three are required.
-  **The test worked as designed; the process around it did not.**
+**The zero delta is close to NON-MEASUREMENT, not the measurement this CR
+claimed.** Rates reproduce (10/25, 0/27) and the corpus does hold 2
+figure-bearing ABSENCE rows, but **q22's delta cannot register by construction
+(already a violation), so the zero is an n=1 reading on a model number.** A
+synthetic sweep flips 6/9 figure-bearing certifiable absences, and the check's
+placement has since been corrected (R16-01: 1,904 of 1,910 verdict changes were
+relabels of an existing refusal). Detail: `reports/RED-TEAM-R16-2026-10-03.md`.
 
 ## Verdict
 

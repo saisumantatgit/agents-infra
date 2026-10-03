@@ -157,7 +157,7 @@ def test_evidence_basis_does_not_mutate_its_inputs():
               for c in g.decompose("Redis handles 100K ops per second [S1].")]
     before = repr(store), repr(claims)
     for c in claims:
-        g.evidence_basis(c, store)
+        g.evidence_basis(c, store, frozenset())
     assert (repr(store), repr(claims)) == before
 
 
@@ -185,3 +185,128 @@ def test_basis_is_not_consulted_by_any_verdict_path():
         assert "evidence_basis" not in referenced, (
             f"{name} consults the display layer"
         )
+
+
+# ---------------------------------------------------------------------------
+# J-72, DISPLAY HALF (2026-10-03) — a figure refusal must be diagnosable.
+# ---------------------------------------------------------------------------
+
+def _basis_for(draft: str, source_text: str) -> str:
+    store = {"S1": _src("S1", source_text)}
+    return _report(draft, store)["per_claim"][0]["evidence_basis"]
+
+
+def test_a_figure_refusal_names_the_figures_the_claim_asserts():
+    """A user shown only `UNVERIFIED_NUMBER` cannot act; one shown `"200"` can.
+
+    Round 16 measured that 20/20 tested identifiers (iPhone 15, ISO 27001,
+    Section 409A, 5G, COVID-19) produce numeric tokens, so the commonest cause
+    of a figure refusal is not a figure at all. The basis used to read only
+    "Checked verbatim against 1 cited source: S1 (70 chars)."
+    """
+    basis = _basis_for(
+        "The audit of the X200 drone programme recorded 94 advisories [S1].",
+        "The audit of the X200 drone programme recorded 17 advisories in total.")
+    assert '"200"' in basis and '"94"' in basis, basis
+    assert "value, unit and rate qualifier" in basis
+
+
+def test_the_identifier_note_is_a_FACT_about_the_extractor_not_a_judgement():
+    """A conditional version of this note was written and withdrawn the same day.
+
+    The gate was `[A-Za-z]\\d|\\d[A-Za-z]` — a digit against a letter. It fired
+    on `100K`, an ordinary quantity, and MISSED `iPhone 15` and `ISO 27001`,
+    which are space-separated. Over- and under-inclusive at once — which is
+    J-72's own difficulty, and it does not get easier because the answer is only
+    being DISPLAYED. So the note states how the extractor behaves rather than
+    judging this sentence: always true, no false positives, same insight.
+    """
+    for draft, source in (
+        ("The audit of the X200 drone programme recorded 94 advisories [S1].",
+         "The audit of the X200 drone programme recorded 17 advisories in total."),
+        ("Redis handles 100K ops per second [S1].",
+         "Redis handles 100K ops per second in sustained testing."),
+    ):
+        basis = _basis_for(draft, source)
+        assert "model, standard or version number" in basis, basis
+        # It describes the EXTRACTOR, so it never claims this sentence contains
+        # an identifier.
+        assert "One of these" not in basis, basis
+
+
+def test_the_display_does_not_re_derive_which_figure_failed():
+    """It lists what the claim ASSERTS and stops there.
+
+    Saying WHICH figure failed would re-implement numeric_ok's value+unit+rate
+    rule in the display layer, and two copies of a moat rule diverge — the
+    reason J-45 was fixed by removing false precision rather than recomputing a
+    count. This pins the restraint so a later 'improvement' has to argue with it.
+    """
+    basis = _basis_for(
+        "The audit of the X200 drone programme recorded 94 advisories [S1].",
+        "The audit of the X200 drone programme recorded 17 advisories in total.")
+    for forbidden in ("not found", "missing", "does not appear", "failed"):
+        assert forbidden not in basis.lower(), (forbidden, basis)
+
+
+# ---------------------------------------------------------------------------
+# J-82 (2026-10-03) — an absence claim refused by the FIGURE check must not be
+# explained entirely in terms of the SEARCH rules.
+# ---------------------------------------------------------------------------
+
+_ABS_STORE = {
+    "S1": _src("S1", "Quarterly revenue rose on strong fleet orders.",
+               query="4200 fatality record aviation"),
+    "S2": _src("S2", "The plant added a second shift in June.",
+               query="aviation 4200 fatality register"),
+}
+
+
+def test_an_absence_claim_bearing_a_figure_says_so():
+    """The verdict was UNVERIFIED_NUMBER; the basis described only the queries,
+    the scope rule and the head-noun rule — none of which refused it. A reader
+    would go and improve their searching. D-35: a display describing a code path
+    the verdict did not take.
+    """
+    rep = _report("There is no fatality record for the 4200 aviation deaths.",
+                  _ABS_STORE)
+    entry = rep["per_claim"][0]
+    assert entry["verdict"] == "UNVERIFIED_NUMBER", entry
+    assert '"4200"' in entry["evidence_basis"], entry["evidence_basis"]
+    assert "refuses the claim on its own" in entry["evidence_basis"]
+
+
+def test_the_same_absence_WITHOUT_a_figure_is_untouched():
+    """POSITIVE CONTROL, and it also proves the mechanism: drop the figure and
+    the identical claim CERTIFIES, so the figure is what refused the other one.
+    """
+    rep = _report("There is no fatality record for the aviation deaths.",
+                  _ABS_STORE)
+    entry = rep["per_claim"][0]
+    assert entry["verdict"] == "ABSENCE_SUPPORTED", entry
+    assert "also asserts" not in entry["evidence_basis"]
+
+
+def test_the_absence_note_does_not_consult_the_verdict():
+    """Stated unconditionally for any figure-bearing absence claim, so it needs
+    no knowledge of the decision (D-34). A note true either way cannot
+    contradict the verdict — which is how the branch it replaced went wrong.
+
+    CHECKED OVER THE AST, not the source text — and the first version of this
+    test used the substring form and failed on its own docstring for containing
+    the word "verdict" while explaining that it consults no verdict. That is the
+    identical trap `test_basis_is_not_consulted_by_any_verdict_path` records
+    from 2026-10-01: a substring guard cannot tell a call from a comment, and it
+    trains people to delete the prose. The AST form asserts the property the
+    test is NAMED for — this function REFERENCES no decision.
+    """
+    import ast
+    import inspect
+    import textwrap
+    tree = ast.parse(textwrap.dedent(inspect.getsource(g._absence_figure_note)))
+    referenced = {n.id for n in ast.walk(tree) if isinstance(n, ast.Name)} | {
+        n.attr for n in ast.walk(tree) if isinstance(n, ast.Attribute)}
+    for forbidden in ("Verdict", "ground", "check_absence", "score_report"):
+        assert forbidden not in referenced, (
+            f"_absence_figure_note consults {forbidden} — a display note has "
+            f"started depending on the decision it describes")

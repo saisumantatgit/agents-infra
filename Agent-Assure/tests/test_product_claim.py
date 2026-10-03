@@ -224,8 +224,18 @@ def test_LIMITATION_absence_queries_are_chosen_by_the_agent(tmp_path):
     rep = _verdicts(tmp_path,
                     "We found no evidence of a safety recall affecting the "
                     "X200 drone.\n", recs)
+    # J-81 note (2026-10-03): this PASS is now partly INCIDENTAL. Since
+    # J-62+J-71 gave the ABSENCE branch the figure checks, `X200` extracts as
+    # the numeric token `200` (J-72, a model number read as a quantity) and the
+    # claim survives only because both source texts happen to contain "X200".
+    # Change either source to omit the model number and this test fails with
+    # UNVERIFIED_NUMBER — and the message below would then misdirect the reader
+    # toward the absence rules, which are not what refused it. The asserted
+    # property is still the right one; its margin is thinner than it looks.
     assert rep["gate"] == "PASS", (
-        "absence certification changed — update the claim text")
+        "absence certification changed — update the claim text, BUT check "
+        "per_claim[0]['verdict'] first: UNVERIFIED_NUMBER means the X200 "
+        "model-number misparse refused it (J-72), not the absence rules")
 
 
 def test_LIMITATION_a_multi_line_authoring_note_is_scored(tmp_path):
