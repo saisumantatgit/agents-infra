@@ -157,7 +157,7 @@ def test_evidence_basis_does_not_mutate_its_inputs():
               for c in g.decompose("Redis handles 100K ops per second [S1].")]
     before = repr(store), repr(claims)
     for c in claims:
-        g.evidence_basis(c, store)
+        g.evidence_basis(c, store, frozenset())
     assert (repr(store), repr(claims)) == before
 
 

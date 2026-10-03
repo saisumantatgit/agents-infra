@@ -3351,14 +3351,38 @@ def ground_relational(claim: Claim, store: dict[str, RetrievedSource]) -> Verdic
 # Per-claim verdict dispatcher (spec §4.4)
 # ---------------------------------------------------------------------------
 
-def _session_queries(store: dict[str, RetrievedSource]) -> list[str]:
-    """Return the DISTINCT query_provenance values across the store.
+def _session_queries(
+    store: dict[str, RetrievedSource], self_source_ids: frozenset[str]
+) -> list[str]:
+    """DISTINCT query_provenance of the sources that are NOT the draft.
 
     Order-insensitive content (the caller — check_absence — counts distinct
     matches). A list is returned to satisfy check_absence's signature.
+
+    J-84 + J-85: reading your own draft is not a search, so a self-`Read` may
+    form neither the COUNT, the DENOMINATOR, nor the `len(distinct) >= 3`
+    activation of the blanket-corpus-word gate inside `check_absence`.
+
+    **`self_source_ids` has NO DEFAULT, deliberately.** A default would let a
+    caller that forgets it silently restore the fail-open behaviour this closes,
+    and an omitted argument read as "no self-sources" is the round-4
+    anti-pattern this file is full of corrections for: a field too thin to
+    constrain read as a constraint satisfied. An explicit `frozenset()` at a
+    call site is a statement; a default is an assumption.
+
+    **The NAME is load-bearing and was kept.** `test_display_matches_verdict.py`
+    recognises a query source by the substring `session_queries`, and a sibling
+    guard asserts that exactly ONE such function exists — which is what makes
+    the verdict/display agreement structural instead of conventional. Adding a
+    second, better-named helper tripped that guard mid-change; extending this
+    one in place keeps both guards untouched and the invariant intact.
+
     Pure function — no mutation, no LLM/network/random/wall-clock.
     """
-    return _distinct_queries(store.values())
+    return _distinct_queries(
+        source for source_id, source in store.items()
+        if source_id not in self_source_ids
+    )
 
 
 def _distinct_queries(sources: "Iterable[RetrievedSource]") -> list[str]:
@@ -3586,9 +3610,46 @@ def ground(
         # direction structurally as well as empirically — UNVERIFIED_NUMBER is
         # not in _NUMERATOR_VERDICTS — across 3,705 differential comparisons
         # with zero moves toward PASS.
+        # J-84 + J-85 (2026-10-03, Sai's GO) — A SELF-`Read` IS NOT A SEARCH, SO
+        # IT MAY FORM NEITHER THE COUNT NOR THE DENOMINATOR.
+        #
+        # `check_absence` derives ONE `distinct` list and uses it for three
+        # jobs: the COUNT (`match_count >= min_absence_searches`), the
+        # DENOMINATOR (`2 * head-noun queries > len(distinct)`), and the
+        # ACTIVATION of that gate (`len(distinct) >= 3`). Feeding it the whole
+        # store let the draft's own records play all three.
+        #
+        # MEASURED, NOT ASSUMED (the trace that set this fix):
+        #   2 self-Reads + 1 irrelevant real source  -> UNVERIFIED_ABSENCE
+        #       ...but ONLY because the blanket gate fired: len=3, head_in=2,
+        #       2*2 > 3. It refused for the WRONG REASON.
+        #   + 3 more irrelevant queries               -> ABSENCE_SUPPORTED
+        #       len=6, head_in=2, 4 > 6 is false, so the refusal SWITCHED OFF.
+        #   self queries removed, both shapes         -> UNVERIFIED_ABSENCE
+        #       at match_count=0, with the blanket gate NOT firing at all.
+        # So the two register rows J-84 and J-85 are ONE hole: the self queries
+        # count, and the only thing that was stopping them is a gate that
+        # padding disables. The fix does not depend on that gate.
+        #
+        # WHY NO SIGNATURE CHANGE, against what the register said. The register
+        # claimed both need COUNT and DENOMINATOR separated. Re-derived from the
+        # code: that is true of J-42 and not of these. A `haiku_summary` IS a
+        # real search, so it must leave the numerator and STAY in the
+        # denominator — two populations, genuinely. A self-`Read` is not a
+        # search in any role, so it leaves one population and the D-54
+        # direction trap cannot arise: nothing is kept in one job and dropped
+        # from another.
+        #
+        # WHY `source_texts` STILL READS THE WHOLE STORE, which looks
+        # inconsistent and is not. That argument feeds the CONTRADICTION check,
+        # which can only REFUSE. A draft that contradicts its own absence
+        # should still refuse it, so including self-sources there is
+        # fail-closed. Excluding them would be the fail-open direction — the
+        # mirror-image mistake to the one above, and worth naming because the
+        # placement class has already produced four instances in two days.
         absence_verdict = check_absence(
             claim,
-            _session_queries(store),
+            _session_queries(store, self_source_ids),
             source_texts=[s.text for s in store.values() if s.text],
         )
         if absence_verdict is not Verdict.ABSENCE_SUPPORTED:
@@ -3771,7 +3832,11 @@ def _absence_figure_note(claim: Claim) -> str:
     )
 
 
-def evidence_basis(claim: Claim, store: dict[str, RetrievedSource]) -> str:
+def evidence_basis(
+    claim: Claim,
+    store: dict[str, RetrievedSource],
+    self_source_ids: frozenset[str],
+) -> str:
     """Return a plain sentence naming what the gate CONSULTED for *claim*.
 
     This is a display function, not a decision function. It reports the
@@ -3833,7 +3898,12 @@ def evidence_basis(claim: Claim, store: dict[str, RetrievedSource]) -> str:
                 "so no evidence was sought for it.")
 
     if claim.kind == ClaimKind.ABSENCE:
-        queries = _session_queries(store)
+        # J-84 + J-85: the SAME population the verdict counted. Showing the
+        # draft's own reads here while the verdict excluded them would announce
+        # an evidence basis the verdict never used — round 11-B's defect, which
+        # is what the AST guard in tests/test_display_matches_verdict.py exists
+        # to prevent.
+        queries = _session_queries(store, self_source_ids)
         n_src = sum(1 for s in store.values() if s.text)
         if not queries:
             # J-56, the SIBLING: the same overclaim as the citation branch
@@ -4321,7 +4391,7 @@ def score_report(
             "text": claim.text,
             "kind": claim.kind.value,
             "verdict": verdict.value,
-            "evidence_basis": evidence_basis(claim, store),
+            "evidence_basis": evidence_basis(claim, store, self_source_ids),
         }
         # ADR-007: the relational corroboration result is INFORMATION, not a
         # verdict. It is reported so a human can see what the two-source rule
@@ -4361,7 +4431,7 @@ def score_report(
                 "index": claim.index,
                 "text": claim.text,
                 "verdict": verdict.value,
-                "evidence_basis": evidence_basis(claim, store),
+                "evidence_basis": evidence_basis(claim, store, self_source_ids),
             })
 
     vacuous = scored_count == 0

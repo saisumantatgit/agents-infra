@@ -103,7 +103,7 @@ def test_an_absence_pass_reports_the_query_count_it_actually_used(tmp_path):
 
     assert rep["gate"] == "PASS"
     basis = rep["per_claim"][0]["evidence_basis"]
-    actual = len(g._session_queries(store))
+    actual = len(g._session_queries(store, frozenset()))
     assert str(actual) in basis, (
         f"the report does not state the {actual} queries the verdict counted: "
         f"{basis!r}")
