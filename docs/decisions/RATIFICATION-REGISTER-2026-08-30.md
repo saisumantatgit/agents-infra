@@ -1694,3 +1694,19 @@ nothing; at the time of arming it has not run. It does not say PR #7 is
 mergeable. And the budget figure is a SANCTION, not a measurement — the measure
 is new tokens (output + cache creation) and it will be derived from artifacts in
 the morning report, never from a run's own summary.
+
+---
+
+### The day run of 2026-10-03, 09:51 → 12:30 IST. Sanctioned by Sai with "Agreed".
+
+| id | Decision | Basis | UNDO | status |
+|---|---|---|---|---|
+| D-80 | **An AUTONOMOUS day run is armed on `delivery-queue-2026-10-02`**: cron `2f94897d`, ticks at :06/:31/:56, hard stop 12:30 IST, budget 1.5M new tokens (output + cache creation), ceiling 1.8M. Committed: **J-73** scope footer on every report, **J-74** `support_diagnostic` (the contradiction signal as a MEASUREMENT, never a verdict), **J-75** claim-surface wording, **ADR-008**, **round 15**, CR-009 + the close + disk hygiene. Instrument: `docs/planning/DAYRUN-2026-10-03.md`. | Sai's §0 handshake, answered in nine parts and agreed. **The engine does not change; what it CLAIMS does.** Accept-and-disclose is his decision, stated twice and then confirmed by the 2026-10-03 research: contradiction-checking SOTA is 65–75% balanced accuracy, so a verdict built on it is indefensible, while deterministic span tracing is a genuine gap (Langfuse's only citation evaluator checks that an answer cites at least one retrieved source). | `CronDelete 2f94897d` disarms. Everything lands on `delivery-queue-2026-10-02`, which `main` does not contain — `main` is untouched at `009c646`. Each change reverts by its own commit; the branch as a whole is abandonable by closing PR #7 unmerged. | ARMED |
+| D-81 | **Both deliverables are DISPLAY-ONLY, and that is enforced structurally rather than carefully.** `support_diagnostic` is AST-guarded against reference from any verdict function, exactly as `evidence_basis` is, and the run's gate requires **Error-A to stay 10/25 = 0.400 and Error-B 0/27 = 0.000**. | A display change cannot move either rate, so **any movement is proof that something reached the verdict path.** This is aimed at my own declared competence boundary: three times in three days I turned a correct measurement into a wrong conclusion inside this file (J-44's stem D-69, the fall-through D-76, the hedge scan withdrawn 2026-10-02). The guard exists because care has already failed. | Revert the commit; the diagnostic is additive and nothing depends on it. | QUEUED |
+| D-82 | **The 1.9 GB of other projects' scratch in `/tmp/claude-501` is NOT deleted** (`ival_2.0` 1.3G, `iPay` 600M, `Agents-Claude` 111M, `attestor` 97M). Queued for Sai with the exact command. This run cleans only its own. | Sai's disk-hygiene directive says pull off the infra **this run** built. A session may be live in any of those directories, and destroying another session's working state is a one-way door and arguably cross-session interference. §2-A REVERSIBILITY. **Measured, not assumed: the repo is 18M with no file over 1MB, so there are no large datasets to relocate to drive or cloud.** | Nothing to undo — the action was not taken. The command is in the midday report for him to run or decline. | QUEUED FOR SAI |
+
+**What this register may NOT be read as saying.** It does not say round 15 found
+nothing; at arming it has not run. It does not say PR #7 is mergeable — three
+CRITICAL Error-B classes remain open and all three are Sai's. And the budget
+figure is a SANCTION, not a measurement: the measure is new tokens (output +
+cache creation), derived from artifacts in the midday report.
