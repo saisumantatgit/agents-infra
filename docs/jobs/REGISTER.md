@@ -622,3 +622,31 @@ and they have adopted the exact form.
 | J-90 | **CONVERGED ORDERING: corpus → feature → probability**, not probability → ECE → corpus. HQ withdrew its ordering. A calibrated probability is only as good as the feature it is fitted on, and `t2_f1` is provably uninformative exactly where the verdict is hard. | agreed, both sessions |
 | J-91 | **THE PROPOSED NEXT INSTRUMENT, and it needs SAI because it needs GOLD LABELS.** Labelled rows ENGINEERED to carry the matched-pair shapes — the one-token deltas and false reorderings ADR-006 demoted T2 over — then evaluate any candidate feature on whether it separates THOSE. *If a candidate cannot distinguish a matched pair it has failed the only test that matters, and no corpus growth or calibration rescues it.* Cheaper and more falsifiable than an ECE number. **Authored labels are Sai's standing gate; no generator may write them.** | **Sai** | Escalation #2 |
 | J-92 | **A TRANSFERABLE DEFECT CLASS, found by two independent threads the same day.** HQ measured laneF's OCR gate at per-field confidence **AUC 0.533**, firing on zero fields, every error invisible — because the signal was glyph-recognition confidence while the errors were PLACEMENT errors. Orthogonal to the failure mode. `t2_f1` is orthogonal to the matched pairs in exactly the same way. **The available signal cannot see the failure mode, and calibrating it harder cannot help; the fix is a signal that can see the failure, not a better curve over one that cannot.** | — | recorded as a principle |
+
+### R19 — a FIFTH instance, found by the peer who found J-83, and my fix had a worse latent defect
+
+`agent-assure-f7` re-ran its own repro at HEAD (**independent confirmation: J-83
+closed, FAIL 0.0 / UNGROUNDABLE, with and without `--session-id`**) and then
+defeated the fix three ways.
+
+| id | Finding | State |
+|---|---|---|
+| R19-01 | **CRITICAL — one trailing newline certified the draft at PASS 100.0.** The identity digest was EXACT-BYTE; stripping citations removes the MARKER, not whitespace, so `"…newer."` ≠ `"…newer.\n"`. Reproduced here. Fixed: the identity digest now strips surrounding whitespace. | fixed |
+| R19-02 | **CRITICAL — case-insensitive paths and HARDLINKS.** `Path.resolve()` follows symlinks but does not fold case on APFS and cannot see a hardlink, so the same file passed under another name grounded itself. Fixed with `os.path.samefile` (device+inode), keeping the string compare as the fallback for a path whose file no longer exists. | fixed |
+| **J-93** | **THE REAL DEFECT, AND IT WAS LATENT IN MY FIX FROM THE START.** A draft that is ONE VERBATIM SENTENCE from its source is **indistinguishable by content** from a draft captured as a source. My exact-byte digest escaped it only by luck — a trailing newline. Normalising revealed it: two honest red-team cases (`test_honest_short_quote_still_grounds`, `test_hedge_in_a_different_source_does_not_block`) now read `UNGROUNDABLE`. **Recorded as strict xfails, not deleted and not weakened.** | **Sai** — Escalation #1 |
+
+**THE TRADE, MEASURED, FOR SAI.** Error-A up on honest one-sentence verbatim
+quotes (2 red-team cases; **gold corpus 0.400 UNMOVED, honest_drafts 7/3
+UNMOVED**), against a live `PASS 100.0 / exit 0` self-citation closed. Fail-closed
+is the permitted direction, so it stands until he rules — but **the cost is real
+and it is bounded: content identity is an INFERENCE, path identity is a FACT.**
+Three different things share one content signature: the draft copied elsewhere,
+a fabricated notes file (J-35, his), and an honest source the draft quotes in
+full. No gate-side test can separate them.
+
+**Fixture corrected too:** `test_LIMITATION_write_then_read_to_ANOTHER_file_is_NOT_closed`
+planted text IDENTICAL to the draft — the self-citation shape, not the
+laundering shape — so once the digest was normalised it began matching and the
+test failed, appearing to say J-35 had closed. The planted file now holds the
+fabricated claim **alongside other content**, which is what a real write-then-Read
+looks like. J-35 is open again for the right reason.

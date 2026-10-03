@@ -11,6 +11,7 @@ from collections.abc import Iterable
 
 import hashlib
 import json
+import os
 # `re` is imported HERE, at the top, and not beside its first use. Three
 # separate NameErrors in this file have had one cause: a module-level
 # `_re.compile(...)` constant placed next to the function that needed it, above
@@ -4014,6 +4015,20 @@ def evidence_basis(claim: Claim, store: dict[str, RetrievedSource]) -> str:
 # distinguish "no self-citation" from "I was not told" — and refusing every
 # claim on that basis would be worse. Upgrade path: make the parameter required
 # once every in-repo caller is updated.
+def _identity_digest(text: str) -> str:
+    """Digest of *text* for IDENTITY comparison: NFKC, citation markers removed,
+    whitespace collapsed, casefolded.
+
+    Deliberately coarser than `content_sha256`, which must stay an exact digest
+    of what was captured. This one answers a different question — "is this the
+    same document?" — where a trailing newline, a reflow or a CRLF is not a
+    difference. Coarser means it matches MORE records, so it can only refuse
+    more claims: fail-closed by construction. Pure.
+    """
+    normalised = _nfkc(_strip_citations(text)).strip()
+    return hashlib.sha256(normalised.encode("utf-8")).hexdigest()
+
+
 def _self_source_ids(
     draft_path: str, draft_text: str, store: dict[str, RetrievedSource]
 ) -> frozenset[str]:
@@ -4039,13 +4054,29 @@ def _self_source_ids(
     # thing. Hashing the raw draft misses the realistic case by exactly one
     # bracketed token, which is how the first version of this check silently
     # failed to fire.
-    draft_digest = hashlib.sha256(
-        _nfkc(_strip_citations(draft_text)).encode("utf-8")
-    ).hexdigest()
+    # R19-01 (2026-10-03): THE DIGEST WAS EXACT-BYTE AND ONE NEWLINE DEFEATED IT.
+    # A copy of the draft with no trailing newline certified itself at PASS
+    # 100.0 / exit 0, because stripping citations removes the MARKER and not
+    # the whitespace, so "…newer." != "…newer.\n". The same held for a trailing
+    # space, CRLF, or any reflow. Comparing a normalised, whitespace-collapsed
+    # form instead turns "one byte" into "one word" — still fail-closed,
+    # because collapsing can only make MORE records match and refuse MORE
+    # claims, never fewer.
+    draft_digest = _identity_digest(draft_text)
     matched: set[str] = set()
     for source_id, source in store.items():
         if source.file_path:
             try:
+                # R19-02: `resolve()` follows symlinks but does NOT fold case on
+                # a case-insensitive volume (APFS), and cannot see a HARDLINK —
+                # both let the same file through under another name.
+                # `os.path.samefile` compares (st_dev, st_ino) and catches both.
+                # It needs BOTH files to exist, so the string compare stays as
+                # the fallback for a path recorded from a file since deleted.
+                if os.path.exists(source.file_path) and os.path.exists(draft_path) \
+                        and os.path.samefile(source.file_path, draft_path):
+                    matched.add(source_id)
+                    continue
                 if str(Path(source.file_path).resolve()) == draft_resolved:
                     matched.add(source_id)
                     continue
@@ -4060,9 +4091,7 @@ def _self_source_ids(
         if source.content_sha256 and source.content_sha256 == draft_digest:
             matched.add(source_id)
             continue
-        if source.text and hashlib.sha256(
-            _nfkc(source.text).encode("utf-8")
-        ).hexdigest() == draft_digest:
+        if source.text and _identity_digest(source.text) == draft_digest:
             matched.add(source_id)
     return frozenset(matched)
 

@@ -145,7 +145,13 @@ def test_LIMITATION_write_then_read_to_ANOTHER_file_is_NOT_closed(tmp_path):
 
     Write fabricated claims to a DIFFERENT file, Read it, cite it: the path
     differs from the draft's and so does the digest, so J-83's identity test
-    cannot fire. `capture_core` maps `Read` → `verbatim` unconditionally and no
+    cannot fire.
+
+    FIXTURE CORRECTED 2026-10-03: the planted file used to hold text IDENTICAL
+    to the draft, which is not the laundering shape — it is the self-citation
+    shape, and once the identity digest was normalised it started matching. A
+    real write-then-Read writes fabricated claims INTO a working file alongside
+    other content. Now it does, and J-35 is open again for the right reason. `capture_core` maps `Read` → `verbatim` unconditionally and no
     field records a file's ORIGIN, so the laundering happens BEFORE the store
     and no gate-side check can see it. Escalation #4.
 
@@ -155,7 +161,9 @@ def test_LIMITATION_write_then_read_to_ANOTHER_file_is_NOT_closed(tmp_path):
     report, code = _gate(
         tmp_path, "draft.md",
         "The 2019 audit found losses of 4.2 billion euro [S1].\n",
-        [_record("S1", "The 2019 audit found losses of 4.2 billion euro.",
+        [_record("S1",
+                 "Internal working notes, 2019 cycle.\n\nThe 2019 audit found "
+                 "losses of 4.2 billion euro.\n\nFollow up with the desk.",
                  "/tmp/fabricated-notes.md")])
     assert report["gate"] == "PASS", "J-35 may now be closed — re-read this test"
     assert report["per_claim"][0]["verdict"] == "GROUNDED"

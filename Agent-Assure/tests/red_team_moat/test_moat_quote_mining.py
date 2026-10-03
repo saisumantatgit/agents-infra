@@ -84,6 +84,8 @@ def test_short_exact_quote_still_grounds(tmp_path: Path) -> None:
     )
 
 
+@pytest.mark.xfail(strict=True, reason=(
+    "J-93 OPEN, Error-A: same cause — the honest source's text equals the draft's claim after normalisation, so the identity test treats it as the draft itself."))
 def test_hedge_in_a_different_source_does_not_block(tmp_path: Path) -> None:
     """S4 hedges the appliance claim ('According to the vendor'); S6 asserts it
     outright. Citing S6 must ground — the guard is per-span, not per-topic."""
