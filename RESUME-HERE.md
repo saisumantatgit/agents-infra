@@ -1,4 +1,82 @@
-# RESUME HERE — written 2026-10-03 22:0x, after a 57-commit day
+# RESUME HERE — written 2026-10-04 00:0x, after a 59-commit day
+
+# BOTH PRs ARE MERGED AND THE TWO CRITICALS ARE CLOSED. ZERO OPEN PRs.
+
+Verified on the merged tip, not inherited from a branch's green run — a merge can
+produce a tree neither parent had:
+
+| | |
+|---|---|
+| integration branch | `agent-assure-calibration-run` at **`b442865`** |
+| suite | **851 passed · 2 skipped · 68 xfailed · exit 0** |
+| gold md5 | `6215b526d03147295b003d7ccb0d171f` |
+| corpus md5 | `affd3f9f703b15612d69e4cc0deb5010` |
+| Error-A / Error-B | **0.400 / 0.000** |
+| open PRs | **0** |
+| `main` | **`009c646`, UNTOUCHED** |
+
+**PR #9** (`862d994`) then **PR #8** (`b442865`), in that order, by Sai's own
+hand — `gh pr merge` was denied `[Merge Without Review]` three times and was
+never worked around. **I first told him the opposite order**; #9's base IS #8's
+head, so #8-first would have orphaned #9's two commits behind a third PR. The
+correction is in PR #8's body too, so the record does not preserve the mistake.
+
+**`main` HAS STILL NEVER RECEIVED THE CALIBRATION WORK.** It is `009c646`, and
+PR #7's merge commit is not an ancestor of it. That is a separate, much larger
+decision — 260 commits, 280 files, the gold labels among them. **Nothing said so
+far authorises it.**
+
+## WHAT CLOSED, AND THE PART WORTH READING
+
+**J-84 + J-85 are ONE hole, not two, and needed no signature change.** Both
+register rows said `check_absence` had to separate COUNT from DENOMINATOR. True
+of **J-42** — a `haiku_summary` IS a real search, so it must leave the numerator
+and STAY in the denominator — and **false here**: a self-`Read` is not a search
+in any role, so it leaves one population and the D-54 direction trap cannot
+arise. Fix is one call site plus one parameter; `check_absence` is untouched.
+
+**J-84 was not reproducible as written.** Its shape refuses today — on the
+blanket-word gate (`len=3, head_in=2, 4>3`), not on anything about self-sources.
+It refused for the **wrong reason**. J-85's padding silences that gate and
+exposes the count.
+
+**The guards caught me three times mid-change**, which is the whole argument for
+them: `evidence_basis` left reading the whole store while the verdict read the
+filtered one (**round 11-B recreated**); the "only one query source exists"
+sibling rejecting my better-named helper; and a positive control whose premise
+embedded the bug — it certified on ONE genuine search because the self-record
+supplied the second.
+
+## OPEN AND SAI'S
+
+- **J-96** (Escalation #1) — the blanket-word test is a **proportion**, so real
+  irrelevant searches can still dilute the denominator until a live refusal goes
+  silent. Replacing it trades Error-A against Error-B.
+- **J-95** — the tripwire pinning D-91. **Blocked on clearing the
+  `Security Test Removal` permission**; its proven-red check means running the
+  guard against a build with the digest arm disabled, and a guard never seen red
+  is not a guard.
+- **The 5-user comprehension test** — still the only thing that can reverse D-83.
+- **The capture contract J-35/J-36/J-38** — genuinely unruled, unlike J-70.
+- J-69 · J-72's narrowing · q25 · the publish (D-83 approved, Escalation #5
+  reserves the act).
+
+**J-70 IS RULED** (D-83: open as an upgrade path, NOT scheduled). **J-93 and
+J-94 are CLOSED** (D-90, D-91). Do not put any of the three back to him.
+
+## OPEN AND MINE
+
+J-42 · J-50 · J-72 display residue · J-76 · J-81 · the matched-pair runner
+(ruling 3) · bin × outcome counts (ruling 2's constructive half).
+
+**Merged branches left in place, not deleted:** `delivery-queue-2026-10-02` and
+`j84-j85-absence-denominator-2026-10-03`. Both are fully contained in
+`b442865`; deleting them is Sai's call, not mine.
+
+---
+
+## THE NIGHT'S RECORD (superseded by the above, kept for the trail)
+
 
 # THE OVERNIGHT RUN WAS ARMED, RAN ONE ROW, AND DISARMED ITSELF. SAI'S CALL NEXT.
 

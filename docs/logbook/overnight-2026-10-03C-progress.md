@@ -149,3 +149,40 @@ twice over — his own standing order says *never merge, PRs only*, and a
 my own standing order already reserved to Sai. **The harness and the standing
 order agree three for three** — which is worth more than either alone, and is
 the evening's actual finding.
+
+## 2026-10-04 00:0x — BOTH PRs MERGED BY SAI. VERIFIED ON THE MERGED TIP.
+
+He ran `gh pr merge 9 --merge && gh pr merge 8 --merge` himself. It printed
+nothing, which is not how `gh` usually reports a merge — so the state was
+**verified rather than assumed**: #9 `862d994`, #8 `b442865`, both MERGED, **0
+open PRs**, `main` still `009c646`.
+
+**Then the suite was re-run ON `b442865`**, not inherited from the branch's green
+run, because a merge commit can produce a tree neither parent had: **851 passed ·
+2 skipped · 68 xfailed · exit 0**, gold `6215b526…`, corpus `affd3f9f…`. Also
+checked that the merged tip and my branch are byte-identical across
+`Agent-Assure/scripts` and `Agent-Assure/tests` — a blank diff, so the merge
+resolved nothing silently.
+
+**WITHDRAWAL #11 — I gave him the wrong merge order.** I said "#8 first, then
+#9". #9's base IS #8's head branch, so #8-first would have merged without the
+J-84/J-85 fix and left #9's two commits needing a third PR. Caught by checking
+the actual base refs before he pressed anything, and corrected in PR #8's body
+as well as here. **Three denials of `Merge Without Review` were never worked
+around** — the clicks were his, in both senses.
+
+**J-84 + J-85 CLOSED** (CR-011, `fbf710a`). The findings that outlive the fix:
+the register's stated mechanism was wrong for both rows, J-84 was not
+reproducible as written, and **three separate guards caught me mid-change** —
+including one that proved I had recreated round 11-B's verdict/display
+divergence, in a change whose whole purpose was closing a fail-open hole.
+
+**Reflection, and it is the day's real one.** Eleven withdrawals in two days, and
+not one was caught by my own review of my own work. What caught them: a
+permission classifier, an AST guard, a positive control, a corpus diff, a
+`CronList`, a base-ref lookup, and Sai asking *why*. **Every single one is
+external to the thing it was checking.** The lesson is not "be more careful" —
+care was present and failed eleven times. It is that **a claim must be
+discharged by something that does not share my assumptions**, and the cheapest
+such thing is almost always a measurement in the same command as the claim.
+That is now the standing rule and it is the only part of today worth keeping.
