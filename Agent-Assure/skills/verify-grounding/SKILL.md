@@ -31,8 +31,9 @@ Say this plainly when you report a PASS. A PASS is not a certificate of truth.
   against what the session READ. The agent's own tool choices are trusted, so a
   file the agent wrote and then read back counts as a verbatim source.
 - **It checks verbatim provenance, not meaning.** A faithful paraphrase is
-  REFUSED, not passed. Roughly a third of honest claims read `UNGROUNDED` on the
-  calibration corpus (Error-A 0.320, n=52, CR-004). An `UNGROUNDED` verdict means
+  REFUSED, not passed. **Roughly two in five** honest claims read `UNGROUNDED` on
+  the calibration corpus (**Error-A 0.400, n=52, CR-007** — it rose from 0.320
+  when relational grounding was demoted, ADR-007). An `UNGROUNDED` verdict means
   "I could not mechanically trace this", never "this is false".
 - **It does not check whether the source is correct**, current, or competent.
 - **"We found no evidence of X" is only as good as the searches recorded.** The
@@ -236,3 +237,14 @@ questions, pure opinion) are excluded from the scored denominator.
 
 - [references/grounding-failure-types.md](../../references/grounding-failure-types.md) — every verdict, what it catches, how to fix
 - Engine internals, JSONL format, and grounding tiers: the plugin `README.md`
+
+**What PASS means, and what it does not (ADR-008).** PASS means every claim is
+**traceable** to text in a source the run was given — it does **not** mean the
+source agrees with the claim. A source reading *"we found no evidence that X"*
+can satisfy the check for a draft asserting X (round 14, R14-04), because the
+gate matches a contiguous verbatim span and the denial can sit outside it. Every
+claim therefore carries a `support_diagnostic`; `cited_sentence_may_not_assert_claim`
+means **read that sentence yourself**. It is an advisory and nothing is refused
+because of it — **roughly 1 in 4 of its flags is a false alarm** (26.7% of
+claims the gate passes, n=52 gold). The word "verified" is deliberately absent
+from this tool's output: it checks provenance, not truth.

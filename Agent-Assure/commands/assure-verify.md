@@ -37,4 +37,15 @@ sources each mention one end of it. Each relational claim carries a
 author must quote a source or soften the claim. Expect a draft of causal prose
 to come back mostly UNGROUNDED.
 
+**What PASS means, and what it does not (ADR-008).** PASS means every claim is
+**traceable** to text in a source the run was given — it does **not** mean the
+source agrees with the claim. A source reading *"we found no evidence that X"*
+can satisfy the check for a draft asserting X (round 14, R14-04), because the
+gate matches a contiguous verbatim span and the denial can sit outside it. Every
+claim therefore carries a `support_diagnostic`; `cited_sentence_may_not_assert_claim`
+means **read that sentence yourself**. It is an advisory and nothing is refused
+because of it — **roughly 1 in 4 of its flags is a false alarm** (26.7% of
+claims the gate passes, n=52 gold). The word "verified" is deliberately absent
+from this tool's output: it checks provenance, not truth.
+
 **The verdict comes from the engine, not from your reading.** Do not judge grounding yourself — run the script and report exactly what it returns. If you believe the engine is wrong, that is a bug to file, not a verdict to adjust.
