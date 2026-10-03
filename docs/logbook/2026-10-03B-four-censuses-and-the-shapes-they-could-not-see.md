@@ -76,12 +76,29 @@ NOT_LOCATED_UNDER(params), never ABSENT". Today was the day I learned it applies
 to the instruments I write to check my own work, and not only to greps for
 someone else's code.
 
-The second thing: **J-62+J-71 masked three separate findings within an hour of
-landing** — J-33, J-31, and the r9 control — all because a model number and an
-unrecognised citation marker both leak digits into `numeric_tokens`. A
-fail-closed change cannot create Error-B, but it can make open findings read as
-closed, and that is a quieter failure than an Error-B because nothing goes red.
-D-46 exists for exactly this and it earned its place today.
+The second thing: **J-62+J-71 masked four findings within an hour of landing** —
+J-33, J-31, J-42 and the r9 control — and round 16 showed the masking was not
+incidental but *structural*: **1,904 of the 1,910 verdicts it changed were
+relabels of an existing refusal**, including the absence branch's strongest one.
+The checks were simply in the wrong place; they now run only on a claim that
+would otherwise be CERTIFIED, which makes the only possible transition
+`ABSENCE_SUPPORTED → UNVERIFIED_NUMBER` by construction. A fail-closed change
+cannot create Error-B, but it can make open findings read as closed, and that is
+a quieter failure than an Error-B because nothing goes red.
+
+**APPENDED AFTER ROUND 16 — and it is the sharpest instance of the day's own
+lesson.** The paragraph above originally explained the J-33 masking as `X200`
+extracting the numeric token `200`, absent from the sources. **That was false.
+`200` IS present in both ABS source texts; the refusal came from `99`, the
+digits of the unrecognised marker `[s99]`.** I had reasoned from a mechanism I
+found plausible, written it into the register, this logbook and a test's
+assertion message, and never isolated it — three variants would have taken one
+command and I ran none of them. So the day's conclusion applies to my own
+*explanations* as much as to my instruments: a cause that fits the evidence is
+not thereby the cause, and the control that settles it is cheaper than the
+correction. Round 16's measurement is also now the reason to distrust this
+morning's "Error-A unchanged": q22's delta cannot register in the metric by
+construction, so that zero was an n=1 reading on a model number.
 
 ## Next
 

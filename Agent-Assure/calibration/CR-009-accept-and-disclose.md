@@ -42,8 +42,11 @@ it is the reason the rates appear here as a *result* rather than a reassurance.
 
 **R15-02, corrected.** This row first read `7/27 = 0.259`, using the labelled-VIOLATION denominator. Gold is **25 grounded / 27 violation**, so the figure is 7/25 = 0.280. Round 15 reproduced the 26.7% headline, the 10/52, Error-A 0.400 and Error-B 0.000 exactly — this one row was wrong, in a CR about a diagnostic's own error rate.
 
-**Roughly 1 in 4 of its flags is a false alarm, and it misses about half the
-denials we could construct.** Misses: a denial in the NEXT sentence, `retracted`, `erroneous`, `lacks`, `absent`, `zero`, and a denial after a semicolon. **And one apparent catch is spurious** — *"a claim since debunked"* fires on `claim`, a hedge token, not on `debunked`, the same artefact as `per` in "operations per second" (J-79). **So both headline numbers are slightly wrong, in opposite directions**, and that is recorded rather than smoothed. Tolerable for an advisory that
+**1 in 4 of its flags is a false alarm; it misses about half the denials we
+could construct.** Misses: next-sentence denial, `retracted`, `erroneous`,
+`lacks`, `absent`, `zero`, post-semicolon. **One apparent catch is spurious** —
+*"a claim since debunked"* fires on `claim`, not `debunked` (same artefact as
+`per`, J-79) — **so both headline numbers are wrong in opposite directions.** Tolerable for an advisory that
 refuses nothing; intolerable for a gate — which is precisely why ADR-008 ships
 it as a measurement. **It is published rather than tuned** because tuning a
 signal nobody has re-validated is how 2026-10-02 produced two Error-Bs. The
@@ -69,6 +72,16 @@ Two stale error rates on claim surfaces (0.320/CR-004 after ADR-007 had raised
 it to 0.400), and a commit made on a RED gate with a message stating a false
 result (`3ba4216` → `49d1bfa`). **Narrative extracted per ADR-025's 80-line
 ceiling:** `docs/logbook/2026-10-03B-four-censuses-and-the-shapes-they-could-not-see.md`.
+
+## Round 16 correction to this CR's own evidence
+
+**The zero delta is close to NON-MEASUREMENT, not the measurement this CR
+claimed.** Rates reproduce (10/25, 0/27) and the corpus does hold 2
+figure-bearing ABSENCE rows, but **q22's delta cannot register by construction
+(already a violation), so the zero is an n=1 reading on a model number.** A
+synthetic sweep flips 6/9 figure-bearing certifiable absences, and the check's
+placement has since been corrected (R16-01: 1,904 of 1,910 verdict changes were
+relabels of an existing refusal). Detail: `reports/RED-TEAM-R16-2026-10-03.md`.
 
 ## Verdict
 
