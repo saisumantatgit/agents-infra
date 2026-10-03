@@ -3770,11 +3770,55 @@ def evidence_basis(claim: Claim, store: dict[str, RetrievedSource]) -> str:
             f"{_plural(len(verbatim), 'source', 'sources')}: {checked}.{note}")
 
 
+# ======================================================================
+# THE SCOPE STATEMENT (J-73, 2026-10-03). Every report carries it.
+#
+# WHY IT IS IN THE PRODUCT AND NOT IN THE README. Ding et al. (AAAI 2025)
+# measured that user trust RISES when output carries citations **even when the
+# citations are random**, and falls only when users actually check them. So a
+# PASS verdict buys unearned trust by default, and a disclosure the reader never
+# opens does not spend it back. Magesh et al. (Stanford, JELS) is what happens
+# to an unqualified claim: it quotes a vendor's "100% hallucination-free linked
+# legal citations" beside a measured 17-33% hallucination rate.
+#
+# WHAT IT MUST NOT SAY. "this session" is a claim about SCOPE, and the gate can
+# only make it when --session-id was passed (J-56: evidence_basis once said
+# "NEVER RETRIEVED this session" about a store it had no session information
+# for). So there are two variants and the caller's scoping decides which. The
+# unscoped one is the weaker, truthful statement.
+#
+# Deliberately NOT the word "verified" and NOT "grounded" unqualified, anywhere.
+_SCOPE_SESSION = (
+    "PASS means every claim in this draft is traceable to text in a source "
+    "retrieved this session; it does not mean the source agrees with the "
+    "claim, and a source that denies or hedges a claim can still satisfy this "
+    "check."
+)
+_SCOPE_STORE = (
+    "PASS means every claim in this draft is traceable to text in a source "
+    "present in the evidence store supplied to this run; it does not mean the "
+    "source agrees with the claim, and a source that denies or hedges a claim "
+    "can still satisfy this check. Session scope is NOT asserted: pass "
+    "--session-id to require that the sources were retrieved this session."
+)
+
+
+def scope_statement(session_scoped: bool) -> str:
+    """Return the scope statement matching what this run can actually claim.
+
+    Pure. `session_scoped` is True only when the caller passed --session-id,
+    which is the only circumstance under which the gate knows the store belongs
+    to one session.
+    """
+    return _SCOPE_SESSION if session_scoped else _SCOPE_STORE
+
+
 def score_report(
     claims: list[Claim],
     store: dict[str, RetrievedSource],
     threshold: float = 90.0,
     lex_tau: float = _LEX_TAU_DEFAULT,
+    session_scoped: bool = False,
 ) -> dict:
     """Compute the grounding SCORE, gate, and retained-violation appendix (spec §4.5).
 
@@ -3903,6 +3947,9 @@ def score_report(
         "vacuous": vacuous,
         "per_claim": per_claim,
         "retained_appendix": retained_appendix,
+        # J-73: the report states its own scope. Additive and display-only —
+        # nothing reads it back, and no verdict consults it.
+        "scope": scope_statement(session_scoped),
     }
 
 
@@ -3980,7 +4027,10 @@ def main() -> None:
     if args.session_id is not None:
         assert_single_session(store, args.session_id)
     claims = [classify(c) for c in decompose(draft_text)]
-    report = score_report(claims, store, threshold=args.threshold)
+    report = score_report(
+        claims, store, threshold=args.threshold,
+        session_scoped=args.session_id is not None,
+    )
 
     gate: str = report["gate"]
 
@@ -3991,8 +4041,13 @@ def main() -> None:
         # Write grounding-report.yaml to CWD.
         with open("grounding-report.yaml", "w", encoding="utf-8") as fh:
             _yaml.safe_dump(report, fh, sort_keys=True, allow_unicode=True)
-        # One-line human summary to stdout.
+        # One-line human summary to stdout, PLUS the scope statement (J-73).
+        # The human path is the one a person actually reads, so the disclosure
+        # has to be here and not only in the file. Printed on every verdict,
+        # not just PASS: a reader deciding whether to trust a FAIL needs to
+        # know what the check does and does not cover just as much.
         print(f"gate={gate} grounding_score={report['grounding_score']}")
+        print(report["scope"])
 
     _sys.exit(0 if gate == "PASS" else 1)
 
