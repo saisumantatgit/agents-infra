@@ -1,15 +1,36 @@
 # RESUME HERE — written 2026-10-03 22:0x, after a 57-commit day
 
-# THE OVERNIGHT RUN WAS ARMED LATE, AND THE LATENESS IS THE FINDING.
+# THE OVERNIGHT RUN WAS ARMED, RAN ONE ROW, AND DISARMED ITSELF. SAI'S CALL NEXT.
 
-Sai approved it and went to bed; I said "arming now" at 21:44 and **never made
-the call**. `CronList` at the close: *No scheduled jobs.* It is armed now —
-**job `bb24422b`, `13,43 * * * *`, hard stop 06:00, verified by `CronList`
-AFTER the create** — so the plan at `docs/planning/OVERNIGHT-2026-10-03C.md` is
-executing rather than waiting. The arming record is §9 of that file.
+Armed at 22:11 (job `bb24422b`, verified by `CronList` after the create — the
+21:44 "arming now" had never been called, which the close caught). **Disarmed at
+22:16 by the circuit breaker, §6 hygiene first. `CronList`: No scheduled jobs.**
 
-The cron is **session-only**: it dies with this session. If you are reading this
-in a fresh session, assume nothing is armed until `CronList` says otherwise.
+**Row 1, J-93, was HALTED and NOT executed.** The ruling said drop the
+content-digest arm of `_self_source_ids`. `samefile` catches a hardlink and an
+APFS case variant, `resolve()` catches a symlink — **none catches a plain COPY
+of the draft**, and R19-01 was that copy certifying itself at PASS 100.0. The
+digest is the only arm that sees it, so dropping it reverts R19-01 and re-opens
+a demonstrated Error-B. Escalation #1. `scripts/ground_check.py` is
+byte-unchanged.
+
+**The Error-A behind the ruling is real** — an honest draft quoting its source
+in full gets its own source excluded. Open as **J-94**, owner Sai, with the
+fail-closed shape that separates the cases (narrow the digest arm by the
+existing BASIS rule rather than deleting it).
+
+**Why the whole run stopped and not just the row:** two harness denials of one
+class (`Security Test Removal`, then `Security Weaken` on a read-only grep).
+Tonight's entire priority list — J-93, J-84/J-85, the matched-pair runner — is
+moat-internal work in that one file, so a tick would have hit the same wall
+every 30 minutes. Neither denial was worked around or routed elsewhere.
+
+**J-84 and J-85 remain the first real item** and are untouched: both CRITICAL,
+both fail-open in both directions, in `check_absence`. They are *strengthening*
+changes, so they are not what the denials were about — but they were not
+attempted tonight, and that is a fact, not a hedge.
+
+Full account: `docs/logbook/overnight-2026-10-03C-progress.md`.
 
 **Read first:** `docs/logbook/2026-10-03D-the-author-as-adversary.md`.
 
