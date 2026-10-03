@@ -398,8 +398,12 @@ def test_per_claim_fields():
     c0 = _grounded_claim(0, "S1")
     rep = score_report([c0], store)
     entry = rep["per_claim"][0]
+    # J-74 (2026-10-03): `support_diagnostic` added. This is the "one
+    # deliberate edit" the docstring above demands, and the guard worked — the
+    # field was added to score_report and this test went red in the same run,
+    # which is exactly what an of-record artifact's field set should cost.
     assert set(entry.keys()) == {"index", "text", "kind", "verdict",
-                                 "evidence_basis"}
+                                 "evidence_basis", "support_diagnostic"}
     assert entry["index"] == 0
     assert entry["text"] == c0.text
     assert entry["kind"] == c0.kind.value

@@ -238,6 +238,94 @@ def test_LIMITATION_a_multi_line_authoring_note_is_scored(tmp_path):
     assert rep["gate"] == "FAIL", "J-48 was fixed — update the claim text"
 
 
+def test_LIMITATION_a_relational_claim_is_never_certified_by_corroboration(tmp_path):
+    """NOT PROMISED, since ADR-007: that a causal or correlational claim is
+    certified because two sources corroborate it.
+
+    Round 12 demonstrated seven Error-B shapes on that rule, so it was demoted:
+    a RELATIONAL claim now reaches the ordinary verbatim path, and certifies
+    only when a cited source contains the claim itself. The corroboration
+    result is still computed and REPORTED — as information, never a verdict.
+
+    This store corroborates the relation across two sources as strongly as the
+    old rule ever required. The claim must still be refused.
+    """
+    recs = [
+        _rec(sid="S1", qp="q1",
+             text="Insulin resistance impairs glucose uptake and is a central "
+                  "mechanism that causes type 2 diabetes to develop."),
+        _rec(sid="S2", qp="q2",
+             text="Type 2 diabetes develops when insulin resistance "
+                  "progresses and the pancreas cannot compensate."),
+    ]
+    rep = _verdicts(tmp_path, "Insulin resistance causes type 2 diabetes "
+                              "[S1][S2].\n", recs)
+    pc = rep["per_claim"][0]
+    assert pc["kind"] == "RELATIONAL"
+    assert pc["relation_diagnostic"] == g.RELATION_CORROBORATED, (
+        "the diagnostic must still measure corroboration — a demotion that "
+        "stops computing the thing is a deletion, not a demotion")
+    assert pc["verdict"] == "UNVERIFIED_RELATION", (
+        "ADR-007 was reverted — update the claim text before this test"
+    )
+    assert rep["gate"] == "FAIL"
+
+
+def test_the_verdict_path_does_not_consult_the_RELATIONAL_DIAGNOSTIC():
+    """ADR-007's load-bearing guard, checked over the AST.
+
+    A diagnostic that creeps back into the verdict path is how a demotion
+    silently un-demotes itself — and this repo has the scar: ADR-006 demoted T2
+    and kept `tier_sensitive` precisely so a future change could not quietly
+    re-threshold verdicts that are supposed to be unable to move.
+
+    `ground` must reference NONE of the demoted machinery, and
+    `UNVERIFIED_RELATION` must no longer be reachable from it.
+    """
+    import ast
+    import inspect
+    import textwrap
+
+    tree = ast.parse(textwrap.dedent(inspect.getsource(g.ground)))
+    referenced = {n.id for n in ast.walk(tree) if isinstance(n, ast.Name)} | {
+        n.attr for n in ast.walk(tree) if isinstance(n, ast.Attribute)}
+    # NARROWED after round 13. `UNVERIFIED_RELATION` is legitimately returned
+    # by ground() again (D-76 withdrew the fall-through), and the FIGURE checks
+    # — numeric_ok and spelled_quantity_ok — were deliberately re-homed INTO
+    # the verdict path, kind-independently, because gating them on a classifier
+    # branch is what R13-01 exploited. What must never be consulted is the
+    # CORROBORATION RULE and the endpoint machinery that serves only it.
+    for name in ("relational_diagnostic", "ground_relational",
+                 "extract_arguments", "_endpoint_in_window"):
+        assert name not in referenced, (
+            f"ground() references {name!r} — ADR-007 demoted the corroboration "
+            f"rule to a diagnostic, so the verdict path must not read it")
+    assert "numeric_ok" in referenced and "spelled_quantity_ok" in referenced, (
+        "the figure checks must stay IN the verdict path and kind-independent — "
+        "R13-01 certified a fabricated 3.7 million euro figure at PASS 100.0 "
+        "because the numeric check was gated on kind == NUMERIC while classify "
+        "ranks RELATIONAL higher")
+
+
+def test_the_demoted_machinery_is_KEPT_not_deleted():
+    """The other half of ADR-007, and the one a cleanup would quietly undo.
+
+    The repo's standing rule is that a demoted computation stays a VISIBLE
+    no-op (the `tier_sensitive` precedent). If someone deletes these in a
+    tidy-up, every round-10 and round-12 tripwire written against the
+    diagnostic disappears with them, and the record of seven findings goes too.
+    """
+    for name in ("relational_diagnostic", "ground_relational",
+                 "extract_arguments", "spelled_quantity_ok",
+                 "_endpoint_in_window", "RELATION_CORROBORATED",
+                 "RELATION_NOT_CORROBORATED", "RELATION_FIGURE_ABSENT"):
+        assert hasattr(g, name), (
+            f"{name} was deleted. ADR-007 says KEPT as a visible no-op — "
+            f"deleting it takes the tripwires and the findings record with it")
+    assert g.Verdict.UNVERIFIED_RELATION, (
+        "UNVERIFIED_RELATION must stay in the taxonomy: retired, not deleted")
+
+
 # ===========================================================================
 # 3. THE SHIPPED SURFACES must not re-acquire a claim the code cannot keep
 # ===========================================================================
@@ -290,6 +378,46 @@ def test_every_surface_states_a_limitation(surface):
     text = (_ROOT / surface).read_text(encoding="utf-8").lower()
     assert any(k in text for k in ("does not", "not prove", "refuses")), (
         f"{surface} makes a promise but discloses no boundary")
+
+
+# The two drafting rules J-48 and the citation-placement finding resolved to.
+# Both are DOCUMENTATION fixes, which is the weakest kind of fix there is: prose
+# has no runtime, so nothing fails when it is deleted. These two guards give the
+# prose a runtime.
+_MARKDOWN_SURFACES = ("README.md", "commands/assure-verify.md",
+                      "skills/verify-grounding/SKILL.md")
+
+
+@pytest.mark.parametrize("surface", _MARKDOWN_SURFACES)
+def test_every_markdown_surface_tells_authors_to_keep_notes_on_one_line(surface):
+    """J-48's ruling was documentation, not code — so the documentation is the fix.
+
+    `test_LIMITATION_a_multi_line_authoring_note_is_scored` pins the BEHAVIOUR
+    (a multi-line note fails the draft). This pins the only MITIGATION that
+    exists: the author must be told, on every surface they might read, that a
+    note has to fit on one line. If the guidance is deleted the limitation stops
+    being disclosed and starts being a trap, and nothing else in the suite
+    notices — prose has no runtime of its own.
+    """
+    text = (_ROOT / surface).read_text(encoding="utf-8").lower()
+    assert "one line" in text, (
+        f"{surface} does not tell authors to keep authoring notes on one line "
+        f"(J-48). The gate strips SAME-LINE comments only; an undisclosed "
+        f"multi-line note is scored as claims.")
+    assert "<!--" in text, f"{surface} states the rule without showing the syntax"
+
+
+@pytest.mark.parametrize("surface", _MARKDOWN_SURFACES)
+def test_every_markdown_surface_states_the_citation_placement_rule(surface):
+    """The sibling convention, pinned for the same reason.
+
+    A marker after the sentence-final period detaches and reads UNCITED. That is
+    fail-safe, so it will never show up as a test failure anywhere else — it only
+    ever shows up as a confused author.
+    """
+    text = (_ROOT / surface).read_text(encoding="utf-8").lower()
+    assert "final period" in text, (
+        f"{surface} does not state where citation markers go")
 
 
 def test_a_missing_store_says_what_to_do(tmp_path):

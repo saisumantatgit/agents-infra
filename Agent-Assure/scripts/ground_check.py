@@ -228,7 +228,31 @@ def assert_single_session(
 
     An EMPTY session_id is UNATTRIBUTABLE and also raises. A record that cannot
     be placed in this session cannot be certified against in it.
+
+    R15-01 (2026-10-03), found by round 15 on the surface built to CLOSE this
+    class. The paragraph above was TRUE AS A STATEMENT OF INTENT and FALSE AS A
+    DESCRIPTION OF THE CODE: the comparison below is `source.session_id !=
+    session_id`, so with a blank expected id and records that also carry a blank
+    id it evaluates `"" != ""`, finds nothing foreign, and does not raise.
+    `--session-id ""` therefore scored the shipped demo store at PASS 100.0
+    **and printed the "retrieved this session" scope statement over records that
+    carry no session information at all** — J-56's overclaim, reproduced by the
+    J-73 disclosure meant to prevent it.
+
+    The guard is now explicit and FIRST, because the emptiness of the expected
+    id is a fact about the REQUEST, not about the store, and no amount of
+    comparing it against records can establish it. Fail-closed: a run that
+    previously produced a verdict now refuses.
     """
+    if not session_id.strip():
+        raise ValueError(
+            "--session-id was given but is empty or whitespace. An empty "
+            "session id is UNATTRIBUTABLE: it matches records that carry no "
+            "session id at all, so enforcing it would assert session scope "
+            "over evidence that has none. Pass a real session id, or omit "
+            "--session-id to score without session enforcement (the report "
+            "then says so explicitly)."
+        )
     foreign = sorted(
         {source.session_id or "<no session_id>" for source in store.values()
          if source.session_id != session_id}
@@ -2288,6 +2312,148 @@ def numeric_ok(claim: Claim, sources: list[RetrievedSource]) -> bool:
 
 
 # ---------------------------------------------------------------------------
+# J-43 — a figure SPELLED IN WORDS, inside a relational claim.
+#
+# `_NUMERIC_RE` requires a digit, so "ninety-seven percent of all type 2
+# diabetes" produced no numeric_tokens, the R10C-04 guard was skipped
+# vacuously, and the claim certified GROUNDED at PASS 100.0 against a store
+# holding no such figure. One keystroke separated "97%" (refused) from
+# "ninety-seven percent" (certified) — and the spelled form is the one a
+# reader quotes without noticing it was never checked.
+#
+# WHY THIS IS NOT THE ENUMERATION THE PROJECT'S OWN LAW FORBIDS. The law says
+# never key a moat rule on a surface property the AUTHOR CONTROLS (round 3's
+# token count, round 4's Title Case). The set below is not such a property: the
+# English cardinal number words are a CLOSED lexicon — a writer cannot invent a
+# new word for 97 and still be understood, which is the whole point of writing
+# the figure in words. That is the difference between this set and, say, a list
+# of comment syntaxes (J-41r), where the space of ways to write the same thing
+# is genuinely open.
+#
+# WHAT IT DOES NOT DO. It does not parse. There is no value, no unit, no
+# comparison — "ninety-seven" is never turned into 97, and therefore never
+# matched against a source's "97%". The rule is pure VERBATIM PRESENCE, exactly
+# as Sai ruled on 2026-10-02: the spelled phrase must occur, contiguously, in a
+# source the claim CITES. A source that spells the figure the same way grounds
+# it; a source that writes it in digits does not, and the honest verdict there
+# is a refusal, because proving "ninety-seven" means "97" requires a parser the
+# moat does not have.
+#
+# "one" IS DELIBERATELY ABSENT. Its determiner and pronoun uses ("one of the
+# mechanisms", "no one") dominate its numeric use by a wide margin, and every
+# one of them would become a refusal. A spelled figure of one that carries a
+# scale word is still checked, because the scale word is in the set
+# ("one million" -> the phrase "one million" is checked via "million").
+# CEILING: a bare spelled "one" with no scale word is NOT checked; it breaks on
+# a draft asserting a fabricated count of exactly one. Upgrade path is
+# part-of-speech disambiguation, which needs a tagger the verdict path may not
+# import — so the hole is recorded rather than closed.
+#
+# ORDINALS AND VAGUE QUANTIFIERS ARE ALSO ABSENT, for opposite reasons:
+# ordinals ("the third mechanism") are overwhelmingly non-quantitative in this
+# position, and vague quantifiers ("almost all", "the vast majority") are an
+# OPEN class — there is no closed lexicon of ways to be vague, so enumerating
+# them is precisely the trap this comment opens by naming. That residue stays
+# pinned as a strict xfail in test_moat_r10c04_relational_numeric.py.
+_SPELLED_NUMBER_WORDS: frozenset[str] = frozenset({
+    "zero", "two", "three", "four", "five", "six", "seven", "eight", "nine",
+    "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen",
+    "seventeen", "eighteen", "nineteen", "twenty", "thirty", "forty", "fifty",
+    "sixty", "seventy", "eighty", "ninety",
+    "hundred", "thousand", "million", "billion", "trillion", "dozen",
+    # R12-05 (round 12): these five were MISSING, and they are the ordinary way
+    # a draft overstates a magnitude — "causes thousands of customer refunds"
+    # produced NO phrase, so J-43's guard ran vacuously and the claim certified
+    # at PASS 100.0 while the digit form was refused on the same store. That is
+    # the round-4 anti-pattern ("an unreadable field read as UNCONSTRAINED")
+    # inside the very change whose comment cites it. They are members of the
+    # same closed lexicon — a writer cannot invent a new word for "thousands"
+    # either — so omitting them was not the open-class trap, it was five
+    # missing strings.
+    "hundreds", "thousands", "millions", "billions", "trillions", "dozens",
+})
+
+
+def _spelled_quantity_phrases(text: str) -> tuple[str, ...]:
+    """Return the maximal runs of spelled number words in *text*, in order.
+
+    "causes ninety-seven percent of all type 2 diabetes" -> ("ninety seven",).
+    Each run is the tokenizer's view of the phrase, space-joined, so hyphenation
+    and NFKC variants collapse into one canonical form ("ninety-seven",
+    "ninety seven" and full-width digits-as-words all normalise together).
+
+    Runs break at any non-number word, including the connector "and" — so
+    "two hundred and fifty" yields ("two hundred", "fifty"). That is
+    deliberate via-negativa: both runs still occur contiguously inside a source
+    that spells the whole figure out, so an honest source is unaffected, and
+    handling the connector would add a rule whose only effect is on drafts.
+
+    Duplicates are preserved: a claim naming two different spelled figures must
+    have both of them present.
+
+    Pure function — no mutation, no LLM/network/random/wall-clock.
+    """
+    tokens = _tokenize(_strip_citations(text))
+    phrases: list[str] = []
+    run: list[str] = []
+    for tok in tokens:
+        if tok in _SPELLED_NUMBER_WORDS:
+            run.append(tok)
+            continue
+        if run:
+            phrases.append(" ".join(run))
+            run = []
+    if run:
+        phrases.append(" ".join(run))
+    return tuple(phrases)
+
+
+def spelled_quantity_ok(
+    claim: Claim, sources: list[RetrievedSource]
+) -> bool:
+    """True iff every spelled quantity phrase in *claim* occurs VERBATIM in one
+    of *sources*.
+
+    Each phrase must appear, contiguously and on word boundaries, in a SINGLE
+    source — not assembled across two. A relational claim cites the sources
+    that corroborate its relation, and a figure belongs to one statement, so a
+    "ninety" in one document and a "seven" in another is not evidence of
+    "ninety-seven".
+
+    - No spelled phrase in the claim  -> True (nothing asserted, nothing to
+      check). This is the vacuous case and it is the status quo for every claim
+      written in digits.
+    - A spelled phrase and NO sources -> False. Every "I don't know" points
+      away from PASS.
+
+    CEILING: one claim combining two spelled figures that live in two different
+    cited sources ("causes seventy percent of A and thirty percent of B") is
+    satisfied phrase-by-phrase, each against whichever source carries it — so
+    that case works. What does NOT work is a single phrase split across
+    sources, and that is the intended refusal.
+
+    Pure function — no LLM, no network, no random, no wall-clock.
+    """
+    phrases = _spelled_quantity_phrases(claim.text)
+    if not phrases:
+        return True
+    if not sources:
+        return False
+
+    # Compare token stream to token stream: both sides go through _tokenize, so
+    # a phrase match is a match on WORDS, never on a substring that happens to
+    # straddle them. Sentinel spaces make the containment test exact without a
+    # second regex dialect ( _contains_word's lookarounds are for needles that
+    # carry punctuation; these never do).
+    streams = [" " + " ".join(_tokenize(source.text)) + " " for source in sources]
+    for phrase in phrases:
+        needle = " " + phrase + " "
+        if not any(needle in stream for stream in streams):
+            return False
+    return True
+
+
+# ---------------------------------------------------------------------------
 # ---------------------------------------------------------------------------
 # Absence check — verdict against query log
 # ---------------------------------------------------------------------------
@@ -2680,6 +2846,83 @@ def resolve(citation: str, store: dict[str, RetrievedSource]) -> RetrievedSource
 # Relational grounding helpers
 # ---------------------------------------------------------------------------
 
+def _is_quantity_token(token: str) -> bool:
+    """True iff *token* expresses a QUANTITY rather than an identity.
+
+    Hyphen-joined compounds are judged part by part, because "ninety-seven" is
+    one whitespace token and `_SPELLED_NUMBER_WORDS` holds single words — a
+    compound slipped through and became part of the endpoint phrase, which
+    would have checked the same figure twice under a weaker rule than J-43's.
+
+    Pure function.
+    """
+    parts = [part for part in token.replace("/", "-").split("-") if part]
+    if not parts:
+        return False
+    return all(
+        any(ch.isdigit() for ch in part) or part in _SPELLED_NUMBER_WORDS
+        for part in parts
+    )
+
+
+# Where an endpoint PHRASE stops growing (J-39). Two closed classes:
+#
+#   1. The module's existing stop-word sets, reused rather than re-listed —
+#      `_STOP_WORDS` (the tier content-word filter) and `_HEAD_NOUN_STOPS` (the
+#      absence head-noun filter). One of the two already covers "the", "a",
+#      "of", "its".
+#   2. QUANTIFIERS, DETERMINERS AND DEGREE WORDS, which neither set carried.
+#      These express SCOPE, not IDENTITY: "causes almost all type 2 diabetes"
+#      and "causes type 2 diabetes" name the same endpoint, and a source
+#      discussing it is under no obligation to repeat the draft's quantifier.
+#      Swallowing them into the phrase was pure Error-A — it refused the
+#      corpus's own labeled-grounded relational rows (caught by the suite, in
+#      the same run that proved the tightening worked).
+#
+# Function words are a CLOSED class, which is what makes this a lexicon rather
+# than a guess at author behaviour — the same argument that licenses
+# `_SPELLED_NUMBER_WORDS`. An attacker gains nothing by dropping a quantifier:
+# the identifying nouns are still required.
+#   3. PREPOSITIONS AND SUBORDINATORS WERE ADDED HERE AFTER ROUND 12 (R12-11)
+#      AND IMMEDIATELY WITHDRAWN (D-71). R12-11 is real: the union of the two
+#      inherited sets is INCOMPLETE — `_HEAD_NOUN_STOPS` carries in/on/at/to/
+#      for/of/with/by/from and `_ABSENCE_SCOPE_PREPS`, in this same file,
+#      carries across/within/among/under, but neither carries between/during/
+#      without/through. So "causes data loss across regions" makes the endpoint
+#      "data loss across regions" and demands the draft's own preposition from
+#      the source. Error-A, and the lesson stands: a closed class is only
+#      closed once ENUMERATED, and reusing two partial sets does not complete
+#      the union.
+#
+#      BUT THE FIX MADE THINGS WORSE, and measuring it is the only reason that
+#      is known. Making a preposition a boundary does not shorten the endpoint
+#      to "data loss" — it moves side_B's ANCHOR, because the anchor is the
+#      LAST content token of the whole segment. Measured:
+#
+#        "The pipeline causes data loss across regions"
+#          preposition NOT a boundary -> ('pipeline', 'data loss across regions')
+#          preposition IS  a boundary -> ('pipeline', 'regions')
+#
+#      The second is a ONE-TOKEN endpoint — precisely the coincidence surface
+#      J-39 exists to remove. So the choice is a recoverable Error-A against an
+#      unrecoverable Error-B surface, and the invariant decides it.
+#
+#      R12-11 and R12-03 are therefore ONE design decision, not two findings:
+#      the preposition boundary is only safe once side_B anchors on the FIRST
+#      content run after the trigger instead of the last. That moves the
+#      Error-A/Error-B trade-off, so it is Escalation #1 — registered as J-58
+#      with both halves named together.
+_ENDPOINT_PHRASE_STOPS: frozenset[str] = (
+    frozenset(_HEAD_NOUN_STOPS) | frozenset(_STOP_WORDS) | frozenset({        "all", "almost", "nearly", "most", "mostly", "every", "each", "many",
+        "much", "several", "few", "fewer", "more", "less", "least", "about",
+        "roughly", "approximately", "around", "both", "either", "neither",
+        "any", "none", "such", "same", "other", "another", "various",
+        "multiple", "numerous", "certain", "total", "overall", "entire",
+        "whole",
+    })
+)
+
+
 def extract_arguments(text: str) -> tuple[str, str] | None:
     """Extract (side_A, side_B) head-noun phrases flanking the relational trigger.
 
@@ -2687,9 +2930,20 @@ def extract_arguments(text: str) -> tuple[str, str] | None:
     1. NFKC-normalize input.
     2. Strip citation markers.
     3. Find the first relational trigger (longest-match-first).
-    4. side_A = last contiguous non-stop-word token before the trigger.
-       side_B = first contiguous non-stop-word token after the trigger.
-    5. Return None when either side cannot be isolated (fail-closed).
+    4. side_A = the contiguous head-noun PHRASE ending at the last content
+       token before the trigger, extended LEFTWARD through contiguous content
+       tokens (modifiers precede the head in English).
+       side_B = the same construction anchored on the LAST non-quantity content
+       token of the post-trigger segment.
+    5. Return None when either side resolves to the empty phrase (fail-closed).
+
+    KNOWN DEFECT, round 12 (R12-03 / R12-10, registered as J-58, owner Sai):
+    side_B's anchor is the last content token of the WHOLE segment, so a
+    trailing attribution or adverbial clause replaces the asserted object
+    ("... causes X, researchers confirmed" anchors on "confirmed"). It cuts
+    both ways — Error-B when the trailing phrase is in the source and the
+    object is not, Error-A when the reverse. Moving the anchor changes the
+    Error-A/Error-B trade-off, which is Escalation #1.
 
     Returns a (side_A, side_B) pair of casefolded strings, or None.
     Pure function — no LLM, no network, no random, no wall-clock.
@@ -2716,55 +2970,169 @@ def extract_arguments(text: str) -> tuple[str, str] | None:
     before_text = stripped[:trigger_start].strip()
     after_text = stripped[trigger_end:].strip()
 
-    # --- Extract side_A: last content word(s) before trigger ---
-    # Tokenize on whitespace; strip punctuation; filter stop words; take last token.
-    _stop = _HEAD_NOUN_STOPS  # reuse absence-check stop-word set
+    # --- Extract the head-noun PHRASE on each side of the trigger ----------
+    #
+    # J-39 (round 10, closed 2026-10-02): this kept ONE TOKEN per side. "The
+    # ingestion pipeline causes silent data loss" became ("pipeline", "loss"),
+    # and two unrelated documents that each happened to use one of those common
+    # nouns satisfied the two-source rule — an FT deal-flow page ("a thinner
+    # pipeline leads to a wider loss") and an NEJM trial page ("sensorineural
+    # hearing loss") certified a causal claim nobody had made, at PASS 100.0.
+    #
+    # The modifiers are not decoration. "silent data loss" and "a pre-tax loss"
+    # are different objects, and the only thing separating them was the words
+    # the extractor discarded.
+    #
+    # The ANCHOR is unchanged — still the last content token before the trigger,
+    # and still the last non-digit content token after it (English noun-phrase
+    # heads sit rightmost). The change is that the phrase then EXTENDS LEFTWARD
+    # from that anchor through contiguous content tokens, because modifiers
+    # precede the head. Keeping the old anchor is what makes this a pure
+    # tightening: the needle can only grow, so a relation can only become
+    # harder to corroborate.
+    #
+    # Boundaries of the run: a stop word, a token that is pure punctuation
+    # (which is how a comma or clause break shows up after `split()`), or the
+    # start of the segment. A bare digit is SKIPPED WITHOUT BREAKING the run —
+    # "type 2 diabetes" is one phrase, and dropping the digit lets a source
+    # write "type II" — the exact behaviour the old side_B extractor had.
+    _stop = _ENDPOINT_PHRASE_STOPS
 
-    def _last_content_token(segment: str) -> str:
-        """Return the last non-stop-word token from segment (casefolded)."""
-        tokens = segment.split()
-        for raw in reversed(tokens):
-            tok = raw.strip(".,;:!?\"'()[]{}")
-            if tok and tok.casefold() not in _stop:
-                return tok.casefold()
+    def _cells(segment: str) -> list[tuple[str, bool]]:
+        """Return (casefolded token, is_content) for each whitespace token.
+
+        is_content is False for a run BOUNDARY: a stop word, or a token that is
+        empty once punctuation is stripped (which is how a comma or clause break
+        survives `split()`).
+
+        A QUANTITY EXPRESSION is returned as ("", True) — inside the run,
+        contributing nothing to the phrase. That covers a digit-bearing token
+        ("2", "97%", "12.5%") and a spelled number word ("ninety", "million").
+        A quantity is verified by the numeric guards (R10C-04 for digits, J-43
+        for spelled figures) against the CITED sources; it is not part of the
+        endpoint's identity, and requiring it here would check the same figure
+        twice under a weaker rule. It also lets a source write "type II" where
+        the draft wrote "type 2" — the behaviour the old side_B extractor had.
+        """
+        out: list[tuple[str, bool]] = []
+        for raw in segment.split():
+            tok = raw.strip(".,;:!?\"'()[]{}").casefold()
+            if not tok or tok in _stop:
+                out.append((tok, False))
+            elif _is_quantity_token(tok):
+                out.append(("", True))
+            else:
+                out.append((tok, True))
+            # A clause break ends the run even when its punctuation is attached
+            # to the word before it — which is the normal case, so testing only
+            # for a standalone punctuation token would have made the documented
+            # "never read across a comma" property false. "After the migration,
+            # data loss causes outages" must yield "data loss", not "migration
+            # data loss": a modifier on the far side of a clause boundary is not
+            # modifying this head. Recorded as a BOUNDARY cell after the token,
+            # so the token itself still counts.
+            if raw.rstrip("\"')]}").endswith((",", ";", ":", "—", "–")):
+                out.append(("", False))
+        return out
+
+    def _phrase_ending_at(cells: list[tuple[str, bool]], anchor: int) -> str:
+        """Join the contiguous content run that ends at *anchor*, left-extended."""
+        i = anchor
+        while i - 1 >= 0 and cells[i - 1][1]:
+            i -= 1
+        return " ".join(tok for tok, is_content in cells[i:anchor + 1] if tok)
+
+    def _side_a_phrase(segment: str) -> str:
+        cells = _cells(segment)
+        for i in range(len(cells) - 1, -1, -1):
+            if cells[i][1] and cells[i][0]:
+                return _phrase_ending_at(cells, i)
         return ""
 
-    def _first_content_token(segment: str) -> str:
-        """Return the head content token for side_B (casefolded).
+    def _side_b_phrase(segment: str) -> str:
+        """Anchor on the LAST non-digit content token, then extend leftward.
 
-        Strategy: collect all non-stop-word tokens; skip bare-numeric tokens
-        (tokens whose stripped form is entirely digits, e.g. '2' in 'type 2
-        diabetes'); return the last surviving token.  The last position is used
-        because English noun-phrase heads sit rightmost: 'type 2 diabetes' →
-        'diabetes', 'elevated cortisol' → 'cortisol'.
-
-        If filtering leaves no tokens, fall back to the first non-stop-word
-        token regardless of numeric status (fail-closed: return something rather
-        than empty, letting the downstream window_supports decide).
+        The fallback for an all-numeric side is gone with the digit-skip: a
+        segment whose only content is digits now yields "" and the caller
+        returns None, which is UNVERIFIED_RELATION. That is fail-closed, and it
+        replaces a fallback that handed `window_supports` a bare digit to match.
         """
-        tokens = segment.split()
-        content_tokens: list[str] = []
-        fallback: str = ""
-        for raw in tokens:
-            tok = raw.strip(".,;:!?\"'()[]{}")
-            if tok and tok.casefold() not in _stop:
-                if not fallback:
-                    fallback = tok.casefold()
-                # Skip bare-numeric tokens (pure digit strings, e.g. '2', '10').
-                if tok.isdigit():
-                    continue
-                content_tokens.append(tok.casefold())
-        if content_tokens:
-            return content_tokens[-1]
-        return fallback
+        cells = _cells(segment)
+        last = -1
+        for i, (tok, is_content) in enumerate(cells):
+            if is_content and tok:
+                last = i
+        if last == -1:
+            return ""
+        return _phrase_ending_at(cells, last)
 
-    side_a = _last_content_token(before_text)
-    side_b = _first_content_token(after_text)
+    side_a = _side_a_phrase(before_text)
+    side_b = _side_b_phrase(after_text)
 
     if not side_a or not side_b:
         return None
 
     return (side_a, side_b)
+
+
+def _endpoint_in_window(window_text: str, endpoint: str) -> bool:
+    """True iff EVERY content token of *endpoint* occurs in *window_text*, each
+    on word boundaries.
+
+    THE ONE DEFINITION OF "CONTAINS AN ENDPOINT". Until 2026-10-02 there were
+    two, inside the same verdict branch: `window_supports` used a bare substring
+    (so "loss" was supported by "lossless", and a multi-token phrase had to
+    appear CONTIGUOUSLY), while `_relation_asserted` used `_contains_word`.
+    Two definitions of containment in one branch is a seam, and J-44 was filed
+    against exactly that seam. Both callers now route through here.
+
+    Word order is free and intervening words are allowed ("loss of data"
+    supports "data loss"), because a faithful source is not obliged to use the
+    draft's word order — demanding contiguity is Error-A with no Error-B closed.
+    What is NOT free is dropping a token: every modifier must be present
+    somewhere in the window.
+
+    An empty endpoint is False — never vacuously supported.
+
+    Pure function — no mutation, no LLM/network/random/wall-clock.
+    """
+    tokens = [tok for tok in _nfkc(endpoint).casefold().split() if tok]
+    if not tokens:
+        return False
+    window = _nfkc(window_text).casefold()
+
+    # J-44 WAS LANDED HERE ON 2026-10-02 AND WITHDRAWN THE SAME DAY (D-69).
+    #
+    # The clause was `_contains_word(window, tok) or _stem(tok) in window_stems`
+    # — a symmetric plural stem, endpoints only, triggers excluded. Round 12
+    # refuted it in one line: `_stem` strips a trailing "s" with no
+    # part-of-speech test, so it maps the NOUN "news" to the ADJECTIVE "new".
+    #
+    #   "The recall causes negative news [S1][S2]"
+    #     against two sources containing no "news" at all
+    #     -> UNVERIFIED_RELATION before J-44, GROUNDED / PASS 100.0 after it,
+    #        with evidence_basis reporting "checked verbatim".
+    #
+    # The argument that J-39's longer phrase bounded the stem was WRONG, and
+    # this is exactly how: when the collision lands on the HEAD noun and the
+    # modifier is a word the unrelated source happens to contain, the extra
+    # modifiers buy nothing. Same class: species/specie, ethics/ethic,
+    # damages/damage, lens/len.
+    #
+    # WHY IT IS NOT REPAIRED INSTEAD. Telling "news"/"new" from "cost"/"costs"
+    # requires knowing that "news" is not a plural — which is a DICTIONARY
+    # fact, not a suffix fact. Every repair that stays inside this file is a
+    # blacklist of s-final singular nouns, and an incomplete blacklist on a
+    # loosening is an Error-B generator: the one word missing from it is the
+    # attack. English s-final singulars are not a lexicon I can close the way
+    # the cardinal number words are closed.
+    #
+    # So the moat invariant decides it, literally: no change may reduce Error-A
+    # by raising Error-B. The Error-A is real and stays open as J-44, now
+    # Escalation #1 with its two candidate designs named. Reopening it needs a
+    # real morphological analyser, which is a dependency the verdict path may
+    # not import — i.e. it is a product decision, not a fix.
+    return all(_contains_word(window, tok) for tok in tokens)
 
 
 def window_supports(source: RetrievedSource, argument_text: str) -> bool:
@@ -2777,21 +3145,19 @@ def window_supports(source: RetrievedSource, argument_text: str) -> bool:
 
     Pure function — no mutation, no LLM/network/random/wall-clock.
     """
-    arg_normalized = _nfkc(argument_text).casefold().strip()
-    if not arg_normalized:
+    if not _nfkc(argument_text).casefold().strip():
         return False
 
     sentences = _split_sentences(source.text)
     if not sentences:
         # Single-block source — check the whole text.
-        return arg_normalized in _nfkc(source.text).casefold()
+        return _endpoint_in_window(source.text, argument_text)
 
     n = len(sentences)
     for c in range(n):
         lo = max(0, c - 2)
         hi = min(n, c + 3)
-        window_text = _nfkc(" ".join(sentences[lo:hi])).casefold()
-        if arg_normalized in window_text:
+        if _endpoint_in_window(" ".join(sentences[lo:hi]), argument_text):
             return True
 
     return False
@@ -2854,12 +3220,57 @@ def _relation_asserted(
             lo = max(0, c - 2)
             hi = min(n, c + 3)
             window = _nfkc(" ".join(sentences[lo:hi])).casefold()
-            if not _contains_word(window, a) or not _contains_word(window, b):
+            if not _endpoint_in_window(window, a) or not _endpoint_in_window(
+                    window, b):
                 continue
             if any(_contains_word(window, trigger)
                    for trigger in _RELATIONAL_TRIGGERS):
                 return True
     return False
+
+
+# ADR-007 diagnostic values. A closed set, like the verdict taxonomy — a new
+# one needs the ADR amended, for the same reason.
+RELATION_CORROBORATED = "corroborated_by_two_sources"
+RELATION_NOT_CORROBORATED = "not_corroborated"
+RELATION_FIGURE_ABSENT = "figure_not_in_cited_sources"
+
+
+def relational_diagnostic(claim: Claim, store: dict[str, RetrievedSource]) -> str:
+    """Report what the DEMOTED relational rule would have concluded. Decides nothing.
+
+    This is the whole of the pre-ADR-007 relational branch, moved intact out of
+    the verdict path: the two-source corroboration rule (`ground_relational`),
+    the numeric check (R10C-04) and the spelled-figure check (J-43). It is kept
+    rather than deleted on this repo's standing rule that a demoted computation
+    stays a VISIBLE no-op — `tier_sensitive` is kept for the same reason — so
+    that a future change cannot silently re-enable a path nobody re-validated.
+
+    Keeping it whole also keeps every tripwire written against it STRICT. Round
+    10's and round 12's findings are assertions about what this function
+    returns, not about a gate verdict, so they stay red-able at full strength
+    instead of being softened to "the claim does not PASS" — which would have
+    been true for the wrong reason and would have stopped measuring anything.
+
+    Returns one of RELATION_CORROBORATED / RELATION_NOT_CORROBORATED /
+    RELATION_FIGURE_ABSENT. Pure function — no mutation, no LLM/network/
+    random/wall-clock.
+    """
+    if ground_relational(claim, store) != Verdict.GROUNDED:
+        return RELATION_NOT_CORROBORATED
+
+    cited_verbatim = [
+        source
+        for source in (resolve(c, store) for c in claim.citations)
+        if source is not None
+        and source.full_text_source == "verbatim"
+        and source.text
+    ]
+    if claim.numeric_tokens and not numeric_ok(claim, cited_verbatim):
+        return RELATION_FIGURE_ABSENT
+    if not spelled_quantity_ok(claim, cited_verbatim):
+        return RELATION_FIGURE_ABSENT
+    return RELATION_CORROBORATED
 
 
 def ground_relational(claim: Claim, store: dict[str, RetrievedSource]) -> Verdict:
@@ -3021,39 +3432,51 @@ def ground(
     if any(resolve(c, store) is None for c in claim.citations):
         return Verdict.UNVERIFIED_CITATION
 
+    # ======================================================================
+    # RELATIONAL GROUNDING IS DEMOTED (ADR-007, Sai's ruling 2026-10-02).
+    # A RELATIONAL claim IS NEVER CERTIFIED. The two-source corroboration
+    # result is reported as a DIAGNOSTIC only (`relation_diagnostic`).
+    #
+    # WHY THE RULE WENT. Round 12 demonstrated SEVEN Error-B shapes on it, two
+    # CRITICAL, all pre-existing: a negated endpoint grounded by the positive, a
+    # trailing clause replacing the asserted object, a trigger merely
+    # CO-LOCATED in the window, direction-blindness, a window that DENIES the
+    # relation satisfying it, both endpoints resolving to one phrase, and the
+    # absence variant. Seven shapes on one rule is a CLASS: it was
+    # reconstructing "this source asserts a relation between A and B" from
+    # token co-occurrence, against an adversary who writes the document — the
+    # trap the comment stripper lost five rounds to (J-41), and the reason
+    # ADR-006 demoted T2.
+    #
+    # WHY A FLAT REFUSAL AND NOT FALL-THROUGH — D-74 WITHDRAWN (D-76).
+    # ADR-007 first let a relational claim fall through to the ordinary
+    # verbatim path, on the measured argument that it cost 0.360 Error-A
+    # against a flat refusal's 0.400. Round 13 refuted it: T1 and corroboration
+    # are NOT NESTED. T1 certifies on an 8-token contiguous span anchored at the
+    # claim's SUBJECT plus set-membership coverage, so a causal claim with a
+    # long subject phrase had its entire PREDICATE checked only by "do these
+    # words appear anywhere in this source". Direction reversal with no planted
+    # vocabulary, a source that explicitly DENIES the relation, and negation
+    # reversal ("causes no X" grounded by "causes X", because `no` is a stop
+    # word) all certified PASS 100.0. J-57, J-60 and J-61 were not closed by
+    # the demotion — they were MOVED ONTO T1.
+    #
+    # So the four points of Error-A that fall-through saved bought six Error-B
+    # shapes. The invariant is not a preference: Error-B is unrecoverable and no
+    # change may reduce Error-A by raising it. Sai priced the flat refusal at
+    # 0.400 and ruled on it; the refinement was mine and it was wrong.
+    #
+    # The machinery is KEPT, not deleted — `relational_diagnostic`,
+    # `ground_relational`, `extract_arguments`, `_endpoint_in_window` and
+    # `spelled_quantity_ok` all still run and still report, so every round-10
+    # and round-12 tripwire stays strict and a future change cannot silently
+    # re-enable a path nobody re-validated (the `tier_sensitive` precedent).
+    # `UNVERIFIED_RELATION` is therefore the verdict again — reachable, and
+    # meaning exactly one thing: this gate does not certify relations.
+    # ======================================================================
     if claim.kind == ClaimKind.RELATIONAL:
-        verdict = ground_relational(claim, store)
-        # R10C-04 (round 10): a number inside a RELATIONAL claim was NEVER
-        # checked. `classify` orders RELATIONAL ahead of NUMERIC and this branch
-        # returns above the numeric branch, so "causes 97% of all silent data
-        # loss" certified GROUNDED at PASS 100.0 against a store containing no
-        # percentage at all. The relation was corroborated and the FIGURE —
-        # the part a reader actually quotes — was never looked at.
-        #
-        # Fail-closed: this can only downgrade an otherwise-GROUNDED relational
-        # claim to UNVERIFIED_NUMBER. It never creates a PASS.
-        #
-        # ABSENCE is deliberately NOT given the same treatment. numeric_ok asks
-        # "does this figure appear in a source", which is the wrong question for
-        # a claim asserting that something is missing. Absence is incidentally
-        # protected today because a digit becomes a strong anchor — that is a
-        # CEILING, not a defence, and it is recorded as such in J-40.
-        if verdict == Verdict.GROUNDED and claim.numeric_tokens:
-            # R11B-03 (round 11): this drew from store.values(), so a figure
-            # appearing ONLY in an uncited, unrelated source satisfied the
-            # check. The NUMERIC branch below has always used the claim's OWN
-            # cited sources, and this must match it — a number is grounded by
-            # what the claim CITES, not by what happens to be in the session.
-            cited_verbatim = [
-                source
-                for source in (resolve(c, store) for c in claim.citations)
-                if source is not None
-                and source.full_text_source == "verbatim"
-                and source.text
-            ]
-            if not numeric_ok(claim, cited_verbatim):
-                return Verdict.UNVERIFIED_NUMBER
-        return verdict
+        return Verdict.UNVERIFIED_RELATION
+
     if claim.kind == ClaimKind.ABSENCE:
         # R10C-03: a store of ONLY haiku_summary records certified an absence at
         # PASS 100.0, breaking the named invariant that a summary can never
@@ -3115,7 +3538,46 @@ def ground(
     if not verbatim:
         return Verdict.UNGROUNDABLE
 
-    if claim.kind == ClaimKind.NUMERIC and not numeric_ok(claim, verbatim):
+    # R13-01 / R13-02 (round 13) — A CHECK GATED ON A CLASSIFIER BRANCH IS A
+    # CHECK AN AUTHOR CAN ROUTE AROUND BY ADDING ONE WORD.
+    #
+    # This read `claim.kind == ClaimKind.NUMERIC`. `classify`'s cascade is
+    # NON_CLAIM -> RELATIONAL -> ABSENCE -> NUMERIC, so a figure inside a causal
+    # sentence is kind RELATIONAL and never reached here. Before ADR-007 the
+    # relational branch ran `numeric_ok` itself (R10C-04); ADR-007 deleted that
+    # branch and I did not re-home the check, so for a few hours the gate
+    # certified a fabricated monetary figure at PASS 100.0 / exit 0 while
+    # PRINTING `figure_not_in_cited_sources` in the same record:
+    #
+    #   "The 2019 federal review of interbank settlement latency across the
+    #    eurozone causes a 3.7 million euro shortfall [S1][S2]."
+    #
+    # The deeper defect is the gating itself, and it predates ADR-007: a figure
+    # is a figure whatever sentence it sits in. So this check no longer asks
+    # what KIND the claim is — every claim THAT REACHES HERE and carries a
+    # figure must have it present in a cited source. Strictly fail-closed: it
+    # can only move claims away from PASS.
+    #
+    # SCOPE, CORRECTED 2026-10-02 (R14-06, R14-03). An earlier version of this
+    # comment said "an ABSENCE claim carrying a figure skipped this check too",
+    # in the past tense, and ADR-007 shipped the same sentence. That overstated
+    # D-77 and the same text reached the ADR: **ABSENCE and RELATIONAL return
+    # ABOVE this line and so never reach it.** "Kind-independent" is true only
+    # of the claims that arrive here at all.
+    #
+    # Demonstrated, not inferred (R14-03a): the digit 4200 appearing in NO
+    # source text certifies `ABSENCE_SUPPORTED` at PASS 100.0 / exit 0, because
+    # numeric_ok is unreachable from the absence branch. Tripwired in
+    # tests/red_team_moat/test_moat_r14_hedge_classifier_absence.py and
+    # registered J-71 — NOT fixed here, because moving these two checks above
+    # the kind dispatch changes which claims can pass and is Escalation #1.
+    if claim.numeric_tokens and not numeric_ok(claim, verbatim):
+        return Verdict.UNVERIFIED_NUMBER
+
+    # The same hole, for a figure spelled in words (J-43). `spelled_quantity_ok`
+    # lived only in the deleted relational branch, so after ADR-007 it was
+    # reachable from nothing at all.
+    if not spelled_quantity_ok(claim, verbatim):
         return Verdict.UNVERIFIED_NUMBER
 
     # T2 IS NO LONGER CONSULTED HERE (ADR-006, 2026-09-02). T1 alone certifies.
@@ -3244,6 +3706,24 @@ def evidence_basis(claim: Claim, store: dict[str, RetrievedSource]) -> str:
             return ("The evidence store recorded NO search queries. An absence "
                     "claim is substantiated by searches that were actually "
                     "run, and there are none to show.")
+        # J-45 (2026-10-02): this listing used to end at the queries, which
+        # read as "all of these counted". They do not. check_absence narrows
+        # them twice before anything is certified — by the claim's SCOPE
+        # (OI-ABS-01: to establish absence FROM a domain you must have looked
+        # IN it) and then by requiring the subject's head noun, plus a
+        # corroborating content word when the subject is specific.
+        #
+        # So a user reading "3 distinct search queries" next to a REFUSAL had
+        # no way to see that only one of the three was eligible, which is
+        # precisely the information needed to fix the draft. That is the D-35
+        # class: a display that states something the verdict does not.
+        #
+        # WHY THIS DOES NOT RECOMPUTE THE COUNT. Re-deriving match_count here
+        # would put the absence rule in two places, and two copies of a moat
+        # rule diverge — the failure this file has already paid for. The
+        # display's job is to report what was CONSULTED and to name the rule
+        # that narrows it; the verdict remains the single authority on how many
+        # qualified. Display must never become decision (D-34).
         listed = "; ".join(f'"{q}"' for q in queries)
         return (f"An absence claim is checked against what was SEARCHED, not "
                 f"what was cited. Complete record consulted: "
@@ -3251,7 +3731,11 @@ def evidence_basis(claim: Claim, store: dict[str, RetrievedSource]) -> str:
                 f"{_plural(len(queries), 'query', 'queries')} and the text of "
                 f"{n_src} retrieved {_plural(n_src, 'source', 'sources')}. "
                 f"The {_plural(len(queries), 'query was', 'queries were')}: "
-                f"{listed}.")
+                f"{listed}. NOTE: this is the complete record consulted, not "
+                f"the set that counted. A query counts toward the minimum only "
+                f"if it addresses the claim's asserted SCOPE and carries the "
+                f"subject's head noun, so fewer of the above may have "
+                f"qualified than are listed.")
 
     if not claim.citations:
         n_src = len(store)
@@ -3310,11 +3794,136 @@ def evidence_basis(claim: Claim, store: dict[str, RetrievedSource]) -> str:
             f"{_plural(len(verbatim), 'source', 'sources')}: {checked}.{note}")
 
 
+# ======================================================================
+# THE SUPPORT DIAGNOSTIC (J-74, 2026-10-03) — A MEASUREMENT, NEVER A VERDICT.
+#
+# WHAT IT REPORTS. For a claim that cites a verbatim source, it finds the
+# sentence in that source with the greatest content-word overlap with the claim
+# — the sentence the claim is effectively resting on — and reports whether that
+# sentence carries an attribution, denial or conditional token. "We found no
+# evidence that X" fires. "X happened in three regions" does not.
+#
+# WHY IT IS NOT A VERDICT, AND MUST NEVER BECOME ONE. The thing it approximates
+# is entailment, and the state of the art at entailment is 65-75% balanced
+# accuracy (MiniCheck-FT5 74.7, GPT-4 75.3 on LLM-AggreFact, EMNLP 2024;
+# HHEM-2.1-Open 64.4/74.3 on RAGTruth). Godbole & Jia (arXiv 2501.14883) find
+# SOTA evaluators disagree per instance and miss close paraphrases. A token
+# scan is cruder still. **Gating on it would manufacture Error-A at scale while
+# still missing cases** — so it reports, and `ground()` never sees it. ADR-008.
+#
+# WHY IT CAN BE SENTENCE-SCOPED WHERE `_span_is_hedged` CANNOT. That function
+# receives a TOKEN LIST, and `_tokenize` strips punctuation, so sentence
+# boundaries are unrecoverable inside it (measured 2026-10-02 — this is the
+# reason J-70's narrow repair cannot be written at that layer). This runs on the
+# RAW source text, which still has its full stops.
+#
+# WHY IT REUSES `_SPAN_HEDGE_TOKENS` RATHER THAN A NEW LIST. A new lexicon would
+# own new gaps, and this project has paid for one of those already (J-44's stem,
+# D-69). The vocabulary is not what is wrong with the verdict path; the SCOPE
+# is. Chesterton's Fence: change one thing.
+#
+# CEILING: a token scan cannot tell "the study found no link" from "no study
+# found a link" — both fire. It over-flags by construction, which is the safe
+# direction for a REPORT (nothing is refused because of it) and the wrong
+# direction for a verdict. Its false-positive rate on `tests/honest_drafts/`
+# and on the n=52 gold corpus is published in CR-009 rather than tuned away:
+# tuning a signal nobody has re-validated is how 2026-10-02 went. Upgrade path
+# is J-70, which is Sai's (Escalation #1).
+SUPPORT_NO_CITED_SOURCE = "no_cited_verbatim_source"
+SUPPORT_SENTENCE_MAY_NOT_ASSERT = "cited_sentence_may_not_assert_claim"
+SUPPORT_NO_HEDGE_FOUND = "no_hedge_in_cited_sentence"
+
+
+def _most_overlapping_sentence(claim_text: str, source_text: str) -> str:
+    """Return the sentence of *source_text* sharing most content words with the claim.
+
+    Empty string when the source has no sentences. Ties go to the first, which
+    is arbitrary but deterministic — and determinism is the point: this function
+    must return the same answer on the same bytes forever. Pure.
+    """
+    claim_words = set(_content_words(_tokenize(_strip_citations(claim_text))))
+    best, best_score = "", -1
+    for sentence in _split_sentences(source_text):
+        overlap = len(claim_words & set(_content_words(_tokenize(sentence))))
+        if overlap > best_score:
+            best, best_score = sentence, overlap
+    return best
+
+
+def support_diagnostic(claim: Claim, store: dict[str, RetrievedSource]) -> str:
+    """Report whether the cited sentence appears to ASSERT the claim. Pure.
+
+    DIAGNOSTIC ONLY. No verdict path may reference this function; an AST guard
+    in tests/test_support_diagnostic.py enforces it, exactly as one does for
+    evidence_basis (D-34: display must never become decision).
+    """
+    cited = [
+        source for source in (resolve(c, store) for c in claim.citations)
+        if source is not None
+        and source.full_text_source == "verbatim"
+        and source.text
+    ]
+    if not cited:
+        return SUPPORT_NO_CITED_SOURCE
+    for source in cited:
+        sentence = _most_overlapping_sentence(claim.text, source.text)
+        if not sentence:
+            continue
+        tokens = set(_tokenize(sentence))
+        if tokens & _SPAN_HEDGE_TOKENS:
+            return SUPPORT_SENTENCE_MAY_NOT_ASSERT
+    return SUPPORT_NO_HEDGE_FOUND
+
+
+# ======================================================================
+# THE SCOPE STATEMENT (J-73, 2026-10-03). Every report carries it.
+#
+# WHY IT IS IN THE PRODUCT AND NOT IN THE README. Ding et al. (AAAI 2025)
+# measured that user trust RISES when output carries citations **even when the
+# citations are random**, and falls only when users actually check them. So a
+# PASS verdict buys unearned trust by default, and a disclosure the reader never
+# opens does not spend it back. Magesh et al. (Stanford, JELS) is what happens
+# to an unqualified claim: it quotes a vendor's "100% hallucination-free linked
+# legal citations" beside a measured 17-33% hallucination rate.
+#
+# WHAT IT MUST NOT SAY. "this session" is a claim about SCOPE, and the gate can
+# only make it when --session-id was passed (J-56: evidence_basis once said
+# "NEVER RETRIEVED this session" about a store it had no session information
+# for). So there are two variants and the caller's scoping decides which. The
+# unscoped one is the weaker, truthful statement.
+#
+# Deliberately NOT the word "verified" and NOT "grounded" unqualified, anywhere.
+_SCOPE_SESSION = (
+    "PASS means every claim in this draft is traceable to text in a source "
+    "retrieved this session; it does not mean the source agrees with the "
+    "claim, and a source that denies or hedges a claim can still satisfy this "
+    "check."
+)
+_SCOPE_STORE = (
+    "PASS means every claim in this draft is traceable to text in a source "
+    "present in the evidence store supplied to this run; it does not mean the "
+    "source agrees with the claim, and a source that denies or hedges a claim "
+    "can still satisfy this check. Session scope is NOT asserted: pass "
+    "--session-id to require that the sources were retrieved this session."
+)
+
+
+def scope_statement(session_scoped: bool) -> str:
+    """Return the scope statement matching what this run can actually claim.
+
+    Pure. `session_scoped` is True only when the caller passed --session-id,
+    which is the only circumstance under which the gate knows the store belongs
+    to one session.
+    """
+    return _SCOPE_SESSION if session_scoped else _SCOPE_STORE
+
+
 def score_report(
     claims: list[Claim],
     store: dict[str, RetrievedSource],
     threshold: float = 90.0,
     lex_tau: float = _LEX_TAU_DEFAULT,
+    session_scoped: bool = False,
 ) -> dict:
     """Compute the grounding SCORE, gate, and retained-violation appendix (spec §4.5).
 
@@ -3381,13 +3990,25 @@ def score_report(
 
     for claim in claims:
         verdict = ground(claim, store, lex_tau)
-        per_claim.append({
+        entry = {
             "index": claim.index,
             "text": claim.text,
             "kind": claim.kind.value,
             "verdict": verdict.value,
             "evidence_basis": evidence_basis(claim, store),
-        })
+        }
+        # ADR-007: the relational corroboration result is INFORMATION, not a
+        # verdict. It is reported so a human can see what the two-source rule
+        # would have said, and it is deliberately NOT consulted by `ground` —
+        # pinned by an AST guard, because a diagnostic that creeps back into
+        # the verdict path is how a demotion silently un-demotes itself.
+        if claim.kind == ClaimKind.RELATIONAL:
+            entry["relation_diagnostic"] = relational_diagnostic(claim, store)
+        # J-74: emitted for EVERY claim, not gated on kind. A check gated on a
+        # classifier branch is a check an author routes around by adding one
+        # word — that was R14-01, and D-77 learned it the expensive way.
+        entry["support_diagnostic"] = support_diagnostic(claim, store)
+        per_claim.append(entry)
 
         if verdict == Verdict.UNVERIFIED_CITATION:
             has_unverified_citation = True
@@ -3435,6 +4056,9 @@ def score_report(
         "vacuous": vacuous,
         "per_claim": per_claim,
         "retained_appendix": retained_appendix,
+        # J-73: the report states its own scope. Additive and display-only —
+        # nothing reads it back, and no verdict consults it.
+        "scope": scope_statement(session_scoped),
     }
 
 
@@ -3512,7 +4136,10 @@ def main() -> None:
     if args.session_id is not None:
         assert_single_session(store, args.session_id)
     claims = [classify(c) for c in decompose(draft_text)]
-    report = score_report(claims, store, threshold=args.threshold)
+    report = score_report(
+        claims, store, threshold=args.threshold,
+        session_scoped=args.session_id is not None,
+    )
 
     gate: str = report["gate"]
 
@@ -3523,8 +4150,13 @@ def main() -> None:
         # Write grounding-report.yaml to CWD.
         with open("grounding-report.yaml", "w", encoding="utf-8") as fh:
             _yaml.safe_dump(report, fh, sort_keys=True, allow_unicode=True)
-        # One-line human summary to stdout.
+        # One-line human summary to stdout, PLUS the scope statement (J-73).
+        # The human path is the one a person actually reads, so the disclosure
+        # has to be here and not only in the file. Printed on every verdict,
+        # not just PASS: a reader deciding whether to trust a FAIL needs to
+        # know what the check does and does not cover just as much.
         print(f"gate={gate} grounding_score={report['grounding_score']}")
+        print(report["scope"])
 
     _sys.exit(0 if gate == "PASS" else 1)
 

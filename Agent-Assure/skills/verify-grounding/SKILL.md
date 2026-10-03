@@ -31,8 +31,9 @@ Say this plainly when you report a PASS. A PASS is not a certificate of truth.
   against what the session READ. The agent's own tool choices are trusted, so a
   file the agent wrote and then read back counts as a verbatim source.
 - **It checks verbatim provenance, not meaning.** A faithful paraphrase is
-  REFUSED, not passed. Roughly a third of honest claims read `UNGROUNDED` on the
-  calibration corpus (Error-A 0.320, n=52, CR-004). An `UNGROUNDED` verdict means
+  REFUSED, not passed. **Roughly two in five** honest claims read `UNGROUNDED` on
+  the calibration corpus (**Error-A 0.400, n=52, CR-007** — it rose from 0.320
+  when relational grounding was demoted, ADR-007). An `UNGROUNDED` verdict means
   "I could not mechanically trace this", never "this is false".
 - **It does not check whether the source is correct**, current, or competent.
 - **"We found no evidence of X" is only as good as the searches recorded.** The
@@ -56,6 +57,35 @@ Say this plainly when you report a PASS. A PASS is not a certificate of truth.
 These are scope, not bugs — each is pinned by a test in
 `tests/test_product_claim.py`, so if one ever stops being true this list is
 wrong and must be updated.
+
+## Causal claims are reported, never certified (ADR-007)
+
+A RELATIONAL claim — "X causes Y", "A drives B", "C is responsible for D" — is
+grounded by exactly one thing: **a cited source containing that claim
+verbatim.** It is NEVER grounded because two sources each mention one end of it.
+
+The old two-source corroboration rule was demoted on 2026-10-02 after a
+red-team round demonstrated seven ways to satisfy it with documents that assert
+nothing of the kind — a negated endpoint grounded by the positive, a window that
+DENIES the relation, the reverse direction, two unrelated pages sharing a common
+noun. Seven shapes on one rule is a class, not a backlog.
+
+The rule still RUNS and still reports, as `relation_diagnostic` on each
+relational claim:
+
+| value | meaning |
+|---|---|
+| `corroborated_by_two_sources` | the old rule would have been satisfied |
+| `not_corroborated` | it would not |
+| `figure_not_in_cited_sources` | a figure in the claim is absent from the cited sources |
+
+**Read it as a lead, never as a verdict.** `corroborated_by_two_sources` with
+`UNGROUNDED` is the normal, expected output for an honest causal claim: it means
+the sources support the shape of the relation but none of them states it, so the
+gate will not certify it and the author must quote a source or soften the claim.
+
+**Tell the user this when it happens.** A draft of causal prose will come back
+mostly UNGROUNDED, and that is the gate working, not failing.
 
 ## The moat: mechanical, not model-judged
 
@@ -166,6 +196,30 @@ after the sentence-final period is parsed as its own segment and detaches from i
 claim (which then reads as UNCITED). This is fail-safe (it over-flags, never
 under-flags), but note it when a draft's claims come back UNCITED unexpectedly.
 
+## Authoring notes: keep them on ONE line
+
+An HTML comment is stripped only when it OPENS AND CLOSES ON THE SAME LINE:
+`<!-- check this -->`. A note spread over several lines is NOT stripped — its
+inner prose is decomposed and scored as claims, and the draft fails on sentences
+nobody meant to publish.
+
+```markdown
+<!-- TODO: confirm the replica count with infra -->   <- stripped, invisible to the gate
+<!--
+TODO: confirm the replica count with infra            <- SCORED. Reads UNCITED, fails the draft.
+-->
+```
+
+This is deliberate and it is not going to change (J-48). Four designs for a
+block-comment stripper have been tried and all four lost: a stripper is an
+UNBOUNDED DELETION primitive, and every version found a way to swallow real
+claims instead of a note — one of them deleted multi-paragraph prose and
+certified the remainder at PASS 100.0 because a CRLF blank line voided its
+guard. **Refusing a note is Error-A: loud, recoverable, and the author fixes it
+in one keystroke. Deleting a claim is Error-B: silent and unrecoverable.** The
+burden stays with the author because only the author can tell a note from a
+claim.
+
 ## Verdict → gate summary (ADR-005 semantics, accepted 2026-07-12)
 
 | Gate | Condition |
@@ -183,3 +237,14 @@ questions, pure opinion) are excluded from the scored denominator.
 
 - [references/grounding-failure-types.md](../../references/grounding-failure-types.md) — every verdict, what it catches, how to fix
 - Engine internals, JSONL format, and grounding tiers: the plugin `README.md`
+
+**What PASS means, and what it does not (ADR-008).** PASS means every claim is
+**traceable** to text in a source the run was given — it does **not** mean the
+source agrees with the claim. A source reading *"we found no evidence that X"*
+can satisfy the check for a draft asserting X (round 14, R14-04), because the
+gate matches a contiguous verbatim span and the denial can sit outside it. Every
+claim therefore carries a `support_diagnostic`; `cited_sentence_may_not_assert_claim`
+means **read that sentence yourself**. It is an advisory and nothing is refused
+because of it — **roughly 1 in 4 of its flags is a false alarm** (26.7% of
+claims the gate passes, n=52 gold). The word "verified" is deliberately absent
+from this tool's output: it checks provenance, not truth.

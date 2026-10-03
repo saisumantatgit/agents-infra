@@ -45,7 +45,7 @@ Run from `Agent-Assure/` (env is `uv`; `install.sh` provisions runtime `.venv`).
 ```bash
 bash install.sh                      # provision .venv (Python >=3.11 + runtime deps)
 uv sync                              # provisions runtime deps AND pytest (dev group)
-uv run pytest                        # full suite — 628 passed + 2 skipped + 58 xfailed
+uv run pytest                        # full suite — 789 passed + 2 skipped + 61 xfailed
                                      #   (2026-10-01; the count moves with every
                                      #   red-team round, so trust the RUN, not this
                                      #   number). The xfails are deliberately-open
@@ -157,7 +157,8 @@ uv run python -m calibration.run_calibration   # sweep + LOO + emit CR (module f
 | `Agent-Assure/calibration/run_calibration.py` | Bootstrap sweep entry (legacy `labeling.csv`, n=12, inline labels — frozen, CR-001 depends on it) |
 | `Agent-Assure/calibration/labeling-v2.csv` | **Scaffold** — DERIVED (claim, evidence, **source_type**, candidate, rationale). No human column; regenerate freely |
 | `Agent-Assure/calibration/labels-v2.csv` | **Labels** — AUTHORED. **RATIFIED GOLD 2026-09-02** (52 rows, Sai). No generator writes it |
-| `Agent-Assure/calibration/CR-005-launch-claim.md` | **Current CR**: launch-claim window (J-25…J-41r, J-22, J-38), A=0.320 B=0.000 — deployed 2026-10-02. **Zero delta is NON-MEASUREMENT, not safety**: no corpus row carries the shapes these changes touch |
+| `Agent-Assure/calibration/CR-006-delivery-queue.md` | **Current CR**: J-48/J-43/J-39 landed, J-44 LANDED AND WITHDRAWN (D-69, an Error-B I caused), round 12 = 16 findings / 9 Error-B. A=0.320 B=0.000 unchanged, so CR-005 is still the deployed operating point |
+| `Agent-Assure/calibration/CR-005-launch-claim.md` | Launch-claim window (J-25…J-41r, J-22, J-38), A=0.320 B=0.000 — deployed 2026-10-02. **Zero delta is NON-MEASUREMENT, not safety**: no corpus row carries the shapes these changes touch |
 | `Agent-Assure/calibration/CR-004-absence-scope.md` | Superseded by CR-005: absence SCOPE rule, A=0.320 B=0.000 — deployed 2026-09-03 |
 | `Agent-Assure/calibration/CR-003-t2-demotion.md` | T2 demoted, lex_tau RETIRED (A=0.320 B=0.074) |
 | `docs/decisions/ADR-006-demote-t2.md` | Why T2 cannot be sufficient, why the coverage repair was rejected, what quote-mining costs |
@@ -179,6 +180,19 @@ uv run python -m calibration.run_calibration   # sweep + LOO + emit CR (module f
   spec's one-sentence promise ("actually retrieved THIS session"), so treat it as
   the product's largest open gap, not as a working guarantee. Owner: Sai
   (Escalation #4 — the remedy is in the capture hook).
+- **A word list that drives a REFUSAL and one that licenses an ACCEPTANCE are
+  not the same object (D-69, 2026-10-02).** `_SPELLED_NUMBER_WORDS` is legitimate
+  because a missing member means a figure goes unchecked — an ordinary bug you
+  fix by adding strings (R12-05 was exactly that). An s-final-singular blacklist
+  guarding a plural stem is NOT legitimate, because a missing member **is the
+  attack**: `_stem` maps the noun "news" to the adjective "new", and a
+  fabricated causal claim certified PASS 100.0. J-44 landed and was withdrawn
+  the same day. Ask of any new lexicon: *which way does a missing member point?*
+- **The relational branch has SEVEN demonstrated Error-B shapes, registered and
+  NOT fixed (J-57 … J-62, J-64; round 12).** Negated endpoints, the side_B
+  anchor, a co-located trigger, direction-blindness, denial windows, absence
+  spelled counts, and two endpoints resolving to the same phrase. They are pre-existing — each reproduces against `1c00bdc` — so they do
+  not regress CR-005, but do NOT read the relational branch as settled.
 - **Citation placement matters.** Markers go inside the sentence before the final
   period; a marker after the period detaches and reads `UNCITED` (fail-safe).
 - **`gate` / `nli_tau` are `deferred` in CR-001**, not derived: single-claim

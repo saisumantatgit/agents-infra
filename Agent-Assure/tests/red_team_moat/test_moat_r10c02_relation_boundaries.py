@@ -65,15 +65,19 @@ def test_endpoint_matched_only_inside_another_word_is_refused(tmp_path):
     for source in SUBSTRING_ONLY:
         assert "ai" in source["text"].casefold(), "fixture lost its premise"
     rep = _report(tmp_path, "AI drives mass layoffs [S1][S2].\n", SUBSTRING_ONLY)
-    assert rep["per_claim"][0]["verdict"] == "UNVERIFIED_RELATION"
+    assert rep["per_claim"][0]["relation_diagnostic"] == g.RELATION_NOT_CORROBORATED
     assert rep["gate"] != "PASS"
 
 
-def test_the_genuine_relation_still_certifies(tmp_path):
-    """CONTROL. Without this the fix could be 'refuse all relational claims'."""
+def test_the_genuine_relation_is_still_CORROBORATED(tmp_path):
+    """CONTROL. Without this the fix could be 'refuse all relational claims'.
+
+    Under ADR-007 this control moved from the verdict to the diagnostic: corroboration is still measured (relation_diagnostic), it just no longer votes on the gate, so this is not a weakening.
+    """
     rep = _report(tmp_path, "AI drives mass layoffs [S1][S2].\n", GENUINE)
-    assert rep["per_claim"][0]["verdict"] == "GROUNDED"
-    assert rep["gate"] == "PASS"
+    assert rep["per_claim"][0]["relation_diagnostic"] == g.RELATION_CORROBORATED
+    assert rep["per_claim"][0]["verdict"] == "UNVERIFIED_RELATION"
+    assert rep["gate"] == "FAIL"
 
 
 @pytest.mark.parametrize("word,inside", [

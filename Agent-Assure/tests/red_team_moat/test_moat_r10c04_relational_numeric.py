@@ -64,27 +64,33 @@ def test_a_figure_absent_from_the_store_is_refused(tmp_path, figure):
     rep = _report(tmp_path,
                   f"Insulin resistance causes {figure} type 2 diabetes "
                   f"[S2][S3].\n", NO_NUMBER)
-    assert rep["per_claim"][0]["verdict"] == "UNVERIFIED_NUMBER"
+    assert rep["per_claim"][0]["relation_diagnostic"] == g.RELATION_FIGURE_ABSENT
     assert rep["gate"] != "PASS"
 
 
 def test_the_relation_is_still_corroborated_without_a_figure(tmp_path):
     """CONTROL. The fix must not break relational grounding itself — otherwise
-    it is 'refuse all relational claims' wearing a numeric costume."""
+    it is 'refuse all relational claims' wearing a numeric costume.
+
+    Under ADR-007 this control moved from the verdict to the diagnostic: corroboration is still measured (relation_diagnostic), it just no longer votes on the gate, so this is not a weakening."""
     rep = _report(tmp_path,
                   "Insulin resistance causes type 2 diabetes [S2][S3].\n",
                   NO_NUMBER)
-    assert rep["per_claim"][0]["verdict"] == "GROUNDED"
-    assert rep["gate"] == "PASS"
+    assert rep["per_claim"][0]["relation_diagnostic"] == g.RELATION_CORROBORATED
+    assert rep["per_claim"][0]["verdict"] == "UNVERIFIED_RELATION"
+    assert rep["gate"] == "FAIL"
 
 
-def test_a_figure_PRESENT_in_the_store_still_certifies(tmp_path):
-    """The control that matters most: this must not become 'any number fails'."""
+def test_a_figure_PRESENT_in_the_store_leaves_the_diagnostic_clean(tmp_path):
+    """The control that matters most: this must not become 'any number fails'.
+
+    Under ADR-007 this control moved from the verdict to the diagnostic: corroboration is still measured (relation_diagnostic), it just no longer votes on the gate, so this is not a weakening."""
     rep = _report(tmp_path,
                   "Insulin resistance causes 97% of all type 2 diabetes "
                   "[S2][S3].\n", WITH_97)
-    assert rep["per_claim"][0]["verdict"] == "GROUNDED"
-    assert rep["gate"] == "PASS"
+    assert rep["per_claim"][0]["relation_diagnostic"] == g.RELATION_CORROBORATED
+    assert rep["per_claim"][0]["verdict"] == "UNVERIFIED_RELATION"
+    assert rep["gate"] == "FAIL"
 
 
 def test_percent_does_not_match_a_bare_number(tmp_path):
@@ -118,72 +124,195 @@ def test_a_figure_in_an_uncited_source_does_not_ground_the_claim(tmp_path):
     rep = _report(tmp_path,
                   "Insulin resistance causes 97% of all type 2 diabetes "
                   "[S2][S3].\n", NO_NUMBER + [distractor])
-    assert rep["per_claim"][0]["verdict"] == "UNVERIFIED_NUMBER"
+    assert rep["per_claim"][0]["relation_diagnostic"] == g.RELATION_FIGURE_ABSENT
     assert rep["gate"] != "PASS"
 
 
-def test_the_figure_still_grounds_when_the_CITED_source_carries_it(tmp_path):
-    """CONTROL for the above: cited-only must not become 'never grounds'."""
+def test_the_figure_satisfies_the_diagnostic_when_the_CITED_source_carries_it(tmp_path):
+    """CONTROL for the above: cited-only must not become 'never grounds'.
+
+    Under ADR-007 this control moved from the verdict to the diagnostic: corroboration is still measured (relation_diagnostic), it just no longer votes on the gate, so this is not a weakening."""
     rep = _report(tmp_path,
                   "Insulin resistance causes 97% of all type 2 diabetes "
                   "[S2][S3].\n", WITH_97)
-    assert rep["per_claim"][0]["verdict"] == "GROUNDED"
-    assert rep["gate"] == "PASS"
+    assert rep["per_claim"][0]["relation_diagnostic"] == g.RELATION_CORROBORATED
+    assert rep["per_claim"][0]["verdict"] == "UNVERIFIED_RELATION"
+    assert rep["gate"] == "FAIL"
 
 
-# J-43: a figure a reader would quote, written without a digit, is never
-# extracted by _NUMERIC_RE and therefore never checked. Each of these certifies.
+# J-43 — CLOSED 2026-10-02 for the SPELLED-NUMBER class (Sai's ruling).
 #
-# WHY IT IS NOT FIXED HERE. Every candidate design is an ENUMERATION, and the
-# project's own law forbids keying a moat rule on a property the author controls:
-#   (a) a number-word list is a blacklist over ways to WRITE a number — miss a
-#       spelling and the attack survives ("ninety-seven" / "ninety seven" /
-#       "0.97" / "97 per cent");
-#   (b) unit-anchoring (refuse when a unit word appears with no verified digit)
-#       looks like a whitelist over the small closed set of units, but the
-#       attacker simply drops the unit: "ninety-seven OF ALL CASES".
-# Either way it refuses honest prose that the n=52 corpus does not contain, so
-# the Error-A cost is UNMEASURED. That moves the Error-A/Error-B trade-off, which
-# is Escalation #1 and Sai's. Registered with both designs.
+# A figure a reader would quote, written without a digit, was never extracted by
+# _NUMERIC_RE and therefore never checked: all four variants below certified
+# PASS 100.0 against a store holding no such figure.
 #
-# The variants below exist so round 12 inherits the shape of the class rather
-# than one fixture of it.
+# THE RULING, and why it is not the enumeration the round-11 note feared. That
+# note rejected a number-word list as "a blacklist over ways to WRITE a number".
+# The distinction Sai drew is the one that matters: a code comment syntax is an
+# OPEN set (a new language can add one tomorrow), whereas the English cardinal
+# number words are CLOSED — a writer cannot invent a new word for 97 and still
+# be understood, and being understood is the entire reason for spelling it out.
+# So the set is a lexicon, not a guess at author behaviour.
+#
+# The check is VERBATIM PRESENCE, not parsing: the spelled phrase must occur
+# contiguously in a source the claim CITES. "ninety-seven" is never converted to
+# 97 and never compared to a source's "97%" — a digits-only source is a refusal,
+# which is the honest verdict when proving the two equal needs a parser the moat
+# does not have.
 @pytest.mark.parametrize("figure", [
     "ninety-seven percent of all",
     "ninety seven percent of all",
-    "ninety-seven of all",            # the unit dropped — defeats design (b)
-    "almost all",                     # a quantity with no number at all
+    "ninety-seven of all",            # the unit dropped
 ])
-@pytest.mark.xfail(strict=True, reason=(
-    "J-43 OPEN (round 11): the numeric guard keys on claim.numeric_tokens and "
-    "_NUMERIC_RE requires a DIGIT, so a figure spelled in words is never "
-    "extracted and never checked. One keystroke separates '97%' (refused) from "
-    "'ninety-seven percent' (certified). Both candidate fixes are enumerations "
-    "and both refuse unmeasured honest prose - Escalation #1, see D-58."))
 def test_a_figure_spelled_in_words_is_also_checked(tmp_path, figure):
     rep = _report(tmp_path,
                   f"Insulin resistance causes {figure} type 2 diabetes "
                   f"[S2][S3].\n", NO_NUMBER)
     assert rep["gate"] != "PASS"
+    assert rep["per_claim"][0]["relation_diagnostic"] == g.RELATION_FIGURE_ABSENT
 
 
-def test_per_cent_refuses_by_accident_not_by_design_J53(tmp_path):
-    """"ninety-seven PER CENT of all" is refused where "ninety-seven PERCENT of
-    all" certifies — and NOT because the spelled figure was detected.
-
-    Isolated: inserting the words "per cent" anywhere in a claim flips an
-    UNRELATED digit from GROUNDED to UNVERIFIED_NUMBER. Same claim, same source,
-    the only difference being two words that have nothing to do with the digit:
-
-        "... causes diabetes in 2 distinct ways [S2][S3]"            -> GROUNDED
-        "... causes per cent diabetes in 2 distinct ways [S2][S3]"   -> UNVERIFIED_NUMBER
-
-    So "per cent" makes a bare digit read as a percentage, and the source's
-    absolute 2 then fails to match. That is Error-A (J-53), and it is the only
-    reason this J-43 variant does not certify. Pinned as an ACCIDENT so nobody
-    reads it as coverage: fix J-53 and this spelling joins the other four.
-    """
+# R12-05 — the lexicon's own omission, which is NOT the open-class trap above.
+#
+# PROVEN RED: "The outage causes thousands of customer refunds [S1][S2]"
+# certified GROUNDED at PASS 100.0 while "fifty thousand" was refused on the
+# SAME store, because the plural scale words were missing from
+# _SPELLED_NUMBER_WORDS and _spelled_quantity_phrases therefore returned () —
+# read downstream as "no quantity asserted". That is the round-4 anti-pattern
+# (an unreadable field read as UNCONSTRAINED) inside the very guard whose
+# comment cites it. Five missing strings, not an open class.
+@pytest.mark.parametrize("figure", [
+    "thousands of", "hundreds of", "millions of", "billions of", "dozens of",
+])
+def test_a_plural_scale_word_is_checked_R12_05(tmp_path, figure):
     rep = _report(tmp_path,
-                  "Insulin resistance causes ninety-seven per cent of all type "
-                  "2 diabetes [S2][S3].\n", NO_NUMBER)
-    assert rep["per_claim"][0]["verdict"] == "UNVERIFIED_NUMBER"
+                  f"Insulin resistance causes {figure} type 2 diabetes "
+                  f"[S2][S3].\n", NO_NUMBER)
+    assert rep["per_claim"][0]["relation_diagnostic"] == g.RELATION_FIGURE_ABSENT
+    assert rep["gate"] != "PASS"
+
+
+def test_a_spelled_figure_the_CITED_SOURCE_CARRIES_satisfies_the_diagnostic(tmp_path):
+    """The other direction, which is what makes this a check and not a ban.
+
+    Without this, `spelled_quantity_ok` returning False unconditionally would
+    satisfy every test above — the tautology INS-005 exists to catch.
+
+    Under ADR-007 this control moved from the verdict to the diagnostic: corroboration is still measured (relation_diagnostic), it just no longer votes on the gate, so this is not a weakening.
+    """
+    spelled = [
+        _rec("S2", "Insulin resistance impairs glucose uptake and causes "
+                   "ninety-seven percent of type 2 diabetes to develop."),
+        _rec("S3", "Type 2 diabetes develops in ninety-seven percent of cases "
+                   "when insulin resistance progresses."),
+    ]
+    rep = _report(tmp_path,
+                  "Insulin resistance causes ninety-seven percent of all type 2 "
+                  "diabetes [S2][S3].\n", spelled)
+    assert rep["per_claim"][0]["relation_diagnostic"] == g.RELATION_CORROBORATED
+    assert rep["per_claim"][0]["verdict"] == "UNVERIFIED_RELATION"
+    assert rep["gate"] == "FAIL"
+
+
+def test_a_spelled_phrase_may_not_be_ASSEMBLED_from_two_sources(tmp_path):
+    """"ninety" in one document and "seven" in another is not "ninety-seven"."""
+    split = [
+        _rec("S2", "Insulin resistance causes type 2 diabetes in roughly "
+                   "ninety of the reviewed cohorts."),
+        _rec("S3", "Type 2 diabetes develops when insulin resistance "
+                   "progresses, across seven distinct mechanisms."),
+    ]
+    rep = _report(tmp_path,
+                  "Insulin resistance causes ninety-seven percent of all type 2 "
+                  "diabetes [S2][S3].\n", split)
+    assert rep["per_claim"][0]["relation_diagnostic"] == g.RELATION_FIGURE_ABSENT
+
+
+def test_a_relational_claim_with_no_spelled_figure_is_untouched(tmp_path):
+    """The guard must be invisible to every claim that does not spell a figure —
+    otherwise J-43's fix is an Error-A tax on the whole relational class.
+
+    Under ADR-007 this control moved from the verdict to the diagnostic: corroboration is still measured (relation_diagnostic), it just no longer votes on the gate, so this is not a weakening."""
+    rep = _report(tmp_path,
+                  "Insulin resistance causes type 2 diabetes [S2][S3].\n",
+                  NO_NUMBER)
+    assert rep["per_claim"][0]["relation_diagnostic"] == g.RELATION_CORROBORATED
+    assert rep["per_claim"][0]["verdict"] == "UNVERIFIED_RELATION"
+    assert rep["gate"] == "FAIL"
+
+
+@pytest.mark.xfail(strict=True, reason=(
+    "J-43 RESIDUE, deliberately open: a quantity with no number word in it. "
+    "'almost all', 'the vast majority', 'nearly every' are an OPEN class — "
+    "there is no closed lexicon of ways to be vague, so enumerating them IS "
+    "the trap the number-word set avoids by being a lexicon. Refusing them "
+    "would also tax honest hedged prose the n=52 corpus does not contain, so "
+    "the Error-A is unmeasured. Escalation #1 if anyone wants it closed. "
+    "NOT to be confused with a MISSING MEMBER of the closed lexicon, which is "
+    "an ordinary bug and was one: round 12 (R12-05) found 'thousands' / "
+    "'hundreds' / 'millions' absent, so the guard ran vacuously on the "
+    "commonest fabricated magnitude. Closed 2026-10-02 and pinned below."))
+def test_a_vague_quantifier_is_still_not_checked(tmp_path):
+    rep = _report(tmp_path,
+                  "Insulin resistance causes almost all type 2 diabetes "
+                  "[S2][S3].\n", NO_NUMBER)
+    assert rep["per_claim"][0]["relation_diagnostic"] == g.RELATION_FIGURE_ABSENT
+    assert rep["gate"] != "PASS"
+
+
+def test_per_cent_refuses_an_UNRELATED_digit_J53(tmp_path):
+    """J-53 — inserting the words "per cent" flips an unrelated digit's verdict.
+
+    The control moved from the verdict to the diagnostic under ADR-007: corroboration
+    is still measured, it just no longer votes, so this is not a weakening.
+
+    RE-PINNED 2026-10-02 (D-46). This test used to use the claim "... causes
+    ninety-seven per cent of all type 2 diabetes", and J-43's fix would now
+    refuse that claim for a GENUINE reason (the spelled phrase is absent from
+    the store) — which would have left this assertion passing while saying
+    nothing at all about J-53. A fix that makes an unrelated tripwire pass has
+    MASKED it until proven otherwise, so the fixture moved to the isolated repro
+    from its own docstring: a bare digit, no spelled number word anywhere.
+
+        "... causes diabetes in 2 distinct ways [S2][S3]"          -> GROUNDED
+        "... causes per cent diabetes in 2 distinct ways [S2][S3]" -> UNVERIFIED_NUMBER
+
+    `_RATE_BEFORE_RE` reads "per <word>" out of the window BEFORE the number, so
+    "per cent" is taken as the rate "cent" and the source's absolute 2 cannot
+    match it. Error-A, fail-closed, and still open: fixing it is PASS-ENABLING
+    (a claim that is refused today would certify), which is Escalation #1 and
+    Sai's call, so J-43 deliberately did not touch it.
+    """
+    two_ways = [
+        _rec("S2", "Insulin resistance impairs glucose uptake and causes "
+                   "diabetes in 2 distinct ways."),
+        _rec("S3", "Diabetes develops in 2 distinct ways once insulin "
+                   "resistance progresses."),
+    ]
+    control = _report(tmp_path,
+                      "Insulin resistance causes diabetes in 2 distinct ways "
+                      "[S2][S3].\n", two_ways)
+    assert control["per_claim"][0]["relation_diagnostic"] == g.RELATION_CORROBORATED, (
+        "the control must corroborate, or this test proves nothing about per cent")
+    assert control["per_claim"][0]["verdict"] == "UNVERIFIED_RELATION"
+
+    rep = _report(tmp_path,
+                  "Insulin resistance causes per cent diabetes in 2 distinct "
+                  "ways [S2][S3].\n", two_ways)
+    assert rep["per_claim"][0]["relation_diagnostic"] == g.RELATION_FIGURE_ABSENT
+    assert _spelled_quantity_phrases_absent(rep), (
+        "the fixture must contain no spelled number word, or J-43's guard "
+        "would be what refuses it and J-53 would be masked again")
+
+
+def _spelled_quantity_phrases_absent(report) -> bool:
+    """True iff no claim in *report* contains a spelled number word.
+
+    Guards the J-53 fixture against the exact masking D-46 describes: if someone
+    later edits that claim text to include a number word, J-43's guard starts
+    producing the verdict and the J-53 assertion becomes a tautology.
+    """
+    return all(
+        not g._spelled_quantity_phrases(pc["text"])
+        for pc in report["per_claim"]
+    )
