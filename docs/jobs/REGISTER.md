@@ -714,3 +714,49 @@ smaller than the hole J-93 would have opened.
 
 **Blocking reason:** Escalation #1. It alters the Error-A/Error-B trade-off, so
 it is not an agent's call in either direction. **Do not implement on a tick.**
+
+### J-94 AMENDMENT 1 (2026-10-03, same night) — THE SHAPE ABOVE IS WITHDRAWN. IT WAS FAIL-OPEN.
+
+**What I registered, and why it is wrong.** I proposed: *a digest match excludes
+a source only when at least one non-self verbatim source still survives.* Trace
+the degenerate store — one record, and it digest-matches the draft:
+
+| | today | under my proposal |
+|---|---|---|
+| non-self verbatim survivor exists? | n/a | **no** |
+| source excluded as self? | **yes** | **no** — the condition fails |
+| verdict | `UNGROUNDABLE` | **grounds against a copy of itself** |
+
+That is **R19-01 restored** — the exact Error-B the digest arm was added to
+close. I attached the claim *"it can only refuse more than today, never fewer"*
+to it, and that claim is **false**: the rule is strictly more permissive on
+precisely the store that matters. I inverted a condition and then certified the
+direction without tracing it, which is the same failure as the rest of today —
+a property asserted, not measured.
+
+**The measurement that settles the whole job, taken first-hand.**
+`_self_source_ids` hashes **`draft_text`** — the WHOLE draft — against
+**`source.text`** — the WHOLE source (`ground_check.py:4065`, and
+`_identity_digest` normalises but does not segment). So the refusal fires only
+when **the entire draft is the entire source**. That is not "an honest draft
+that quotes its source in full"; it is a **transcription with no independent
+content of its own** — a document that makes no claim the source did not already
+make, and that has no second source to be grounded against.
+
+**Refusing that is arguably CORRECT, not a false alarm.** The gate's question is
+whether evidence independent of the draft supports the draft. For a whole-draft
+copy there is none, whichever of the three documents it actually is.
+
+**Disposition: RECOMMEND WONTFIX. Change nothing. Owner stays Sai.**
+No content test can separate the three documents that share one signature —
+that was J-93's own insight, and it cuts against every digest-based remedy
+including mine. The Error-B is demonstrated (R19-01, PASS 100.0); the Error-A is
+degenerate and plausibly correct. Asymmetry of error cost decides it.
+
+**WHAT WOULD FLIP IT:** one realistic draft — several claims, its own framing,
+more than one cited source — that still reproduces the refusal. That fixture
+does not exist today. **If `tests/honest_drafts/` holds an xfail for this, check
+whether its draft is a single sentence equal to a single source; if it is, the
+instrument caught a fixture artifact and the xfail should be re-labelled, not
+chased with a code change.** Not verified tonight — see the boundary note in
+`docs/logbook/overnight-2026-10-03C-progress.md`.

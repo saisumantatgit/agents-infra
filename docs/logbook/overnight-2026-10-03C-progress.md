@@ -89,3 +89,29 @@ sentence and still had to be stopped twice before I read it. The guard that
 works is the one external to the thing it guards; that is the same lesson as the
 cross-kind guard that stayed green against its own bug, arriving from the
 opposite direction.
+
+## 22:３8 local — WITHDRAWAL #10. THE REMEDY I REGISTERED WAS FAIL-OPEN.
+
+Sai asked for a recommendation on J-94. Deriving one made me trace the rule I
+had registered 20 minutes earlier, and it inverts: *"excludes only when a
+non-self verbatim survivor exists"* means the degenerate store — one record,
+digest-matching the draft — has **no** survivor, so the condition fails, the
+source is **not** excluded, and the draft grounds against a copy of itself.
+**That is R19-01 restored.** I had labelled it "can only refuse more, never
+fewer." Withdrawn; J-94 Amendment 1 carries the trace table.
+
+**I halted J-93 for opening an Error-B and then proposed one of my own inside
+the hour.** The stopping mechanism both times was external — a permission
+classifier, then Sai asking *why* — never my own review of my own direction
+claim. That is the day's pattern stated at its sharpest: **I can detect
+fail-open reasoning in a ruling handed to me and not in the sentence I just
+wrote.** The fix is not more care. It is that a direction claim must be
+discharged by a traced store, in the artifact, next to the claim — the way a
+line count had to be discharged by `test N -le 80 && git add` before the trim
+claim was allowed to exist.
+
+**And the job dissolved under the measurement.** `_self_source_ids` hashes the
+WHOLE draft against the WHOLE source, so the Error-A needs a transcription with
+no independent content — which the gate should arguably refuse. Recommendation
+is WONTFIX, with the fixture check that would flip it named rather than taken,
+because taking it sits against tonight's boundary.
