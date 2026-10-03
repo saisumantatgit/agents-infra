@@ -48,13 +48,20 @@ def _sha(text: str) -> str:
     return hashlib.sha256(unicodedata.normalize("NFKC", text).encode()).hexdigest()
 
 
-def _record(source_id: str, text: str, file_path: str) -> str:
+def _record(source_id: str, text: str, file_path: str,
+            query: str | None = None) -> str:
+    """`query` defaults to the file path, which is what the capture hook really
+    records for a `Read`. Absence fixtures must pass a real-looking search
+    string: the absence rule counts queries carrying the subject's head noun,
+    and a bare path carries nothing — a control that omitted it failed for the
+    QUERY reason while appearing to test the BASIS rule."""
     return json.dumps({
         "source_id": source_id, "url": None, "file_path": file_path,
         "fetched_at": "2026-10-03T00:00:00Z", "tool": "Read",
         "content_sha256": _sha(text), "text": text,
         "full_text_source": "verbatim", "captured_via": "hook",
-        "query_provenance": file_path, "session_id": "S-LIVE",
+        "query_provenance": query if query is not None else file_path,
+        "session_id": "S-LIVE",
     })
 
 
@@ -171,3 +178,81 @@ def test_the_identity_helper_matches_on_either_signal(tmp_path):
     }
     ids = g._self_source_ids("/some/draft.md", f"{_SENTENCE[:-1]} [S1].\n", store)
     assert ids == frozenset({"S1"}), ids
+
+
+# ---------------------------------------------------------------------------
+# ROUND 17 — J-83 did not reach the ABSENCE branch, and two ways to evade it.
+# ---------------------------------------------------------------------------
+
+def test_an_absence_claim_cannot_be_certified_by_READS_OF_THE_DRAFT(tmp_path):
+    """R17-01, CRITICAL. The emptiest possible PASS.
+
+    A store containing nothing but `Read` records OF THE DRAFT returned
+    `ABSENCE_SUPPORTED` at PASS 100.0 — while `_self_source_ids` had correctly
+    identified 2 of 2 records as the draft. The filter lived in the verbatim
+    path and the ABSENCE branch returns above it: **the identical placement
+    error as R16-01, on the same branch, fixed hours earlier the same day.**
+
+    An agent that reads its own draft and nothing else has done no searching.
+
+    Only the BASIS narrows, never the scan: D-54 showed that shrinking the store
+    for `check_absence` moves `source_texts` and the query count in OPPOSITE
+    directions, both fail-OPEN.
+    """
+    draft = "We found no evidence of a safety recall affecting the drone programme.\n"
+    draft_path = tmp_path / "draft.md"
+    rows = [_record("S1", draft, str(draft_path),
+                    query="safety recall drone programme evidence"),
+            _record("S2", draft, str(draft_path),
+                    query="drone programme recall evidence register")]
+    report, code = _gate(tmp_path, "draft.md", draft, rows)
+    assert report["per_claim"][0]["verdict"] == "UNVERIFIED_ABSENCE", report
+    assert report["gate"] == "FAIL"
+    assert code == 1
+
+
+def test_CONTROL_an_absence_with_ONE_real_source_still_certifies(tmp_path):
+    """POSITIVE CONTROL — the basis rule must not become a blanket refusal.
+
+    Same claim, same self-record, PLUS one genuine retrieved source. The
+    absence can still be certified, because a basis that is not the draft now
+    exists.
+    """
+    draft = "We found no evidence of a safety recall affecting the drone programme.\n"
+    draft_path = tmp_path / "draft.md"
+    rows = [
+        _record("S1", draft, str(draft_path),
+                query="safety recall drone programme evidence"),
+        _record("S2", "The register returned zero results for that fleet.",
+                "/real/register.md",
+                query="drone programme recall evidence register"),
+    ]
+    report, _ = _gate(tmp_path, "draft.md", draft, rows)
+    assert report["per_claim"][0]["verdict"] == "ABSENCE_SUPPORTED", report
+
+
+def test_a_FORGED_content_sha256_does_not_evade_the_identity_test():
+    """R17-03, CRITICAL. Nothing recomputes `content_sha256` against `text`
+    (J-32), so trusting the field alone let a record whose text IS the draft
+    escape by carrying a forged digest and a different path. The source's own
+    text is now hashed too — an OR, so it can only refuse more.
+    """
+    draft = "The audit identified material weaknesses at the Frankfurt desk.\n"
+    src = g.RetrievedSource(
+        source_id="S1", url=None, file_path="/totally/other.md", fetched_at="t",
+        tool="Read", content_sha256="deadbeef" * 8, text=draft,
+        full_text_source="verbatim", captured_via="hook", query_provenance="q")
+    assert g._self_source_ids("/draft.md", draft, {"S1": src}) == frozenset({"S1"})
+
+
+def test_a_NUL_byte_in_a_file_path_does_not_crash_the_gate():
+    """R17-02, CRITICAL. `pathlib` raises ValueError (not OSError) on a NUL
+    byte, which escaped the handler and crashed the whole run — worse than any
+    verdict, and it bypasses the fail-loud contract that promises an error
+    naming the offending line or key.
+    """
+    src = g.RetrievedSource(
+        source_id="S1", url=None, file_path="/bad\x00path.md", fetched_at="t",
+        tool="Read", content_sha256="x", text="some text",
+        full_text_source="verbatim", captured_via="hook", query_provenance="q")
+    assert g._self_source_ids("/draft.md", "hello", {"S1": src}) == frozenset()

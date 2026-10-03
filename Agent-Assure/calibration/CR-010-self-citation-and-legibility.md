@@ -38,7 +38,12 @@ change that moved a rate would prove a leak into the verdict path.
 | Measure | Before | After J-79 |
 |---|---|---|
 | False alarms on claims the gate PASSES | 4/15 = 0.267 | **0/15 = 0.000** |
-| Recall on a 14-vector denial set | 7/14 = 0.500 | **7/14 = 0.500** |
+| Recall on a 14-vector denial set | 7/14 = 0.500 | **7/14 = 0.500** (set-composition — see below) |
+
+**R17-07: "recall unchanged" was TRUE OF MY SET AND FALSE AS A CLAIM.** J-79
+does lose a denial whose hedge word the claim itself uses; my 14 vectors
+contained none of that shape. The trade is real and now stated: precision up,
+recall down on one specific shape.
 | Positive control (asserting source) | clean | **clean** |
 
 **`0/15` is a rate on fifteen rows, not a claim that no false alarm exists.**

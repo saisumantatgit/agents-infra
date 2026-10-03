@@ -3491,7 +3491,28 @@ def ground(
         # restricted is the BASIS for certification: at least one verbatim
         # source must exist, and only verbatim records may contribute the
         # distinct searches. A summary may refuse, never approve.
+        # R17-01 (round 17, 2026-10-03) — J-83 DID NOT REACH THIS BRANCH.
+        #
+        # A store containing nothing but `Read` records OF THE DRAFT returned
+        # ABSENCE_SUPPORTED at PASS 100.0, while `_self_source_ids` had
+        # correctly identified 2 of 2 records as the draft. The filter lived in
+        # the verbatim path and this branch returns above it — **the identical
+        # placement error as R16-01, on the same branch, fixed this morning.**
+        # An agent that reads its own draft and nothing else has done no
+        # searching, and an absence claim certified on that is the emptiest
+        # possible PASS.
+        #
+        # WHY ONLY THE *BASIS* NARROWS, AND NOT THE SCAN. D-54: shrinking the
+        # store for check_absence moves its two arguments in OPPOSITE
+        # directions — fewer `source_texts` means fewer refutations found
+        # (CERTIFY, fail-OPEN), and fewer distinct queries can disable the
+        # blanket-corpus-word refusal (CERTIFY, fail-OPEN). So a filtered store
+        # is not a weaker store, it is a DIFFERENTLY weak one. What narrows is
+        # the BASIS requirement, exactly as it already does for summaries
+        # (R10C-03): at least one verbatim source that is NOT the draft must
+        # exist before any absence can be certified. Strictly fail-closed.
         if not any(s.full_text_source == "verbatim" and s.text
+                   and s.source_id not in self_source_ids
                    for s in store.values()):
             return Verdict.UNVERIFIED_ABSENCE
         # R11B-01 (round 11) — WITHDRAWN: passing only VERBATIM queries here was
@@ -3991,7 +4012,11 @@ def _self_source_ids(
     """
     try:
         draft_resolved = str(Path(draft_path).resolve())
-    except OSError:
+    except (OSError, ValueError):
+        # R17-02: pathlib raises ValueError (not OSError) on a NUL byte, which
+        # escaped this handler and crashed the gate. A crash is worse than any
+        # verdict: it takes down the whole run and bypasses the fail-loud
+        # contract, which promises an error naming the offending line or key.
         draft_resolved = ""
     # STRIP CITATIONS BEFORE HASHING. Measured 2026-10-03, not assumed: the
     # captured source text is the draft WITHOUT markers, because the agent read
@@ -4011,9 +4036,20 @@ def _self_source_ids(
                 if str(Path(source.file_path).resolve()) == draft_resolved:
                     matched.add(source_id)
                     continue
-            except OSError:
-                pass
+            except (OSError, ValueError):
+                pass  # R17-02, as above: a NUL byte raises ValueError.
+        # R17-03: the stored digest is NEVER recomputed against `text` (J-32),
+        # so trusting it alone lets a record whose text IS the draft escape by
+        # carrying a forged `content_sha256` and a different path. Hash the
+        # source's OWN TEXT as well. Both tests are ORs, so this can only match
+        # more records and refuse more claims — strictly fail-closed, and it
+        # does not depend on J-32 ever being fixed.
         if source.content_sha256 and source.content_sha256 == draft_digest:
+            matched.add(source_id)
+            continue
+        if source.text and hashlib.sha256(
+            _nfkc(source.text).encode("utf-8")
+        ).hexdigest() == draft_digest:
             matched.add(source_id)
     return frozenset(matched)
 

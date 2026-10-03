@@ -46,8 +46,12 @@ claim therefore carries a `support_diagnostic`; `cited_sentence_may_not_assert_c
 means **read that sentence yourself**. It is an advisory and nothing is refused
 because of it — **it misses about half the denials we
 could construct, and since J-79 fires on none of the claims the gate passes in
-the n=52 corpus** (recall 7/14; false alarms 0/15, down from 4/15 — a rate on
-fifteen rows, not a guarantee) (recall 7/14 on a named denial set, 2026-10-03: it catches
+the n=52 corpus** (recall 7/14 on our denial set; false alarms
+0/15, down from 4/15 — a rate on fifteen rows, not a guarantee). **J-79 trades
+recall for precision in one shape**: a denial whose hedge word the CLAIM itself
+uses is no longer flagged (`…per the vendor` against a claim saying `per
+second`). Our 14-vector set contained none of that shape, so it reported the
+trade as free; round 17 found it (recall 7/14 on a named denial set, 2026-10-03: it catches
 plain negation, prefix denial, attribution, hearsay and conditionals, and misses
 a denial in the next sentence, `retracted`, `erroneous`, `lacks`, `absent`,
 `zero`, and a denial after a semicolon). Treat it as a prompt to read the source,
