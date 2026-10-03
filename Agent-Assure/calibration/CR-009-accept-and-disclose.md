@@ -34,7 +34,7 @@ it is the reason the rates appear here as a *result* rather than a reassurance.
 | Population | Fire rate |
 |---|---|
 | All scored claims (n=52) | 10/52 = **0.192** |
-| **Claims the GATE passes** | **4/15 = 0.267** ← the false-alarm rate that matters |
+| **Claims the GATE passes** | **0/15 = 0.000** after J-79 (was 4/15 = 0.267) |
 | Claims a human LABELLED grounded | **7/25 = 0.280** |
 | **RECALL — denials it CATCHES** | **7/14 = 0.500** (named 14-vector set, 2026-10-03) |
 
@@ -48,7 +48,7 @@ class open (J-44, D-69). Narrative: `docs/logbook/2026-10-03B-*.md`.
 
 ## Non-measurement, named explicitly
 
-- **The diagnostic's RECALL is unmeasured.** The 26.7% above is its false-alarm
+- **The diagnostic's RECALL is 7/14 = 0.500** (measured 2026-10-03). Its false-alarm
   rate. How often it MISSES a denying source is unknown, and the corpus cannot
   say: no corpus row has a long subject phrase, which is the shape R14-04 needs.
   Round 15 was dispatched to attack exactly this; see its report.

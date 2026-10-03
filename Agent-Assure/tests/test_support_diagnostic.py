@@ -152,3 +152,40 @@ def test_no_verdict_path_consults_the_support_diagnostic():
                           "SUPPORT_SENTENCE_MAY_NOT_ASSERT"):
             assert forbidden not in referenced, (
                 f"{name} consults {forbidden} — a diagnostic has become a verdict")
+
+
+# ---------------------------------------------------------------------------
+# J-79 (2026-10-03) — shared vocabulary is not a hedge.
+# ---------------------------------------------------------------------------
+
+def test_a_hedge_word_the_CLAIM_also_uses_does_not_fire():
+    """`per` is a hedge token (for "per the vendor"), so every claim about
+    "operations per second" matched against a source about "operations per
+    second" fired — for the wrong reason, inflating the published rate.
+
+    Measured 4/15 → 0/15 false alarms on claims the gate passes, with recall on
+    the 14-vector denial set unchanged at 7/14.
+    """
+    assert _diag(
+        "Redis handles 100K operations per second [S1].",
+        "Redis handles 100K operations per second in sustained testing.",
+    ) == g.SUPPORT_NO_HEDGE_FOUND
+
+
+def test_a_hedge_the_claim_does_NOT_use_still_fires():
+    """POSITIVE CONTROL — without it, the narrowing above is indistinguishable
+    from switching the diagnostic off."""
+    assert _diag(
+        "Redis handles 100K operations per second [S1].",
+        "The vendor claims Redis handles 100K operations per second.",
+    ) == g.SUPPORT_SENTENCE_MAY_NOT_ASSERT
+
+
+def test_the_VERDICT_lexicon_is_untouched_by_this_narrowing():
+    """`_SPAN_HEDGE_TOKENS` also feeds `_span_is_hedged`, which is in the
+    verdict path. Removing a token there would make T1 certify MORE —
+    PASS-enabling, Escalation #1. This pins that the shared set still holds the
+    words, so a later 'cleanup' of the lexicon has to confront the invariant.
+    """
+    for token in ("per", "claim", "not", "no", "according"):
+        assert token in g._SPAN_HEDGE_TOKENS, token

@@ -4064,8 +4064,31 @@ def support_diagnostic(claim: Claim, store: dict[str, RetrievedSource]) -> str:
         sentence = _most_overlapping_sentence(claim.text, source.text)
         if not sentence:
             continue
-        tokens = set(_tokenize(sentence))
-        if tokens & _SPAN_HEDGE_TOKENS:
+        # J-79 (2026-10-03): A HEDGE WORD THE CLAIM ITSELF USES IS SHARED
+        # VOCABULARY, NOT EVIDENCE THE SOURCE IS HEDGING.
+        #
+        # `per` is in `_SPAN_HEDGE_TOKENS` (for "per the vendor"), so every
+        # claim about "operations per second" matched a source about
+        # "operations per second" and fired — a flag for the wrong reason, and
+        # it was inflating the published false-alarm rate.
+        #
+        # WHY NOT JUST REMOVE `per` FROM THE LEXICON: that set also feeds
+        # `_span_is_hedged`, which is IN THE VERDICT PATH, and removing a hedge
+        # token makes T1 certify MORE. That is PASS-ENABLING and Escalation #1,
+        # so the lexicon is untouched and only this DISPLAY consumer narrows.
+        #
+        # WHY NOT A SECOND LEXICON: two copies of a word list diverge, and this
+        # file has paid for that (J-44, D-69). This needs no list — it is a
+        # relation between the claim and the sentence, computed from both.
+        #
+        # MEASURED before landing, both directions: false alarms on claims the
+        # gate passes **4/15 → 0/15**, recall on the 14-vector denial set
+        # **unchanged at 7/14**, positive control clean. **"0/15" is a rate on
+        # fifteen rows, not a claim that no false alarm exists** — the corpus
+        # cannot represent shapes nobody labelled.
+        claim_tokens = set(_tokenize(_strip_citations(claim.text)))
+        hedges = set(_tokenize(sentence)) & _SPAN_HEDGE_TOKENS
+        if hedges - claim_tokens:
             return SUPPORT_SENTENCE_MAY_NOT_ASSERT
     return SUPPORT_NO_HEDGE_FOUND
 

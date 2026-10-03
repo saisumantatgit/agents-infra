@@ -173,7 +173,7 @@ a certificate of truth, and the boundary is deliberate:
 | Where the evidence came from | The gate checks the draft against what the session READ. The drafting agent's tool choices are trusted, so a file it wrote and read back is a verbatim source. |
 | **A causal or correlational claim, unless a source states it** | **ADR-007 (2026-10-02): corroboration no longer certifies anything.** A claim like "X causes Y" is certified only if a cited source contains that claim verbatim — never because two sources each mention one end of it. A red-team round demonstrated seven ways two unrelated documents could satisfy the old rule, so it was demoted to a reported DIAGNOSTIC (`relation_diagnostic`) that decides nothing. **Consequence: a draft containing a causal sentence will usually not PASS.** That is deliberate. |
 | That the meaning is supported | Verbatim provenance only. A faithful paraphrase is REFUSED (**Error-A 0.400, n=52, CR-007** — the rate rose when relational grounding was demoted, ADR-007). `UNGROUNDED` means "not mechanically traceable", never "false". |
-| **That the source AGREES with the claim** | **No.** The gate checks the claim's words are PRESENT in a cited source, not that the source supports it. A source reading *"we found no evidence that X"* can satisfy the check for a draft asserting X (round 14, R14-04). Every report carries a `support_diagnostic` flagging this where it can detect it — **an advisory, not a verdict: roughly 1 in 4 of its flags is a false alarm** (26.7% of claims the gate passes, n=52). ADR-008. |
+| **That the source AGREES with the claim** | **No.** The gate checks the claim's words are PRESENT in a cited source, not that the source supports it. A source reading *"we found no evidence that X"* can satisfy the check for a draft asserting X (round 14, R14-04). Every report carries a `support_diagnostic` flagging this where it can detect it — **an advisory, not a verdict: it catches about half the denials we could construct** (recall 7/14) and, since J-79, fires on none of the claims the gate passes in the n=52 corpus (0/15, down from 4/15 — a rate on fifteen rows, not a guarantee). ADR-008. |
 | That the source is right | The gate certifies source-support, not truth. |
 | That an absence was really searched for | The searches behind "no evidence of X" are supplied by the agent, not observed. |
 | **Anything at all in `claude -p` / CI mode** | **The capture hook does NOT run in print mode** (verified 2026-10-02 against a plugin hook, a project `.claude/settings.json` hook and an explicit `--settings` hook — none fired while the tool itself ran). The store stays EMPTY, so every claim reads `UNCITED` and the gate fails everything. Agent-Assure needs an interactive session to capture. |
@@ -186,9 +186,10 @@ can satisfy the check for a draft asserting X (round 14, R14-04), because the
 gate matches a contiguous verbatim span and the denial can sit outside it. Every
 claim therefore carries a `support_diagnostic`; `cited_sentence_may_not_assert_claim`
 means **read that sentence yourself**. It is an advisory and nothing is refused
-because of it — **roughly 1 in 4 of its flags is a false alarm** (26.7% of
-claims the gate passes, n=52 gold) **and it misses about half of the denials we
-could construct** (recall 7/14 on a named denial set, 2026-10-03: it catches
+because of it — **it misses about half the denials we
+could construct, and since J-79 fires on none of the claims the gate passes in
+the n=52 corpus** (recall 7/14; false alarms 0/15, down from 4/15 — a rate on
+fifteen rows, not a guarantee) (recall 7/14 on a named denial set, 2026-10-03: it catches
 plain negation, prefix denial, attribution, hearsay and conditionals, and misses
 a denial in the next sentence, `retracted`, `erroneous`, `lacks`, `absent`,
 `zero`, and a denial after a semicolon). Treat it as a prompt to read the source,
