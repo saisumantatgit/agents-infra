@@ -372,3 +372,31 @@ measured:
 | id | Outcome | Owner |
 |---|---|---|
 | J-81 | **CLOSED.** One annotation, no behavioural change. The finding was real and its blast radius was one sixth of what the census implied — which is itself the point: a census locates candidates, reading decides. | Claude — done |
+
+### J-76 ANSWERED — the support diagnostic's recall is 0.50, measured and published
+
+**Both of its error rates are now numbers, not adjectives:**
+
+| Measure | Value | Instrument |
+|---|---|---|
+| False alarms | **26.7%** of claims the gate passes (4/15) | n=52 gold corpus |
+| **Recall** | **7/14 = 0.500** | a named 14-vector denial set, 2026-10-03 |
+| Positive control | asserting source NOT flagged | same set |
+
+**Catches:** plain negation · prefix denial (`It is not true that…`) · withdrawn
+finding · attribution (`Critics claim…`) · conditional (`If…`) · hearsay
+(`reportedly`).
+**Misses:** a denial in the NEXT sentence · `retracted` · `erroneous` · `lacks` ·
+`absent` · `zero` · a denial after a semicolon.
+
+**One "catch" is for the wrong reason, and that matters more than the count.**
+*"a claim since debunked by the regulator"* is flagged because **`claim` is in
+`_SPAN_HEDGE_TOKENS`**, not because of `debunked` — the same artefact as `per`
+firing on "operations per second" (J-79). So the true recall against the
+mechanism intended is **lower than 0.500**, and the 26.7% false-alarm figure is
+inflated by the same cause.
+
+| id | Outcome | Owner |
+|---|---|---|
+| J-76 | **ANSWERED.** Recall 0.500, measured with a positive control, published on all three claim surfaces alongside the false-alarm rate and with the specific misses named. **Deliberately NOT tuned**: adding `retracted`/`erroneous`/`lacks`/`absent`/`zero` to the lexicon would raise recall on exactly the fourteen cases I invented and leave the class open — the pattern that lost five rounds to the comment stripper, and a list licensing an ACCEPTANCE makes its own gap the attack (J-44, D-69). The honest upgrade is J-70, which is Sai's. | Claude — done |
+| J-79 | **Quantified.** The `per` / `claim` artefact is no longer only a curiosity: it inflates the published false-alarm rate AND it accounts for at least one apparent recall hit. Both headline numbers are therefore slightly wrong in opposite directions, and that is now recorded rather than smoothed. | Claude | open |

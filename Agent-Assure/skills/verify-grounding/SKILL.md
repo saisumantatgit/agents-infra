@@ -246,5 +246,10 @@ gate matches a contiguous verbatim span and the denial can sit outside it. Every
 claim therefore carries a `support_diagnostic`; `cited_sentence_may_not_assert_claim`
 means **read that sentence yourself**. It is an advisory and nothing is refused
 because of it — **roughly 1 in 4 of its flags is a false alarm** (26.7% of
-claims the gate passes, n=52 gold). The word "verified" is deliberately absent
-from this tool's output: it checks provenance, not truth.
+claims the gate passes, n=52 gold) **and it misses about half of the denials we
+could construct** (recall 7/14 on a named denial set, 2026-10-03: it catches
+plain negation, prefix denial, attribution, hearsay and conditionals, and misses
+a denial in the next sentence, `retracted`, `erroneous`, `lacks`, `absent`,
+`zero`, and a denial after a semicolon). Treat it as a prompt to read the source,
+never as a clearance. The word "verified" is deliberately absent from this
+tool's output: it checks provenance, not truth.
