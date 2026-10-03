@@ -400,3 +400,27 @@ inflated by the same cause.
 |---|---|---|
 | J-76 | **ANSWERED.** Recall 0.500, measured with a positive control, published on all three claim surfaces alongside the false-alarm rate and with the specific misses named. **Deliberately NOT tuned**: adding `retracted`/`erroneous`/`lacks`/`absent`/`zero` to the lexicon would raise recall on exactly the fourteen cases I invented and leave the class open — the pattern that lost five rounds to the comment stripper, and a list licensing an ACCEPTANCE makes its own gap the attack (J-44, D-69). The honest upgrade is J-70, which is Sai's. | Claude — done |
 | J-79 | **Quantified.** The `per` / `claim` artefact is no longer only a curiosity: it inflates the published false-alarm rate AND it accounts for at least one apparent recall hit. Both headline numbers are therefore slightly wrong in opposite directions, and that is now recorded rather than smoothed. | Claude | open |
+
+### Round 16 — 2026-10-03, against the one verdict-path change of the day
+
+**0 CRITICAL. The change IS fail-closed, proven two ways:** structurally
+(`UNVERIFIED_NUMBER` is not in `_NUMERATOR_VERDICTS`) and empirically (**0
+toward-PASS moves in 3,705 differential absence comparisons across 57 stores**).
+That was the question it was dispatched to answer.
+
+| id | Finding | Action |
+|---|---|---|
+| R16-01 | **HIGH — the checks were PLACED WRONG, and masking was the default, not a one-off.** Of the 1,910 verdicts the change altered, **1,904 were `UNVERIFIED_ABSENCE` → `UNVERIFIED_NUMBER` relabels** — including RT3-04's content-contradiction verdict, the absence branch's STRONGEST refusal. It was pre-empting better reasons and reporting a weaker one, which is why it masked J-33, J-31, J-42 and the r9 control within hours. **FIXED by placement: the figure checks now run only on a claim `check_absence` would CERTIFY** — the only population the hole ever existed in, since R14-03a was a fabricated figure inside a SUPPORTED absence. The early return makes `ABSENCE_SUPPORTED → UNVERIFIED_NUMBER` the only transition possible **by construction**, not by measurement. |
+| R16-03 | **HIGH — the J-33 masking mechanism I recorded was WRONG, in three places.** I wrote that `X200` → `200` was absent from the sources. **`200` IS present in both; the refusal comes from `99`, the digits of the unrecognised marker `[s99]`.** Isolated three ways (marker present: `('99','200')`, numeric_ok False; marker removed: `('200',)`, numeric_ok True, ABSENCE_SUPPORTED; `X200` removed: `('99',)`, still refused). **So fixing J-72 would NOT unmask J-33**, and my CONTROL test's assertion message stated the inverse of the truth. Corrected in the test, its docstring, and here. |
+| R16-04 | **HIGH — "Error-A unchanged" is weaker evidence than I claimed.** The rates reproduce exactly and the "2 of 7 ABSENCE rows carry a figure" count is right, **but q22's delta cannot register in the metric by construction (it is already a violation), so the zero delta is an n=1 measurement — on a model number rather than a quantity.** A synthetic sweep flips 6/9 figure-bearing certifiable absences. **The zero delta is therefore nearly non-measurement after all**, which is the opposite of what I recorded this morning. |
+| R16-02 | **HIGH — J-42 certifies an absence at PASS 100.0 on two Haiku-summary-supplied queries**, and was being masked to `UNVERIFIED_NUMBER` by one digit in the subject. The placement fix stops the masking; **J-42 itself remains open and is now visible again.** |
+| R16-05 | **ERROR-A — 20/20 tested identifiers produce numeric tokens** (iPhone 15, ISO 27001, Section 409A, 5G, COVID-19, Boeing 737, Windows 11, …). So a figure-bearing absence claim is certifiable only when the figure appears in a verbatim source. Real over-refusal cost on ordinary prose; **the placement fix does not reduce it**, it only stops it from relabelling other refusals. Root cause is J-72. |
+| R16-06 | **DOC/TEST — my own regression test for this fix had the J-80 weakness**, asserting only `gate != "PASS"`. Proven red pre-fix at ABSENCE_SUPPORTED so never a tautology, but it could not tell a figure refusal from any other. **Strengthened to require `UNVERIFIED_NUMBER`.** |
+| R16-07 | **DOC — "closes the ABSENCE half for real" overstated.** A bare `one`, ordinals, `a third`, `half`, `double` and vague quantifiers still reach ABSENCE_SUPPORTED. Corrected in the gate comment with the remainder enumerated. |
+| R16-08 | **DOC-DEFECT, OPEN — `evidence_basis` prints "Complete record consulted: N distinct search queries…" on rows where `check_absence` was never called.** D-35 class: the display describes a code path the verdict did not execute. The placement fix REDUCES this (the absence rules now always run first) but does not eliminate it for the certify-then-refuse case. | Claude, open |
+
+| id | Outcome | Owner |
+|---|---|---|
+| J-82 | **R16-08** — `evidence_basis` describes the absence path on a claim refused by the figure check. | Claude, open |
+| J-72 | **Now the root cause of a measured Error-A**, not a curiosity: 20/20 identifiers tokenize as figures. Priority raised again. | Claude, open |
+| J-42 | **Unmasked and confirmed:** certifies at PASS 100.0 on summary-supplied queries. | Claude, open |

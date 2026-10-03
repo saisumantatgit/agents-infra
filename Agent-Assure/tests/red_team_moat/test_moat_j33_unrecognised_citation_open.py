@@ -207,10 +207,21 @@ def test_absence_claim_with_unrecognised_marker_is_not_certified(tmp_path, marke
     This test used to assert only `gate != "PASS"`. On 2026-10-03 the J-62+J-71
     fix gave the ABSENCE branch the two figure checks and this tripwire went
     XPASS, which under strict xfail reads as "J-33 is fixed". It was not:
-    `X200` extracts as the numeric token `200` (J-72), `200` is in no source,
-    and the claim was refused as UNVERIFIED_NUMBER while **the marker was still
+    the claim was refused as UNVERIFIED_NUMBER while **the marker was still
     never checked**. D-46: when a fix makes an unrelated tripwire pass, assume
     it MASKED the finding until proven CLOSED.
+
+    MECHANISM CORRECTED 2026-10-03 by round 16 (R16-03). I first recorded the
+    cause as `X200` extracting as the numeric token `200`, absent from the
+    sources. **That was wrong, and measurably so: `200` IS present in both ABS
+    source texts. The refusal comes from `99` — the DIGITS OF THE UNRECOGNISED
+    MARKER `[s99]`, left in the claim text precisely because the gate does not
+    recognise it.** Isolated three ways: with the marker,
+    `numeric_tokens == ('99','200')` and numeric_ok is False; drop the marker
+    and it is `('200',)`, numeric_ok True, verdict ABSENCE_SUPPORTED; drop
+    `X200` instead and it is `('99',)`, still refused. **So fixing J-72's
+    model-number misparse would NOT unmask J-33** — the mechanism I recorded
+    would have sent the next reader at the wrong defect.
 
     The first attempted repair was to drop the model number from the subject.
     That introduced a SECOND mask — the store's queries read "recall evidence
@@ -246,7 +257,7 @@ def test_CONTROL_the_absence_figure_check_is_what_refused_the_old_fixture(tmp_pa
                "the X200 drone.\n", ABS)
     assert rep["gate"] != "PASS"
     assert rep["per_claim"][0]["verdict"] == "UNVERIFIED_NUMBER", (
-        "the MODEL NUMBER is what refuses this fixture, not the marker")
+        "the UNRECOGNISED MARKER'S DIGITS are what refuse this fixture")
 
 
 # --- controls: these keep the tripwires above honest ------------------------

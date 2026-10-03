@@ -234,5 +234,12 @@ def test_a_fabricated_figure_inside_a_supported_absence_is_refused(tmp_path):
               "4200 fatality record aviation"),
          _row("S2", "The plant added a second shift in June.",
               "aviation 4200 fatality register")])
+    # R16-06: this asserted only `gate != "PASS"` — the J-80 weakness, in the
+    # regression test for the very change that caused J-80's masking. It was
+    # proven red pre-fix at ABSENCE_SUPPORTED so it was never a tautology; it
+    # simply could not tell a figure refusal from any other refusal.
+    assert report["per_claim"][0]["verdict"] == "UNVERIFIED_NUMBER", (
+        f"refused as {report['per_claim'][0]['verdict']}, not as a figure "
+        f"problem — the absence figure check may not be what caught this")
     assert report["gate"] != "PASS", report
     assert code != 0

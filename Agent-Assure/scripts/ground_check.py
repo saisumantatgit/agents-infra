@@ -3520,7 +3520,11 @@ def ground(
         # D-77 made those checks kind-agnostic for the claims that REACH them,
         # and ADR-007's amendment records that it was written up as covering
         # ABSENCE when it did not — ABSENCE and RELATIONAL both return earlier.
-        # This closes the ABSENCE half for real.
+        # This closes the ABSENCE half for FIGURES THE EXTRACTOR SEES —
+        # NOT the whole class. Round 16 enumerated the remainder: a bare
+        # `one`, ordinals, `a third`, `half`, `double` and vague
+        # quantifiers all still reach ABSENCE_SUPPORTED, because
+        # `_SPELLED_NUMBER_WORDS` excludes them by a recorded CEILING.
         #
         # WHY `store.values()` AND NOT THE CITED SOURCES. An absence claim is
         # checked against what was SEARCHED, not what was cited, and it often
@@ -3539,6 +3543,32 @@ def ground(
         # `X200 manual` as `200 m` — J-72), so the shape the corpus tests with
         # is not a quantity. A real-quantity absence row would measure this
         # better and needs a gold label, which is Sai's.
+        # PLACEMENT CORRECTED 2026-10-03 (R16-01). The figure checks ran HERE,
+        # ABOVE check_absence, and round 16 measured the cost: of the 1,910
+        # verdicts the change altered across 57 stores, **1,904 were
+        # UNVERIFIED_ABSENCE -> UNVERIFIED_NUMBER relabels** — including the
+        # RT3-04 content-contradiction verdict, the absence branch's STRONGEST
+        # refusal. The check was pre-empting better reasons and reporting a
+        # weaker one, so D-46 masking became the default rather than a one-off:
+        # it masked J-33, J-31, J-42 and the r9 control within hours.
+        #
+        # So the checks now run only on a claim check_absence would CERTIFY.
+        # That is the only population the hole ever existed in — R14-03a was a
+        # fabricated figure inside a SUPPORTED absence — and it leaves every
+        # existing refusal with its own reason intact.
+        #
+        # Still strictly fail-closed: the only transition it can cause is
+        # ABSENCE_SUPPORTED -> UNVERIFIED_NUMBER. Round 16 confirmed the
+        # direction structurally as well as empirically — UNVERIFIED_NUMBER is
+        # not in _NUMERATOR_VERDICTS — across 3,705 differential comparisons
+        # with zero moves toward PASS.
+        absence_verdict = check_absence(
+            claim,
+            _session_queries(store),
+            source_texts=[s.text for s in store.values() if s.text],
+        )
+        if absence_verdict is not Verdict.ABSENCE_SUPPORTED:
+            return absence_verdict
         _absence_verbatim = [
             source for source in store.values()
             if source.full_text_source == "verbatim" and source.text
@@ -3547,11 +3577,7 @@ def ground(
             return Verdict.UNVERIFIED_NUMBER
         if not spelled_quantity_ok(claim, _absence_verbatim):
             return Verdict.UNVERIFIED_NUMBER
-        return check_absence(
-            claim,
-            _session_queries(store),
-            source_texts=[s.text for s in store.values() if s.text],
-        )
+        return absence_verdict
 
     if not claim.citations:
         return Verdict.UNCITED
