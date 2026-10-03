@@ -431,3 +431,38 @@ That was the question it was dispatched to answer.
 |---|---|---|
 | J-51 | **DONE.** `install.sh` now documents `--session-id`: where the id comes from (read back from the store — there is **no** shell variable; `capture_hook.py` takes it from `event["session_id"]`), that an empty id is REFUSED rather than ignored, and that the shipped demo store therefore cannot be scoped. `bash -n` clean, installer runs exit 0, and the printed snippet was **executed verbatim** rather than eyeballed. Uses `.venv/bin/python` to match the file's existing style rather than introducing `uv run`. | Claude — done |
 | J-50 | **PROMOTED from "do it with F2/F4 as one UX pass".** F2/F4 are now done, and the installer routes a user straight into J-50: follow its snippet against the demo store and the correct, self-explaining refusal arrives **behind a Python traceback**. The message is right; its packaging is a first-run experience now rather than an edge case. **Deliberately not guarded in the snippet** — a shell guard that silently dropped `--session-id` would be exactly the silent fallback this project bars, so the fix belongs in the CLI's error handling, together with the other store errors as J-50 always said. | Claude | open, priority raised |
+
+### J-54 CLOSED 2026-10-03 14:13 IST — the last launch gate, proven live by Sai
+
+**Both halves proven in a real interactive session**, which is the one thing
+`claude -p` could never show (D-60: print mode runs no PostToolUse hooks).
+
+| Step | Evidence |
+|---|---|
+| Hook REGISTERED | `/hooks` → `PostToolUse` · `[Plugin] "${CLAUDE_PLUGIN_ROOT}/.venv/bin/python" "${CLAUDE_PLUGIN_ROOT}/scripts/capture_hook.py"` · plugin `agent-assure@inline` · matcher `mcp__exa__web_fetch_exa\|web_fetch_exa\|Read\|WebFetch\|mcp__ddg-search__fetch_content` · source `~/.claude/plugins/*/hooks/hooks.json` |
+| Hook FIRING | `.assure/evidence-store.jsonl` did not exist before; a live `Read` of `/tmp/j54/DRAFT.md` created it — **460 bytes, 14:13**, plus its `.lock` |
+| Record correct | `source_id=S1 · tool=Read · full_text_source=verbatim · file_path=/tmp/j54/DRAFT.md · captured_via=inline` |
+| Not committable | `.assure/` is gitignored (`Agent-Assure/.gitignore:16`); tree stayed clean throughout |
+
+**UNEXPECTED AND GOOD — `session_id` IS POPULATED IN REAL USE.**
+The captured record carries `session_id='3622f696-92a2-40b1-9a71-b43f220aa013'`,
+not the empty string. The shipped `demo/evidence-store.jsonl` has `""` on every
+record because it is a FROZEN FIXTURE, and I had been reasoning from that — so
+**today's `install.sh` text (J-51) is correct in practice**: a user really can
+read the id back from their store and pass `--session-id`. **J-38's residual
+concern is narrower than it was recorded:** the field is written; what remains
+open is that the store is append-only and never rotated, so a store can still
+accumulate several sessions unless the flag is used.
+
+**INCIDENTAL, and it is J-35 demonstrated live.** The session observed on its own
+that the store then held exactly one record — **the draft itself, captured as
+S1** — so citing `[S1]` would check the draft against its own text. That is the
+write-then-Read laundering class (`capture_core.py` maps `Read` → `verbatim`
+unconditionally), surfacing unprompted in the first real plugin session, found by
+the session doing the test rather than by an adversary.
+
+| id | Outcome | Owner |
+|---|---|---|
+| J-54 | **CLOSED — the last unproven launch step is proven.** | Sai — done |
+| J-38 | **Narrowed:** `session_id` IS written in live sessions; only the no-rotation half remains. | **Sai** (Escalation #4) |
+| J-35 | **Confirmed live, unprompted:** a Read of the draft makes the draft its own verbatim source. | **Sai** (Escalation #4 — capture contract) |
