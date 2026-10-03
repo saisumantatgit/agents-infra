@@ -32,6 +32,23 @@ attempted tonight, and that is a fact, not a hedge.
 
 Full account: `docs/logbook/overnight-2026-10-03C-progress.md`.
 
+## PR #8 IS OPEN AND WAITING ON SAI'S MERGE CLICK
+
+https://github.com/saisumantatgit/agents-infra/pull/8 — 50 commits, 35 files,
+`ground_check.py` +352. Base `agent-assure-calibration-run`, as every PR in this
+repo has been. **848 green, gold md5 unchanged and not in the diff, clean merge.**
+`gh pr merge` was denied `[Merge Without Review]` — correctly: the standing order
+says *never merge, PRs only*.
+
+**`main` has NEVER received the calibration work.** It sits at `009c646`, and
+PR #7's merge commit `c524145` is not an ancestor of it. That is a separate and
+much larger decision than anything taken today — do not treat "merge" as
+covering it.
+
+**J-94 recommendation: WONTFIX.** The refusal needs the whole draft to equal the
+whole source — a transcription with no independent content. The first remedy I
+registered for it was fail-open and is withdrawn.
+
 **Read first:** `docs/logbook/2026-10-03D-the-author-as-adversary.md`.
 
 ## State, measured at close
