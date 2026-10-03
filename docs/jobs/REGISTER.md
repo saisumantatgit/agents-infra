@@ -489,3 +489,25 @@ both right.** I wrote them; neither was caught by me.
 |---|---|---|---|
 | J-83 | **A DRAFT CAN CERTIFY ITSELF. New Error-B, found by accident in the first real plugin session — no adversary involved.** The capture hook's matcher includes `Read`, so reading the draft captures the draft as a source. Add a citation to it and the gate checks the draft against its own text: **`gate=PASS score=100.0 exit=0 verdict=GROUNDED`**. Reproduced by me against the store Sai's J-54 test wrote. **`--session-id` does NOT close it** — the draft genuinely was retrieved this session, so session scoping is satisfied. An agent reading the draft it is about to verify is ordinary behaviour, not an attack, which is what makes this worse than a crafted fixture. **Gate-side fix is mine and strictly fail-closed:** refuse a cited source whose `file_path` resolves to the `--draft` path or whose `content_sha256` equals the draft's → `UNVERIFIED_CITATION`. | Claude | **next — the run's first item** |
 | J-35 | **Unchanged and still Sai's.** J-83's gate-side fix does NOT close the general write-then-Read class: write claims to a DIFFERENT file, Read it, cite it, and the laundering still works because the file path and digest both differ from the draft's. That remains capture-side (`capture_core.py` maps `Read` → `verbatim` unconditionally) and Escalation #4. **Do not let J-83's closure be read as closing J-35.** | **Sai** | Escalation #4 |
+
+### Afternoon run 2026-10-03B — four landed, one withdrawn mid-tick, one parked back to Sai
+
+| id | Outcome | Owner |
+|---|---|---|
+| J-83 | **CLOSED.** A self-cited draft went `PASS 100.0 / exit 0 / GROUNDED` → **`FAIL 0.0 / UNGROUNDABLE / exit 1`**, with and without `--session-id`. Two independent identity tests (resolved `file_path`; digest of the **citation-stripped** draft) — the first version hashed the RAW draft and silently failed to fire, because the captured text has no marker in it. Verdict chosen as `UNGROUNDABLE` rather than `UNVERIFIED_CITATION`: the taxonomy is closed, and `UNGROUNDABLE` already means "cited evidence exists but cannot ground", which is the `haiku_summary` shape and exactly this one. PROVEN-RED 4/7. | Claude — done |
+| J-72 | **SPLIT, and only the display half was mine.** Narrowing `numeric_tokens` so `X200` stops yielding `200` turns an `UNVERIFIED_NUMBER` refusal into a pass — **PASS-ENABLING, Escalation #1, still OPEN and still Sai's.** What landed: `evidence_basis` now lists the figures a claim asserts, so a reader seeing `"200"` beside their X200 sentence can diagnose it. **Withdrawn mid-tick:** a conditional identifier note gated on `[A-Za-z]\d\|\d[A-Za-z]` fired on `100K` and missed `iPhone 15` and `ISO 27001` — over- and under-inclusive at once, which is J-72's own difficulty and does not get easier because the answer is only being displayed. | Claude (display) — done · **Sai** (the narrowing) — open |
+| J-79 | **CLOSED.** `per` is a hedge token (for "per the vendor"), so every "operations per second" claim fired against an "operations per second" source. **A hedge word the CLAIM itself uses is shared vocabulary, not evidence the source is hedging** — a relation between claim and sentence, needing no second lexicon (two copies of a word list diverge; J-44, D-69). **Measured both directions before landing: false alarms on claims the gate passes 4/15 → 0/15; recall on the 14-vector denial set UNCHANGED at 7/14; positive control clean.** `_SPAN_HEDGE_TOKENS` is untouched because it also feeds `_span_is_hedged` in the VERDICT path, where removing a token is PASS-enabling; a test pins that the words remain. | Claude — done |
+| J-82 | **CLOSED.** An absence claim refused by the FIGURE check was explained entirely in terms of the SEARCH rules — a reader would go and improve their searching when `4200` appearing in no source was the cause. D-35 class. The basis now names the figures and says a figure absent from every verbatim source refuses the claim on its own. Control proves the mechanism: drop the figure and the identical claim CERTIFIES. | Claude — done |
+
+**Published rates corrected in FIVE places** (README, SKILL.md, the command doc,
+CR-009, this register) when J-79 moved the false-alarm number within the hour. A
+stale rate on a claim surface is the defect fixed this morning; it would have
+been stale again by the afternoon. **`0/15` is written as a rate on fifteen rows,
+never as "no false alarms exist".**
+
+**Two self-inflicted stumbles, both caught by my own tests and both recorded
+rather than smoothed:** tuning a classifier I cannot validate (the identifier
+note), and writing a SUBSTRING guard that failed on its own docstring for
+containing the word "verdict" while explaining that it consults no verdict —
+the identical trap this file records from 2026-10-01, with the AST fix sitting
+two tests above it.
