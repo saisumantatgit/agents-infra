@@ -145,7 +145,7 @@ def test_absence_control_with_real_citations_still_passes(tmp_path):
     superseded by the test below — not deleted, because its xfail is the
     historical record of how J-31 was first reported.
 
-    `_CITATION_RE` is `\[(?:S\d+[a-zA-Z]*|source:[^\]]+)\]` — `S` then DIGITS.
+    `_CITATION_RE` matches `S` followed by DIGITS, optionally then letters.
     So `[SA1]` and `[SA2]` are **not citations at all**, and this store names its
     sources `SA1`/`SA2`, ids that can never be cited. "with real citations" was
     never true of this fixture.

@@ -327,3 +327,29 @@ asserted the right property all along, and says so in its docstring.
 | J-81 | **`[SA1]` IS NOT A CITATION, and a whole fixture family was built on the assumption that it is.** `_CITATION_RE` is `\[(?:S\d+[a-zA-Z]*\|source:[^\]]+)\]` — `S` then DIGITS — so `[S1]`, `[S1a]` match and `[SA1]` does not. `test_moat_r9`'s absence store names its sources **`SA1`/`SA2`: ids that can never be cited.** Two consequences: the markers stay in the claim text, and their digits become numeric tokens (`('200','1','2')` for that draft); and since J-62+J-71 reached the ABSENCE branch, the claim is refused as `UNVERIFIED_NUMBER` while `check_absence` alone still returns `UNVERIFIED_ABSENCE`. **The figure check masked the original mechanism** — the third masking instance of the day. The old tripwire is kept and annotated (its xfail is the historical record of how J-31 was first reported), superseded by a correct instrument. **Sweep every other fixture for source ids that cannot be cited.** | Claude | open — the sweep is the work |
 | J-31 | **CONFIRMED REAL, not a fixture artefact — and re-specified.** With citable ids the same absence claim is `ABSENCE_SUPPORTED` uncited and `UNVERIFIED_ABSENCE` when it cites the two sources that support it. `numeric_tokens` is `('200',)` in BOTH and `200` is present in S2's text, so the figure check does not fire and cannot be what refuses it. The gate penalises the one behaviour the product asks authors for. Error-A, fail-closed, no moat breach. | Claude | open, now with an honest instrument |
 | J-72 | **Second mechanism found.** Beyond `X200` → `200` and `X200 manual` → `200 m`, an UNRECOGNISED citation marker leaks its digits into `numeric_tokens` (`[SA1][SA2]` → `('1','2')`; `[S7]` and `[S12][S34]` correctly strip). So an author adding a marker the gate does not recognise changes the claim's numeric content — and since this morning, on the absence path, that can decide the verdict. | Claude | open, raised again |
+
+### J-81's real reach, found on the THIRD census — and the censuses are the lesson
+
+**THREE sweeps, three under-reports, one shape.** A regex for `source_id=`
+missed the dict-literal form. A regex allowing both missed `_rec("SA1", ...)`,
+where the id is **positional**. Only an AST sweep over call arguments — carrying
+a positive control that it can see `SA1` at all — found the truth:
+
+| Instrument | Uncitable ids found |
+|---|---|
+| regex `source_id=` | 3 files |
+| regex, quotes allowed | 3 files (same) |
+| **AST over call args + kwargs + dict keys** | **6 files, 17 distinct ids** |
+
+**The pattern, stated once because it recurred four times today:** an audit
+instrument can only report the shapes it can represent, and nothing in its
+output says which shapes those are. The J-80 census under-reported for the same
+reason (assertions delegated to helpers), and so did its correction (`per_claim`
+missing from my own keyword list). **Every census now carries a positive control
+asserting it can see a case I already know exists** — that is the only step that
+caught any of these.
+
+| id | Finding | Owner | State |
+|---|---|---|---|
+| J-81 | **Six test files build evidence stores with source ids that can NEVER be cited** — `SA1`/`SA2` in `test_moat_j33_unrecognised_citation_open.py`, `test_moat_r9_provenance_closed.py` and `test_product_claim.py`; `UNASSIGNED` in `test_capture_concurrency.py` and `test_session_scope.py`; `S_BASH` in `test_capture_integration.py`. For the three moat files this matters: a draft cannot cite those sources, the marker stays in the claim text, and its digits reach `numeric_tokens` — so since J-62+J-71 the absence path can refuse on them. **`test_moat_j33` is the one I de-masked earlier today, so its store shares this defect and its `ABS` fixture needs the same treatment the r9 one got.** The capture-test ids are probably harmless (those tests exercise the hook, not citation resolution) but each needs a one-line judgement, not an assumption. | Claude | open — three moat files first |
+| — | A `SyntaxWarning: invalid escape sequence '\\['` was introduced into the r9 docstring by my own J-81 annotation and removed in the same sitting. Caught by running `pytest -W error::SyntaxWarning`, not by reading. | Claude | fixed |
