@@ -189,14 +189,18 @@ def test_CONTROL_ninety_million_on_the_same_store_is_refused(tmp_path):
     assert code == 1
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "R14-03a OPEN, CRITICAL: ground() returns from the ABSENCE branch ABOVE "
-    "the D-77 figure checks, so numeric_ok is UNREACHABLE for an absence "
-    "claim. The digit 4200 appears in no source text and the claim certifies "
-    "ABSENCE_SUPPORTED at PASS 100.0 / exit 0. Decisive proof that D-77's "
-    "'kind-independent' claim does not reach ABSENCE — and the same text "
-    "shipped in ADR-007 and in ground_check.py (R14-06, corrected)."))
 def test_a_fabricated_figure_inside_a_supported_absence_is_refused(tmp_path):
+    """CLOSED 2026-10-03 (J-62+J-71, Sai's GO). Was a strict xfail; now passes.
+
+    `ground()` returned from the ABSENCE branch ABOVE the D-77 figure checks,
+    so `numeric_ok` was unreachable for an absence claim and the digit 4200 —
+    present in no source text — certified ABSENCE_SUPPORTED at PASS 100.0 /
+    exit 0. The two checks now run before the absence verdict, verbatim-only,
+    strictly fail-closed. Measured: Error-A 0.400 and Error-B 0.000 UNCHANGED.
+
+    It also closed J-62, the same hole for a figure spelled in words — one
+    defect, two spellings. And it MASKED a J-33 tripwire on the way through;
+    see the de-masking note in test_moat_j33_unrecognised_citation_open.py."""
     report, code = _gate(
         tmp_path,
         "There is no fatality record for the 4200 aviation deaths.",

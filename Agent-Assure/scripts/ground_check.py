@@ -3508,6 +3508,45 @@ def ground(
         # closes the original R10C-03 headline (a store of only summaries cannot
         # certify). That a summary can still supply a counting query is OPEN
         # again, registered as J-42 — a smaller hole than the one I created.
+        # J-62 + J-71 (2026-10-03, Sai's GO). THE FIGURE CHECKS REACH ABSENCE.
+        #
+        # Round 14 R14-03a: the digit 4200, present in NO source text, certified
+        # `ABSENCE_SUPPORTED` at PASS 100.0 / exit 0 — because this branch
+        # returns ABOVE the two figure checks, so `numeric_ok` was unreachable
+        # from here. J-62 is the same hole for a figure spelled in words. One
+        # defect, two spellings; they were briefly registered as two jobs with
+        # different owners, which would have made the register incoherent.
+        #
+        # D-77 made those checks kind-agnostic for the claims that REACH them,
+        # and ADR-007's amendment records that it was written up as covering
+        # ABSENCE when it did not — ABSENCE and RELATIONAL both return earlier.
+        # This closes the ABSENCE half for real.
+        #
+        # WHY `store.values()` AND NOT THE CITED SOURCES. An absence claim is
+        # checked against what was SEARCHED, not what was cited, and it often
+        # cites nothing at all (`check_absence` never inspects claim.citations).
+        # Restricting to citations would make the check vacuous on exactly the
+        # claims that need it. Verbatim-only, because a summary may refuse but
+        # never certify (R10C-03).
+        #
+        # DIRECTION: strictly fail-closed. It can only return UNVERIFIED_NUMBER
+        # where ABSENCE_SUPPORTED would have been returned, never the reverse.
+        # MEASURED, not assumed: Error-A 10/25 = 0.400 and Error-B 0/27 = 0.000
+        # are UNCHANGED, and the corpus does exercise this path — 2 of its 7
+        # ABSENCE rows carry a figure (q13, q22), so the zero delta is a
+        # measurement rather than non-measurement. CEILING: both of those
+        # figures are product model numbers (`X200` extracts as `200`, and
+        # `X200 manual` as `200 m` — J-72), so the shape the corpus tests with
+        # is not a quantity. A real-quantity absence row would measure this
+        # better and needs a gold label, which is Sai's.
+        _absence_verbatim = [
+            source for source in store.values()
+            if source.full_text_source == "verbatim" and source.text
+        ]
+        if claim.numeric_tokens and not numeric_ok(claim, _absence_verbatim):
+            return Verdict.UNVERIFIED_NUMBER
+        if not spelled_quantity_ok(claim, _absence_verbatim):
+            return Verdict.UNVERIFIED_NUMBER
         return check_absence(
             claim,
             _session_queries(store),
