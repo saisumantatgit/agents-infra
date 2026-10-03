@@ -219,12 +219,22 @@ def test_an_absence_claim_cannot_be_certified_by_READS_OF_THE_DRAFT(tmp_path):
     assert code == 1
 
 
-def test_CONTROL_an_absence_with_ONE_real_source_still_certifies(tmp_path):
+def test_CONTROL_an_absence_with_REAL_sources_still_certifies(tmp_path):
     """POSITIVE CONTROL — the basis rule must not become a blanket refusal.
 
-    Same claim, same self-record, PLUS one genuine retrieved source. The
-    absence can still be certified, because a basis that is not the draft now
-    exists.
+    AMENDED 2026-10-03 (J-84/J-85), and the amendment is the point. This control
+    used ONE genuine source plus the self-record, and it certified only because
+    the self-record's `query_provenance` was being counted as the SECOND of the
+    two searches `min_absence_searches` requires. **The control's premise
+    embedded the very hole J-84/J-85 closed**, so once self-reads stopped
+    counting as searches it failed — correctly.
+
+    The control's JOB is unchanged and still has teeth: a draft with a genuine
+    basis must still be certifiable, so this fails the moment the basis rule or
+    the self-source filter becomes a blanket refusal. What changed is only that
+    the two searches it rests on are now both REAL. Rewriting the fixture to
+    keep a green assertion would have been the weakening move; rewriting it so
+    the claim rests on two actual searches is what the rule always meant.
     """
     draft = "We found no evidence of a safety recall affecting the drone programme.\n"
     draft_path = tmp_path / "draft.md"
@@ -234,6 +244,11 @@ def test_CONTROL_an_absence_with_ONE_real_source_still_certifies(tmp_path):
         _record("S2", "The register returned zero results for that fleet.",
                 "/real/register.md",
                 query="drone programme recall evidence register"),
+        # The second GENUINE search. Previously the self-record above stood in
+        # for it, which is precisely what a self-read may no longer do.
+        _record("S3", "A second register query also returned no recall entries.",
+                "/real/register-audit.md",
+                query="safety recall evidence drone fleet audit"),
     ]
     report, _ = _gate(tmp_path, "draft.md", draft, rows)
     assert report["per_claim"][0]["verdict"] == "ABSENCE_SUPPORTED", report

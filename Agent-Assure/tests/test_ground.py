@@ -308,7 +308,7 @@ def test_session_queries_distinct():
     s1 = _src("S1", "a", query_provenance="alpha")
     s2 = _src("S2", "b", query_provenance="beta")
     s3 = _src("S3", "c", query_provenance="alpha")  # duplicate provenance
-    result = _session_queries(_store(s1, s2, s3))
+    result = _session_queries(_store(s1, s2, s3), frozenset())
     assert sorted(result) == ["alpha", "beta"], (
         f"Expected distinct ['alpha','beta'], got {sorted(result)}"
     )
@@ -316,4 +316,4 @@ def test_session_queries_distinct():
 
 def test_session_queries_empty_store():
     """An empty store yields no queries."""
-    assert _session_queries({}) == []
+    assert _session_queries({}, frozenset()) == []
