@@ -3707,6 +3707,35 @@ def _plural(n: int, one: str, many: str) -> str:
     return one if n == 1 else many
 
 
+def _absence_figure_note(claim: Claim) -> str:
+    """J-82 (2026-10-03): an absence claim carrying a figure can be refused by
+    the FIGURE check, not by the search rules — and the basis described only the
+    search rules.
+
+    Reproduced: "There is no fatality record for the 4200 aviation deaths."
+    against a store whose searches DO qualify returns `UNVERIFIED_NUMBER`, while
+    the explanation listed the queries, the scope rule and the head-noun rule —
+    none of which refused it. A reader would go and improve their searching. The
+    D-35 class: a display describing a code path the verdict did not take.
+
+    Stated UNCONDITIONALLY for any absence claim bearing a figure, so this needs
+    no knowledge of the verdict. Display must not consult the decision (D-34),
+    and a note that is true either way cannot contradict one.
+
+    Pure.
+    """
+    if not claim.numeric_tokens:
+        return ""
+    quoted = ", ".join(f'"{tok}"' for tok in claim.numeric_tokens)
+    return (
+        f" This claim also asserts {len(claim.numeric_tokens)} "
+        f"{_plural(len(claim.numeric_tokens), 'figure', 'figures')}: {quoted}. "
+        f"A figure that appears in no retrieved verbatim source refuses the "
+        f"claim on its own, whatever the search record shows — and a model, "
+        f"standard or version number is read as a figure."
+    )
+
+
 def evidence_basis(claim: Claim, store: dict[str, RetrievedSource]) -> str:
     """Return a plain sentence naming what the gate CONSULTED for *claim*.
 
@@ -3809,7 +3838,7 @@ def evidence_basis(claim: Claim, store: dict[str, RetrievedSource]) -> str:
                 f"the set that counted. A query counts toward the minimum only "
                 f"if it addresses the claim's asserted SCOPE and carries the "
                 f"subject's head noun, so fewer of the above may have "
-                f"qualified than are listed.")
+                f"qualified than are listed.{_absence_figure_note(claim)}")
 
     if not claim.citations:
         n_src = len(store)

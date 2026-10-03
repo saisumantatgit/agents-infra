@@ -247,3 +247,66 @@ def test_the_display_does_not_re_derive_which_figure_failed():
         "The audit of the X200 drone programme recorded 17 advisories in total.")
     for forbidden in ("not found", "missing", "does not appear", "failed"):
         assert forbidden not in basis.lower(), (forbidden, basis)
+
+
+# ---------------------------------------------------------------------------
+# J-82 (2026-10-03) — an absence claim refused by the FIGURE check must not be
+# explained entirely in terms of the SEARCH rules.
+# ---------------------------------------------------------------------------
+
+_ABS_STORE = {
+    "S1": _src("S1", "Quarterly revenue rose on strong fleet orders.",
+               query="4200 fatality record aviation"),
+    "S2": _src("S2", "The plant added a second shift in June.",
+               query="aviation 4200 fatality register"),
+}
+
+
+def test_an_absence_claim_bearing_a_figure_says_so():
+    """The verdict was UNVERIFIED_NUMBER; the basis described only the queries,
+    the scope rule and the head-noun rule — none of which refused it. A reader
+    would go and improve their searching. D-35: a display describing a code path
+    the verdict did not take.
+    """
+    rep = _report("There is no fatality record for the 4200 aviation deaths.",
+                  _ABS_STORE)
+    entry = rep["per_claim"][0]
+    assert entry["verdict"] == "UNVERIFIED_NUMBER", entry
+    assert '"4200"' in entry["evidence_basis"], entry["evidence_basis"]
+    assert "refuses the claim on its own" in entry["evidence_basis"]
+
+
+def test_the_same_absence_WITHOUT_a_figure_is_untouched():
+    """POSITIVE CONTROL, and it also proves the mechanism: drop the figure and
+    the identical claim CERTIFIES, so the figure is what refused the other one.
+    """
+    rep = _report("There is no fatality record for the aviation deaths.",
+                  _ABS_STORE)
+    entry = rep["per_claim"][0]
+    assert entry["verdict"] == "ABSENCE_SUPPORTED", entry
+    assert "also asserts" not in entry["evidence_basis"]
+
+
+def test_the_absence_note_does_not_consult_the_verdict():
+    """Stated unconditionally for any figure-bearing absence claim, so it needs
+    no knowledge of the decision (D-34). A note true either way cannot
+    contradict the verdict — which is how the branch it replaced went wrong.
+
+    CHECKED OVER THE AST, not the source text — and the first version of this
+    test used the substring form and failed on its own docstring for containing
+    the word "verdict" while explaining that it consults no verdict. That is the
+    identical trap `test_basis_is_not_consulted_by_any_verdict_path` records
+    from 2026-10-01: a substring guard cannot tell a call from a comment, and it
+    trains people to delete the prose. The AST form asserts the property the
+    test is NAMED for — this function REFERENCES no decision.
+    """
+    import ast
+    import inspect
+    import textwrap
+    tree = ast.parse(textwrap.dedent(inspect.getsource(g._absence_figure_note)))
+    referenced = {n.id for n in ast.walk(tree) if isinstance(n, ast.Name)} | {
+        n.attr for n in ast.walk(tree) if isinstance(n, ast.Attribute)}
+    for forbidden in ("Verdict", "ground", "check_absence", "score_report"):
+        assert forbidden not in referenced, (
+            f"_absence_figure_note consults {forbidden} — a display note has "
+            f"started depending on the decision it describes")
