@@ -424,3 +424,10 @@ That was the question it was dispatched to answer.
 | J-82 | **R16-08** — `evidence_basis` describes the absence path on a claim refused by the figure check. | Claude, open |
 | J-72 | **Now the root cause of a measured Error-A**, not a curiosity: 20/20 identifiers tokenize as figures. Priority raised again. | Claude, open |
 | J-42 | **Unmasked and confirmed:** certifies at PASS 100.0 on summary-supplied queries. | Claude, open |
+
+### J-51 APPLIED 2026-10-03 under Sai's GO — and it promotes J-50
+
+| id | Outcome | Owner |
+|---|---|---|
+| J-51 | **DONE.** `install.sh` now documents `--session-id`: where the id comes from (read back from the store — there is **no** shell variable; `capture_hook.py` takes it from `event["session_id"]`), that an empty id is REFUSED rather than ignored, and that the shipped demo store therefore cannot be scoped. `bash -n` clean, installer runs exit 0, and the printed snippet was **executed verbatim** rather than eyeballed. Uses `.venv/bin/python` to match the file's existing style rather than introducing `uv run`. | Claude — done |
+| J-50 | **PROMOTED from "do it with F2/F4 as one UX pass".** F2/F4 are now done, and the installer routes a user straight into J-50: follow its snippet against the demo store and the correct, self-explaining refusal arrives **behind a Python traceback**. The message is right; its packaging is a first-run experience now rather than an edge case. **Deliberately not guarded in the snippet** — a shell guard that silently dropped `--session-id` would be exactly the silent fallback this project bars, so the fix belongs in the CLI's error handling, together with the other store errors as J-50 always said. | Claude | open, priority raised |
