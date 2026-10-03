@@ -1726,3 +1726,17 @@ cache creation), derived from artifacts in the midday report.
 published. It does not say J-69, J-70 or J-80 are closed. And D-83 approves
 release **of the provenance claim as disclosed** — it is not approval of any
 broader claim about agreement, faithfulness or truth.
+
+---
+
+### The afternoon run of 2026-10-03B. Sai pre-agreed the standing order and left.
+
+| id | Decision | Basis | UNDO | status |
+|---|---|---|---|---|
+| D-87 | **An AUTONOMOUS run is armed on `delivery-queue-2026-10-02`**: cron `1addc5c3`, ticks at :08/:38, hard stop 18:30 IST, budget 2.5M new tokens (output + cache creation), ceiling 3.0M. Instrument `docs/planning/RUN-2026-10-03B.md`. Committed: **J-83** (a draft must not certify itself), **J-72** (identifiers tokenize as figures), **J-79**, **J-82**, round 17, CR-010 and the close. | Sai pasted the standing order and replied "AGREED" in the same message, then left. **§0's nine were produced for the record rather than for approval** — waiting for a second confirmation from someone who has gone is the stalling §1 forbids. | `CronDelete 1addc5c3` disarms. Everything lands on `delivery-queue-2026-10-02`; `main` is untouched at `009c646`. Each change reverts by its own commit. | ARMED |
+| D-88 | **THE QUEUE CHANGED AT THE HANDSHAKE, which is what Hamming's question is for.** The afternoon was to be J-72 and UX items. Sai's live J-54 test produced a NEW Error-B by accident, so J-83 goes first. | **A draft can certify itself**: the hook's matcher includes `Read`, so reading the draft captures it as a source, and citing it yields `PASS 100.0 / exit 0 / GROUNDED`. Reproduced against the store his own test wrote. `--session-id` does not close it. **No adversary was involved** — an agent reading the draft it is about to verify is ordinary behaviour. | Nothing to undo; this is a plan, not a change. | RULED |
+| D-89 | **J-83's fix is gate-side only, and the register says so explicitly.** Refuse a cited source whose `file_path` resolves to the `--draft` path or whose `content_sha256` equals the draft's. | Strictly fail-closed: it can only move a claim away from PASS. **It does NOT close J-35's general write-then-Read class** — write claims to a DIFFERENT file, Read it, cite it, and both the path and the digest differ from the draft's. That stays capture-side and Sai's (Escalation #4), and the code comment will say so, so no future reader mistakes one for the other. | `git revert` the commit; the check is additive. | QUEUED |
+
+**What this register may NOT be read as saying.** It does not say J-35 is closed.
+It does not say the product is published — D-83 approved the release; Escalation
+#5 reserves the act, and no session has performed it.
