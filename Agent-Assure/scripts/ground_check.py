@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 
+import hashlib
 import json
 # `re` is imported HERE, at the top, and not beside its first use. Three
 # separate NameErrors in this file have had one cause: a module-level
@@ -3375,6 +3376,7 @@ def ground(
     claim: Claim,
     store: dict[str, RetrievedSource],
     lex_tau: float = _LEX_TAU_DEFAULT,
+    self_source_ids: frozenset[str] = frozenset(),
 ) -> Verdict:
     """Return the grounding Verdict for a single ALREADY-CLASSIFIED claim.
 
@@ -3599,7 +3601,14 @@ def ground(
     if any(not s.text for s in sources):
         return Verdict.UNGROUNDABLE
 
-    verbatim = [s for s in sources if s.full_text_source == "verbatim"]
+    # J-83: a source that IS the draft cannot certify the draft. Narrowed in the
+    # same breath as the summary rule because it is the same shape — present in
+    # the store, incapable of grounding. A claim citing the draft AND a real
+    # source still grounds on the real one.
+    verbatim = [
+        s for s in sources
+        if s.full_text_source == "verbatim" and s.source_id not in self_source_ids
+    ]
     if not verbatim:
         return Verdict.UNGROUNDABLE
 
@@ -3860,6 +3869,81 @@ def evidence_basis(claim: Claim, store: dict[str, RetrievedSource]) -> str:
 
 
 # ======================================================================
+# A DRAFT MAY NOT CERTIFY ITSELF (J-83, 2026-10-03).
+#
+# FOUND BY ACCIDENT, NOT BY AN ADVERSARY. The capture hook's matcher includes
+# `Read`, so an agent reading the draft it is about to verify captures that
+# draft AS A SOURCE. Add a citation to it and the gate checks the draft against
+# its own text: gate PASS, score 100.0, exit 0, verdict GROUNDED. Reproduced
+# 2026-10-03 against the store Sai's live J-54 plugin test wrote.
+#
+# `--session-id` DOES NOT CLOSE THIS, and that is the uncomfortable part: the
+# draft genuinely was retrieved this session, so session scoping is satisfied by
+# a self-citation. Reading one's own draft is ordinary behaviour, which makes
+# this reachable without any attacker at all.
+#
+# WHY UNGROUNDABLE AND NOT A NEW VERDICT. The taxonomy is closed (a new state
+# needs an ADR first) and `UNGROUNDABLE` already means "the cited evidence
+# exists but cannot ground anything" — which is exactly the summary case. A
+# self-source is the same shape: present in the store, incapable of certifying.
+# So this mirrors the haiku_summary narrowing rather than inventing a state or
+# stretching UNVERIFIED_CITATION, whose documented meaning is that the marker is
+# ABSENT from the store.
+#
+# A claim citing the draft AND a real source still grounds on the real one; only
+# the self-source is removed from the certifying set. Strictly fail-closed.
+#
+# WHAT THIS DOES NOT CLOSE — say it here so no future reader conflates them.
+# **J-35's general write-then-Read laundering is untouched and remains Sai's
+# (Escalation #4).** Write fabricated claims to a DIFFERENT file, Read it, cite
+# it: the path differs from the draft's and so does the digest, so nothing here
+# fires. This closes the degenerate self-citation case only.
+#
+# CEILING: `self_source_ids` defaults to EMPTY, so a library caller that does
+# not pass it gets no protection. The CLI always passes it. That default is
+# fail-OPEN, chosen because a function given no draft identity cannot
+# distinguish "no self-citation" from "I was not told" — and refusing every
+# claim on that basis would be worse. Upgrade path: make the parameter required
+# once every in-repo caller is updated.
+def _self_source_ids(
+    draft_path: str, draft_text: str, store: dict[str, RetrievedSource]
+) -> frozenset[str]:
+    """Return ids of sources that ARE the draft, by resolved path or by digest.
+
+    Pure. Two independent tests, because either can be defeated alone: a path
+    comparison misses a copy of the draft captured from elsewhere, and a digest
+    comparison misses a draft edited after capture.
+    """
+    try:
+        draft_resolved = str(Path(draft_path).resolve())
+    except OSError:
+        draft_resolved = ""
+    # STRIP CITATIONS BEFORE HASHING. Measured 2026-10-03, not assumed: the
+    # captured source text is the draft WITHOUT markers, because the agent read
+    # the draft before any marker was added — and even when markers are present
+    # they are the gate's own annotation, not content. The gate strips them
+    # before tokenizing everywhere else; the identity test compares the same
+    # thing. Hashing the raw draft misses the realistic case by exactly one
+    # bracketed token, which is how the first version of this check silently
+    # failed to fire.
+    draft_digest = hashlib.sha256(
+        _nfkc(_strip_citations(draft_text)).encode("utf-8")
+    ).hexdigest()
+    matched: set[str] = set()
+    for source_id, source in store.items():
+        if source.file_path:
+            try:
+                if str(Path(source.file_path).resolve()) == draft_resolved:
+                    matched.add(source_id)
+                    continue
+            except OSError:
+                pass
+        if source.content_sha256 and source.content_sha256 == draft_digest:
+            matched.add(source_id)
+    return frozenset(matched)
+
+
+# ======================================================================
 # THE SUPPORT DIAGNOSTIC (J-74, 2026-10-03) — A MEASUREMENT, NEVER A VERDICT.
 #
 # WHAT IT REPORTS. For a claim that cites a verbatim source, it finds the
@@ -3989,6 +4073,7 @@ def score_report(
     threshold: float = 90.0,
     lex_tau: float = _LEX_TAU_DEFAULT,
     session_scoped: bool = False,
+    self_source_ids: frozenset[str] = frozenset(),
 ) -> dict:
     """Compute the grounding SCORE, gate, and retained-violation appendix (spec §4.5).
 
@@ -4054,7 +4139,7 @@ def score_report(
     has_unverified_citation = False
 
     for claim in claims:
-        verdict = ground(claim, store, lex_tau)
+        verdict = ground(claim, store, lex_tau, self_source_ids)
         entry = {
             "index": claim.index,
             "text": claim.text,
@@ -4072,7 +4157,16 @@ def score_report(
         # J-74: emitted for EVERY claim, not gated on kind. A check gated on a
         # classifier branch is a check an author routes around by adding one
         # word — that was R14-01, and D-77 learned it the expensive way.
-        entry["support_diagnostic"] = support_diagnostic(claim, store)
+        # J-83 sibling (FMEA): the DIAGNOSTIC must not compare the draft to
+        # itself either, or it reports "no hedge in the cited sentence" about
+        # the draft's own prose. Passing a store without the self-sources is
+        # safe here because this function only READS cited sources; it is not
+        # the store-shrinking trap of D-54, which applies to check_absence's
+        # two-argument path.
+        entry["support_diagnostic"] = support_diagnostic(
+            claim,
+            {k: v for k, v in store.items() if k not in self_source_ids},
+        )
         per_claim.append(entry)
 
         if verdict == Verdict.UNVERIFIED_CITATION:
@@ -4204,6 +4298,7 @@ def main() -> None:
     report = score_report(
         claims, store, threshold=args.threshold,
         session_scoped=args.session_id is not None,
+        self_source_ids=_self_source_ids(args.draft, draft_text, store),
     )
 
     gate: str = report["gate"]
