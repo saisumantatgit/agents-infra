@@ -308,3 +308,22 @@ is how four unrelated calibrate rows were damaged on 2026-10-02:**
 | id | Work | Owner | State |
 |---|---|---|---|
 | J-80 | 3 of 10 strengthened; **7 named above with the specific question each needs answered.** The two marked "inversion" are the interesting ones: a control that expects PASS is weakened by a gate-only assertion in the OPPOSITE direction — it would keep passing if the gate started certifying for a wrong reason. | Claude | open — 7 remain, one at a time |
+
+### J-80 corrected twice, and the X200 family unravelled — 2026-10-03 afternoon
+
+**MY OWN CENSUS WAS WRONG TWICE, in the same direction, and that is the finding.**
+The first AST sweep reported **10** gate-only tripwires; it matched only literal
+dict keys in a test's own body, so any test whose strong assertion lives in a
+HELPER was misreported as weak. The second sweep followed helpers and reported
+**3**; it still missed `test_moat_j27`, because my own keyword list did not
+include `per_claim`. **The real count is 2.** A control correct about what it
+examines and silent about what it does not — this estate's signature defect,
+committed by the audit tool written to find it. `test_moat_j27`'s helper has
+asserted the right property all along, and says so in its docstring.
+
+| id | Finding | Owner | State |
+|---|---|---|---|
+| J-80 | **CLOSED.** The 2 genuinely weak tripwires are strengthened to assert the VERDICT: `test_summaries_cannot_supply_the_distinct_searches` now requires `UNVERIFIED_ABSENCE` (its finding is the query count, so any other refusal means something else fired first), and the J-31 control is superseded by an instrument that asserts `ABSENCE_SUPPORTED`. The other 8 were already strong. | Claude | **DONE** |
+| J-81 | **`[SA1]` IS NOT A CITATION, and a whole fixture family was built on the assumption that it is.** `_CITATION_RE` is `\[(?:S\d+[a-zA-Z]*\|source:[^\]]+)\]` — `S` then DIGITS — so `[S1]`, `[S1a]` match and `[SA1]` does not. `test_moat_r9`'s absence store names its sources **`SA1`/`SA2`: ids that can never be cited.** Two consequences: the markers stay in the claim text, and their digits become numeric tokens (`('200','1','2')` for that draft); and since J-62+J-71 reached the ABSENCE branch, the claim is refused as `UNVERIFIED_NUMBER` while `check_absence` alone still returns `UNVERIFIED_ABSENCE`. **The figure check masked the original mechanism** — the third masking instance of the day. The old tripwire is kept and annotated (its xfail is the historical record of how J-31 was first reported), superseded by a correct instrument. **Sweep every other fixture for source ids that cannot be cited.** | Claude | open — the sweep is the work |
+| J-31 | **CONFIRMED REAL, not a fixture artefact — and re-specified.** With citable ids the same absence claim is `ABSENCE_SUPPORTED` uncited and `UNVERIFIED_ABSENCE` when it cites the two sources that support it. `numeric_tokens` is `('200',)` in BOTH and `200` is present in S2's text, so the figure check does not fire and cannot be what refuses it. The gate penalises the one behaviour the product asks authors for. Error-A, fail-closed, no moat breach. | Claude | open, now with an honest instrument |
+| J-72 | **Second mechanism found.** Beyond `X200` → `200` and `X200 manual` → `200 m`, an UNRECOGNISED citation marker leaks its digits into `numeric_tokens` (`[SA1][SA2]` → `('1','2')`; `[S7]` and `[S12][S34]` correctly strip). So an author adding a marker the gate does not recognise changes the claim's numeric content — and since this morning, on the absence path, that can decide the verdict. | Claude | open, raised again |

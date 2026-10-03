@@ -141,9 +141,62 @@ def test_relational_control_without_fabrication_is_still_CORROBORATED(tmp_path):
     "it. Error-A, fail-closed, no moat breach — but the gate penalises the "
     "one behaviour the product asks authors for. Registered for round 10."))
 def test_absence_control_with_real_citations_still_passes(tmp_path):
+    """THIS TRIPWIRE DOES NOT TEST WHAT IT IS NAMED FOR. Kept, annotated, and
+    superseded by the test below — not deleted, because its xfail is the
+    historical record of how J-31 was first reported.
+
+    `_CITATION_RE` is `\[(?:S\d+[a-zA-Z]*|source:[^\]]+)\]` — `S` then DIGITS.
+    So `[SA1]` and `[SA2]` are **not citations at all**, and this store names its
+    sources `SA1`/`SA2`, ids that can never be cited. "with real citations" was
+    never true of this fixture.
+
+    Two consequences, both found 2026-10-03:
+      - the markers are left in the claim text, and `SA1`/`SA2` tokenize such
+        that their DIGITS become numeric tokens — `('200', '1', '2')` here;
+      - so since the J-62+J-71 figure check reached the ABSENCE branch, this
+        claim is refused as `UNVERIFIED_NUMBER` rather than
+        `UNVERIFIED_ABSENCE`. Measured: `check_absence` alone still returns
+        UNVERIFIED_ABSENCE, so the figure check MASKED the original mechanism.
+
+    J-31 itself is REAL — see the superseding test. This fixture just could not
+    demonstrate it."""
     rep = _run(tmp_path,
                "We found no evidence of a safety recall affecting the X200 "
                "drone [SA1][SA2].\n", ABS)
+    assert rep["gate"] == "PASS"
+
+
+@pytest.mark.xfail(strict=True, reason=(
+    "J-31 OPEN and CONFIRMED REAL 2026-10-03 with CITABLE source ids. The same "
+    "absence claim is ABSENCE_SUPPORTED uncited and UNVERIFIED_ABSENCE when it "
+    "cites the two sources that support it — the gate penalises the one "
+    "behaviour the product asks authors for. Error-A, fail-closed, no moat "
+    "breach."))
+def test_J31_the_same_absence_claim_must_not_FAIL_merely_for_citing_its_sources(
+        tmp_path):
+    """THE HONEST INSTRUMENT for J-31. Source ids are S1/S2, so the markers in
+    the draft are genuinely resolved as citations — which the fixture above
+    could not do.
+
+    Measured both ways on this store (2026-10-03):
+        uncited          → ABSENCE_SUPPORTED
+        cited [S1][S2]   → UNVERIFIED_ABSENCE
+    and `numeric_tokens` is `('200',)` in BOTH, with `200` present in S2's text,
+    so the figure check does not fire and cannot be what refuses this. That is
+    the point of building a separate fixture: it isolates J-31 from the two
+    artefacts that were confounding the old one.
+
+    Asserts the VERDICT, not the gate (J-80): a `gate == "PASS"` assertion on a
+    control is weak in the OPPOSITE direction — it keeps passing if the gate
+    begins certifying for a wrong reason."""
+    citable = [dict(row, source_id=row["source_id"].replace("SA", "S"))
+               for row in ABS]
+    rep = _run(tmp_path,
+               "We found no evidence of a safety recall affecting the X200 "
+               "drone [S1][S2].\n", citable)
+    assert rep["per_claim"][0]["verdict"] == "ABSENCE_SUPPORTED", (
+        f"citing its own supporting sources changed the verdict to "
+        f"{rep['per_claim'][0]['verdict']}")
     assert rep["gate"] == "PASS"
 
 
