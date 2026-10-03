@@ -530,3 +530,29 @@ landed). It is 17:00, this run has found and fixed four criticals, and §2-A say
 **error compounds unattended while delay costs one afternoon.** Starting a
 two-directional change in that function now is how today's mistakes were made.
 Both reproduce at `754911b` and `88b1312`, so neither regresses CR-010.
+
+### J-78 — the facts changed under it, which is why the instrument says RE-DERIVE
+
+Re-measured at 17:15, not re-assumed from the tick text:
+
+| project | at §0 (14:16) | at close (17:15) |
+|---|---|---|
+| `ival_2.0` | 1.3 G | **228 K** |
+| `iPay` | 600 M | **absent from the listing** |
+| **`/tmp/claude-501` total** | **2.1 G** | **1.4 G** |
+| `iSuite` | not present | **1.3 G** |
+
+**iVal acted on the relayed note** — the single largest consumer at §0 is now
+228 K. *Delivery is not consumption*: the message changed behaviour, which is
+the only thing that makes relaying it worth anything.
+
+**But the finding did not go away, it MOVED.** `iSuite` now holds 1.3 G and was
+not in the picture at §0. **A register row naming specific projects would have
+been wrong within three hours**, so J-78 is restated as a standing condition
+rather than a list: *the shared scratch root accumulates across sessions, no
+single session sees the total, and whoever notices should re-measure rather than
+act on a remembered breakdown.*
+
+| id | Outcome | Owner |
+|---|---|---|
+| J-78 | **Partially resolved by the owning session, not by deletion.** ~700 MB recovered. **Still not mine to delete** — `iSuite` is another project's live working state. This run's own scratchpad is **0 B**; the 7.5 M remaining in its session directory is harness-owned (pasted screenshots, subagent transcripts). | **Sai**, when convenient — and re-measure first |
