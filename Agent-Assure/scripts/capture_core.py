@@ -296,8 +296,11 @@ def _retrieval_status(tool_name: str, tool_response: object, text: str) -> str:
             code = tool_response.get("code")
             if isinstance(code, int) and not 200 <= code < 300:
                 return "failed"
-    if tool_name in _EXA_TOOLS and text.lstrip().startswith(_EXA_ERROR_PREFIX):
-        return "failed"
+    if tool_name in _EXA_TOOLS:
+        whole = _block_list(tool_response)
+        haystack = "\n".join(whole) if whole is not None else text
+        if _EXA_ERROR_LINE_RE.search(haystack) or _EXA_ERROR_LINE_RE.search(text):
+            return "failed"
     if not _ANY_WORD_RE.search(unicodedata.normalize("NFKC", text)):
         return "failed"
     return "ok"
@@ -394,6 +397,22 @@ _EXA_TOOLS: frozenset[str] = frozenset({"mcp__exa__web_fetch_exa", "web_fetch_ex
 # the header with its own section.
 _EXA_SECTION_RE = re.compile(r"(?m)^(?=# [^\n]*\nURL: \S)")
 
+# R22-02 (round 22, 2026-10-10): header VARIANTS — "#"/"##" with or without a
+# title, leading whitespace, a blank line before "URL:", "URL:" with no space.
+# NONE has been observed from live exa; they are recognised anyway because a
+# split can only stop a span from crossing (fail-closed). Used in place of the
+# canonical pattern above, which it subsumes.
+_EXA_SECTION_LOOSE_RE = re.compile(
+    r"(?m)^(?=[ \t\ufeff\u200b]*#+[^\n]*\n(?:[ \t]*\n)?[ \t]*URL:[ \t]*\S)")
+
+# R22-01 (round 22, LIVE-OBSERVED in round 21's raw exa capture): a PARTIAL
+# failure in a multi-URL fetch is appended INLINE after the page that worked —
+# "Error fetching <url>: CRAWL_NOT_FOUND", no header, no isError. The fetch's one
+# search label cannot say which URL succeeded, so ANY such line marks EVERY
+# record of that response failed. Case-insensitive, after stripping invisible
+# characters (R22-03). Refusal-only, so over-matching is safe (D-69).
+_EXA_ERROR_LINE_RE = re.compile(r"(?mi)^[\s\ufeff\u200b]*error fetching\b")
+
 # LIVE-OBSERVED 2026-10-10: exa reports a failed fetch as an ordinary text block
 # beginning with this phrase (e.g. "...: CRAWL_NOT_FOUND"). Its server response
 # also carries `isError: true`, but the hook payload validated for exa is a bare
@@ -465,7 +484,7 @@ def _documents(tool_name: str, tool_response: object) -> list[str] | None:
     pieces: list[str] = []
     for block in blocks:
         if tool_name in _EXA_TOOLS:
-            pieces.extend(part for part in _EXA_SECTION_RE.split(block) if part)
+            pieces.extend(part for part in _EXA_SECTION_LOOSE_RE.split(block) if part)
         else:
             pieces.append(block)
     return pieces if len(pieces) >= 2 else None

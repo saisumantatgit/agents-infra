@@ -213,3 +213,29 @@ def test_R21_03_a_FAILED_fetch_is_not_the_full_text_basis(tmp_path):
 # and without the failed source. A test passing for the wrong reason certifies
 # nothing, so it was removed rather than kept as false coverage. The code change
 # stands because narrowing the source set numeric_ok reads can only refuse more.
+
+
+def test_R22_01_a_PARTIAL_exa_failure_inline_marks_the_fetch_failed(tmp_path):
+    """LIVE shape (round 21's raw exa capture): the failure for the second URL
+    is appended inline after the first page — no header, no isError. Before the
+    fix two such fetches certified an absence at PASS 100.0 with both ECB
+    fetches failed (round 22, R22-01)."""
+    store = tmp_path / "store.jsonl"
+    for q in ("zentara%20bank%20resolution%20press%20release",
+              "press%20release%20resolution%20zentara%20bank"):
+        bad = f"https://www.ecb.europa.eu/search?q={q}"
+        text = ("# Example Domain\nURL: https://example.com\n\nExample Domain\n\n"
+                "This page is not a service and holds no notices\n\n"
+                f"Error fetching {bad}: CRAWL_NOT_FOUND")
+        _capture(store, _exa([bad, "https://example.com"], text))
+    assert {r["retrieval_status"] for r in _records(store)} == {"failed"}
+    report = _gate(tmp_path, store, _ABSENCE)
+    assert report["per_claim"][0]["verdict"] != "ABSENCE_SUPPORTED", report
+
+
+def test_R22_02_a_header_VARIANT_still_splits_pages(tmp_path):
+    store = tmp_path / "store.jsonl"
+    text = ("## Page one\n\nURL: https://a.example\n\nalpha bravo charlie\n"
+            "##\nURL:https://b.example\ndelta echo foxtrot")
+    _capture(store, _exa(["https://a.example", "https://b.example"], text))
+    assert len(_records(store)) == 2
