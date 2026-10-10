@@ -94,3 +94,66 @@ Instrument: `docs/planning/OVERNIGHT-2026-10-10.md`. Skeleton written at §0.
   real payload. *Contradiction-as-locator* — fixture shape vs live shape was the
   seam the whole hole lived in. *Sunk cost* — C2/C3 were three hours old and
   felt done; restated from zero against the live shape, they were not.
+
+---
+
+# MORNING REPORT — overnight 2026-10-10 · DISARMED at DIFF ZERO (~23:10 IST), before the 07:00 stop
+
+## 1. DONE
+| Item | Proof | Output |
+|---|---|---|
+| C1 failed/blank fetches not searches | `uv run pytest tests/red_team_moat/test_moat_r20_absence_counts_reads.py` | 7 passed |
+| C2/C3 + R21 + R22 on exa's LIVE shape | `uv run pytest tests/red_team_moat/test_moat_r21_real_exa_shape.py tests/red_team_moat/test_moat_r20_documents_stay_separate.py` | all pass; every one failed on the pre-fix code |
+| Suite | `cd Agent-Assure && uv run pytest -q` | **884 passed · 2 skipped · 68 xfailed · exit 0** |
+| Rates | `uv run python -m calibration.measure_rates` | **Error-A 10/25 = 0.400 · Error-B 0/27 = 0.000** |
+| PR | **#12** → `main`, unmerged | https://github.com/saisumantatgit/agents-infra/pull/12 |
+
+## 2. NOT DONE
+**Round 23 against the R22 fixes** — not run; budget, near the 80% stop line.
+Next command: dispatch an Opus adversary at `ad9367d`, as rounds 21/22 were.
+
+## 3. DENIED
+Nothing.
+
+## 4. ONE-WAY DOORS QUEUED — Sai's
+1. `gh pr merge 12 --merge --repo saisumantatgit/agents-infra` (undo: `git revert -m 1 <sha>`).
+2. **J-97**: absence claims advisory or kept — one word.
+3. Close PR #11 (redundant since #10 merged).
+
+## 5. UNKNOWNS
+Whether `isError` reaches the hook for a failing MCP call · DDG's real failure
+text · C3's Error-A price on a live multi-block payload. **One live interactive
+session that fetches a dead URL with exa and with DDG settles all three.** Owner: Sai.
+
+## 6. BUDGET
+Subagents, derived from completion records: **R21 187,394 + R22 142,421 = 329,815
+tokens.** Main loop: **UNKNOWN exactly** (no trace-derived read path); estimate
+~2.2M total incl. subagents, under 3M sanctioned.
+
+## 7. WITHDRAWALS
+- **C2 and C3 as "done"** — refuted by round 21: they never ran on exa's real shape.
+- **"Price unmeasured" for C3** — understated: the fix itself was unmeasured.
+- **Two of my R21 tests** — refused pre-fix for the wrong reason; rewritten.
+- **The R21-03 figure sibling as a demonstrated hole** — not demonstrated; test removed.
+- **Filtering failed searches out of the query list** — my first C1 design; it
+  shrinks a denominator and can switch a refusal off (D-54). Caught before coding.
+
+## 8. FRAMEWORKS
+*Calibration* — every agent finding re-run by me; three tests of my own failed that
+check. *Second-order* — C1's obvious form had a denominator effect two functions
+away. *Goodhart* — two existing tests pinned the defect and were green.
+*Contradiction-as-locator* — fixture shape vs live shape was where the hole lived.
+*Degradation under constraint* — round 23 not started near the stop line.
+
+## §8 — THE 5-USER COMPREHENSION TEST (Sai's standing reminder)
+Still the only thing that can reverse D-83. **Who:** five people who would READ a
+verification report on an AI draft — not buyers. **Ask each for:** ten minutes,
+cold, no explanation first; run `docs/research/user-test-2026-10-03/PROTOCOL.md`
+with `SHOW-THIS.html`; don't say "traceable/supported/grounded/verified" first;
+Q1 before they scroll; wrong answers verbatim; all five before concluding.
+
+## §6 DISK
+REMOVED: `r21/` (396K), `r22/` (644K), `pre22/` (448K), `price/`, `dbg/`, `dbg2/`,
+`mine21/`, worktree `wt-prefix` and its `.venv`. Keep-awake **42531 stopped**.
+Scratchpad empty. **KEPT:** `~/tmp/assure-probe` (Sai's real store).
+**DISARMED:** cron `60f006a4` deleted; `CronList`: no scheduled jobs.
