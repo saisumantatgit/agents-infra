@@ -47,6 +47,25 @@ With `--json`: prints the full report as JSON to stdout (no file written).
 
 ---
 
+## Drafting conventions (two rules, both fail-safe)
+
+1. **Citation markers go INSIDE the sentence, before the final period** —
+   `... 128000 operations per second [S1].`, not `... per second. [S1]`. A marker
+   after the period becomes its own segment and detaches from its claim, which
+   then reads `UNCITED`.
+2. **Keep authoring notes on ONE line** — `<!-- TODO: check this -->`. Only a
+   comment that opens and closes on the same line is stripped. A multi-line
+   `<!-- ... -->` block is decomposed and SCORED as claims, so the draft fails on
+   sentences nobody meant to publish (J-48).
+
+Both rules over-flag rather than under-flag. The second one is permanent: a
+block-comment stripper is an unbounded deletion primitive, and four designs for
+one have been tried and rejected — one deleted multi-paragraph prose and
+certified the remainder at PASS 100.0 when a CRLF blank line voided its guard.
+Refusing a note is recoverable in one keystroke; deleting a claim is not.
+
+---
+
 ## EvidenceStore JSONL Format
 
 One JSON object per line. Blank lines are skipped.
@@ -82,24 +101,28 @@ All text fields are NFKC-normalized before matching.
 | Verdict | Meaning |
 |---|---|
 | `GROUNDED` | Claim supported by a verbatim source via T1 or T2 (or is a NON_CLAIM) |
-| `ABSENCE_SUPPORTED` | Absence claim backed by ≥2 distinct queries targeting the subject |
+| `ABSENCE_SUPPORTED` | Absence claim backed by ≥2 distinct queries that each carry every strong anchor (capitalized entity / numeric token) of the negated subject plus its head noun — or, for entity-free subjects, a head noun that is not a majority corpus word (2026-07-12 fix) |
 | `UNGROUNDED` | Verbatim sources exist but neither T1 nor T2 finds support |
 | `UNCITED` | Claim carries no citation markers |
 | `UNVERIFIED_CITATION` | Citation marker present but the source_id is absent from the store |
-| `UNVERIFIED_NUMBER` | NUMERIC claim whose number does not match any source (value + unit both checked) |
-| `UNVERIFIED_ABSENCE` | Absence claim with fewer than 2 distinct queries mentioning the subject |
+| `UNVERIFIED_NUMBER` | NUMERIC claim whose number does not match any source — value, unit, and (when the claim states one) the rate qualifier ("per second"/"/min" etc.) must all match (2026-07-12 fix) |
+| `UNVERIFIED_ABSENCE` | Absence claim where fewer than 2 distinct queries carry every strong anchor + head noun of the subject, or (entity-free subject, ≥3 distinct queries) the head noun is a non-discriminating majority-corpus word (2026-07-12 fix) |
 | `UNVERIFIED_RELATION` | Relational claim ("A causes B") without 2 distinct verbatim sources (one per side) |
 | `UNGROUNDABLE` | All cited sources have `full_text_source != "verbatim"` (e.g. haiku_summary), or source text is empty |
 
-**Score gate:**
+**Score gate (ADR-005 semantics — accepted 2026-07-12):**
 
 | Gate | Condition |
 |---|---|
-| `PASS` | score ≥ threshold AND no `UNVERIFIED_CITATION` |
-| `NEEDS_WORK` | score ≥ 60 AND (below threshold OR any `UNVERIFIED_CITATION`) |
-| `FAIL` | score < 60 — **checked first**, so a sub-60 score is `FAIL` even when an `UNVERIFIED_CITATION` is present |
+| `PASS` | **empty retained appendix** (zero violation-class verdicts) AND score ≥ threshold |
+| `NEEDS_WORK` | score ≥ 60 AND (any retained violation OR below threshold) |
+| `FAIL` | score < 60 — **checked first**, so a sub-60 score is `FAIL` even when other overrides apply |
 
-Default threshold = 90.0. NON_CLAIM verdicts are excluded from the scored denominator.
+`PASS` means **every scored claim is grounded**, not "at least 90% are" — one
+retained violation caps the gate regardless of score (this closed the
+threshold-dilution vector, OI-MOAT-02/-006). The score threshold
+(default 90.0) is retained as a secondary bar. NON_CLAIM verdicts are excluded
+from the scored denominator.
 
 ---
 
@@ -107,9 +130,9 @@ Default threshold = 90.0. NON_CLAIM verdicts are excluded from the scored denomi
 
 **T1 — Verbatim:** A contiguous span of ≥8 casefolded NFKC tokens from the claim appears in the source. Citation markers stripped before tokenizing.
 
-**T2 — Lexical-F1:** Content-word F1 between the claim and the best ±2-sentence window of a source is ≥ 0.65, AND every numeric token in the claim is present in that window. Stop words excluded from F1 computation.
+**T2 — Lexical-F1: DEMOTED 2026-09-02 (ADR-006). IT DECIDES NOTHING.** It is computed and emitted as a diagnostic (`t2_f1`) and no verdict consults it. **`lex_tau` is RETIRED**, and `--lex-tau` now RAISES rather than silently no-op'ing — passing it exits 2. Why it went: a true and a false claim can differ by one token and score an identical `t2_f1` (5/5 matched pairs), and a bag of words has no order, so a false REORDERING scored 1.000. **This paragraph previously documented T2 as live at `lex_tau` 0.71 with a working `--lex-tau` override — a month after the override began exiting 2** (R15-03, round 15). Current operating point: **Error-A 0.400 / Error-B 0.000, n=52 gold, CR-007.**
 
-Tiers run **only** on sources with `full_text_source == "verbatim"`. NUMERIC claims additionally pass through `numeric_ok()` before T1/T2: the claim's numeric expression must match a source expression in both value and unit (25% ≠ bare 25; $4M ≡ $4,000,000).
+Tiers run **only** on sources with `full_text_source == "verbatim"`. NUMERIC claims additionally pass through `numeric_ok()` before T1/T2: the claim's numeric expression must match a source expression in both value and unit (25% ≠ bare 25; $4M ≡ $4,000,000). When the claim states a rate qualifier ("per second", "/min", etc.), the matching source mention must carry the SAME qualifier — a bare or differently-qualified occurrence fails closed (2026-07-12 fix).
 
 ---
 
@@ -117,7 +140,7 @@ Tiers run **only** on sources with `full_text_source == "verbatim"`. NUMERIC cla
 
 ```bash
 cd Agent-Assure
-uv sync --extra dev   # one-time: adds pytest (install.sh installs runtime deps only)
+uv sync               # runtime deps + pytest (dev group, installed by default)
 uv run pytest
 ```
 
@@ -136,9 +159,50 @@ Agent-Assure is the verification-first research member of the `agents-infra`
 suite (PROVE, Cite, Trace, Scribe, Drift, Litmus). Its closest sibling is
 **Agent-Cite**, and the boundary is deliberate: Cite does LLM-based citation
 *discovery* (does a claim have *a* source somewhere on the web?); Assure does
-*mechanical* grounding (does every claim trace to a source *actually retrieved
-this session*, proven without a model?). Cite asks a model; Assure asks the
+*mechanical* traceability (does every claim trace to a source *captured in the
+evidence store*, proven without a model?). Cite asks a model; Assure asks the
 evidence store.
+
+## What Agent-Assure does not prove
+
+A PASS means every claim was mechanically traced to captured evidence. It is not
+a certificate of truth, and the boundary is deliberate:
+
+| Not proven | Why |
+|---|---|
+| Where the evidence came from | The gate checks the draft against what the session READ. The drafting agent's tool choices are trusted, so a file it wrote and read back is a verbatim source. |
+| **A causal or correlational claim, unless a source states it** | **ADR-007 (2026-10-02): corroboration no longer certifies anything.** A claim like "X causes Y" is certified only if a cited source contains that claim verbatim — never because two sources each mention one end of it. A red-team round demonstrated seven ways two unrelated documents could satisfy the old rule, so it was demoted to a reported DIAGNOSTIC (`relation_diagnostic`) that decides nothing. **Consequence: a draft containing a causal sentence will usually not PASS.** That is deliberate. |
+| That the meaning is supported | Verbatim provenance only. A faithful paraphrase is REFUSED (**Error-A 0.400, n=52, CR-007** — the rate rose when relational grounding was demoted, ADR-007). `UNGROUNDED` means "not mechanically traceable", never "false". |
+| **That the source AGREES with the claim** | **No.** The gate checks the claim's words are PRESENT in a cited source, not that the source supports it. A source reading *"we found no evidence that X"* can satisfy the check for a draft asserting X (round 14, R14-04). Every report carries a `support_diagnostic` flagging this where it can detect it — **an advisory, not a verdict: it catches about half the denials we could construct** (recall 7/14) and, since J-79, fires on none of the claims the gate passes in the n=52 corpus (0/15, down from 4/15 — a rate on fifteen rows, not a guarantee). ADR-008. |
+| That the source is right | The gate certifies source-support, not truth. |
+| That an absence was really searched for | The searches behind "no evidence of X" are supplied by the agent, not observed. |
+| **Anything at all in `claude -p` / CI mode** | **The capture hook does NOT run in print mode** (verified 2026-10-02 against a plugin hook, a project `.claude/settings.json` hook and an explicit `--settings` hook — none fired while the tool itself ran). The store stays EMPTY, so every claim reads `UNCITED` and the gate fails everything. Agent-Assure needs an interactive session to capture. |
+| That the source was retrieved *this* session — **unless you ask** | `--session-id <id>` makes the gate REFUSE a store containing any other session's evidence. Without that flag there is **no session enforcement**, because the store is appended to and never rotated (J-38), and the report says so in its own scope line. **Correction (R15-04, round 15): this row used to say "every captured record now carries a `session_id`". Records written before that field existed carry a BLANK one, and `--session-id ""` exploited exactly that — it matched the blanks, raised nothing, and printed the SESSION-SCOPED wording over evidence carrying no session data at all. A blank `--session-id` now REFUSES (R15-01).** |
+
+**What PASS means, and what it does not (ADR-008).** PASS means every claim is
+**traceable** to text in a source the run was given — it does **not** mean the
+source agrees with the claim. A source reading *"we found no evidence that X"*
+can satisfy the check for a draft asserting X (round 14, R14-04), because the
+gate matches a contiguous verbatim span and the denial can sit outside it. Every
+claim therefore carries a `support_diagnostic`; `cited_sentence_may_not_assert_claim`
+means **read that sentence yourself**. It is an advisory and nothing is refused
+because of it — **it misses about half the denials we
+could construct, and since J-79 fires on none of the claims the gate passes in
+the n=52 corpus** (recall 7/14 on our denial set; false alarms
+0/15, down from 4/15 — a rate on fifteen rows, not a guarantee). **J-79 trades
+recall for precision in one shape**: a denial whose hedge word the CLAIM itself
+uses is no longer flagged (`…per the vendor` against a claim saying `per
+second`). Our 14-vector set contained none of that shape, so it reported the
+trade as free; round 17 found it (recall 7/14 on a named denial set, 2026-10-03: it catches
+plain negation, prefix denial, attribution, hearsay and conditionals, and misses
+a denial in the next sentence, `retracted`, `erroneous`, `lacks`, `absent`,
+`zero`, and a denial after a semicolon). Treat it as a prompt to read the source,
+never as a clearance. The word "verified" is deliberately absent from this
+tool's output: it checks provenance, not truth.
+
+
+Each row is pinned by a test in `Agent-Assure/tests/test_product_claim.py`. If
+one stops being true, that suite fails and this table is what must change.
 
 ## License
 

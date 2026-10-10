@@ -1,0 +1,574 @@
+# Agent-Assure — Open Issues
+
+Tracked, evidence-anchored defects awaiting a decision or a fix. State lives
+here; the proven-red regression cover lives in
+`tests/red_team_moat/test_moat_red_team.py` (strict xfail — flips to a suite
+failure the moment a fix lands). Narrative context:
+`docs/case-narratives/CN-ADR005-The-Ninety-Percent-Moat.md`.
+
+## ADR-039 conformance (2026-08-30)
+
+This register conforms to HQ ADR-039 (one type, three classes). The former
+`AA-MOAT-{NNN}` series is collapsed into this register as `OI-MOAT-{NN}`,
+class INVARIANT, per HQ's 2026-07-18 ruling. **Alias map** (historical records
+— logbooks, ADR-05, PIR/CN, sent correspondence — retain the old IDs):
+AA-MOAT-001→OI-MOAT-01 … AA-MOAT-007→OI-MOAT-07; AA-MOAT-R2-001/-002/-003→OI-MOAT-08/-09/-10.
+
+| ID | Class | Status | Tripwire (INVARIANT-mandatory) |
+|---|---|---|---|
+| OI-MOAT-01 | INVARIANT | FIXED 2026-07-12 | `test_moat_red_team.py::test_fixed_fabrication_stays_blocked[OI-MOAT-01…]` (green guard) |
+| OI-MOAT-02 | INVARIANT | FIXED 2026-07-12 | same file (green guard) |
+| OI-MOAT-03 | INVARIANT | FIXED 2026-08-30 | `test_moat_red_team.py::test_fixed_fabrication_stays_blocked[OI-MOAT-03…]` (green guard) + `test_tiers.py::test_t1_uncovered_residual_refuses_span` |
+| OI-MOAT-04 | INVARIANT | FIXED 2026-07-12 | same file (green guard) |
+| OI-MOAT-05 | INVARIANT | FIXED 2026-08-30 | `test_relational.py::test_endpoint_co_presence_without_asserted_relation_not_grounded` (green guard) |
+| OI-MOAT-06 | INVARIANT | FIXED 2026-07-12 | same file (green guard) |
+| OI-MOAT-07 | INVARIANT | FIXED 2026-08-30 | `test_moat_red_team_r2.py::test_verbless_nonclaim_smuggle_must_not_pass` (green guard) |
+| OI-MOAT-08/-09/-10 | INVARIANT | FIXED 2026-07-14 | `test_moat_red_team_r2.py` (green guards) |
+| OI-BUILD-01 | HYGIENE | OPEN | — |
+| OI-CITE-01 | INVARIANT | FIXED 2026-07-14 | `tests/test_letter_suffixed_citations.py` |
+| OI-CAL-01 | DECISION-GAP | FIXED 2026-08-30 | — |
+| OI-ENV-01 | HYGIENE | FIXED 2026-08-30 | `tests/conftest.py` guard |
+| OI-DEC-01 | DECISION-GAP | FIXED 2026-09-02 (ratified by Sai) | `tests/test_citation_propagation.py` (8) |
+| OI-T2-01 | HYGIENE | **FIXED 2026-09-02 (exact-containment T1, ADR-006)** | `honest_drafts::test_short_verbatim_quotation_should_ground` |
+| OI-CAL-02 | INVARIANT | FIXED 2026-07-14 | `tests/test_labeling_overwrite_guard.py` |
+| OI-CAL-03 | INVARIANT | FIXED 2026-07-14 | `tests/test_gold_labels_separation.py` |
+| OI-MOAT-11 | INVARIANT | FIXED 2026-08-30 | `test_moat_red_team_r3.py::test_short_verbless_fragment_must_not_escape_denominator` |
+| OI-MOAT-12 | INVARIANT | FIXED 2026-08-30 | `test_moat_red_team_r3.py::test_assertion_in_header_must_not_escape_denominator` |
+| OI-MOAT-13 | INVARIANT | FIXED 2026-08-30 | `test_moat_red_team_r3.py::test_citing_more_sources_must_not_ground_a_false_claim` |
+| OI-MOAT-14 | INVARIANT | FIXED 2026-08-30 | `test_moat_red_team_r3.py::test_absence_of_the_very_thing_searched_must_not_be_supported` |
+| OI-MOAT-15 | INVARIANT | FIXED 2026-08-30 | `test_moat_red_team_r3.py::test_quantity_noun_reader_must_not_fail_open` |
+| OI-MOAT-16 | INVARIANT | FIXED 2026-08-30 | `test_moat_red_team_r4.py::test_capitalisation_must_not_buy_a_denominator_exit` |
+| OI-MOAT-17 | INVARIANT | FIXED 2026-08-30 | `test_moat_red_team_r4.py::test_subject_too_thin_to_check_must_not_be_supported` |
+| OI-MOAT-18 | INVARIANT | FIXED 2026-08-30 | `test_moat_red_team_r4.py::test_subject_swap_within_one_source_must_not_ground` |
+| OI-MOAT-19 | INVARIANT | FIXED 2026-08-30 | `test_moat_red_team_r4.py::test_rate_free_restatement_of_a_rate_must_not_ground` |
+| OI-MOAT-22 | INVARIANT | FIXED 2026-08-30 | `test_moat_red_team_r5.py::test_cross_entity_attribution_must_not_ground_via_t2` |
+| OI-MOAT-23 | INVARIANT | FIXED 2026-08-30 | `test_moat_red_team_r5.py::test_two_word_absence_subject_must_not_self_certify` |
+| OI-MOAT-24 | INVARIANT | FIXED 2026-08-30 | `test_moat_red_team_r5.py::test_punctuated_header_assertion_must_not_escape` |
+| OI-MOAT-21 | INVARIANT | **FIXED 2026-09-02 (ADR-006: T2 demoted)** | `test_moat_oi_moat_21.py::test_argument_swap_must_not_ground` (5) + `test_moat_red_team_r5.py::test_reordered_full_vocabulary_recitation_must_not_ground` |
+| **OI-MOAT-20** | **INVARIANT** | **OPEN** | `test_moat_red_team_r4.py::test_verb_final_header_must_not_escape_denominator` (strict xfail) |
+| OI-NUM-02 | HYGIENE | FIXED 2026-08-30 | `tests/test_numeric.py::test_sentence_final_source_number_still_grounds` |
+
+Severity **Error-B** = a fabrication/unsupported claim certified as PASS — the
+**unrecoverable** class under the pinned asymmetric invariant (CLAUDE.md
+"Moat-integrity is an INVARIANT, not a preference"). Every Error-B item below is
+a **release blocker**.
+
+---
+
+## Cohort: 2026-07-12 red-team sweep — six confirmed moat violations
+
+All six were surfaced by the 26-agent adversarial sweep and **independently
+reproduced by hand** against `agent-assure-calibration-run` (gate = PASS, exit
+0). Frozen store: `tests/red_team_moat/fixtures/store.jsonl` (2 sources — S1
+Redis, S2 PostgreSQL, both `verbatim`).
+
+Two independent root causes thread the six (the sweep's synthesis claimed one;
+hand-reproduction corrected it to two — see CN §"Two roots, not one"):
+
+- **Root A — Score-bar dilution (aggregation).** `gate = PASS` fires on
+  `grounding_score >= 90` even when `retained_appendix` is non-empty. A single
+  retained violation-class claim padded to <=10% of a >=10-claim draft rides
+  through *inside* a PASS. The gate *knows* the claim is unsupported and passes
+  anyway. Affects OI-MOAT-02, OI-MOAT-06 (and, by construction, a diluted
+  variant of every other class).
+- **Root B — Per-claim over-grounding (tiers).** The gate marks a claim
+  `GROUNDED` / `ABSENCE_SUPPORTED` that is not supported, scoring 100 with an
+  **empty** appendix — so no score-bar fix can catch it. Affects OI-MOAT-01,
+  -03, -04, -05.
+
+**Escalation:** every fix alters the Error-A/Error-B trade-off or the gate score
+bar → Escalation rule #1 → **STOP and ask Sai**. These are recorded, not
+patched. The score-bar decision is drafted as **ADR-05** (Status: Proposed).
+
+| ID | Class | Root | Severity | Status |
+|----|-------|------|----------|--------|
+| OI-MOAT-01 | numeric-drift-unit | B | Error-B | **FIXED 2026-07-12** (rate-qualifier comparison; Sai greenlight) |
+| OI-MOAT-02 | numeric-drift-decimal (dilution) | A | Error-B | **FIXED 2026-07-12** (ADR-05 accepted + implemented) |
+| OI-MOAT-03 | paraphrase-overreach | B | Error-B | **FIXED 2026-08-30** (T1 residual-coverage; autonomous call D-06 register) |
+| OI-MOAT-04 | unsubstantiated-absence | B | Error-B | **FIXED 2026-07-12** (discriminating-anchor check; Sai greenlight) |
+| OI-MOAT-05 | unsupported-relation | B | Error-B | **FIXED 2026-08-30** (relational predicate support; autonomous call D-05 register) |
+| OI-MOAT-06 | letter-suffixed-id (dilution) | A | Error-B | **FIXED 2026-07-12** (ADR-05 accepted + implemented) |
+
+**Closure evidence (2026-07-12):** each FIXED item's strict-xfail flipped XPASS
+when its fix landed and was converted to a permanent green guard
+(`test_moat_red_team.py::test_fixed_fabrication_stays_blocked`). Suite:
+351 passed + 2 xfailed (the two OPEN items). All three fixes are structurally
+one-directional (a violation can only move away from PASS): ADR-05 only
+removes PASSes; a qualifier-less numeric claim is bit-identical to old
+behavior; the new absence rule matches a strict subset of the old rule's
+queries. Corpus-v2 regeneration is byte-identical post-fix — lex_tau inputs
+unaffected; CR-001 stands; the gate bar calibrates at CR-002 (gold labels).
+**Design note (Error-B monotonicity in action):** the first absence-fix
+draft keyed only on entity anchors and flipped corpus case q22 (a labeled
+violation) to ABSENCE_SUPPORTED — caught by regeneration diff, fixed by
+additionally requiring the subject head noun in supporting queries, pinned by
+`test_absence.py::test_entity_mention_without_subject_not_support`.
+**Residual (recorded, not Error-B-proven):** absence anchors do not stem
+tokens ("docs" ≠ "documentation"); numeric quantity-nouns ("operations" vs
+"gigabytes") are still not compared — both live in the same
+fail-closed-vs-Error-A trade space as OI-MOAT-03 and should ride with the
+Phase-2b decision.
+
+---
+
+### OI-MOAT-01 — numeric tier is unit-blind
+
+- **Draft:** `tests/red_team_moat/fixtures/numeric-drift-unit_1.md`
+- **Claim:** "Redis sustained approximately 128000 operations **per minute** [S1]"
+  (store S1: 128000 operations **per second**).
+- **Reproduced verdict:** `gate=PASS, score=100.0, retained=0`; the numeric claim
+  itself resolves `GROUNDED`.
+- **Mechanism:** the parsed numeric token carries the magnitude but not the
+  dimensional unit; `numeric_ok` distinguishes only percent-vs-absolute. Rate
+  denominators (per second/minute/hour) and measured quantities (ops vs GB) are
+  invisible, and a single-word unit swap is below the T2 lexical-F1 sensitivity.
+- **Systemic fix (default):** extend the numeric parser to capture and compare
+  the unit adjacent to each number; fail-closed on any unit/quantity mismatch;
+  preserve Error-B monotonicity. Add proven-red regression, re-run calibration
+  (classify/tiers change → `calibration/` goes stale → new ADR-025 CR).
+
+### OI-MOAT-02 — threshold-dilution admits a retained numeric violation
+
+- **Draft:** `tests/red_team_moat/fixtures/numeric-drift-decimal_4.md`
+- **Shape:** 9 clean verbatim-grounded claims + 1 drifted number
+  (128000 → 12800) → `score=90.0`, `retained_appendix=[1]`.
+- **Reproduced verdict:** `gate=PASS, exit 0`; the drift is correctly caught as
+  `UNVERIFIED_NUMBER` and placed in the retained appendix — then passed anyway.
+- **Mechanism:** Root A. PASS requires `grounding_score >= 90`; it does not
+  require an empty appendix. 1-of-10 = 90.0 clears the bar.
+- **Systemic fix (ADR-05):** PASS requires a non-empty draft to carry **zero**
+  retained violation-class verdicts (mirror the existing `UNVERIFIED_CITATION`
+  hard-override, generalized). Raises Error-A only in the recoverable direction.
+
+### OI-MOAT-03 — T1 verbatim span short-circuits an unsupported superlative
+
+- **Draft:** `tests/red_team_moat/fixtures/paraphrase-overreach_1.md`
+- **Claim:** "Redis is an in-memory data structure store that is, by every
+  available measure, the single fastest database ever engineered [S1]."
+- **Reproduced verdict:** `gate=PASS, score=100.0, retained=0`; the whole claim
+  resolves `GROUNDED`.
+- **Mechanism:** Root B. `t1_verbatim` returns True on ANY contiguous >=8-token
+  span (here "redis is an in-memory data structure store"); it is blind to the
+  fabricated superlative appended in the same clause. The conjunction split only
+  isolates overreach joined by " and "/"; " with two verbs — a plain superlative
+  rides through.
+- **Systemic fix (default):** add a claim-coverage / residual-assertion check so
+  a verbatim span cannot ground a claim whose remaining content tokens are
+  unsupported; route substantial uncovered residual to the fail-closed T3 tier
+  (Phase 2b) and never let T1 short-circuit it. Tiers/score change → new CR.
+
+### OI-MOAT-04 — absence grounding anchors on the wrong tokens
+
+- **Draft:** `tests/red_team_moat/fixtures/unsubstantiated-absence_1.md`
+- **Claims:** "There is no benchmark that shows Redis handling more than 500000
+  operations per second." + two siblings.
+- **Reproduced verdict:** `gate=PASS, score=100.0, retained=0`; all three resolve
+  `ABSENCE_SUPPORTED`.
+- **Mechanism:** Root B. `_extract_absence_subject` lands on the first head noun
+  ("benchmark"/"throughput"), which collides with generic corpus words present
+  in most `query_provenance` strings — so the 2-query absence rule is satisfied
+  by non-discriminating tokens, not by the negated proposition's real subject.
+- **Systemic fix (default):** anchor absence on discriminating tokens (named
+  entities, numerics, multi-word noun phrases); require the specific negated
+  subject to be queried AND positive evidence the store lacks the asserted
+  content; treat majority-present corpus words as non-discriminating. Do NOT
+  narrow `query_provenance` as a case patch — that hides the collision.
+
+### OI-MOAT-05 — relational rule checks endpoint nouns, not the relation
+
+- **Draft:** `tests/red_team_moat/fixtures/unsupported-relation_3.md`
+- **Claim:** "Redis sustained approximately 128000 operations per second,
+  **decisively outperforming PostgreSQL** under identical durability constraints
+  [S1]" (S1 never names PostgreSQL and asserts no such relation).
+- **Reproduced verdict:** `gate=PASS, score=100.0`.
+- **Mechanism:** Root B, two paths: (1) the verbatim/numeric tier grounds the
+  factual core while the unchecked comparative predicate rides in the same
+  clause; (2) `ground_relational`'s two-source rule checks endpoint-noun
+  *presence*, not support for the relation itself.
+- **Systemic fix (default):** a deterministic, LLM-free predicate/relation check
+  (the fail-closed T3 tier is the planned home but must never CREATE a PASS);
+  classifying comparatives as RELATIONAL is necessary but not sufficient — the
+  relational path itself is broken. Re-run red-team + calibration after.
+
+### OI-MOAT-06 — letter-suffixed fabrication cleared by dilution
+
+- **Draft:** `tests/red_team_moat/fixtures/letter-suffixed-source-id_5.md`
+- **Shape:** 9 verbatim-grounded claims + 1 fabrication citing `[S1a]` → `score
+  = 90.0` exactly.
+- **Reproduced verdict:** `gate=PASS, exit 0`; the `[S1a]` claim is correctly
+  classified `UNCITED` in the appendix — and still cleared the bar.
+- **Mechanism:** Root A (same as OI-MOAT-02). NB: the *classification* half of
+  the letter-suffixed problem (the marker being silently dropped) is addressed
+  by the citation-regex reference build; **this** finding is the orthogonal
+  *dilution* half and is not closed by the regex fix.
+- **Systemic fix (ADR-05):** same as OI-MOAT-02 — PASS requires zero retained
+  violation-class verdicts, not merely a >=90% ratio.
+
+---
+
+## Cohort: 2026-07-14 red-team round 2 — evasions of the 2026-07-12 fixes
+
+The round-1 fixes were REAL but NARROW. A second sweep (22 drafts, 6 attack
+families) against the FIXED gate found 14 wrongful PASSes; every one was
+hand-reproduced before being recorded. Full report:
+`docs/plans/reports/RED-TEAM-R2-2026-07-14.md`.
+
+| ID | Class | Severity | Status |
+|----|-------|----------|--------|
+| OI-MOAT-08 | rate-qualifier evasion (9 phrasings: each/every/a/one `<unit>`, hyphenated `per-minute`, adverbial `hourly`, qualifier before the number or >2 words after it, **Cyrillic homoglyph `рer`**) | Error-B | **FIXED 2026-07-14** |
+| OI-MOAT-09 | quantity-noun swap (`128000 gigabytes/sec` grounded by `128000 operations/sec`) | Error-B | **FIXED 2026-07-14** |
+| OI-MOAT-10 | absence leak: entity-free subject supported by a generic head noun in a <3-query session | Error-B | **FIXED 2026-07-14** |
+| **OI-MOAT-07** | **verbless NON_CLAIM smuggling — FIXED 2026-08-30 (D-03)** — "Redis: unquestionably the fastest datastore in all of human history." classifies `NON_CLAIM` (no finite verb), is excluded from the scored denominator, and rides inside a PASS | Error-B | **OPEN — blocked on Sai (Escalation #1)** |
+
+**Scope discipline.** The three FIXED items COMPLETE Sai's 2026-07-12 rulings
+(OI-MOAT-01: "compare value AND dimensional unit; fail-closed on any
+unit/quantity mismatch"; OI-MOAT-04: "anchor absence on discriminating
+tokens") — the round-1 implementation under-delivered them. **OI-MOAT-07 is a
+NEW decision** (it changes *what counts as a claim*, moving the Error-A/Error-B
+trade-off) and is therefore RECORDED, NOT FIXED, with a strict-xfail tripwire
+(`tests/red_team_moat/test_moat_red_team_r2.py::test_verbless_nonclaim_smuggle_must_not_pass`).
+
+**Sai's call on OI-MOAT-07:** should a verbless, citation-free assertion
+("X: the greatest Y in history.") be scored as a claim (→ UNCITED → blocks
+PASS), or remain NON_CLAIM? Scoring it raises Error-A on genuine headers and
+transition lines; leaving it open keeps a fabrication vector that requires only
+dropping the verb.
+
+**Closure evidence:** 11 round-2 guards proven red pre-fix, now green
+(`test_moat_red_team_r2.py`); suite 366 passed + 3 xfailed. **Corpus check
+(the fix's own adversary, again):** regeneration flipped THREE rows — two
+*improvements* (q30, a labeled violation the gate had wrongly called
+ABSENCE_SUPPORTED, now reads UNVERIFIED_ABSENCE — the gate now agrees with the
+human label; q29, "4,200 patients" grounded by "4,200 units", now correctly
+UNVERIFIED_NUMBER via the quantity comparison) and one *Error-A regression*
+(q37, a labeled-grounded absence, flipped to a false alarm because the first
+coverage rule counted adjectives no query would carry). The regression was
+fixed by design — head noun + one corroborating content word, with plural
+stemming — not by tuning the threshold to fit the case. Final drift: 2 rows,
+both improvements. **CR-001 re-run after the tier changes reproduces
+byte-identically** (lex_tau=0.71, held-out Error-A=0.20, Error-B=0.143).
+
+---
+
+## Cohort: 2026-08-30 red-team round 3 — evasions of the SAME-DAY fixes
+
+Round 3 ran 37 adversarial drafts against the tree that had just closed
+OI-MOAT-03/-05/-07 and deployed lex_tau=0.71. It found **17 wrongful PASSes
+collapsing to 5 mechanisms — two of them evasions of that same day's fixes.**
+Same shape as round 2 finding 14 holes in round 1's: a narrow fix closes the
+fixture it was written against and leaves the class open. Every finding was
+independently re-reproduced by hand before being accepted. Full report:
+`docs/plans/reports/RED-TEAM-R3-2026-08-30.md`.
+
+| ID | Class | Severity | Status |
+|----|-------|----------|--------|
+| OI-MOAT-11 (RT3-01) | verbless fragment UNDER the 6-content-token floor still exits the denominator | Error-B | **FIXED 2026-08-30** |
+| OI-MOAT-12 (RT3-02) | `#`-header branch short-circuits before the verbless rule — any header without a numeric/citation escapes scoring | Error-B | **FIXED 2026-08-30** |
+| OI-MOAT-13 (RT3-03) | T1 residual coverage tested the UNION of cited sources — **adding a citation made a false claim PASS** | Error-B | **FIXED 2026-08-30** |
+| OI-MOAT-14 (RT3-04) | absence path never checks what was FOUND, only what was SEARCHED — "no benchmark throughput figures exist" certified against a store of benchmark throughput figures | Error-B | **FIXED 2026-08-30** |
+| OI-MOAT-15 (RT3-05) | quantity reader breaks on the first token and fails OPEN on a singular/unknown noun, disabling the dimensional check | Error-B | **FIXED 2026-08-30** |
+
+**Tripwires:** `tests/red_team_moat/test_moat_red_team_r3.py` (13 tests, 10
+observed RED pre-fix, 3 Error-A boundary guards green in both trees).
+
+**The two that matter most.**
+
+*OI-MOAT-13* inverted the tool's premise: the identical claim FAILED cited to
+`[S1]` and PASSED cited to `[S1][S2]`, because coverage was a bag-of-words test
+over the union and S2 contributed the one missing word. Citing MORE evidence
+made a false claim easier to ground. Fixed by evaluating coverage per source —
+the source that supplied the ≥8-token span must also cover the residual, which
+is also the principled reading (T1 is the VERBATIM tier; a quotation comes from
+ONE document).
+
+*OI-MOAT-11* killed the token-count approach outright. The first OI-MOAT-07 fix
+drew a ≥6-content-token line; the adversary wrote a 5-token fabrication
+("PostgreSQL: unrecoverable corruption under load."). **Any count is a dial the
+attacker owns.** Replaced with a structural test that is not a dial: a label or
+list NAMES things (all content words are proper nouns); an assertion PREDICATES
+something (introduces lower-case descriptive content). A fabrication must say
+something about its subject, and saying it requires exactly the tokens the test
+looks for. Accepted Error-A: a bare sentence-case section label with no `#` is
+now scored.
+
+**Design note — the corpus caught a bad fix again, for the third session running.**
+The first OI-MOAT-14 draft refused any absence whose subject words appeared in a
+retrieved source. Regeneration flipped q13, q14 and q37 — all human-labeled
+GROUNDED — to UNVERIFIED_ABSENCE, because their supporting sources say "No
+recall evidence was found" / "returned zero results": text carrying the
+subject's words precisely BECAUSE it reports the absence. Presence is not
+contradiction. The check now distinguishes an AFFIRMATIVE mention (refutes the
+absence) from a NEGATED one (corroborates it); corpus regeneration is
+byte-identical. The test suite did not catch this — only the corpus diff did.
+
+**Also validated by round 3:** OI-MOAT-05's relational fix, citation
+resolution, and the Cyrillic-homoglyph rate path all HELD. **lex_tau is not
+implicated** — D05/D24/D35 re-run at `--lex-tau 0.65 / 0.71 / 0.90` give
+identical gate verdicts at all three; every wrongful PASS was
+lex_tau-invariant. Deploying 0.71 opened no path.
+
+---
+
+## Cohort: 2026-08-30 red-team round 4 — evasions of round 3's fixes
+
+41 drafts, **25 wrongful PASSes over 4 mechanisms, every one an evasion of a fix
+landed the same day.** Rounds 1→2→3→4 have each broken the previous round's
+work. Full report: `docs/plans/reports/RED-TEAM-R4-2026-08-30.md`. All findings
+independently re-reproduced by hand; 8 regressions observed RED pre-fix.
+
+| ID | Class | Severity | Status |
+|----|-------|----------|--------|
+| OI-MOAT-16 (RT4-01) | **Title Case defeats both of round 3's NON_CLAIM tests** — `_has_finite_verb` skipped capitalised tokens, and the verbless branch tested `str.isupper()`. "PostgreSQL Fails." / "### Redis Loses Data" → NON_CLAIM → PASS 100.0 | Error-B | **FIXED 2026-08-30** |
+| OI-MOAT-17 (RT4-02) | **`No benchmark.` — the entire document — returned ABSENCE_SUPPORTED, PASS, exit 0** against a store of nothing but benchmarks. A one-content-word subject made the contradiction check vacuously False; the query side stemmed and the contradiction side did not | Error-B | **FIXED 2026-08-30** |
+| OI-MOAT-18 (RT4-03) | per-source coverage is still SET MEMBERSHIP, so a single-source **subject swap** grounds: "The disk-backed alternative sustained … 128000 operations per second … twelve times the throughput of Redis [S1]" → GROUNDED 100.0 | Error-B | **FIXED 2026-08-30** |
+| OI-MOAT-19 (RT4-04) | **deleting "per second" deleted the check** — `claim_rate=None` read as unconstrained, so S1's rate grounded a claim asserting a total | Error-B | **FIXED 2026-08-30** |
+| **OI-MOAT-20** | **verb-FINAL header** ("### PostgreSQL Fails") still reads structural — the documented residue of the OI-MOAT-16 header rule | Error-B | **OPEN — strict-xfail tripwire** |
+
+**Tripwires:** `tests/red_team_moat/test_moat_red_team_r4.py` (9 green guards +
+1 strict xfail for OI-MOAT-20).
+
+### The cross-cutting finding — this is the one to remember
+
+**Three of the four are the same anti-pattern: an absent or unreadable field
+read as "unconstrained", inside a gate whose entire job is to constrain.**
+
+- `NON_CLAIM` — "I could not classify this" → leaves the scored denominator.
+- `claim_rate = None` — "I could not read a rate" → impose no rate constraint.
+- `others = ∅` — "the subject is too thin to check" → the check reports no objection.
+
+Each is a catch-all pointing **toward** PASS. Every "I don't know" in a
+verification gate must point **away** from it. The fixes invert those defaults
+rather than patch the four symptoms.
+
+### And a second lesson, learned twice in two rounds
+
+Round 3 replaced a gameable token COUNT with a proper-noun test. Round 4 beat
+that with the **Shift key**. Both rules keyed on a surface property the author
+controls — length, then capitalisation — and in both cases the attacker simply
+set that property. The header rule that replaced them uses a POSITIONAL signal
+(an English heading ends in its head noun; an assertion puts its verb medially
+and continues), which the attacker controls far less directly. Its residue is
+recorded as OI-MOAT-20 rather than papered over: closing it means either
+scoring every multi-word heading — Error-A on ordinary documents, which gets
+the tool switched off, itself a moat failure — or adding a real POS tagger,
+which is a dependency and a design decision, not a patch.
+
+**Corpus adjudication:** one row drifted (q08, labeled *grounded*) — verdict
+unchanged GROUNDED, `t1_verbatim` true→false, `tier_sensitive` false→true. It
+is now grounded via T2 (f1=0.824, comfortably above the deployed 0.71) instead
+of T1, because subject-anchoring made T1 decline. Label still satisfied, and
+the `tier_sensitive` tag is now *more* accurate. Demo re-verified.
+
+---
+
+## Cohort: 2026-08-30 red-team round 5 — the other branch of the `or`
+
+50 drafts, **23 wrongful PASSes over 4 mechanisms.** Round 5 also carried a
+commissioned **convergence assessment** (below), because rounds 1→4 had each
+broken the previous round's fixes and the owner needs to know whether that
+terminates. Report: `docs/plans/reports/RED-TEAM-R5-2026-08-30.md`.
+
+| ID | Class | Severity | Status |
+|----|-------|----------|--------|
+| OI-MOAT-22 (R5-01) | **cross-entity attribution via T2** — a claim handing Redis's 128000 ops/sec to PostgreSQL and citing `[S1]` scored GROUNDED at 100.0, although "postgresql" occurs nowhere in S1. Round 4 hardened T1; `ground()` is `t1 OR t2`, and the attacker took the other branch. Polarity flips (`never sustained`) likewise | Error-B | **FIXED 2026-08-30** |
+| OI-MOAT-23 (R5-03) | **`There are no throughput figures.` → ABSENCE_SUPPORTED, PASS** against a store whose every source reports throughput figures. A 2-content-word subject is "non-specific" to the query rule (head noun alone suffices) but the contradiction rule always demanded a corroborator, so it could never fire | Error-B | **FIXED 2026-08-30** |
+| OI-MOAT-24 (R5-04) | `### PostgreSQL Corrupts, Data` escapes the denominator while the unpunctuated form is caught — the header verb test ran on RAW tokens, so a comma made "Corrupts," not end in "s" | Error-B | **FIXED 2026-08-30** |
+| **OI-MOAT-21 (R5-02)** | **T2's SOUNDNESS — escalated, not fixed.** See below | Error-B | **OPEN — Sai's call, strict-xfail tripwire** |
+
+**Tripwires:** `tests/red_team_moat/test_moat_red_team_r5.py` (7 green guards +
+1 strict xfail).
+
+### OI-MOAT-21 — the one that is not an agent's to close
+
+- **class:** INVARIANT · **status:** OPEN · **escalation:** Sai (Escalation #1 + #3)
+- **tripwire:** `test_moat_red_team_r5.py::test_reordered_full_vocabulary_recitation_must_not_ground`
+
+`ground()` accepts `t1_verbatim(...) OR t2_lexical(...)`, so **T2 alone is
+sufficient for GROUNDED** — and T2 is a content-word F1 *ratio* whose
+denominator is the claim's own length, which the author writes. Round 5
+produced a draft scoring **F1 = 1.000** by reciting all of S1's vocabulary in
+an order that reverses its meaning. It is **lex_tau-invariant: it PASSes at
+0.99.** No threshold rejects it, because a threshold on an attacker-controlled
+ratio is not a soundness test at any value.
+
+The 2026-08-30 misattribution and polarity constraints close the cases where
+the session retrieved the substituted entity, or where polarity flipped. They
+do not make a bag-of-words ratio sound, and no constraint bolted onto one will.
+Two attempts before the one that shipped are recorded in the code comment:
+a positional "subject" guess (defeated by a fronted adverbial) and full content
+coverage (which closed the attack but rejected `achieves` against `delivers`,
+destroying the paraphrase grounding T2 exists for).
+
+**Round 5's recommendation, endorsed:** demote T2 from
+sufficient-for-GROUNDED — to a corroborating signal, or behind an
+order/structure check. **Why this is not an agent's call:** it changes what the
+gate MEANS, and it invalidates the calibration `lex_tau` is derived from (a
+threshold on a tier that no longer decides anything alone is a different
+parameter). That is Escalation #1 and #3 together.
+
+### Convergence assessment (commissioned; round 5's own numbers)
+
+- **Drafts per mechanism found: 7.4 → 10.3 → 12.5** across rounds 3, 4, 5 —
+  attacks are getting more expensive to produce.
+- **Every round-4 fix attacked directly HELD.** This is the first round where
+  that is true.
+- **But 3 of round 5's 4 findings are one meta-error** — a fix applied to one
+  branch of a two-branch decision (T1 but not T2; the query side but not the
+  contradiction side; the unpunctuated token but not the punctuated). That
+  class is *enumerable*, which is good news: it is auditable rather than
+  endless.
+- **The surviving attacks are MORE natural than round 4's, not less.**
+  Cross-entity attribution and polarity errors are the base-rate LLM failure
+  mode — what this tool exists to catch — not red-team artefacts.
+- **Round 5's judgment, recorded verbatim:** *the process is converging; the T2
+  design is not.*
+
+---
+
+## Non-blocking / hygiene
+
+- **OI-T2-01 (MEDIUM — Error-A, found 2026-08-30 by a deliberate honest-draft
+  sweep, not by an adversary).** A short sentence quoted **verbatim** from a
+  source can read `UNGROUNDED`:
+
+      claim:  "PostgreSQL is a relational database management system [S2]."
+      S2:     "PostgreSQL is a relational database management system. Under
+               the same benchmark load and hardware, PostgreSQL sustained ..."
+      verdict: UNGROUNDED   (t2_f1 = 0.385)
+
+  Two independent causes stack. (1) T1 needs a >=8-token contiguous span and
+  this whole sentence is 7 tokens, so the verbatim tier never fires on a short
+  quotation. (2) T2's content-word **F1 penalises precision against a long
+  source window**: the claim's 5 content words are correct and complete, but
+  the window carries ~25, so recall 1.0 pairs with precision 0.2. The user
+  experience is the worst kind for this product — *"I quoted your source
+  exactly and it says ungrounded."*
+
+  **Not caused by this session's changes, and verified so:** the same claim
+  scores 0.385 and fails at lex_tau **0.65** as well as 0.71, and T1's 8-token
+  floor is original design. Recorded because a fail-safe direction is still a
+  cost, and this one is invisible to an adversarial sweep by construction — a
+  red-teamer looks for wrongful PASSes, so no number of red-team rounds would
+  ever have surfaced it.
+
+  **Systemic fix (options, Sai's call — it moves the Error-A/Error-B
+  trade-off):** (a) let T1 fire on a shorter span when the claim IS the span
+  (a whole-sentence exact match, which cannot be an over-reach because there is
+  no residual); (b) score T2 on claim-recall rather than F1, which the spec
+  already flags as deferred to calibration (spec §12.5) and which precisely
+  targets the long-window dilution; (c) leave it to the T3/NLI tier. Note (a)
+  is fail-closed-safe and narrowly scoped; (b) changes every T2 verdict and
+  needs a full calibration run + CR.
+
+  **Relevance to ADR-004:** this is the Error-A class the NLI tier exists to
+  recover, and it is more common in real drafts than the paraphrase cases the
+  package models — an author quoting a short definition verbatim is ordinary
+  behaviour.
+
+- **OI-BUILD-01 — build worktrees on the wrong base.** The two sweep builds
+  (citation-regex `9d14ff1`, NLI-tier `d859e09`) were cut from `agents-infra`
+  **main** (`fef21e4`), a 326-test baseline — NOT this branch (334). Their diffs
+  and green-suite claims do not transfer; they must be rebased onto
+  `agent-assure-calibration-run` and re-verified before any merge. Reference
+  material, not mergeable as-is. Worktrees live under
+  `agents-infra/.claude/worktrees/wf_f5845e10-a39-{16,17}`.
+- **OI-CITE-01 — citation regex declassifies letter-suffixed IDs** —
+  **FIXED 2026-07-14** on-branch (not by rebasing worktree -16): `_CITATION_RE`
+  widened to `S\d+[a-zA-Z]*`. Red-first proven (4 tests failing pre-fix,
+  `tests/test_letter_suffixed_citations.py`; red output in the 2026-07-14
+  logbook). `[S1a]` now classifies as a citation → resolves or reads the
+  precise `UNVERIFIED_CITATION`; bracket digits no longer leak into
+  numeric_tokens. Corpus-v2 regeneration byte-identical. The "use `S\d+` IDs
+  only" fixture restriction is lifted.
+- **OI-CAL-01 — lex_tau cross-artifact drift (0.65 shipped vs 0.71 calibrated) — RESOLVED 2026-08-30 (register D-06): 0.71 DEPLOYED as `_LEX_TAU_DEFAULT`, `--lex-tau` flag added.** Closure evidence: measurement-neutral on both corpora — every tau in [0.60, 0.71] gives the identical confusion matrix on the n=12 labeled set (tp=6 fp=0 tn=5 fn=1), and ZERO `tier_sensitive` rows fall in [0.65, 0.71) on the n=52 corpus (the 3 rows in-band are all tier-invariant). Corpus regeneration byte-identical. Four tests that had silently hardcoded 0.65 were decoupled to read the constant. Original description follows:
+  Found 2026-07-14 by direct trace: the CLI exposes no lex_tau parameter and
+  `t2_lexical` defaults to **0.65** (spec provisional) — that is what the gate
+  RUNS. CR-001's chosen operating point (**0.71**, n=12, held-out) was recorded
+  but never deployed, while CLAUDE.md/memory/RESUME-HERE present 0.71 as "the"
+  lex_tau. Deploying 0.71 moves the live Error-A/Error-B operating point →
+  Escalation rule #1 → **Sai's one-line call: deploy 0.71 now (per CR-001), or
+  hold at 0.65 until the n=52 gold run (CR-002) supersedes it?** (CR-002 makes
+  this moot if ratification lands first.) Until ruled: docs corrected to say
+  "runs at 0.65; CR-001 recommends 0.71, undeployed."
+- **OI-ENV-01 (HIGH — onboarding trap, found in α4).** On a checkout provisioned
+  by `install.sh` alone, `uv run pytest` silently falls back to an unrelated
+  GLOBAL pytest (`~/.pyenv/shims/pytest`) and reports ~46 bogus
+  `ModuleNotFoundError` failures. The fix is `uv sync --extra dev` (351 passed
+  after) — but a first-time user sees a broken-looking suite. Options: make
+  `install.sh` provision dev deps, or fail loud when pytest resolves outside
+  the project `.venv`. Evidence:
+  `docs/alpha/ALPHA4-INSTALL-VALIDATION-2026-07-14.md` F-1.
+- **OI-DEC-01 (MEDIUM — decomposition, found in α4) — OPEN, ESCALATED to Sai
+  2026-08-30 (register D-12).** Re-reproduced this session on the current tree:
+
+      decompose("Redis is fast and PostgreSQL is durable [S1].")
+        -> "Redis is fast"                  citations=()      -> UNCITED
+        -> "PostgreSQL is durable [S1]."    citations=([S1],)
+
+  The conjunction split detaches a sentence-final citation from the left
+  clause, so a claim the author DID cite reads UNCITED and (post-ADR-005)
+  blocks PASS. Fail-safe today — it is an Error-A false alarm, not an Error-B
+  leak — which is why it stayed hygiene.
+
+  **Why it was NOT fixed autonomously alongside the other four items.** The
+  obvious fix (propagate a sentence-final citation to every clause of the
+  split sentence) is the first change in this cohort that moves claims TOWARD
+  PASS: a clause that today is unconditionally UNCITED would instead be
+  tier-checked against the propagated source, and could resolve GROUNDED. The
+  claim still faces a real grounding check — nothing is waved through — but
+  the change alters the Error-A/Error-B trade-off in the PASS-enabling
+  direction, which is Escalation rule #1 and therefore Sai's call. D-03/-04/
+  -05 were all strictly fail-closed and D-06 was measurement-neutral; this one
+  is not, and the distinction is the whole reason the escalation rule exists.
+
+  **Sai's one-line call:** propagate a sentence-final citation to all clauses
+  of a conjunction-split sentence (removes a real false-alarm class, opens a
+  narrow PASS-enabling path through the normal tiers), or keep the current
+  fail-safe detachment and instead document "cite each clause" as authoring
+  guidance? Original description: The conjunction splitter
+  detaches a citation from an earlier clause in compound sentences (aggravated
+  by a plural-noun false positive in the verb-like heuristic), and `syntok`
+  occasionally merges two differently-cited sentences into one claim on a
+  `(:NNNN).` punctuation pattern. Both are reproducible; both are fail-safe
+  today (they produce UNCITED / conservative verdicts, i.e. Error-A, not
+  Error-B), so they are hygiene, not moat. Evidence: α4 report F-2/F-3.
+- **OI-CAL-03 (systemic root of OI-CAL-02) — FIXED 2026-07-14.** Separation
+  implemented, closing PIR-002's root cause:
+  - `calibration/labeling-v2.csv` is now a **derived SCAFFOLD** (claim, evidence,
+    candidate proposal, rationale) with **no human column**. The generator owns
+    it and regenerates it freely — a rebuild has nothing of the ratifier's to
+    destroy, **by construction rather than by guard**. The corpus is extensible
+    after ratification again (the cost the OI-CAL-02 guard had imposed).
+  - `calibration/labels-v2.csv` is the **human-owned LABELS** file. No generator
+    writes it; `python -m calibration.init_labels` creates it once and refuses to
+    overwrite. Row-aligned with the scaffold, so the brief's line numbers hold.
+  - `scripts/calibrate.py::load_gold_labels` joins them on `claim_id` and fails
+    loud on: non-gold status, bad/blank label, duplicate id, orphan label, an
+    **unlabeled** scaffold claim (silently shrinking n), and — **new property** —
+    a **STALE** label whose `claim_sha` no longer matches the claim + evidence
+    that was judged. Before OI-CAL-03 a corpus edit could silently re-point a
+    gold label at text the human never read; that hole is now closed and tested.
+  - Migration verified: 52 → 52 rows, zero labels altered, zero claim/evidence
+    text altered, every `claim_sha` validating against a freshly regenerated
+    scaffold. Tests: `tests/test_gold_labels_separation.py` (8).
+  Full analysis: PIR-002; narrative: CN-PIR002.
+- **OI-CAL-02 (HIGH — data-loss hazard) — FIXED 2026-07-14** (`assert_labels_not_clobbered`
+  + `--features-only`; red-first; verified live against the 12 + 52 labeled rows).
+  Root cause remains open as OI-CAL-03. Original description: `calibration/build_corpus.py`
+  regenerates `labeling.csv` and **blanks its `human_label` column**. Running
+  the builder destroys ratified labels — audit evidence that cannot be
+  regenerated. Hit live on 2026-07-14 (bootstrap n=12 labels wiped; the
+  fail-loud loader refused to calibrate on blanks and the file was restored
+  from git). Fix: the builder must refuse to overwrite a labeling CSV that
+  carries any non-empty `human_label` (write to a `.new` file and fail loud),
+  or write labels only when the target does not exist. Applies to
+  `build_corpus_v2.py` / `labeling-v2.csv` too — **it will destroy Sai's gold
+  labels the first time anyone regenerates the corpus after ratification.**
+  Sequence this BEFORE α2/CR-002.
+- **OI-NUM-02 — numeric tokens carry a trailing space — FIXED 2026-08-30 (D-12).** Both extraction sites now rstrip the token (classify + _numeric_tokens_from_text, kept identical). Red-first: 2 tests seen failing pre-fix. Corpus regeneration byte-identical. Original description: when no suffix follows
+  (`_NUMERIC_RE`'s optional `\s?`): `"5000000 "` not `"5000000"`. Downstream
+  parsing strips it, but the raw token feeds T2's numeric-presence window check
+  (`token in window_text`), where a space-suffixed token can miss a
+  sentence-final number — a small Error-A quirk. Needs its own red-first pass +
+  calibration byte-diff; not entangled with any Error-B path. Hygiene, low
+  priority.

@@ -72,8 +72,12 @@ def _src(source_id: str, text: str) -> RetrievedSource:
 _Q1_STORE = {
     "S1": _src(
         "S1",
-        "Insulin resistance occurs when cells in your body do not respond "
-        "well to insulin and cannot use glucose from your blood for energy.",
+        "Insulin resistance occurs when cells do not respond well to insulin. "
+        "Sustained insulin resistance causes type 2 diabetes to develop. "
+        # ^ OI-MOAT-05 (2026-08-30): a source must ASSERT the relation, not
+        #   merely mention one endpoint — endpoint co-presence across two
+        #   sources is the over-association defect (corpus q25/q26/q48).
+        "Cells cannot use glucose from the blood for energy.",
     ),
     "S2": _src(
         "S2",
@@ -159,11 +163,13 @@ def test_full_harness_closed_loop_produces_cr_and_guards_relational(tmp_path):
     assert [r.claim_id for r in rows] == ["q1#0", "q2#0", "q2#1", "q2#2"]
 
     # The relational claim is present, GROUNDED, and — the blocker guard —
-    # NOT tier_sensitive at emit time, despite t1_verbatim being False.
+    # NOT tier_sensitive at emit time. (t1_verbatim flipped to True on
+    # 2026-09-02 via ADR-006's exact-containment path; incidental here, since a
+    # RELATIONAL verdict comes from ground_relational and consults no tier.)
     relational_row = rows[0]
     assert relational_row.kind == "RELATIONAL"
-    assert relational_row.predicted_verdict == "GROUNDED"
-    assert relational_row.t1_verbatim is False
+    assert relational_row.predicted_verdict == "UNVERIFIED_RELATION"
+    assert relational_row.t1_verbatim is True
     assert relational_row.t2_f1 < min(_TAUS[1:])  # below 0.65 and 0.90
     assert relational_row.tier_sensitive is False
 
@@ -190,7 +196,7 @@ def test_full_harness_closed_loop_produces_cr_and_guards_relational(tmp_path):
     # violation) at every swept lex_tau, never t2_f1 < lex_tau. If the row had
     # regressed to tier_sensitive, it would be a violation at 0.65 and 0.90.
     for tau in _TAUS:
-        assert predicted_is_violation(relational_labeled, tau) is False
+        assert predicted_is_violation(relational_labeled, tau) is True
 
     # --- Stage 5: sweep thresholds.
     sweep = sweep_thresholds(labeled, _TAUS)

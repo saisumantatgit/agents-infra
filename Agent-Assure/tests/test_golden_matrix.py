@@ -20,7 +20,10 @@ from __future__ import annotations
 
 import pytest
 
+from scripts import ground_check as g
 from scripts.ground_check import (
+    _LEX_TAU_DEFAULT,
+    t2_lexical_score,
     Claim,
     ClaimKind,
     RetrievedSource,
@@ -111,21 +114,41 @@ MATRIX = [
     # 6 < min_quote_len=8 → T1 returns False (short-circuit at token count).
     #
     # Source is a paraphrase (key verb "achieves" → "delivers"):
-    #   "PostgreSQL query optimization delivers high throughput in
-    #    production environments."
-    # Content-word F1 measured = 0.714 ≥ tau=0.65 → T2 returns True.
+    #   "PostgreSQL query optimization delivers high throughput."
+    # T2 returns True: the paraphrase clears _LEX_TAU_DEFAULT.
+    #
+    # The source was tightened on 2026-09-02. The wider original ("...in
+    # production environments") scored f1=0.714, which cleared 0.65 and 0.71
+    # but not CR-002's 0.76 — so this row silently pinned the golden matrix to
+    # one operating point. A fixture whose verdict depends on where the
+    # threshold currently sits is testing the threshold, not the tier split it
+    # is named for. The assertions below now read the constant.
+    # ------------------------------------------------------------------
+    # ------------------------------------------------------------------
+    # ROW 2: UNGROUNDED via the demoted T2 (was GROUNDED until ADR-006)
+    #
+    # "achieves" for "delivers" — a one-token verb synonym. The claim is TRUE
+    # and the gate now refuses it. That is the contract, not a defect: ADR-006
+    # demoted T2 from sufficient-for-GROUNDED because this row and a
+    # fabrication are the same shape. "Revenue grew 12% in the MAPPING
+    # division" against a source saying LOGISTICS is also one novel token, and
+    # scores the same t2_f1. No lexical rule separates them; T3/NLI (ADR-004)
+    # is the only thing that can.
+    #
+    # The row is kept, with its verdict flipped, rather than deleted — the
+    # matrix should record what the gate does at its edges, and this edge is
+    # now the single most important one to be able to point at.
     # ------------------------------------------------------------------
     pytest.param(
-        "grounded_t2",
+        "ungrounded_synonym_paraphrase",
         "PostgreSQL query optimization achieves high throughput [S1].",
         lambda: _store(
             _src(
                 "S1",
-                "PostgreSQL query optimization delivers high throughput"
-                " in production environments.",
+                "PostgreSQL query optimization delivers high throughput.",
             )
         ),
-        Verdict.GROUNDED,
+        Verdict.UNGROUNDED,
         id="grounded_t2",
     ),
 
@@ -209,11 +232,17 @@ MATRIX = [
     ),
 
     # ------------------------------------------------------------------
-    # ROW 7: UNVERIFIED_RELATION — single verbatim source
+    # ROW 7: relational claim, single verbatim source (id kept: unverified_relation)
     #
-    # Claim is RELATIONAL (contains "causes"). ground_relational requires
-    # ≥2 DISTINCT verbatim sources. Only S1 is in the store →
-    # len(verbatim_sources) < 2 → UNVERIFIED_RELATION.
+    # Claim is RELATIONAL (contains "causes"). Under ADR-007 / D-76 a relational
+    # claim is NEVER certified and never reaches the verbatim path at all, so the
+    # verdict is UNVERIFIED_RELATION for every relational claim — which is why
+    # this row's name and its verdict agree again. The two-source rule is now a
+    # diagnostic, pinned separately by
+    # test_golden_relational_diagnostic_single_source.
+    #
+    # The fall-through this comment used to describe was withdrawn after round 13
+    # showed T1 certifying causal claims whose sources DENIED or REVERSED them.
     # ------------------------------------------------------------------
     pytest.param(
         "unverified_relation",
@@ -257,6 +286,20 @@ def test_golden_verdict_matrix(
     )
 
 
+def test_golden_relational_diagnostic_single_source() -> None:
+    """Row unverified_relation, rule half: one verbatim source is not two.
+
+    The relational rule moved from the verdict to the diagnostic under ADR-007;
+    it is still measured and still strict, it just no longer votes.
+    """
+    claim = _classified("Insulin resistance causes type 2 diabetes [S1].")
+    store = _store(
+        _src("S1", "Insulin resistance is a metabolic condition affecting cells.")
+    )
+    assert claim.kind == ClaimKind.RELATIONAL
+    assert g.relational_diagnostic(claim, store) == g.RELATION_NOT_CORROBORATED
+
+
 # ---------------------------------------------------------------------------
 # Tier proofs: explicit T1/T2 split for the GROUNDED rows
 # ---------------------------------------------------------------------------
@@ -281,16 +324,19 @@ def test_grounded_t2_tier_split() -> None:
     claim = _classified("PostgreSQL query optimization achieves high throughput [S1].")
     source = _src(
         "S1",
-        "PostgreSQL query optimization delivers high throughput in production environments.",
+        "PostgreSQL query optimization delivers high throughput.",
     )
     # T1 must miss — 6 content tokens after citation strip < min_quote_len=8
     assert not t1_verbatim(claim, [source]), (
         "T1 must miss: claim has only 6 content tokens after citation strip,"
         " which is below min_quote_len=8."
     )
-    # T2 must hit — lexical-F1 measured at 0.714 ≥ tau=0.65
+    # T2 must hit — the paraphrase clears the DEPLOYED operating point, read
+    # from the constant rather than hardcoded (see the note in the row above).
+    assert t2_lexical_score(claim.text, source.text) >= _LEX_TAU_DEFAULT
     assert t2_lexical(claim, [source]), (
-        "T2 must hit: content-word F1 between claim and source is 0.714 ≥ tau=0.65."
+        "T2 must hit: content-word F1 clears _LEX_TAU_DEFAULT "
+        f"({_LEX_TAU_DEFAULT})."
     )
 
 

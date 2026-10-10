@@ -21,10 +21,10 @@ from scripts.ground_check import (
 # Helpers
 # ---------------------------------------------------------------------------
 
-def src(text: str) -> RetrievedSource:
+def src(text: str, sid: str = "S1") -> RetrievedSource:
     """Build a minimal RetrievedSource with the given text."""
     return RetrievedSource(
-        source_id="S1",
+        source_id=sid,
         url=None,
         file_path=None,
         fetched_at="t",
@@ -83,18 +83,102 @@ def test_t1_case_insensitive():
 def test_t1_min_quote_len_boundary():
     """Exactly min_quote_len=8 tokens → hit; min_quote_len=9 → miss.
 
-    Claim content tokens: the system processes requests at high speed always done
+    Claim tokens: the system processes requests at high speed always done
     (9 tokens total). The source contains the 8-token prefix
     'the system processes requests at high speed always' verbatim, but NOT all 9
-    since 'done' is absent. So min_quote_len=8 hits (8-token window present),
-    and min_quote_len=9 misses (no 9-token contiguous span is shared).
+    contiguously — 'done' appears elsewhere in the source, so the residual-
+    coverage check (OI-MOAT-03) is satisfied while no 9-token CONTIGUOUS span
+    is shared. min_quote_len=8 hits; min_quote_len=9 misses.
+
+    NB the fixture deliberately places 'done' in the source: this test isolates
+    the SPAN-LENGTH boundary. Coverage of the residual is a separate property
+    with its own tests (test_t1_uncovered_residual_*).
     """
-    # 9 content tokens total; source shares the first 8 contiguous ones
+    # 9 content tokens total; source shares the first 8 contiguous ones and
+    # carries the 9th ('done') non-contiguously so coverage is not the variable.
     claim_text = "the system processes requests at high speed always done [S1]."
-    source_text = "the system processes requests at high speed always in production"
+    # The 8-gram must start at the claim's SUBJECT ("system") since RT4-03
+    # anchored T1's span to it; 'done' therefore has to sit inside that window
+    # in the source, and no NINE-token anchored window can exist (the claim has
+    # only 9 tokens and the subject is at index 1).
+    # The source opens with "our", not "the", so the ANCHORED 8-gram
+    # ("system ... done", starting at the claim's first content token) is
+    # contiguous while the claim's full 9-token sequence is not. Corrected
+    # 2026-09-02: the old fixture read "...high speed always done in production",
+    # which DID contain all nine contiguously — the min_quote_len=9 assertion
+    # passed because subject-anchoring rejected the 9-gram, not because no
+    # 9-gram existed, so the test was not isolating the span-length boundary its
+    # docstring names. ADR-006's exact-containment path surfaced this by
+    # grounding the claim outright.
+    source_text = (
+        "our system processes requests at high speed always done in production"
+    )
     assert t1_verbatim(mk(claim_text), [src(source_text)], min_quote_len=8)
     # min_quote_len=9: no 9-token contiguous span is shared between claim and source
     assert not t1_verbatim(mk(claim_text), [src(source_text)], min_quote_len=9)
+
+
+# --- OI-MOAT-03 residual-coverage (D-04, 2026-08-30) -------------------------
+
+def test_t1_uncovered_residual_refuses_span():
+    """A verbatim span must NOT ground a claim carrying unchecked residual.
+
+    The 8-token span is genuinely present, but the appended superlative
+    ('single fastest database ever engineered') appears nowhere in the source.
+    T1 must refuse and let the claim fall through to T2/UNGROUNDED, rather
+    than certifying words it never checked (the OI-MOAT-03 mechanism).
+    """
+    claim = mk(
+        "Redis is an in-memory data structure store that is, by every available "
+        "measure, the single fastest database ever engineered [S1]."
+    )
+    source = src(
+        "Redis is an in-memory data structure store used as a database, cache "
+        "and message broker."
+    )
+    assert not t1_verbatim(claim, [source])
+
+
+def test_t1_fully_covered_residual_still_grounds():
+    """Error-A boundary: when every content token IS covered by the source, a
+    verbatim span still grounds — the fix must not break honest quotation."""
+    claim = mk(
+        "Redis is an in-memory data structure store used as a cache [S1]."
+    )
+    source = src(
+        "Redis is an in-memory data structure store used as a database, cache "
+        "and message broker."
+    )
+    assert t1_verbatim(claim, [source])
+
+
+def test_t1_coverage_is_per_source_not_union():
+    """SUPERSEDES the union rule (RT3-03, 2026-08-30).
+
+    Coverage was first evaluated over the UNION of the cited sources, which
+    meant that adding a citation WIDENED the vocabulary available to cover a
+    fabrication — the same claim FAILED on [S1] and PASSED on [S1][S2].
+    Citing more evidence must never make a claim easier to ground.
+
+    Coverage is now per source: the source that supplied the >=8-token span
+    must also cover the claim's residual. T1 is the VERBATIM tier and a
+    quotation comes from ONE document; a genuine multi-source claim falls
+    through to T2, which is fail-closed and recoverable.
+    """
+    claim = mk(
+        "Redis is an in-memory data structure store with durability guarantees [S1][S2]."
+    )
+    s1 = src("Redis is an in-memory data structure store used as a cache.")
+    s2 = src("The benchmark enabled full durability guarantees throughout.", sid="S2")
+    # S1 supplies the span but not "durability"/"guarantees"; S2 has those but
+    # no span. Neither source alone satisfies both, so T1 refuses.
+    assert not t1_verbatim(claim, [s1, s2])
+    # Control: one source carrying BOTH the span and the residual still grounds.
+    whole = src(
+        "Redis is an in-memory data structure store used as a cache with "
+        "durability guarantees."
+    )
+    assert t1_verbatim(claim, [whole, s2])
 
 
 def test_t1_empty_sources():
@@ -173,9 +257,13 @@ def test_t2_no_numeric_tokens_only_f1_gate():
         "Redis handles many operations per second on commodity hardware in production"
     )
     claim = mk("Redis handles operations per second [S1].")
-    # Numeric tokens should be empty; T2 should succeed on F1 alone
+    # Numeric tokens should be empty; T2 should succeed on F1 alone.
+    # lex_tau is passed EXPLICITLY: the property under test is "with no numeric
+    # tokens, only the F1 gate applies" — it must not silently depend on where
+    # the deployed operating point happens to sit (this fixture scores in the
+    # 0.65-0.71 band and broke on the OI-CAL-01 deployment).
     assert claim.numeric_tokens == ()
-    assert t2_lexical(claim, [src(source_text)])
+    assert t2_lexical(claim, [src(source_text)], lex_tau=0.65)
 
 
 def test_t2_multiple_sources_best_window():

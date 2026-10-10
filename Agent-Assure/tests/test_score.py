@@ -350,10 +350,35 @@ def test_threshold_drives_needs_work():
     assert abs(rep["grounding_score"] - 66.7) < 0.05
     assert rep["gate"] == "NEEDS_WORK"
 
-    # Lowering the threshold below the score flips the gate to PASS (proves the
-    # threshold parameter is genuinely consulted, not a hard-coded 90).
+    # ADR-005 (empty-appendix hard-cap): lowering the threshold below the
+    # score can no longer buy a PASS while a violation-class claim is
+    # retained — the appendix caps the gate regardless of the score bar.
+    # (Pre-ADR-005 this asserted PASS; that was the OI-MOAT-02/-006
+    # threshold-dilution vector.)
     rep_low = score_report(claims, store, threshold=60.0)
-    assert rep_low["gate"] == "PASS"
+    assert rep_low["gate"] == "NEEDS_WORK"
+    assert rep_low["retained_appendix"], "premise: a violation is retained"
+
+
+def test_threshold_parameter_consulted():
+    """The threshold parameter is genuinely consulted, not a hard-coded 90.
+
+    With a CLEAN report (all claims grounded, empty appendix, score 100.0),
+    the gate is PASS at the default threshold and flips to NEEDS_WORK when the
+    threshold is raised above the score — the only branch left that the
+    score bar alone controls under ADR-005.
+    """
+    s1 = _src("S1", _GROUNDED_TEXT)
+    store = _store(s1)
+    claims = [_grounded_claim(0, "S1"), _grounded_claim(1, "S1")]
+
+    rep = score_report(claims, store)
+    assert rep["grounding_score"] == 100.0
+    assert rep["retained_appendix"] == []
+    assert rep["gate"] == "PASS"
+
+    rep_high = score_report(claims, store, threshold=100.5)
+    assert rep_high["gate"] == "NEEDS_WORK"
 
 
 # ---------------------------------------------------------------------------
@@ -361,13 +386,24 @@ def test_threshold_drives_needs_work():
 # ---------------------------------------------------------------------------
 
 def test_per_claim_fields():
-    """per_claim entries carry exact field names: index, text, kind, verdict."""
+    """per_claim entries carry exact field names.
+
+    Kept EXACT rather than relaxed to a subset when ``evidence_basis`` was
+    added (OI-UX-01, 2026-09-12): the report is an of-record artifact, and a
+    subset check would let a field appear or vanish unnoticed. Adding a field
+    is meant to cost one deliberate edit here.
+    """
     s1 = _src("S1", _GROUNDED_TEXT)
     store = _store(s1)
     c0 = _grounded_claim(0, "S1")
     rep = score_report([c0], store)
     entry = rep["per_claim"][0]
-    assert set(entry.keys()) == {"index", "text", "kind", "verdict"}
+    # J-74 (2026-10-03): `support_diagnostic` added. This is the "one
+    # deliberate edit" the docstring above demands, and the guard worked — the
+    # field was added to score_report and this test went red in the same run,
+    # which is exactly what an of-record artifact's field set should cost.
+    assert set(entry.keys()) == {"index", "text", "kind", "verdict",
+                                 "evidence_basis", "support_diagnostic"}
     assert entry["index"] == 0
     assert entry["text"] == c0.text
     assert entry["kind"] == c0.kind.value

@@ -12,6 +12,7 @@ Fixtures are built via classify(...) (real classifier) and plain store dicts,
 so each test exercises the dispatcher against genuinely classified claims.
 """
 
+from scripts import ground_check as g
 from scripts.ground_check import (
     Claim,
     ClaimKind,
@@ -79,7 +80,7 @@ def test_non_claim_returns_grounded():
 # Branch 2: RELATIONAL delegates to ground_relational
 # ---------------------------------------------------------------------------
 
-def test_relational_delegates_to_ground_relational():
+def test_relational_is_refused_while_the_DIAGNOSTIC_corroborates():
     """RELATIONAL claim is routed through ground_relational (two-distinct-source rule).
 
     Side A ('insulin resistance') in S1, side B ('type 2 diabetes') in S2,
@@ -89,8 +90,12 @@ def test_relational_delegates_to_ground_relational():
     """
     s1 = _src(
         "S1",
-        "Insulin resistance occurs when cells in your body do not respond "
-        "well to insulin and cannot use glucose from your blood for energy.",
+        "Insulin resistance occurs when cells do not respond well to insulin. "
+        "Sustained insulin resistance causes type 2 diabetes to develop. "
+        # ^ OI-MOAT-05 (2026-08-30): a source must ASSERT the relation, not
+        #   merely mention one endpoint — endpoint co-presence across two
+        #   sources is the over-association defect (corpus q25/q26/q48).
+        "Cells cannot use glucose from the blood for energy.",
     )
     s2 = _src(
         "S2",
@@ -99,24 +104,39 @@ def test_relational_delegates_to_ground_relational():
     )
     claim = _classified("Insulin resistance causes type 2 diabetes [S1][S2].")
     assert claim.kind == ClaimKind.RELATIONAL
-    result = ground(claim, _store(s1, s2))
-    assert result == Verdict.GROUNDED, (
-        f"Expected GROUNDED via ground_relational delegation, got {result}"
+    store = _store(s1, s2)
+    result = ground(claim, store)
+    assert g.relational_diagnostic(claim, store) == g.RELATION_CORROBORATED, (
+        "the corroboration rule must still CONCLUDE — a demotion that stops "
+        "computing the thing is a deletion, not a demotion")
+    assert result == Verdict.UNVERIFIED_RELATION, (
+        f"ADR-007 / D-76: a RELATIONAL claim is never certified, got {result}"
     )
 
 
 def test_relational_delegation_unverified_relation():
-    """Single verbatim source → ground_relational returns UNVERIFIED_RELATION.
+    """Single verbatim source → the relational rule reports NOT_CORROBORATED.
 
-    This verdict is UNIQUE to the relational path, so observing it proves the
-    dispatcher delegated rather than running the factual/tier path.
+    Under ADR-007 the relational rule is a DIAGNOSTIC, not a verdict:
+    `relational_diagnostic` carries the old conclusion, while `ground()`
+    REFUSES the claim outright — `UNVERIFIED_RELATION`, unconditionally, for
+    every RELATIONAL claim regardless of what the sources say.
+
+    This docstring described a FALL-THROUGH to the ordinary verbatim path
+    (D-74). That implementation was withdrawn the same day it landed (D-76):
+    round 13 showed T1 certifying a reversed, denied or negated relation at
+    PASS 100.0 via its 8-token span + coverage rule, because T1 and
+    corroboration are not nested. The assertion below was corrected then; this
+    prose and the failure message were not, and a test that misdescribes why it
+    passes teaches the next reader the withdrawn behaviour.
     """
     s1 = _src("S1", "Insulin resistance is a metabolic condition.")
     claim = _classified("Insulin resistance causes type 2 diabetes [S1].")
     assert claim.kind == ClaimKind.RELATIONAL
+    assert g.relational_diagnostic(claim, _store(s1)) == g.RELATION_NOT_CORROBORATED
     result = ground(claim, _store(s1))
     assert result == Verdict.UNVERIFIED_RELATION, (
-        f"Expected UNVERIFIED_RELATION via delegation, got {result}"
+        f"ADR-007 / D-76: a RELATIONAL claim is never certified, got {result}"
     )
 
 
@@ -288,7 +308,7 @@ def test_session_queries_distinct():
     s1 = _src("S1", "a", query_provenance="alpha")
     s2 = _src("S2", "b", query_provenance="beta")
     s3 = _src("S3", "c", query_provenance="alpha")  # duplicate provenance
-    result = _session_queries(_store(s1, s2, s3))
+    result = _session_queries(_store(s1, s2, s3), frozenset())
     assert sorted(result) == ["alpha", "beta"], (
         f"Expected distinct ['alpha','beta'], got {sorted(result)}"
     )
@@ -296,4 +316,4 @@ def test_session_queries_distinct():
 
 def test_session_queries_empty_store():
     """An empty store yields no queries."""
-    assert _session_queries({}) == []
+    assert _session_queries({}, frozenset()) == []

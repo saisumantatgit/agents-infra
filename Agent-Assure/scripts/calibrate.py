@@ -198,10 +198,21 @@ def emit_claim_features(
         # GROUNDED). Every other governed verdict — GROUNDED-via-T1
         # (lex_tau-invariant), UNCITED / UNVERIFIED_CITATION / UNVERIFIED_NUMBER /
         # UNGROUNDABLE (ground() short-circuited before the tier check) — is fixed.
-        tier_sensitive = claim.kind in _LEX_TAU_GOVERNED_KINDS and (
-            (verdict.value == "UNGROUNDED")
-            or (verdict.value == "GROUNDED" and not t1)
-        )
+        # ALWAYS FALSE since ADR-006 (2026-09-02). T2 was demoted from
+        # sufficient-for-GROUNDED, so `ground()` no longer consults lex_tau on
+        # any path — no verdict can flip when lex_tau moves, which is exactly
+        # what this flag means. It is retained (rather than deleted) because
+        # every consumer treats it as "may this row enter a lex_tau sweep?",
+        # and the honest answer is now "no row may". A sweep over an empty set
+        # is a visible no-op; silently dropping the field would instead let a
+        # future sweep re-thresholds rows whose verdicts cannot move and report
+        # a fabricated operating point.
+        #
+        # t2_f1 is still emitted above, as a DIAGNOSTIC only: "high overlap,
+        # no verbatim span" is the actionable signal behind an UNGROUNDED
+        # verdict, and it is what T3 (ADR-004) will need for its own
+        # calibration. A reported feature is not a governing threshold.
+        tier_sensitive = False
 
         rows.append(ClaimFeatureRow(
             claim_id=f"{query_id}#{claim.index}",
@@ -328,6 +339,38 @@ def export_labeling_csv(rows: list[ClaimFeatureRow], path: str) -> None:
             ])
 
 
+def assert_labels_not_clobbered(path: str) -> None:
+    """Raise if the labeling CSV at *path* already carries ANY human label.
+
+    Human labels are AUDIT EVIDENCE and cannot be regenerated: a corpus
+    rebuild that overwrites them destroys the only record of what a human
+    actually ratified (OI-CAL-02). Every labeling-CSV writer calls this
+    FIRST. A missing file is fine — that is a legitimate first write.
+
+    Hit live on 2026-07-14: a routine `build_corpus` run blanked the n=12
+    bootstrap labels that CR-001 was calibrated on (restored from git; the
+    fail-loud LOADER is what surfaced it). Post-ratification the same
+    keystroke would destroy the n=52 gold labels.
+
+    Fail loud, never fallback — no silent repair, no backup-and-overwrite.
+    """
+    try:
+        with open(path, encoding="utf-8", newline="") as fh:
+            rows = list(csv.DictReader(fh))
+    except FileNotFoundError:
+        return
+
+    labeled = [r for r in rows if (r.get("human_label") or "").strip()]
+    if labeled:
+        raise ValueError(
+            f"assert_labels_not_clobbered: refusing to overwrite {path!r} — it "
+            f"already carries {len(labeled)} human label(s), which are audit "
+            f"evidence and cannot be regenerated (first: claim_id="
+            f"{labeled[0].get('claim_id')!r} -> {labeled[0].get('human_label')!r}). "
+            f"Move or delete the file deliberately if you truly mean to discard them."
+        )
+
+
 def load_labels(path: str) -> dict[str, HumanLabel]:
     """Read a hand-filled labeling CSV at *path* and return
     {claim_id: HumanLabel}.
@@ -339,16 +382,51 @@ def load_labels(path: str) -> dict[str, HumanLabel]:
     must never silently default to a verdict; that would corrupt every
     threshold a calibration sweep later derives from this file.
 
+    Also fails loud the moment two rows share a claim_id — a duplicate key
+    would otherwise silently overwrite the dict entry, discarding one
+    human's label with no signal that data went missing.
+
     violation_kind is read from an optional "violation_kind" column — not
     written by export_labeling_csv, but a human may add it by hand when
     labeling a violation. A missing column or blank cell resolves to None;
     it is not part of the fail-loud gate.
+
+    label_status gate — calibration runs on GOLD labels only. When the CSV
+    carries a "label_status" column (the α1 candidate-ratification package
+    does; the legacy bootstrap labeling.csv does not), EVERY row's value must
+    be exactly "gold" after NFKC normalization, or load_labels raises
+    ValueError. A candidate (un-ratified) label must never tune a threshold.
+    A file with NO label_status column is unaffected — backward-compatible
+    with every pre-α1 labeling file.
     """
     labels: dict[str, HumanLabel] = {}
     with open(path, encoding="utf-8", newline="") as fh:
         reader = csv.DictReader(fh)
+        has_label_status = "label_status" in (reader.fieldnames or [])
         for line_no, record in enumerate(reader, start=2):
             claim_id = record["claim_id"]
+            if has_label_status:
+                raw_status = record.get("label_status") or ""
+                status = unicodedata.normalize("NFKC", raw_status).strip()
+                if status != "gold":
+                    raise ValueError(
+                        f"load_labels: {path!r} line {line_no} "
+                        f"(claim_id={claim_id!r}) has label_status "
+                        f"{raw_status!r}, but calibration runs on gold labels "
+                        "only. Every row must carry label_status='gold' before "
+                        "ingestion — a candidate (un-ratified) label must never "
+                        "tune a threshold. Ratify the labels and flip "
+                        "label_status to 'gold'."
+                    )
+            if claim_id in labels:
+                raise ValueError(
+                    f"load_labels: {path!r} line {line_no} "
+                    f"(claim_id={claim_id!r}) duplicates a claim_id already "
+                    "seen earlier in this file. Every claim_id must be "
+                    "unique — a duplicate silently overwrites the earlier "
+                    "row's label, discarding it with no signal that data "
+                    "was lost."
+                )
             raw_label = record.get("human_label") or ""
             label = unicodedata.normalize("NFKC", raw_label)
             if label not in _ALLOWED_HUMAN_LABELS:
@@ -365,6 +443,117 @@ def load_labels(path: str) -> dict[str, HumanLabel]:
             labels[claim_id] = HumanLabel(
                 claim_id=claim_id, label=label, violation_kind=violation_kind
             )
+    return labels
+
+
+def load_gold_labels(
+    labels_path: str, scaffold_path: str
+) -> dict[str, HumanLabel]:
+    """Read the HUMAN-OWNED labels file and bind it to the generator-owned
+    scaffold (OI-CAL-03 / PIR-002). Returns {claim_id: HumanLabel}.
+
+    The two files are separate on purpose: the scaffold (claim text, evidence,
+    the candidate proposal) is DERIVED and freely regenerated as the corpus
+    changes; the labels are AUTHORED and no generator may write them. This
+    loader is the join, and it fails loud on every way the two can disagree:
+
+    1. **Not gold.** Any row whose ``label_status`` is not exactly ``gold``
+       (after NFKC) — a candidate label must never tune a threshold.
+    2. **Bad label.** Any ``human_label`` that is not ``grounded`` /
+       ``violation``, blank included — never silently defaulted.
+    3. **Duplicate claim_id** in the labels file — would silently discard one
+       human's judgment.
+    4. **Orphan label** — a labeled claim_id that is not in the scaffold: the
+       claim it judged no longer exists.
+    5. **Unlabeled claim** — a scaffold claim with no label row: silently
+       dropping it shrinks n and biases every threshold derived from it.
+    6. **STALE label** — the claim's text or evidence has CHANGED since the
+       human judged it (``claim_sha`` mismatch). Their verdict was about a
+       claim they can no longer be said to have read; transferring it to the
+       new wording would fabricate a human judgment. This check is the reason
+       the sha is stored, and it is a property the pre-OI-CAL-03 single-file
+       design could not express at all.
+
+    Pure apart from reading the two files.
+    """
+    from calibration.init_labels import claim_sha  # local: avoids a cycle
+
+    with open(scaffold_path, encoding="utf-8", newline="") as fh:
+        scaffold = {r["claim_id"]: r for r in csv.DictReader(fh)}
+
+    labels: dict[str, HumanLabel] = {}
+    with open(labels_path, encoding="utf-8", newline="") as fh:
+        for line_no, record in enumerate(csv.DictReader(fh), start=2):
+            claim_id = (record.get("claim_id") or "").strip()
+
+            if claim_id in labels:
+                raise ValueError(
+                    f"load_gold_labels: {labels_path!r} line {line_no} "
+                    f"duplicates claim_id {claim_id!r} — a duplicate silently "
+                    "discards the earlier row's human judgment."
+                )
+
+            status = unicodedata.normalize(
+                "NFKC", record.get("label_status") or ""
+            ).strip()
+            if status != "gold":
+                raise ValueError(
+                    f"load_gold_labels: {labels_path!r} line {line_no} "
+                    f"(claim_id={claim_id!r}) has label_status {status!r}, but "
+                    "calibration runs on gold labels only. Ratify the rows and "
+                    "flip label_status to 'gold' — a candidate (un-ratified) "
+                    "label must never tune a threshold."
+                )
+
+            label = unicodedata.normalize("NFKC", record.get("human_label") or "")
+            if label not in _ALLOWED_HUMAN_LABELS:
+                raise ValueError(
+                    f"load_gold_labels: {labels_path!r} line {line_no} "
+                    f"(claim_id={claim_id!r}) has human_label {label!r}, which "
+                    f"is not one of {sorted(_ALLOWED_HUMAN_LABELS)}. An "
+                    "unlabeled or mislabeled row is never silently defaulted."
+                )
+
+            row = scaffold.get(claim_id)
+            if row is None:
+                raise ValueError(
+                    f"load_gold_labels: {labels_path!r} line {line_no} labels "
+                    f"claim_id {claim_id!r}, which is not in the scaffold "
+                    f"{scaffold_path!r}. The claim this judgment was made "
+                    "against no longer exists — resolve by hand; never drop it "
+                    "silently."
+                )
+
+            recorded_sha = (record.get("claim_sha") or "").strip()
+            current_sha = claim_sha(row["claim_text"], row["evidence"])
+            if recorded_sha != current_sha:
+                raise ValueError(
+                    f"load_gold_labels: {labels_path!r} line {line_no} "
+                    f"(claim_id={claim_id!r}) is STALE — the claim or its "
+                    f"evidence has changed since it was judged "
+                    f"(recorded sha {recorded_sha!r}, current {current_sha!r}). "
+                    "This label was given for text the ratifier can no longer "
+                    "be said to have read; applying it to the new wording would "
+                    "fabricate a human judgment. Re-ratify this row (update its "
+                    "human_label and claim_sha) before calibrating."
+                )
+
+            raw_kind = (record.get("violation_kind") or "").strip()
+            labels[claim_id] = HumanLabel(
+                claim_id=claim_id, label=label, violation_kind=raw_kind or None
+            )
+
+    unlabeled = sorted(set(scaffold) - set(labels))
+    if unlabeled:
+        raise ValueError(
+            f"load_gold_labels: {len(unlabeled)} scaffold claim(s) have no "
+            f"label in {labels_path!r} (first: {unlabeled[0]!r}). Every claim "
+            "must be labeled before calibration — silently dropping one shrinks "
+            "n and biases every threshold derived from it. Seed missing rows "
+            "with `python -m calibration.init_labels` against a fresh labels "
+            "file, or add them by hand."
+        )
+
     return labels
 
 
@@ -480,6 +669,36 @@ class ErrorRates:
     fn: int
     error_a: float
     error_b: float
+
+
+POLICY_SOURCE_TYPES: frozenset[str] = frozenset({"haiku_summary"})
+
+
+def reliability_eligible(source_types: dict[str, str], claim_ids: list[str]) -> list[str]:
+    """Return the claim ids whose gold label is DERIVABLE from the evidence shown.
+
+    For inter-rater and intra-rater reliability ONLY. A `haiku_summary` row's
+    gold label follows a gate POLICY — an AI summary cannot ground anything —
+    which is correct but is not visible in the item. Agreement on such a row
+    measures whether the rater memorised a rule.
+
+    Empirically: three raters, two rows, 0/6 agreement with gold, all in the
+    same direction, including the author of the labels judging blind
+    (INTRA-RATER-2026-09-12). Excluding them moved intra-rater κ from +0.636 to
+    **+0.857** — across the 0.8 bar.
+
+    **This function must NEVER be used to compute Error-A or Error-B.** The gate
+    has to be right about policy claims too, and dropping them from the error
+    rates would score the gate only on the questions it finds easy. That is the
+    same failure this project has now found in three separate instruments: the
+    n=52 corpus with zero synonym rows, `tests/honest_drafts/` with everything
+    T1-grounded, and a base-rate probe that discarded the population it was
+    counting. In each, the filter and the measurement were the same operation.
+
+    Pure function.
+    """
+    return [cid for cid in claim_ids
+            if source_types.get(cid) not in POLICY_SOURCE_TYPES]
 
 
 def error_rates(labeled: list[LabeledClaim], lex_tau: float) -> ErrorRates:
@@ -959,6 +1178,16 @@ def emit_cr(
             lines.append(f"| {key} | {proj_val} | deferred | deferred |")
         elif proj_val == 0:
             lines.append(f"| {key} | {proj_val} | {act_val} | n/a |")
+        elif not isinstance(proj_val, (int, float)) or not isinstance(act_val, (int, float)):
+            # A CR is an audit artifact; a TypeError from inside an f-string is
+            # not a usable failure. Deferred metrics are signalled by actual=None
+            # (handled above) — anything else non-numeric is a caller error and
+            # is named as one.
+            raise TypeError(
+                f"emit_cr: metric {key!r} has non-numeric projection "
+                f"{proj_val!r} / actual {act_val!r}; a delta cannot be computed. "
+                "Pass numbers, or actual=None to mark the metric deferred."
+            )
         else:
             delta_pct = (act_val - proj_val) / proj_val * 100
             lines.append(

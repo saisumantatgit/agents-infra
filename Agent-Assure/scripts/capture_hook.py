@@ -59,6 +59,12 @@ from scripts.capture_core import (  # noqa: E402
 _FETCHED_AT_SENTINEL = "1970-01-01T00:00:00Z"
 
 
+def _event_session_id(event: dict) -> str:
+    """The event's session id, or "" when absent or not a str. Pure."""
+    value = event.get("session_id")
+    return value if isinstance(value, str) else ""
+
+
 def _resolve_store_path() -> str:
     """Resolve the evidence-store path.
 
@@ -147,6 +153,11 @@ def process_event(event: dict, store_path: str) -> str | None:
         source_id="UNASSIGNED",  # replaced atomically by assign_and_append
         query_provenance=query_provenance,
         fetched_at=_FETCHED_AT_SENTINEL,
+        # J-38: the event already carries this; it was previously read only as a
+        # query_provenance fallback. Recording it is what makes "this session"
+        # expressible at all. Empty when the harness omits it, which
+        # assert_single_session treats as UNATTRIBUTABLE and refuses.
+        session_id=_event_session_id(event),
     )
     if record is None:
         return None

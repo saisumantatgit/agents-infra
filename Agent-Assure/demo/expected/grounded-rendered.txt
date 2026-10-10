@@ -1,0 +1,4 @@
+gate: PASS | score: 100.0
+  GROUNDED             <- # Datastore Throughput — Benchmark Summary
+  GROUNDED             <- In our controlled benchmark on a single node, Redis sustained approxim
+  GROUNDED             <- Under the same benchmark load and hardware, PostgreSQL sustained appro

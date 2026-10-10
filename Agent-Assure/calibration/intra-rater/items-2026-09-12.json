@@ -1,0 +1,142 @@
+[
+ {
+  "n": 1,
+  "claim_id": "q21#0",
+  "claim": "The X200 drone dominates the entire commercial mapping market [S21].",
+  "evidence": "S21: The X200 drone includes an upgraded GPS module for improved positioning accuracy.",
+  "source_type": "verbatim"
+ },
+ {
+  "n": 2,
+  "claim_id": "q04#0",
+  "claim": "Quorum DB maintains strong consistency across all replicated partitions by default [S4].",
+  "evidence": "S4: Quorum DB maintains strong consistency across all replicated partitions by default, even under network partition.",
+  "source_type": "verbatim"
+ },
+ {
+  "n": 3,
+  "claim_id": "q25#0",
+  "claim": "Increased marketing spend drives higher customer signups [S251][S252].",
+  "evidence": "S251: Marketing spend increased twenty percent quarter over quarter according to the finance team. ||| S252: Customer signups rose sharply in the weeks following the campaign launch.",
+  "source_type": "verbatim"
+ },
+ {
+  "n": 4,
+  "claim_id": "q02#0",
+  "claim": "The X200 drone uses a carbon-fiber frame rated for extended field operation [S2].",
+  "evidence": "S2: The X200 drone uses a carbon-fiber frame rated for extended field operation in harsh environments.",
+  "source_type": "verbatim"
+ },
+ {
+  "n": 5,
+  "claim_id": "q09#0",
+  "claim": "The upgraded rotor motor delivers longer flight time than the previous model [S9].",
+  "evidence": "S9: The upgraded rotor motor delivers a longer flight time than the previous model in repeated bench testing.",
+  "source_type": "verbatim"
+ },
+ {
+  "n": 6,
+  "claim_id": "q37#0",
+  "claim": "There is no antidote approved for the toxin in current guidelines.",
+  "evidence": "Session search queries: \"toxin antidote guideline search\" ||| \"antidote literature review toxin\"",
+  "source_type": "absence"
+ },
+ {
+  "n": 7,
+  "claim_id": "q24#0",
+  "claim": "The compound showed strong efficacy in phase II trials [S24].",
+  "evidence": "S24: The compound showed strong efficacy in phase II trials with a favorable safety profile.",
+  "source_type": "haiku_summary"
+ },
+ {
+  "n": 8,
+  "claim_id": "q16#0",
+  "claim": "The segment margin was 25% in the fourth quarter [S16].",
+  "evidence": "S16: Company filings list the segment margin as 25 for the fourth quarter.",
+  "source_type": "verbatim"
+ },
+ {
+  "n": 9,
+  "claim_id": "q08#0",
+  "claim": "The NovaChip process reached a 78% yield in pilot production [S8].",
+  "evidence": "S8: Pilot production of the NovaChip process reached a 78% yield in the most recent quarter.",
+  "source_type": "verbatim"
+ },
+ {
+  "n": 10,
+  "claim_id": "q29#0",
+  "claim": "The Zentara trial enrolled 4,200 patients [S29].",
+  "evidence": "S29: In the third quarter, Meridian Robotics shipped 4,200 units to distributors.",
+  "source_type": "verbatim"
+ },
+ {
+  "n": 11,
+  "claim_id": "q06#0",
+  "claim": "Revenue grew 12% year over year across the segment [S6].",
+  "evidence": "S6: Company filings show that revenue grew 12% year over year across the segment during the reporting period.",
+  "source_type": "verbatim"
+ },
+ {
+  "n": 12,
+  "claim_id": "q39#0",
+  "claim": "The device sold 250,000 units in its first month.",
+  "evidence": "",
+  "source_type": "absence"
+ },
+ {
+  "n": 13,
+  "claim_id": "q14#0",
+  "claim": "There is no recall of the Zentara inhaler in any regulated market.",
+  "evidence": "Session search queries: \"Zentara inhaler recall search\" ||| \"FDA recall database Zentara recall\"",
+  "source_type": "absence"
+ },
+ {
+  "n": 14,
+  "claim_id": "q46#0",
+  "claim": "Revenue grew 12% year over year in the mapping division [S46].",
+  "evidence": "S46: Revenue grew 12% year over year in the logistics division.",
+  "source_type": "verbatim"
+ },
+ {
+  "n": 15,
+  "claim_id": "q19#0",
+  "claim": "The Zentara trial reported a 62% response rate [S19].",
+  "evidence": "S19: [NOT IN STORE]",
+  "source_type": "unresolved"
+ },
+ {
+  "n": 16,
+  "claim_id": "q44#0",
+  "claim": "The vendor confirmed full GDPR compliance [S44].",
+  "evidence": "S44: The vendor confirmed full GDPR compliance in the due-diligence questionnaire.",
+  "source_type": "haiku_summary"
+ },
+ {
+  "n": 17,
+  "claim_id": "q43#0",
+  "claim": "Higher throughput results in lower per-query cost [S43].",
+  "evidence": "S43: The new engine roughly doubled sustained query throughput.",
+  "source_type": "verbatim"
+ },
+ {
+  "n": 18,
+  "claim_id": "q10#0",
+  "claim": "Larkspur reduced the average onboarding time for new accounts substantially [S10].",
+  "evidence": "S10: The new onboarding flow at Larkspur reduced the average onboarding time for new accounts substantially this quarter.",
+  "source_type": "verbatim"
+ },
+ {
+  "n": 19,
+  "claim_id": "q40#0",
+  "claim": "The grid absorbed record solar output in July [S40].",
+  "evidence": "S40: [NOT IN STORE]",
+  "source_type": "unresolved"
+ },
+ {
+  "n": 20,
+  "claim_id": "q49#0",
+  "claim": "We found no independent replication reported for the result.",
+  "evidence": "Session search queries: \"replication study search result\" ||| \"replication literature review result\"",
+  "source_type": "absence"
+ }
+]

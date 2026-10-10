@@ -25,7 +25,14 @@ echo "Provisioning virtual environment (.venv) and installing runtime deps..."
 # (syntok, pyyaml) per the lockfile. Do NOT pre-create the venv with an explicit
 # `uv venv --python ...` — that desyncs the interpreter uv resolves for the
 # project and leaves `uv run` pointing at a different, empty environment.
-# (Developers run `uv sync --extra dev` to add pytest; end users don't need it.)
+# NOTE (2026-08-30, OI-ENV-01): pytest now lives in [dependency-groups] dev,
+# which `uv sync` installs BY DEFAULT — so this line provisions pytest for END
+# USERS too, not just developers. That is deliberate: the OI-ENV-01 trap was a
+# first-time user running the suite and seeing ~46 bogus ModuleNotFoundErrors,
+# and a user who can verify their own install is the point. Cost is ~5 pure-
+# Python packages. To ship a leaner end-user env instead, change this line to
+# `uv sync --no-dev` — that is Sai's call (Escalation #4), see register D-07.
+# COMMENT ONLY: this note changed no behaviour; the command below is untouched.
 uv sync >/dev/null 2>&1 || uv pip install syntok pyyaml >/dev/null 2>&1
 
 # 2. Sanity check — the engine, the hook, and the gate's deps all import.
@@ -45,6 +52,23 @@ echo "     add to your plugin marketplace, or copy into your Claude Code plugins
 echo "  2. The PostToolUse capture hook (hooks/hooks.json) then records"
 echo "     every retrieved source into .assure/evidence-store.jsonl automatically."
 echo "  3. After research, run:   /assure-verify <draft-file>"
+echo ""
+echo "Session scoping (optional, recommended for audit work):"
+echo "  The store is append-only and never rotated, so by default the gate"
+echo "  scores against every source it has ever captured. To require that the"
+echo "  sources came from THIS session, pass --session-id."
+echo ""
+echo "  The capture hook writes the session id onto each record, so read it"
+echo "  back from the store - there is no shell variable for it:"
+echo ""
+echo "    SID=\$(.venv/bin/python -c \"import json;print(json.loads(open('.assure/evidence-store.jsonl').readline()).get('session_id',''))\")"
+echo "    .venv/bin/python scripts/ground_check.py \\"
+echo "        --draft DRAFT.md --store .assure/evidence-store.jsonl --session-id \"\$SID\""
+echo ""
+echo "  Without the flag the report says plainly that session scope is NOT"
+echo "  asserted. An empty --session-id is REFUSED rather than ignored, so a"
+echo "  store whose records carry no session id cannot be scoped - including"
+echo "  the shipped demo store."
 echo ""
 echo "Manual usage (no plugin):"
 echo "  .venv/bin/python scripts/ground_check.py \\"

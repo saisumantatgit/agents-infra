@@ -221,3 +221,144 @@ def test_exotic_unit_fail_closed():
     # Source contains the same exotic string — must still return False.
     sources = [src("The star is 15 lightyears away from Earth.")]
     assert numeric_ok(claim_exotic, sources) is False
+
+
+# ---------------------------------------------------------------------------
+# Rate-qualifier comparison (OI-MOAT-01 fix, 2026-07-12)
+# Proven-red at the bug level via tests/red_team_moat (xfail → XPASS flip);
+# these pin the mechanism directly.
+# ---------------------------------------------------------------------------
+
+def test_rate_qualifier_mismatch_fails():
+    """'128000 operations per MINUTE' must NOT match a source stating
+    '128000 operations per SECOND' — the OI-MOAT-01 vector."""
+    claim = mk("Redis sustained approximately 128000 operations per minute [S1].")
+    source = src("Redis sustained approximately 128000 operations per second.")
+    assert numeric_ok(claim, [source]) is False
+
+
+def test_rate_qualifier_match_succeeds():
+    """Identical value, unit, and rate qualifier grounds normally."""
+    claim = mk("Redis sustained approximately 128000 operations per second [S1].")
+    source = src("Redis sustained approximately 128000 operations per second.")
+    assert numeric_ok(claim, [source]) is True
+
+
+def test_bare_claim_number_matches_qualified_source():
+    """A claim number with NO stated rate asserts no rate — status quo:
+    it matches a qualified source occurrence (no new Error-A)."""
+    claim = mk("The benchmark recorded 128000 [S1].")
+    source = src("Redis sustained 128000 operations per second.")
+    assert numeric_ok(claim, [source]) is True
+
+
+def test_rate_qualifier_abbreviation_canonicalized():
+    """'/sec' and 'per second' canonicalize to the same qualifier."""
+    claim = mk("Throughput reached 4000 requests/sec [S1].")
+    source = src("The service sustained 4000 requests per second.")
+    assert numeric_ok(claim, [source]) is True
+
+
+def test_per_the_report_is_attribution_not_rate():
+    """'per the report' is attribution — must not be read as a rate
+    qualifier (and must not block a legitimate match)."""
+    claim = mk("Revenue grew to 4000, per the report [S1].")
+    source = src("Revenue grew to 4000 in the final quarter.")
+    assert numeric_ok(claim, [source]) is True
+
+
+def test_rate_qualifier_not_read_across_clause_boundary():
+    """A qualifier is never read across a comma/sentence boundary."""
+    claim = mk("The cluster held 4000 nodes, per region estimates vary [S1].")
+    source = src("The cluster held 4000 nodes in total.")
+    assert numeric_ok(claim, [source]) is True
+
+
+# ---------------------------------------------------------------------------
+# Dimensional-unit completion (round 2, 2026-07-14) — quantity + robust rate.
+# Bug-level red proof lives in tests/red_team_moat/test_moat_red_team_r2.py;
+# these pin the mechanisms and, critically, the Error-A guards.
+# ---------------------------------------------------------------------------
+
+def test_quantity_noun_mismatch_fails():
+    """128000 GIGABYTES/sec is not grounded by 128000 OPERATIONS/sec."""
+    claim = mk("Redis sustained 128000 gigabytes per second [S1].")
+    source = src("Redis sustained approximately 128000 operations per second.")
+    assert numeric_ok(claim, [source]) is False
+
+
+def test_quantity_noun_abbreviation_still_grounds():
+    """Error-A guard: 'ops' and 'operations' are the same quantity."""
+    claim = mk("Redis sustained 128000 ops per second [S1].")
+    source = src("Redis sustained approximately 128000 operations per second.")
+    assert numeric_ok(claim, [source]) is True
+
+
+def test_non_quantity_word_after_number_is_not_a_quantity():
+    """Error-A guard (the regression that corpus q37's sibling caught): a bare
+    adjective after a number is not a measured quantity — '$4M last year' must
+    still ground against '$4,000,000 in the period'."""
+    claim = mk("The company revenue was $4M last year.")
+    source = src("According to the filing, revenue reached $4,000,000 in the period.")
+    assert numeric_ok(claim, [source]) is True
+
+
+def test_weak_rate_trigger_requires_known_time_unit():
+    """Error-A guard: 'a' only introduces a rate when a real time unit
+    follows. '$4M in a filing' asserts no rate."""
+    claim = mk("Revenue of $4M appeared in a filing [S1].")
+    source = src("According to the filing, revenue reached $4,000,000.")
+    assert numeric_ok(claim, [source]) is True
+
+
+def test_each_minute_is_a_rate():
+    """'each minute' is the same assertion as 'per minute'."""
+    claim = mk("Redis sustained 128000 operations each minute [S1].")
+    source = src("Redis sustained approximately 128000 operations per second.")
+    assert numeric_ok(claim, [source]) is False
+
+
+def test_homoglyph_per_is_folded():
+    """A Cyrillic 'р' in 'рer' must not hide the rate (NFKC does not fold it;
+    the confusables map does)."""
+    claim = mk("Redis sustained 128000 operations рer minute [S1].")
+    source = src("Redis sustained approximately 128000 operations per second.")
+    assert numeric_ok(claim, [source]) is False
+
+
+def test_adverbial_rate_is_read():
+    """'hourly' is a rate denominator."""
+    claim = mk("The job processed 4000 records hourly [S1].")
+    source = src("The job processed 4000 records per second in the trial.")
+    assert numeric_ok(claim, [source]) is False
+
+
+# --- OI-NUM-02: numeric tokens must not carry a trailing space --------------
+
+def test_numeric_token_has_no_trailing_space():
+    """_NUMERIC_RE's optional `\\s?` (which exists to allow '5 million') also
+    consumes a trailing space when NO suffix follows, yielding '5000000 '
+    instead of '5000000'. OI-NUM-02."""
+    from scripts.ground_check import _numeric_tokens_from_text
+    assert _numeric_tokens_from_text("Revenue of 5000000 last year") == ("5000000",)
+
+
+def test_suffixed_numeric_token_keeps_its_suffix():
+    """Error-A boundary: the fix must not break the case the `\\s?` exists for."""
+    from scripts.ground_check import _numeric_tokens_from_text
+    assert _numeric_tokens_from_text("Revenue of $4 million last year") == ("$4 million",)
+
+
+def test_sentence_final_source_number_still_grounds():
+    """The user-visible consequence of OI-NUM-02: a space-suffixed claim token
+    cannot substring-match a number that ends the source sentence, so a
+    genuinely grounded claim reads UNGROUNDED (a false alarm, Error-A)."""
+    from scripts.ground_check import t2_lexical_score
+    score = t2_lexical_score(
+        "Revenue reached 5000000 [S1].",
+        "Company revenue reached 5000000",
+    )
+    assert score > 0.0, (
+        "sentence-final source number failed the numeric-presence gate — "
+        "OI-NUM-02 trailing-space token"
+    )

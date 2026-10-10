@@ -15,12 +15,20 @@ dev = [
     { name = "pytest" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "pytest", marker = "extra == 'dev'" },
     { name = "pyyaml" },
     { name = "syntok" },
 ]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest" }]
 
 [[package]]
 name = "colorama"

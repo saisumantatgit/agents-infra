@@ -1,0 +1,166 @@
+{
+ "seed": 20260912,
+ "design": "4 divergent (all) + 16 random from 48; enriched to make the anchoring branch detectable. kappa on the 16; the 4 reported individually, never pooled.",
+ "key": [
+  {
+   "n": 1,
+   "claim_id": "q21#0",
+   "gold": "violation",
+   "claim_sha": "61a34b9a8445dd3b",
+   "candidate_verdict": "violation",
+   "stratum": "random"
+  },
+  {
+   "n": 2,
+   "claim_id": "q04#0",
+   "gold": "grounded",
+   "claim_sha": "ea6c8c5356333cd5",
+   "candidate_verdict": "grounded",
+   "stratum": "random"
+  },
+  {
+   "n": 3,
+   "claim_id": "q25#0",
+   "gold": "violation",
+   "claim_sha": "f1cc02623dd6f061",
+   "candidate_verdict": "violation",
+   "stratum": "random"
+  },
+  {
+   "n": 4,
+   "claim_id": "q02#0",
+   "gold": "grounded",
+   "claim_sha": "3ab81a7244c287d0",
+   "candidate_verdict": "grounded",
+   "stratum": "random"
+  },
+  {
+   "n": 5,
+   "claim_id": "q09#0",
+   "gold": "grounded",
+   "claim_sha": "4ad9a5aa68edb7bc",
+   "candidate_verdict": "grounded",
+   "stratum": "random"
+  },
+  {
+   "n": 6,
+   "claim_id": "q37#0",
+   "gold": "violation",
+   "claim_sha": "9b8da76c494be5ba",
+   "candidate_verdict": "grounded",
+   "stratum": "divergent"
+  },
+  {
+   "n": 7,
+   "claim_id": "q24#0",
+   "gold": "violation",
+   "claim_sha": "30b21552efe1e8a8",
+   "candidate_verdict": "violation",
+   "stratum": "random"
+  },
+  {
+   "n": 8,
+   "claim_id": "q16#0",
+   "gold": "grounded",
+   "claim_sha": "da0508ca6f943f47",
+   "candidate_verdict": "violation",
+   "stratum": "divergent"
+  },
+  {
+   "n": 9,
+   "claim_id": "q08#0",
+   "gold": "grounded",
+   "claim_sha": "9f6e5cf1d84e01d2",
+   "candidate_verdict": "grounded",
+   "stratum": "random"
+  },
+  {
+   "n": 10,
+   "claim_id": "q29#0",
+   "gold": "violation",
+   "claim_sha": "a57dc0631c736b2a",
+   "candidate_verdict": "violation",
+   "stratum": "random"
+  },
+  {
+   "n": 11,
+   "claim_id": "q06#0",
+   "gold": "grounded",
+   "claim_sha": "24ac78377d180e1b",
+   "candidate_verdict": "grounded",
+   "stratum": "random"
+  },
+  {
+   "n": 12,
+   "claim_id": "q39#0",
+   "gold": "violation",
+   "claim_sha": "788bac51a92268ed",
+   "candidate_verdict": "violation",
+   "stratum": "random"
+  },
+  {
+   "n": 13,
+   "claim_id": "q14#0",
+   "gold": "violation",
+   "claim_sha": "78027145fce6e6af",
+   "candidate_verdict": "grounded",
+   "stratum": "divergent"
+  },
+  {
+   "n": 14,
+   "claim_id": "q46#0",
+   "gold": "violation",
+   "claim_sha": "17a4082c9854599d",
+   "candidate_verdict": "violation",
+   "stratum": "random"
+  },
+  {
+   "n": 15,
+   "claim_id": "q19#0",
+   "gold": "violation",
+   "claim_sha": "02255e4505bee972",
+   "candidate_verdict": "violation",
+   "stratum": "random"
+  },
+  {
+   "n": 16,
+   "claim_id": "q44#0",
+   "gold": "violation",
+   "claim_sha": "fa0e829225caafd8",
+   "candidate_verdict": "violation",
+   "stratum": "random"
+  },
+  {
+   "n": 17,
+   "claim_id": "q43#0",
+   "gold": "violation",
+   "claim_sha": "5ae44ec43b08afc9",
+   "candidate_verdict": "violation",
+   "stratum": "random"
+  },
+  {
+   "n": 18,
+   "claim_id": "q10#0",
+   "gold": "grounded",
+   "claim_sha": "e19b3a4a24d99975",
+   "candidate_verdict": "grounded",
+   "stratum": "random"
+  },
+  {
+   "n": 19,
+   "claim_id": "q40#0",
+   "gold": "violation",
+   "claim_sha": "932efbde8edca384",
+   "candidate_verdict": "violation",
+   "stratum": "random"
+  },
+  {
+   "n": 20,
+   "claim_id": "q49#0",
+   "gold": "violation",
+   "claim_sha": "ff178e0871e6b80c",
+   "candidate_verdict": "grounded",
+   "stratum": "divergent"
+  }
+ ]
+}
