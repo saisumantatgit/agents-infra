@@ -65,3 +65,37 @@ says WAIT for AGREED.**
   R15-01 class, so the promise got a detector and the detector got a positive
   control; *Name the CEILING* — the lex_tau 0.0-vs-1.0 equality probe raises if a
   threshold re-enters the verdict path, instead of silently reporting one tau.
+
+## Cycle 3 — tick 1 · R2 BUILT
+
+- **UTC** 2026-10-10 08:4x · **Diff** 4 open (R3…R6), **2 BUILT**, 0 in flight
+- **R2 / J-50** commit `90e129d`, pushed. All three first-run refusals now read
+  `REFUSED: <the original message>` at exit 1, with no traceback.
+- **Suite** 854 → **861 passed**, 2 skipped, 68 xfailed, exit 0. Gold md5
+  unchanged. **Rates re-derived AFTER the change** with R1's new command and
+  unmoved at 0.400 / 0.000 — a legibility change must not touch a verdict, and
+  that is now checked rather than assumed. R1 paid for itself inside one cycle.
+- **PROVEN-RED 5/7** against HEAD's pre-fix script via `ASSURE_GROUND_CHECK`.
+  The two passing both sides are the two that must: the AST guard on the verdict
+  path (a property the pre-fix code already had — a guard, not a fix) and the
+  control asserting the demo verdicts did not move.
+- **Naming the sibling found two more defects.** The draft's `open()` was
+  unguarded on the same path. And `load_store`'s convention is "raise with the
+  offending line", honoured by `_validate_record` and the duplicate check and
+  **not by the parse itself** — a corrupt line in a 300-line store reported
+  json's "line 1 column 1", which counts within the fragment. Now "line 2 of
+  the evidence store". **That message was always wrong; it only became
+  misleading once a user could read it.**
+- **A bug of mine, caught by running it rather than reading it:** the first
+  version of the refusal helper used `_sys`, which is a function-LOCAL import
+  inside `main`, so every refusal died with `NameError` instead of printing.
+  Three of three manual cases showed it immediately. Fixed with a local import
+  rather than hoisting one to module scope — *Chesterton's Fence*: that local
+  import is deliberate and I do not know why.
+- **New tokens** ~0.75M cumulative, 3M sanctioned / 5M ceiling.
+- **Frameworks** *Jobs to be Done* — the job is "tell me whether I can trust
+  this draft", and a crash answers a different question; *FMEA detectability* —
+  named the sibling and it yielded two further defects, one of which my own fix
+  had just made visible; *Via negativa* — the guard catches two named exception
+  types at three named sites and ENDS before the verdict path, rather than one
+  broad try that would dress a defect as a refusal.
