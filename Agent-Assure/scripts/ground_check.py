@@ -3591,8 +3591,13 @@ def ground(
         # the BASIS requirement, exactly as it already does for summaries
         # (R10C-03): at least one verbatim source that is NOT the draft must
         # exist before any absence can be certified. Strictly fail-closed.
+        # R21-03 (2026-10-10): the BASIS must be a fetch that RETURNED CONTENT.
+        # It counted a failed or blank fetch, so two WebFetch summaries (J-42,
+        # still open) plus one 503 certified an absence after zero successful
+        # full-text reads. Narrowing an existence test can only refuse more.
         if not any(s.full_text_source == "verbatim" and s.text
                    and s.source_id not in self_source_ids
+                   and _carries_retrieved_content(s)
                    for s in store.values()):
             return Verdict.UNVERIFIED_ABSENCE
         # R11B-01 (round 11) — WITHDRAWN: passing only VERBATIM queries here was
@@ -3750,10 +3755,14 @@ def ground(
         # figure, so it never reached this return. That is the CEILING that
         # file's own docstring records — it enumerates KINDS, not the 15 return
         # statements — biting within the hour. The fixture now carries a figure.
+        # R21-03's SIBLING, found by the orchestrator: the figure check also
+        # read failed fetches, so an error page echoing ".../report-4200" could
+        # supply the figure 4200. Fewer sources can only refuse more here.
         _absence_verbatim = [
             source for source in store.values()
             if source.full_text_source == "verbatim" and source.text
             and source.source_id not in self_source_ids
+            and _carries_retrieved_content(source)
         ]
         if claim.numeric_tokens and not numeric_ok(claim, _absence_verbatim):
             return Verdict.UNVERIFIED_NUMBER
@@ -4031,8 +4040,7 @@ def evidence_basis(
         no_content_note = ""
         if uncounted:
             no_content_note = (
-                f" {len(uncounted)} of these "
-                f"{_plural(len(uncounted), 'search', 'searches')} returned no "
+                f" {len(uncounted)} of these searches returned no "
                 f"content — the fetch failed, came back blank, or was captured "
                 f"before the store recorded whether it succeeded — and "
                 f"{_plural(len(uncounted), 'does', 'do')} NOT count as a "

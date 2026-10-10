@@ -180,22 +180,6 @@ def _sha256_nfkc(text: str) -> str:
     return hashlib.sha256(normalized.encode()).hexdigest()
 
 
-def _url_from_input(tool_input: dict) -> str | None:
-    """Extract URL from tool_input; returns None if absent.
-
-    LIVE-VALIDATED (2026-07-03): mcp__exa__web_fetch_exa carries a PLURAL
-    ``{"urls": [<url>, ...]}`` list — the first element is used. Native tools
-    (WebFetch) carry a singular ``{"url": <url>}``.
-    """
-    url = tool_input.get("url")
-    if isinstance(url, str) and url:
-        return url
-    urls = tool_input.get("urls")
-    if isinstance(urls, list) and urls and isinstance(urls[0], str) and urls[0]:
-        return urls[0]
-    return None
-
-
 def _file_path_from_input(tool_input: dict) -> str | None:
     """Extract file_path from tool_input; returns None if absent."""
     return tool_input.get("file_path") or None
@@ -312,6 +296,8 @@ def _retrieval_status(tool_name: str, tool_response: object, text: str) -> str:
             code = tool_response.get("code")
             if isinstance(code, int) and not 200 <= code < 300:
                 return "failed"
+    if tool_name in _EXA_TOOLS and text.lstrip().startswith(_EXA_ERROR_PREFIX):
+        return "failed"
     if not _ANY_WORD_RE.search(unicodedata.normalize("NFKC", text)):
         return "failed"
     return "ok"
@@ -347,7 +333,7 @@ def make_record(
     # R20-01: a single record for a multi-document response would glue the
     # documents together, so a verbatim span could cross between them. Refuse
     # loudly; `make_records` is the path that keeps them apart.
-    if _content_block_texts(tool_response) is not None:
+    if _documents(tool_name, tool_response) is not None:
         raise ValueError(
             "make_record received a response holding several content blocks. "
             "One record would join them, letting a verbatim span cross from one "
@@ -369,12 +355,15 @@ def make_record(
         file_path: str | None = _file_path_from_input(tool_input)
     elif tool_name in _HAIKU_SUMMARY_TOOLS:
         full_text_source = "haiku_summary"
-        url = _url_from_input(tool_input)
+        url = _certain_url(tool_input)
         file_path = None
     else:
         # mcp__exa__web_fetch_exa, web_fetch_exa, mcp__ddg-search__fetch_content
+        # R20-02 / R21-01: `_certain_url`, not "the first URL" — a multi-URL
+        # response that arrives as ONE document (no exa headers) must not be
+        # credited to whichever address the agent listed first.
         full_text_source = "verbatim"
-        url = _url_from_input(tool_input)
+        url = _certain_url(tool_input)
         file_path = None
 
     return RetrievedSource(
@@ -394,28 +383,55 @@ def make_record(
 
 
 
-def _content_block_texts(tool_response: object) -> list[str] | None:
-    """The text of each block when *tool_response* is an MCP content-block LIST
-    holding TWO OR MORE blocks; None for every other shape. Pure.
+# exa's fetch tools. Named separately because exa's response FORMAT, not just its
+# envelope, carries document boundaries — see _documents.
+_EXA_TOOLS: frozenset[str] = frozenset({"mcp__exa__web_fetch_exa", "web_fetch_exa"})
 
-    R20-01 (2026-10-10). Joining blocks into one text let a verbatim span start
-    in one fetched document and end in another, and the gate certified a
-    sentence present in neither. A list of one block is returned as None so the
-    single-record path — and every record written before tonight — is unchanged.
+# LIVE-OBSERVED 2026-10-10 (round 21 called exa's MCP server; the orchestrator
+# confirmed with its own `web_fetch_exa` call): a multi-URL fetch returns ONE
+# text block holding every page, each introduced by a `# <title>` line followed
+# by a `URL: <url>` line. The lookahead splits BEFORE each such header and keeps
+# the header with its own section.
+_EXA_SECTION_RE = re.compile(r"(?m)^(?=# [^\n]*\nURL: \S)")
 
-    A non-text block raises TypeError, exactly as `_coerce_text_value` does, so
-    shape drift still surfaces as "capture skipped" rather than being dropped.
+# LIVE-OBSERVED 2026-10-10: exa reports a failed fetch as an ordinary text block
+# beginning with this phrase (e.g. "...: CRAWL_NOT_FOUND"). Its server response
+# also carries `isError: true`, but the hook payload validated for exa is a bare
+# block LIST, which has nowhere to put that flag — so whether the flag reaches
+# the hook is UNKNOWN, and this does not depend on it.
+#
+# This is a list that drives a REFUSAL (it can only mark a record "failed"), so a
+# missing phrase leaves a failure counted as a search — today's behaviour — and
+# can never certify anything (D-69: refusal lists are safe to get wrong; lists
+# that LICENSE an acceptance are not).
+_EXA_ERROR_PREFIX = "Error fetching URL(s):"
+
+
+def _block_list(tool_response: object) -> list[str] | None:
+    """The text of every content block when *tool_response* is a content-block
+    LIST (top level, or under "text", "content", "result" or "file.content");
+    None for every other shape. Pure.
+
+    R21-04: C3 originally looked only at the top level, "text" and "content", so
+    a block list under "result" or "file.content" was still joined. A non-text
+    block raises TypeError, exactly as `_coerce_text_value` does.
     """
     if isinstance(tool_response, list):
         blocks = tool_response
     elif isinstance(tool_response, dict):
-        candidate = tool_response.get("text", tool_response.get("content"))
+        candidate = None
+        for key in ("text", "content", "result"):
+            if key in tool_response:
+                candidate = tool_response[key]
+                break
+        else:
+            file_obj = tool_response.get("file")
+            if isinstance(file_obj, dict):
+                candidate = file_obj.get("content")
         if not isinstance(candidate, list):
             return None
         blocks = candidate
     else:
-        return None
-    if len(blocks) < 2:
         return None
     texts: list[str] = []
     for block in blocks:
@@ -423,21 +439,59 @@ def _content_block_texts(tool_response: object) -> list[str] | None:
             texts.append(block["text"])
         else:
             raise TypeError(
-                "Unrecognized content-block in a multi-block response: "
+                "Unrecognized content-block in a block list: "
                 f"{type(block).__name__!r}. Expected {{'type':'text','text':str}}."
             )
     return texts
 
 
-def _requested_urls(tool_input: dict) -> list[str]:
-    """Every URL the tool was asked for, in request order. Pure."""
+def _documents(tool_name: str, tool_response: object) -> list[str] | None:
+    """The separate DOCUMENTS in a response, when there are TWO OR MORE; None
+    when the response holds one document. Pure.
+
+    R20-01 / R21-01. Joining documents let a verbatim span start in one and end
+    in another. A document boundary is either a content-block boundary or, for
+    exa, a section header INSIDE a block — exa's real multi-URL response is ONE
+    block, so splitting on blocks alone never ran on the live tool (R21-01).
+
+    A page can FORGE an exa header in its own text. That only adds a split, and a
+    split can only stop a span from crossing, so forgery here is fail-closed. The
+    header's `URL:` line is NEVER used for attribution — that would let a page
+    choose which address its text is credited to.
+    """
+    blocks = _block_list(tool_response)
+    if blocks is None:
+        return None
+    pieces: list[str] = []
+    for block in blocks:
+        if tool_name in _EXA_TOOLS:
+            pieces.extend(part for part in _EXA_SECTION_RE.split(block) if part)
+        else:
+            pieces.append(block)
+    return pieces if len(pieces) >= 2 else None
+
+
+def _certain_url(tool_input: dict) -> str | None:
+    """The fetched URL when it is CERTAIN, else None. Pure.
+
+    R20-02 / R21-05. Certain means exactly one URL was requested: a singular
+    `url`, or a `urls` list of exactly one non-empty string. Several URLs — or a
+    `urls` list padded with blanks or non-strings, which used to be filtered down
+    to "one" — mean the address of any given document is a guess, and a guessed
+    address is a silent failure. Both keys present is ambiguous, and also None.
+    """
     url = tool_input.get("url")
-    if isinstance(url, str) and url:
-        return [url]
     urls = tool_input.get("urls")
-    if isinstance(urls, list):
-        return [u for u in urls if isinstance(u, str) and u]
-    return []
+    if urls is not None:
+        if url is not None:
+            return None
+        if (isinstance(urls, list) and len(urls) == 1
+                and isinstance(urls[0], str) and urls[0]):
+            return urls[0]
+        return None
+    if isinstance(url, str) and url:
+        return url
+    return None
 
 
 def make_records(
@@ -451,45 +505,41 @@ def make_records(
 ) -> list[RetrievedSource]:
     """Map a tool event to ONE RECORD PER FETCHED DOCUMENT. Pure.
 
-    The production path (the hook calls this). A response holding one document
-    yields exactly what `make_record` always produced. A response holding
-    several content blocks yields one record per block, so no verbatim span can
-    cross from one document into the next (R20-01).
+    The hook's path. A one-document response yields exactly `make_record`'s
+    record. A multi-document response (separate blocks, or exa sections inside
+    one block) yields one record per document, so no span crosses between them.
 
-    ADDRESS — set only when CERTAIN (R20-02). One requested URL: every block can
-    only have come from it. Several URLs: every block's `url` is None. Pairing
-    block i with URL i would assume the tool answers in request order, which
-    nothing here verifies — and a wrong address is a silent failure, where a
-    missing one is visible to whoever reads the report.
+    ADDRESS: `_certain_url` — the requested URL when exactly one was requested,
+    else None. Never taken from the text.
 
-    `query_provenance` is the SAME on every block, deliberately. A distinct
-    search label per block would turn one fetch into N searches and raise the
-    absence count — PASS-enabling, so it is not done here.
+    FILE PATH: kept for `Read`. Dropping it would blind the self-citation check
+    (J-83 identifies the draft by its resolved file path) — the fail-OPEN
+    direction, caught while designing R21-04's fix.
 
-    CEILING: assumes a content block is the unit of "one document". If a tool
-    splits ONE document across several blocks, a quote spanning that internal
-    break is now refused — an Error-A, fail-closed, and unmeasured on any real
-    exa payload because no live multi-block capture exists yet. The upgrade is
-    a per-block source identifier from the tool itself (e.g. a URL in `_meta`),
-    once one is observed live.
+    `query_provenance` is the SAME on every document, deliberately: a label per
+    document would turn one fetch into N searches and RAISE the absence count —
+    PASS-enabling, so not done here.
+
+    CEILING: a content block, or an exa section, is assumed to be one document.
+    If a tool splits one document across blocks, a quote spanning the break is
+    refused — an Error-A, fail-closed, unmeasured on any live multi-block payload.
     """
     if tool_name not in _RETRIEVAL_TOOLS:
         return []
-    blocks = _content_block_texts(tool_response)
-    if blocks is None:
+    documents = _documents(tool_name, tool_response)
+    if documents is None:
         record = make_record(tool_name, tool_input, tool_response, source_id,
                              query_provenance, fetched_at, session_id)
         return [] if record is None else [record]
-    urls = _requested_urls(tool_input)
-    url = urls[0] if len(urls) == 1 else None
+    is_read = tool_name == "Read"
     full_text_source = ("haiku_summary" if tool_name in _HAIKU_SUMMARY_TOOLS
                         else "verbatim")
     return [
         RetrievedSource(
             session_id=session_id,
             source_id=source_id,
-            url=url,
-            file_path=None,
+            url=None if is_read else _certain_url(tool_input),
+            file_path=_file_path_from_input(tool_input) if is_read else None,
             fetched_at=fetched_at,
             tool=tool_name,
             content_sha256=_sha256_nfkc(text),
@@ -499,7 +549,7 @@ def make_records(
             query_provenance=query_provenance,
             retrieval_status=_retrieval_status(tool_name, tool_response, text),
         )
-        for text in blocks
+        for text in documents
     ]
 
 
