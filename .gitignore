@@ -18,3 +18,7 @@ __pycache__/
 
 # Environment
 .env
+
+# TDR-001 graphify pilot — generated index artifacts (do not commit)
+graphify-out/
+.claude/skills/graphify/

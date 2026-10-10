@@ -174,7 +174,7 @@ uv run python -m calibration.run_calibration   # sweep + LOO + emit CR (module f
 - **No build step** — prompt/skill/hook based; `uv` manages the env, no compile.
 - **"Store is per-session" is ASPIRATIONAL, not enforced (J-38, round 10).** The
   intent is that grounding runs only against sources captured THIS session. The
-  implementation does not do it: `session_id` is never written to a record,
+  implementation does not do it: **`session_id` IS written** on every record in a live interactive session — verified 2026-10-10 against a real store from session `8c17b88b` (four records, all carrying it). This Gotcha previously said it never was; the register row was narrowed on 2026-10-03 and this surface was not, which is the J-37 stale-row class repeating on a claim surface. What REMAINS true is the rest:
   `fetched_at` is the constant sentinel `1970-01-01T00:00:00Z`, and the store is
   opened `mode="a"` forever and never rotated. **A later session's draft citing a
   prior session's `[S2]` certifies PASS 100.0.** This contradicts the founding
