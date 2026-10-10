@@ -128,3 +128,36 @@ says WAIT for AGREED.**
   clone; *Delivery-is-not-consumption* — the installer's last printed line is
   the product's first consumed line, and it was broken; *Via negativa* — the
   report states what it did NOT establish so it cannot be mistaken for coverage.
+
+## Cycle 5 — tick 2 · R4 BUILT · two PRs open, neither merged
+
+- **UTC** 2026-10-10 09:3x · **Diff** 2 open (R5, R6), **4 BUILT**, 0 in flight
+- **R4** commit `583d98b`, dossier at
+  `docs/decisions/MERGE-TO-MAIN-DOSSIER-2026-10-10.md`.
+- **PR #10** → `main` (the big decision). **PR #11** → `agent-assure-calibration-run`
+  (today's 11 commits, small and reviewable). **Neither merged. `gh pr merge` was
+  not attempted.**
+- **THE FINDING, and it inverts the decision.** `main` is not the safe side. It
+  already ships Agent-Assure, at the **Phase-1 engine: 1,388 lines, before all
+  nineteen red-team rounds** (branch: 4,657). Demonstrated rather than argued —
+  one draft citing only itself, one store, two engines:
+  **`main` → PASS 100.0 GROUNDED exit 0; branch → FAIL 0.0 UNGROUNDABLE exit 1.**
+  `main` certifies a self-citing fabrication, and it is what a stranger installs
+  by default. `main`'s README also still documents T2 lexical-F1 grounding,
+  which ADR-006 demoted as insufficient.
+- **Facts the decision needs, all re-derived today:** 279 commits, 275 files,
+  +50,511/−422, **zero deletions**. The gold labels are **`A` (added)**, not
+  `M` — `main` has never held them — so **this merge contains no gold-label
+  change** and Escalation #2 is not engaged by it. That single `--name-status`
+  check removed the scariest-sounding part of the merge.
+- **Recommendation made, and what would flip it named:** merge, on the
+  asymmetry — a wrong merge costs one `git revert -m 1` (clean *because* nothing
+  is deleted); the fabrication `main` certifies today is not reversible. It
+  flips if nobody actually installs from `main`, which is a fact about
+  distribution that I do not have.
+- **New tokens** ~1.5M cumulative, 3M sanctioned / 5M ceiling.
+- **Frameworks** *Inversion* — asking what happens if we DON'T merge turned the
+  risk around and was the whole finding; *Asymmetry of error cost* — the
+  recommendation rests on reversibility, not on the work's merits;
+  *Contradiction-as-locator* — "main is the safe side" vs "main is nineteen
+  rounds old" could not both be true, and the disputed line was one command away.
