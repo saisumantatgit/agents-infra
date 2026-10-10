@@ -976,3 +976,18 @@ right investment instead.
 | Owner | Blocked on |
 |---|---|
 | **Sai** | Escalation #1 — it raises Error-A. One word: "advisory" or "keep". |
+
+## OVERNIGHT 2026-10-10 — capture contract: what closed, what is open, whose
+
+| Job | State | Owner |
+|---|---|---|
+| R20-01 / R20-02 / R20-04 / R20-06 | **FIXED** on exa's LIVE shape (`ac77b8e`, `472f2d7`, `35a180f`, `ad9367d`), each proven red. PR to `main` open. | Sai — the merge click |
+| R21-01…05, R22-01…03 | **FIXED**, proven red, except as noted below | Claude — done |
+| R22 fixes | **UNATTACKED.** A round 23 was not run: budget decision near the 80% stop line, not a safety claim. **First item next session.** | Claude |
+| R21-02 DDG error strings | **OPEN.** DDG's failure text is unverified by any live capture, so not encoded. Needs one live DDG failure capture. | Claude + Sai (a live session) |
+| R21-07 | string-typed `isError`/`code`, `text`-over-`content` precedence — LOW, open | Claude |
+| R21-03 figure sibling | fixed in code, **NOT DEMONSTRATED** | Claude |
+| C3 Error-A price | **UNMEASURED** — no live multi-block capture | Claude |
+| `isError` reaching the hook for an MCP failure | **UNKNOWN** — one live hook capture of a failing exa call settles it | Sai (a live session) |
+| J-97 absence advisory | priced, awaiting a one-word ruling | **Sai** |
+| J-35 / J-36 / J-38 | unchanged | **Sai** (Escalation #4) |
