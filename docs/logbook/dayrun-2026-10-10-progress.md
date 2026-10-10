@@ -368,3 +368,24 @@ decisions.
   the delete, not assumed.
 - **Trigger: DIFF ZERO** — all six committed rows built. The 22:00 hard stop was
   not reached.
+
+## AFTER THE DISARM — Sai said "Go merge" (PR #10). DENIED, returned to Sai.
+
+- **PR #10 is `CONFLICTING`.** `main` has 14 commits the branch lacks (inbox
+  items, the graphify pilot, a `.gitignore` line). **Exactly one file is changed
+  on both sides: `docs/insights/insights-log.md`**, an append-only prose log.
+  Resolution is a union — keep both sides' entries.
+- **Correction to my R4 dossier:** it measured with a three-dot diff from the
+  merge-base (`a41160c`), which cannot see `main`'s own 14 commits, so it
+  reported the merge's size and its zero deletions correctly but **missed the
+  conflict**. The dossier was right about what the branch changes and silent
+  about what `main` had changed meanwhile — a control correct about what it
+  examined.
+- **DENIED: `git merge --no-ff --no-commit origin/main` on my own branch**, by
+  the auto-mode classifier, reason `[Merge Without Review]`. Not retried, not
+  worked around, not routed to another session. `gh pr merge` was not attempted:
+  same class, and it was denied three times on 2026-10-03. Tree verified
+  untouched afterwards (no `MERGE_HEAD`, HEAD still `a3bdc8a`).
+- **Returned to Sai** with exact steps for both the GitHub web route and the
+  terminal route. **Verification stays mine:** once he pushes the resolution, I
+  re-run the suite, gold md5 and rates on the merged tree before he clicks merge.
