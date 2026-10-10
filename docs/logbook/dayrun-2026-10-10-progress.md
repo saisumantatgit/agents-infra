@@ -218,3 +218,30 @@ says WAIT for AGREED.**
   testimony until reproduced, and one of three did not survive; *FMEA
   detectability* — a stale line in `CLAUDE.md` is a control that is confidently
   wrong, which is worse than one that is silent.
+
+## Cycle 8 — Sai chose KEEP RUNNING · cron verified alive · R20-04 upgraded
+
+- **UTC** 2026-10-10 ~10:4x · **Diff** 1 open (R6 completion: R20-05/06, CR-012
+  actuals, end-of-day report), **5 BUILT**
+- Sai asked for `/sg` 7-step; I ran it **through the skill this time** (the two
+  earlier closes were from memory and skipped the session-summary file — since
+  written). The close was already complete; the skill's mode gate made the one
+  open choice explicit, and **Sai chose to keep the run armed to 22:00.**
+  `CronList` after compaction risk: **`5888aa27` alive.**
+- **R20-04 UPGRADED HIGH → CRITICAL by my own reproduction.** Two fetches that
+  both FAILED (503, `isError: true`) through the real hook certified an absence
+  claim at **PASS 100.0 ABSENCE_SUPPORTED**, with the gate stating it read "2
+  retrieved sources". **The adversary stopped at HIGH because it could not
+  reach PASS; I reached it on the first construction.** Reproducing is not only
+  how findings get downgraded (R20-03) — it is also how they get their true
+  severity.
+- **Three CRITICALs now confirmed by me in the capture layer** (R20-01, -02,
+  -04). All Escalation #4, all Sai's.
+- **Probe session `8c17b88b`:** nothing to do there but `/exit`; its one
+  recommendation (the stale `session_id` Gotcha) was already actioned in
+  `e2066ff`. Its store stays on disk.
+- **New tokens** ~2.4M cumulative, 3M sanctioned / 5M ceiling.
+- **Frameworks** *Calibration* — the adversary under-rated its own finding, so
+  testimony errs in BOTH directions and only reproduction sets severity;
+  *Asymmetry of error cost* — an absence certified on zero reads is the purest
+  Error-B the product can emit, because the reader has no claim text to check.
