@@ -187,3 +187,34 @@ says WAIT for AGREED.**
   system because the lie becomes evidence before any check runs; *Calibration* —
   the subagent's three CRITICALs are testimony until reproduced, and one of
   three now is.
+
+## Cycle 7 — R20 adjudicated · the usage instrument arrived · COMPACTION, cron still armed
+
+- **UTC** 2026-10-10 ~10:2x · **Diff** 1 open (R6 completion), **5 BUILT**
+- **R20-01 and R20-02 CONFIRMED by my own fixtures**, not the adversary's.
+  **R20-03 DID NOT REPRODUCE** — my construction was refused `FAIL 0.0
+  UNGROUNDABLE`, so it is downgraded to OPEN-UNCONFIRMED rather than carried as
+  a third CRITICAL. *Two of three survive, and saying which one didn't is the
+  point of reproducing them.*
+- **The usage instrument arrived after all.** Sai ran the live probe
+  (`8c17b88b`, `~/tmp/assure-probe`); a real four-record store exists and I read
+  its field shape (not its text). It **refutes a claim on a shipped surface**:
+  `CLAUDE.md` said `session_id` is never written — it is written on all four.
+  The register row was narrowed 2026-10-03 and the Gotchas entry was not: **the
+  J-37 stale-row class, on a claim surface.** Corrected in `e2066ff`.
+- **Confirmed in the FIELD, not from the code:** `fetched_at` is still the 1970
+  sentinel (J-38's remaining half), and `query_provenance` is a path or a URL on
+  every record, never a search query (**J-36, live**).
+- **Both instruments disagreed about R20-03 and only the real session settled
+  it.** That is the strongest argument yet for keeping a live probe in the loop.
+- **Nothing disarmed; §6 not run.** Still to remove at the disarm:
+  `prefix_ground_check.py`, `r20/`, `mine20/`, `mine20b/`, `mainprobe/`.
+  `~/tmp/assure-probe` is **Sai's to delete** and now holds real evidence worth
+  keeping until R20-04/05/06 are reproduced against it.
+- **New tokens** ~2.2M cumulative incl. the subagent, 3M sanctioned / 5M ceiling.
+- **Frameworks** *Contradiction-as-locator* — the adversary said CRITICAL and my
+  run said refused; I adjudicated by direct trace instead of averaging or
+  deferring, and the live store broke the tie; *Calibration* — a finding is
+  testimony until reproduced, and one of three did not survive; *FMEA
+  detectability* — a stale line in `CLAUDE.md` is a control that is confidently
+  wrong, which is worse than one that is silent.
