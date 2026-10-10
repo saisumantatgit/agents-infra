@@ -941,3 +941,38 @@ real four-record store. Checked against it:
 **Why this matters more than any single finding:** for one afternoon the project
 had both instruments at once — an adversary and a real session — and they
 disagreed about R20-03 in a way only the real session could settle.
+
+## J-97 — DECISION FOR SAI: make absence claims advisory only? PRICED 2026-10-10, nothing changed
+
+**Why it is on the table.** Tonight's C1 stops failed and blank fetches counting
+as searches. It does NOT close the class: with **J-36** (no search tool is
+captured, so the agent chooses every "query" string), an absence can still be
+certified from two SUCCESSFUL fetches of pages the agent picked. Two honest ways
+out: capture real search queries (a capture design, Escalation #4), or treat
+absence the way ADR-007 treats causal claims — reported, never certified.
+
+**The price, measured read-only with `measure_rates` on a counterfactual:**
+
+| Instrument | Today | If absence is advisory |
+|---|---|---|
+| Gold corpus, n=52 | Error-A 10/25 = 0.400 · Error-B 0/27 | **Error-A 11/25 = 0.440** · Error-B 0/27 |
+| …absence rows | 7, of which **1** gold-grounded (q13) and certified | q13 refused; the 6 violations were already refused |
+| Honest drafts (usage) | 0 drafts rely on a certified absence | **no change** |
+
+**What this does and does not show.** The cost is ONE gold row on every
+instrument we have — but that is a sample of one, so the true usage price is
+**unmeasured**, not small. The thinness of the instruments is itself the
+finding: supported absence claims are rare in every draft sampled so far.
+
+**My recommendation: make absence advisory now (ADR-008 shape), keep J-36 as
+the upgrade path.** On the asymmetry: the cost is one recoverable false alarm in
+52, and the benefit is closing the one verdict class that can still certify
+"there is no X" from evidence the agent chose. **What would flip it:** a
+customer job where absence is central — e.g. "no adverse event was reported",
+"no sanction found" — would make a 0.040 Error-A rise expensive in exactly the
+place the product is hired for, and then capturing real searches (J-36) is the
+right investment instead.
+
+| Owner | Blocked on |
+|---|---|
+| **Sai** | Escalation #1 — it raises Error-A. One word: "advisory" or "keep". |
