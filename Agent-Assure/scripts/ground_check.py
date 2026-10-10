@@ -75,6 +75,13 @@ class RetrievedSource:
     # UNATTRIBUTABLE by assert_single_session and therefore refuses under
     # enforcement — "I don't know" points away from PASS.
     session_id: str = ""
+    # R20-04 + R20-06 (2026-10-10). Whether the fetch RETURNED CONTENT:
+    # "ok" or "failed", set by the capture hook. DEFAULTS TO "" for every
+    # store written before this field existed, and "" is treated exactly like
+    # an empty session_id is: UNKNOWN, so it never counts as a search toward
+    # an absence. A failed fetch is KEPT in the store (it is audit evidence of
+    # what was attempted) and is only barred from counting as a search.
+    retrieval_status: str = ""
 
 
 @dataclass(frozen=True)
@@ -118,6 +125,10 @@ _REQUIRED_STR_FIELDS: tuple[str, ...] = (
 # May be JSON null (Read has no url; a fetch has no file_path), but must be a
 # str when present.
 _OPTIONAL_STR_FIELDS: tuple[str, ...] = ("url", "file_path")
+
+# R20-04 + R20-06. "" is the legacy/unknown value, and it never counts as a
+# search; see RetrievedSource.retrieval_status.
+_RETRIEVAL_STATUSES: frozenset[str] = frozenset({"", "ok", "failed"})
 
 
 def _object_pairs_no_duplicates(
@@ -349,7 +360,17 @@ def load_store(path: str) -> dict[str, RetrievedSource]:
                     f"line {lineno}: field 'session_id' must be a str or absent, "
                     f"got {type(session_id).__name__}"
                 )
+            retrieval_status = obj.get("retrieval_status", "")
+            if retrieval_status not in _RETRIEVAL_STATUSES:
+                raise ValueError(
+                    f"line {lineno}: field 'retrieval_status' must be one of "
+                    f"{sorted(_RETRIEVAL_STATUSES)} or absent, got "
+                    f"{retrieval_status!r}. It is never repaired or defaulted: "
+                    "an unrecognised status could be read as a successful "
+                    "retrieval."
+                )
             source = RetrievedSource(
+                retrieval_status=retrieval_status,
                 session_id=_nfkc(session_id),
                 source_id=source_id,
                 url=obj.get("url"),
@@ -3368,6 +3389,23 @@ def ground_relational(claim: Claim, store: dict[str, RetrievedSource]) -> Verdic
 # Per-claim verdict dispatcher (spec §4.4)
 # ---------------------------------------------------------------------------
 
+
+def _carries_retrieved_content(source: RetrievedSource) -> bool:
+    """True iff *source* demonstrably RETURNED CONTENT, so it may count as a search.
+
+    R20-04 + R20-06. Two conditions, both required:
+      * the capture hook recorded `retrieval_status == "ok"` — so a record
+        with NO status (any store written before 2026-10-10) does not qualify:
+        whether it returned content is unknown, and unknown points away from
+        PASS;
+      * its text holds at least one word, checked here as well as at capture,
+        because a hand-written or legacy store can carry "ok" over a blank.
+
+    Pure function.
+    """
+    return source.retrieval_status == "ok" and bool(_re.search(r"\w", source.text))
+
+
 def _session_queries(
     store: dict[str, RetrievedSource], self_source_ids: frozenset[str]
 ) -> list[str]:
@@ -3671,6 +3709,35 @@ def ground(
         )
         if absence_verdict is not Verdict.ABSENCE_SUPPORTED:
             return absence_verdict
+        # R20-04 + R20-06 (2026-10-10): A FAILED OR BLANK FETCH IS NOT A SEARCH.
+        #
+        # The absence rule counted STORED RECORDS, not SUCCESSFUL READS: two
+        # fetches that both failed (HTTP 503, `isError: true`) — or returned
+        # only whitespace — certified "there is no ECB press release on X" at
+        # PASS 100.0, while the report said two sources had been read.
+        #
+        # WHY A SECOND CALL AND NOT A FILTERED LIST. Removing the failed
+        # searches from the list above would also shrink the DENOMINATOR of
+        # the blanket-corpus-word gate inside check_absence, and that gate can
+        # then switch OFF and certify a claim it refused a moment ago — the
+        # D-54 trap ("a filtered store is not a weaker store, it is
+        # DIFFERENTLY weak"). So the call above keeps the full population and
+        # its denominator, and this one asks the same question of the
+        # content-bearing population only. Certifying needs BOTH: a
+        # conjunction with the existing verdict can only turn a yes into a no,
+        # which is what makes this fail-closed by construction rather than by
+        # argument. The contradiction texts stay the WHOLE store in both calls,
+        # because more text to contradict a claim can only refuse more.
+        content_store = {
+            source_id: source for source_id, source in store.items()
+            if _carries_retrieved_content(source)
+        }
+        if check_absence(
+            claim,
+            _session_queries(content_store, self_source_ids),
+            source_texts=[s.text for s in store.values() if s.text],
+        ) is not Verdict.ABSENCE_SUPPORTED:
+            return Verdict.UNVERIFIED_ABSENCE
         # R18-01 — THE FOURTH INSTANCE OF THE PLACEMENT CLASS, AND IT IS FOUR
         # LINES BELOW THE THIRD. R17-01 narrowed the BASIS check above to
         # exclude self-sources; this list, which feeds the two FIGURE checks,
@@ -3950,6 +4017,28 @@ def evidence_basis(
         # that narrows it; the verdict remains the single authority on how many
         # qualified. Display must never become decision (D-34).
         listed = "; ".join(f'"{q}"' for q in queries)
+        # R20-04 + R20-06: the report said "the text of 2 retrieved sources"
+        # when both fetches had failed. It now names the searches that
+        # returned no content, using the SAME predicate the verdict uses
+        # (`_carries_retrieved_content` through `_session_queries`), so the
+        # display cannot drift from the decision. It still does not recompute
+        # the count — the verdict stays the single authority (D-34).
+        countable = set(_session_queries(
+            {sid: s for sid, s in store.items() if _carries_retrieved_content(s)},
+            self_source_ids,
+        ))
+        uncounted = [q for q in queries if q not in countable]
+        no_content_note = ""
+        if uncounted:
+            no_content_note = (
+                f" {len(uncounted)} of these "
+                f"{_plural(len(uncounted), 'search', 'searches')} returned no "
+                f"content — the fetch failed, came back blank, or was captured "
+                f"before the store recorded whether it succeeded — and "
+                f"{_plural(len(uncounted), 'does', 'do')} NOT count as a "
+                f"search: "
+                + "; ".join(f'"{q}"' for q in uncounted) + "."
+            )
         return (f"An absence claim is checked against what was SEARCHED, not "
                 f"what was cited. Complete record consulted: "
                 f"{len(queries)} distinct search "
@@ -3960,7 +4049,8 @@ def evidence_basis(
                 f"the set that counted. A query counts toward the minimum only "
                 f"if it addresses the claim's asserted SCOPE and carries the "
                 f"subject's head noun, so fewer of the above may have "
-                f"qualified than are listed.{_absence_figure_note(claim)}")
+                f"qualified than are listed.{no_content_note}"
+                f"{_absence_figure_note(claim)}")
 
     if not claim.citations:
         n_src = len(store)

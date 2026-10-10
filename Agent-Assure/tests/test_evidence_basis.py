@@ -32,7 +32,7 @@ def _src(source_id, text, *, full_text_source="verbatim", query="a search"):
         fetched_at="2026-09-12T00:00:00Z", tool="Read",
         content_sha256="sha", text=text,
         full_text_source=full_text_source, captured_via="hook",
-        query_provenance=query,
+        retrieval_status="ok", query_provenance=query,
     )
 
 

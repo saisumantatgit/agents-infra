@@ -86,7 +86,7 @@ def test_an_absence_pass_reports_the_query_count_it_actually_used(tmp_path):
                 "fetched_at": "1970-01-01T00:00:00Z", "tool": "Read",
                 "content_sha256": "a" * 64, "text": text,
                 "full_text_source": "verbatim", "captured_via": "inline",
-                "query_provenance": qp}
+                "retrieval_status": "ok", "query_provenance": qp}
 
     records = [
         rec("SA1", "No recall evidence was found in the manufacturer safety "

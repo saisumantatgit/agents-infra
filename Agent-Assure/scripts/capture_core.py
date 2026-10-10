@@ -49,8 +49,10 @@ inside the tool_response dict IS permitted (that is the whole point of Task 2).
 
 from __future__ import annotations
 
+import dataclasses
 import hashlib
 import json
+import re
 import unicodedata
 from pathlib import Path
 
@@ -271,6 +273,50 @@ def reconstruct_text(tool_response: object) -> tuple[str, str]:
 # Public API
 # ---------------------------------------------------------------------------
 
+# Any word character. The gate's tokenizer is `re.findall(r"\w+", ...)`, so a
+# text with no match here can never contribute a token to any check — it is
+# not a document, whatever the tool says.
+_ANY_WORD_RE = re.compile(r"\w")
+
+
+def _retrieval_status(tool_name: str, tool_response: object, text: str) -> str:
+    """"ok" if the fetch returned content, else "failed". Pure.
+
+    R20-04 + R20-06 (2026-10-10): the absence rule counted STORED RECORDS, not
+    SUCCESSFUL READS, so two fetches that failed with HTTP 503 — or returned
+    only whitespace — certified "there is no X" at PASS 100.0. This is the
+    POSITIVE requirement that replaces patching each symptom: a record
+    demonstrates content, or it does not count as a search.
+
+    A record is "failed" when the tool SIGNALS failure or the text holds no word:
+      * an MCP result carrying `isError: true` (exa);
+      * a native WebFetch result whose `code` is outside 200-299;
+      * any text with no word character after NFKC.
+
+    The record is still WRITTEN — the store is audit evidence of what was
+    attempted — and the failure body is kept verbatim. Only its standing as a
+    search changes, and that decision is the gate's.
+
+    CEILING: a failure the tool does not SIGNAL is not caught. DDG returns a
+    plain `str` with no error flag, and a captcha, a login wall or an "Access
+    denied" page all arrive as a 2xx with words in them. Recognising those
+    needs a model of what a document is, which the zero-LLM rule forbids. The
+    upgrade path is upstream — capturing real search results (J-36) — not a
+    longer list of error phrases here, because a phrase list that LICENSES a
+    record as content would make its own gaps the attack (D-69).
+    """
+    if isinstance(tool_response, dict):
+        if tool_response.get("isError") is True:
+            return "failed"
+        if tool_name in _HAIKU_SUMMARY_TOOLS:
+            code = tool_response.get("code")
+            if isinstance(code, int) and not 200 <= code < 300:
+                return "failed"
+    if not _ANY_WORD_RE.search(unicodedata.normalize("NFKC", text)):
+        return "failed"
+    return "ok"
+
+
 def make_record(
     tool_name: str,
     tool_input: dict,
@@ -334,6 +380,7 @@ def make_record(
         full_text_source=full_text_source,
         captured_via=captured_via,
         query_provenance=query_provenance,
+        retrieval_status=_retrieval_status(tool_name, tool_response, text),
     )
 
 
@@ -418,6 +465,7 @@ def append_record(record: RetrievedSource, store_path: str) -> None:
         "captured_via": record.captured_via,
         "query_provenance": record.query_provenance,
         "session_id": record.session_id,
+        "retrieval_status": record.retrieval_status,
     }
     line = json.dumps(obj, ensure_ascii=False)
     with path.open(mode="a", encoding="utf-8") as fh:
@@ -438,20 +486,15 @@ except ImportError:  # pragma: no cover - POSIX-only; absent on Windows
 
 
 def _record_with_source_id(record: RetrievedSource, source_id: str) -> RetrievedSource:
-    """Return a copy of *record* with its source_id replaced (pure)."""
-    return RetrievedSource(
-        session_id=record.session_id,
-        source_id=source_id,
-        url=record.url,
-        file_path=record.file_path,
-        fetched_at=record.fetched_at,
-        tool=record.tool,
-        content_sha256=record.content_sha256,
-        text=record.text,
-        full_text_source=record.full_text_source,
-        captured_via=record.captured_via,
-        query_provenance=record.query_provenance,
-    )
+    """Return a copy of *record* with its source_id replaced (pure).
+
+    `dataclasses.replace`, not a field-by-field rebuild: the rebuild had to be
+    edited every time RetrievedSource gained a field, and a missed edit drops
+    the field SILENTLY — the copy still type-checks and every hand-written
+    JSONL test still passes while nothing reaches disk. Found again on
+    2026-10-10 adding `retrieval_status`; this closes the class, not the case.
+    """
+    return dataclasses.replace(record, source_id=source_id)
 
 
 def assign_and_append(record: RetrievedSource, store_path: str) -> str:

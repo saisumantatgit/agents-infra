@@ -42,7 +42,7 @@ def _rec(sid, text, qp, fts, tool):
             "file_path": None, "fetched_at": "2026-09-13T00:00:00Z",
             "tool": tool, "content_sha256": "a" * 64, "text": text,
             "full_text_source": fts, "captured_via": "inline",
-            "query_provenance": qp}
+            "retrieval_status": "ok", "query_provenance": qp}
 
 
 def _verb(sid, text, qp):

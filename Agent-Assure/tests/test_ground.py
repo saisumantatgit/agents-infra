@@ -45,7 +45,7 @@ def _src(
         text=text,
         full_text_source=full_text_source,
         captured_via="inline",
-        query_provenance=query_provenance,
+        retrieval_status="ok", query_provenance=query_provenance,
     )
 
 
@@ -151,8 +151,13 @@ def test_absence_delegates_and_supported():
     so check_absence returns ABSENCE_SUPPORTED — a verdict reachable only via
     the absence path.
     """
-    s1 = _src("S1", "...", query_provenance="contraindications of aspirin")
-    s2 = _src("S2", "...", query_provenance="aspirin contraindications list")
+    # The text must hold WORDS: a source whose whole text is "..." returned no
+    # content and is not a search (R20-06, 2026-10-10). Neutral wording that
+    # never mentions the subject, so the contradiction check stays out of play.
+    s1 = _src("S1", "Prescribing information reviewed for this product.",
+              query_provenance="contraindications of aspirin")
+    s2 = _src("S2", "Product monograph retrieved from the regulator archive.",
+              query_provenance="aspirin contraindications list")
     claim = _classified("There are no contraindications for this drug.")
     assert claim.kind == ClaimKind.ABSENCE
     result = ground(claim, _store(s1, s2))
