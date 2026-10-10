@@ -53,3 +53,15 @@ Instrument: `docs/planning/OVERNIGHT-2026-10-10.md`. Skeleton written at §0.
   asserting the glued text was green because it measured the defect, so "all
   green" was the wrong target; *Name the CEILING* — C3's unmeasured price is
   written into the code where the next reader looks.
+
+## Cycle 3 — tick · C4 IN FLIGHT · named pause
+
+- **UTC** ~16:57 (22:27 IST) · **Diff** 2 open (C4 in flight, C5), 3 BUILT +
+  stretch J-97 done (absence-as-advisory priced: one gold row, A 0.400 → 0.440).
+- One orchestrator (CronList: one job). Round 21's report skeleton exists, 0
+  findings yet — in-flight growth, so NOT a circuit-breaker condition.
+- **Named pause:** C5's reproductions and the PR wait on round 21's completion
+  notification. R20-03 (stretch) is deliberately NOT started: it edits
+  `capture_core.py`, the file round 21 is attacking, which would invalidate its
+  findings. Trigger that ends the pause: the agent's completion notice.
+- Keep-awake 42531 alive. Tree clean.
