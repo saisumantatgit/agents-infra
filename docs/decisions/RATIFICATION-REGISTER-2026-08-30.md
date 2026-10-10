@@ -1755,3 +1755,21 @@ in `check_absence`, both fail-open in both directions. It does not say PR #8 is
 merged; `gh pr merge` was denied `[Merge Without Review]` and the click is Sai's.
 It does not say `main` has received any of this work — `main` is `009c646` and
 PR #7's merge commit is **not** an ancestor of it.
+
+---
+
+## D-93 — the 2026-10-10 day run is armed under Sai's AGREED
+
+| | |
+|---|---|
+| **Decided** | Arm a 30-minute tick to execute DAYRUN-2026-10-10's committed set (R1–R6) autonomously from 14:11 to the 22:00 IST hard stop. |
+| **Basis** | Sai's explicit "AGREED. move ceiling 5M" at 13:40 IST, against the nine-item §0.4 handshake he was shown in full. Budget sanctioned 3M new tokens (output + cache creation), **ceiling raised by him from 3.6M to 5M**. |
+| **Authority this does NOT carry** | The park list (DAYRUN §5) stands unchanged: no merge to `main`, no gold-label change, no `install.sh` edit, no publish, no T3/NLI, nothing outward. The capture-contract fixes (J-35/J-36/J-38) are reported on, never changed — they are Escalation #4. A denied action returns to Sai and is routed nowhere else. |
+| **UNDO** | `CronDelete` the job id recorded in `docs/logbook/dayrun-2026-10-10-progress.md` cycle 1, then `git branch -D testing-live-2026-10-10` and `git push origin --delete testing-live-2026-10-10`. Every commit of the run is on that branch alone; `agent-assure-calibration-run` and `main` are untouched by it, so deleting the branch reverts the entire run with no history rewrite. Any PR opened by the run is closed, not merged. |
+| **Frameworks** | *Reversibility* — the whole run is scoped to one deletable branch, so the one-way doors (merge, publish, capture contract) are all outside it by construction. *Degradation under constraint* — at 80% of 5M the run stops STARTING work and spends the remainder finishing and reporting, which is honouring the ceiling Sai set, not stalling. |
+
+**The disarm is part of the decision, not a courtesy.** §6 disk hygiene runs
+BEFORE the disarm in the same turn: every clone, venv and scratch tree created
+today is deleted and named `REMOVED` in the progress file. `graphify-out/`
+(5.9 MB, untracked) and one unread HQ inbox item are **pre-existing and not
+mine** — named for Sai, not touched.
