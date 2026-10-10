@@ -1773,3 +1773,16 @@ BEFORE the disarm in the same turn: every clone, venv and scratch tree created
 today is deleted and named `REMOVED` in the progress file. `graphify-out/`
 (5.9 MB, untracked) and one unread HQ inbox item are **pre-existing and not
 mine** — named for Sai, not touched.
+
+---
+
+## D-94 — the 2026-10-10 overnight capture-contract run is armed under Sai's AGREED
+
+| | |
+|---|---|
+| **Decided** | Arm a 30-minute tick from 22:43 IST to the **07:00 IST** hard stop to build C1–C5 of `docs/planning/OVERNIGHT-2026-10-10.md`: three fail-closed fixes to `capture_core.py` (R20-04+06, R20-02, R20-01), an Opus round 21 against them, CR-013, and a PR to `main`. |
+| **Basis** | Sai's "AGREED" at 22:12 IST to the nine-item handshake shown to him in full. **3M new tokens sanctioned, ceiling 3.6M.** |
+| **THE READING I TOOK, recorded because it is acted on** | The handshake asked for "AGREED, with 'capture fixes authorised'". Sai replied **"AGREED" alone.** I read AGREED to a plan whose COMMITTED deliverables are the three capture fixes as authorising those deliverables — and nothing beyond them. **Why that reading is safe to act on:** every change is fail-closed by construction (it can only move a claim away from PASS), ships only as a PR, and **nothing reaches `main` without Sai's own click**, so his review of the diff is the authority check this reading defers to. **Not covered by it:** `install.sh`, `hooks/hooks.json`, `SOUL.md`, J-35, J-36, J-38, any merge. If Sai meant the narrower reading, the remedy is to close the PR unmerged — nothing else has moved. |
+| **UNDO** | `CronDelete` the job id in `docs/logbook/overnight-2026-10-10-progress.md` cycle 1; close the PR unmerged; `git push origin --delete capture-contract-2026-10-10`. Every commit lands on that branch alone. |
+| **Frameworks** | *Reversibility* — the authority question is made safe by keeping every change a two-way door until Sai's click. *Asymmetry of error cost* — fail-closed changes cannot manufacture the unrecoverable error, which is what makes acting on the broader reading defensible. |
+| **Budget risk, stated** | Sai did not `/compact` before AGREED. This session is long, and late-session steps have cost ~2× early ones here. The 2.1M estimate may run high; at 80% of the 3.6M ceiling the run stops STARTING work. |
