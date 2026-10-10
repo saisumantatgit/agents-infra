@@ -99,3 +99,32 @@ says WAIT for AGREED.**
   had just made visible; *Via negativa* — the guard catches two named exception
   types at three named sites and ENDS before the verdict path, rather than one
   broad try that would dress a defect as a refusal.
+
+## Cycle 4 — tick 2 · R3 BUILT · clone REMOVED
+
+- **UTC** 2026-10-10 09:1x · **Diff** 3 open (R4, R5, R6), **3 BUILT**, 0 in flight
+- **R3 / ALPHA-5** commit `cacc9f0`. `install.sh` exit 0 on a clean `--depth 1`
+  clone with no `.venv` and no `.assure`; fabricated `[S3]` refused **FAIL 50.0
+  exit 1**; grounded 100.0; J-73 scope line on every verdict; this morning's
+  J-50 refusals arrive as sentences in the stranger build too.
+  **Reachability is established WITHOUT touching `main`** — a fact R4 needs and
+  did not have.
+- **A-5-01 found, and it is SAI'S.** `install.sh`'s own session-id snippet
+  crashes in a fresh install: the `SID=$(...)` subshell opens a store that
+  **cannot exist** before the hook has fired. J-50's sibling one layer out, and
+  today's CLI fix cannot reach it — the subshell dies first. Registered with the
+  two-line change and with **why the obvious repair is a trap** (defaulting to
+  `""` turns a missing file into an unattributable id and reproduces today's
+  refusal for a second, unrelated reason). **Not fixed: Escalation #4, park list.**
+- **§6 DISK, done now rather than at the disarm:** `alpha5-clone` (**16 MB**
+  incl. its venv) and `userrepo` — **REMOVED**. Scratchpad holds only
+  `prefix_ground_check.py` (0.2 MB), the proven-red reference for R2; removed at
+  the disarm. Nothing was written into the repo from the clone.
+  **Pre-existing and NOT mine, untouched:** `graphify-out/` (5.9 MB) and one
+  unread HQ inbox item — both for Sai.
+- **New tokens** ~1.1M cumulative, 3M sanctioned / 5M ceiling.
+- **Frameworks** *Reachability* — "done" is where the next reader will look, and
+  a rehearsal in my own tree measures my own tree, so the instrument had to be a
+  clone; *Delivery-is-not-consumption* — the installer's last printed line is
+  the product's first consumed line, and it was broken; *Via negativa* — the
+  report states what it did NOT establish so it cannot be mistaken for coverage.
