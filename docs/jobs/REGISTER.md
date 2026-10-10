@@ -872,3 +872,26 @@ direction.
 separate "did this session search for the subject" from "is the subject's head
 noun a blanket word in this corpus" — the second is a property of the corpus and
 cannot be a ratio over a list the author controls the length of.
+
+## ALPHA-5 2026-10-10 — the branch is installable by a stranger, and one row is Sai's
+
+| Job | What | Owner | Blocked on |
+|---|---|---|---|
+| **A-5-01** | **`install.sh`'s own session-id snippet crashes in a fresh install.** The `SID=$(...)` subshell opens `.assure/evidence-store.jsonl`, which **cannot exist** before the capture hook has fired, and dies with a raw `FileNotFoundError`. It is **J-50's sibling one layer out, and today's CLI fix cannot reach it** — the subshell dies before `ground_check.py` is invoked. So the last thing a brand-new user is shown is a command that fails if pasted immediately. Two lines: a sentence saying the store appears only after the hook fires, and a missing-file branch that prints rather than raises. **The obvious repair is a trap:** defaulting to `""` turns a missing file into an unattributable id and produces today's `--session-id ""` refusal for a second, unrelated reason — a silent fallback wearing a helpful face. | **Sai** | Escalation #4 (install.sh) |
+| **A-5-02** | **`grounding-report.yaml` is written into the user's CWD** on every non-`--json` run. Documented, not a defect, and noted here only because a tester running from their own repo will find an untracked file in it. No action proposed; recorded so it is not rediscovered as a surprise. | Claude | nothing — informational |
+
+**What ALPHA-5 proved:** a `--depth 1` clone of `testing-live-2026-10-10`
+installs with `install.sh` exit 0 on a machine with no `.venv` and no `.assure`,
+and the moat holds on it — the demo's fabricated `[S3]` is refused **FAIL 50.0
+exit 1**, the grounded draft passes 100.0, the J-73 scope disclosure prints on
+every verdict including FAIL, and this morning's J-50 refusals arrive as
+sentences. **Reachability is therefore established WITHOUT touching `main`**,
+which is a fact the merge decision needs and did not have.
+
+**What it did not prove, stated so it cannot be read as coverage:** not the
+plugin path (`claude --plugin-dir`, `/hooks`, a live hook firing — J-54 closed
+that separately on 2026-10-03 and this run did not re-prove it); not the capture
+layer, since the demo store is a frozen fixture and every field a real hook
+writes is untested here, which is where J-35/J-36/J-38 live; and not a human,
+since nothing here measures whether a reader takes PASS as *traceable* or as
+*supported*.
