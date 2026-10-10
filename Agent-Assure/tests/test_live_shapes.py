@@ -22,7 +22,7 @@ from __future__ import annotations
 import hashlib
 import unicodedata
 
-from scripts.capture_core import make_record
+from scripts.capture_core import make_record, make_records
 
 FIXED_AT = "1970-01-01T00:00:00Z"
 
@@ -178,8 +178,13 @@ class TestExaLiveShape:
         assert rec.text == _EXA_TEXT
         assert rec.full_text_source == "verbatim"
 
-    def test_multi_block_list_concatenates(self):
-        rec = make_record(
+    def test_multi_block_list_is_one_record_PER_BLOCK(self):
+        """REPLACED 2026-10-10. Was `test_multi_block_list_concatenates`,
+        asserting `rec.text == "part one\\npart two"` — the join R20-01 used to
+        certify a sentence present in neither block. Same live shape (a
+        TOP-LEVEL exa content-block list); the corrected property is one
+        record per block, both credited to the single requested URL."""
+        records = make_records(
             tool_name="mcp__exa__web_fetch_exa",
             tool_input={"url": "https://example.com"},
             tool_response=[
@@ -190,8 +195,9 @@ class TestExaLiveShape:
             query_provenance="https://example.com",
             fetched_at=FIXED_AT,
         )
-        assert rec is not None
-        assert rec.text == "part one\npart two"
+        assert [r.text for r in records] == ["part one", "part two"]
+        assert all(r.url == "https://example.com" for r in records)
+        assert all(r.full_text_source == "verbatim" for r in records)
 
 
 # ---------------------------------------------------------------------------

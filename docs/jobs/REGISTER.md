@@ -941,3 +941,53 @@ real four-record store. Checked against it:
 **Why this matters more than any single finding:** for one afternoon the project
 had both instruments at once — an adversary and a real session — and they
 disagreed about R20-03 in a way only the real session could settle.
+
+## J-97 — DECISION FOR SAI: make absence claims advisory only? PRICED 2026-10-10, nothing changed
+
+**Why it is on the table.** Tonight's C1 stops failed and blank fetches counting
+as searches. It does NOT close the class: with **J-36** (no search tool is
+captured, so the agent chooses every "query" string), an absence can still be
+certified from two SUCCESSFUL fetches of pages the agent picked. Two honest ways
+out: capture real search queries (a capture design, Escalation #4), or treat
+absence the way ADR-007 treats causal claims — reported, never certified.
+
+**The price, measured read-only with `measure_rates` on a counterfactual:**
+
+| Instrument | Today | If absence is advisory |
+|---|---|---|
+| Gold corpus, n=52 | Error-A 10/25 = 0.400 · Error-B 0/27 | **Error-A 11/25 = 0.440** · Error-B 0/27 |
+| …absence rows | 7, of which **1** gold-grounded (q13) and certified | q13 refused; the 6 violations were already refused |
+| Honest drafts (usage) | 0 drafts rely on a certified absence | **no change** |
+
+**What this does and does not show.** The cost is ONE gold row on every
+instrument we have — but that is a sample of one, so the true usage price is
+**unmeasured**, not small. The thinness of the instruments is itself the
+finding: supported absence claims are rare in every draft sampled so far.
+
+**My recommendation: make absence advisory now (ADR-008 shape), keep J-36 as
+the upgrade path.** On the asymmetry: the cost is one recoverable false alarm in
+52, and the benefit is closing the one verdict class that can still certify
+"there is no X" from evidence the agent chose. **What would flip it:** a
+customer job where absence is central — e.g. "no adverse event was reported",
+"no sanction found" — would make a 0.040 Error-A rise expensive in exactly the
+place the product is hired for, and then capturing real searches (J-36) is the
+right investment instead.
+
+| Owner | Blocked on |
+|---|---|
+| **Sai** | Escalation #1 — it raises Error-A. One word: "advisory" or "keep". |
+
+## OVERNIGHT 2026-10-10 — capture contract: what closed, what is open, whose
+
+| Job | State | Owner |
+|---|---|---|
+| R20-01 / R20-02 / R20-04 / R20-06 | **FIXED** on exa's LIVE shape (`ac77b8e`, `472f2d7`, `35a180f`, `ad9367d`), each proven red. PR to `main` open. | Sai — the merge click |
+| R21-01…05, R22-01…03 | **FIXED**, proven red, except as noted below | Claude — done |
+| R22 fixes | **UNATTACKED.** A round 23 was not run: budget decision near the 80% stop line, not a safety claim. **First item next session.** | Claude |
+| R21-02 DDG error strings | **OPEN.** DDG's failure text is unverified by any live capture, so not encoded. Needs one live DDG failure capture. | Claude + Sai (a live session) |
+| R21-07 | string-typed `isError`/`code`, `text`-over-`content` precedence — LOW, open | Claude |
+| R21-03 figure sibling | fixed in code, **NOT DEMONSTRATED** | Claude |
+| C3 Error-A price | **UNMEASURED** — no live multi-block capture | Claude |
+| `isError` reaching the hook for an MCP failure | **UNKNOWN** — one live hook capture of a failing exa call settles it | Sai (a live session) |
+| J-97 absence advisory | priced, awaiting a one-word ruling | **Sai** |
+| J-35 / J-36 / J-38 | unchanged | **Sai** (Escalation #4) |

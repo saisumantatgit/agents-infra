@@ -35,7 +35,7 @@ def _store_row(source_id: str, text: str, query_provenance: str) -> dict:
         "file_path": None, "fetched_at": "2026-09-12T00:00:00Z", "tool": "mcp__exa__web_fetch_exa",
         "content_sha256": "a" * 64, "text": text,
         "full_text_source": "verbatim", "captured_via": "exa",
-        "query_provenance": query_provenance,
+        "retrieval_status": "ok", "query_provenance": query_provenance,
     }
 
 

@@ -118,7 +118,7 @@ def _rec(sid="S1", text="Redis replicates to three replicas.",
             "fetched_at": "2026-09-13T00:00:00Z", "tool": tool,
             "content_sha256": "a" * 64, "text": text,
             "full_text_source": fts, "captured_via": "inline",
-            "query_provenance": qp}
+            "retrieval_status": "ok", "query_provenance": qp}
 
 
 def _verdicts(tmp_path, draft, records):

@@ -49,8 +49,10 @@ inside the tool_response dict IS permitted (that is the whole point of Task 2).
 
 from __future__ import annotations
 
+import dataclasses
 import hashlib
 import json
+import re
 import unicodedata
 from pathlib import Path
 
@@ -178,22 +180,6 @@ def _sha256_nfkc(text: str) -> str:
     return hashlib.sha256(normalized.encode()).hexdigest()
 
 
-def _url_from_input(tool_input: dict) -> str | None:
-    """Extract URL from tool_input; returns None if absent.
-
-    LIVE-VALIDATED (2026-07-03): mcp__exa__web_fetch_exa carries a PLURAL
-    ``{"urls": [<url>, ...]}`` list — the first element is used. Native tools
-    (WebFetch) carry a singular ``{"url": <url>}``.
-    """
-    url = tool_input.get("url")
-    if isinstance(url, str) and url:
-        return url
-    urls = tool_input.get("urls")
-    if isinstance(urls, list) and urls and isinstance(urls[0], str) and urls[0]:
-        return urls[0]
-    return None
-
-
 def _file_path_from_input(tool_input: dict) -> str | None:
     """Extract file_path from tool_input; returns None if absent."""
     return tool_input.get("file_path") or None
@@ -271,6 +257,55 @@ def reconstruct_text(tool_response: object) -> tuple[str, str]:
 # Public API
 # ---------------------------------------------------------------------------
 
+# Any word character. The gate's tokenizer is `re.findall(r"\w+", ...)`, so a
+# text with no match here can never contribute a token to any check — it is
+# not a document, whatever the tool says.
+_ANY_WORD_RE = re.compile(r"\w")
+
+
+def _retrieval_status(tool_name: str, tool_response: object, text: str) -> str:
+    """"ok" if the fetch returned content, else "failed". Pure.
+
+    R20-04 + R20-06 (2026-10-10): the absence rule counted STORED RECORDS, not
+    SUCCESSFUL READS, so two fetches that failed with HTTP 503 — or returned
+    only whitespace — certified "there is no X" at PASS 100.0. This is the
+    POSITIVE requirement that replaces patching each symptom: a record
+    demonstrates content, or it does not count as a search.
+
+    A record is "failed" when the tool SIGNALS failure or the text holds no word:
+      * an MCP result carrying `isError: true` (exa);
+      * a native WebFetch result whose `code` is outside 200-299;
+      * any text with no word character after NFKC.
+
+    The record is still WRITTEN — the store is audit evidence of what was
+    attempted — and the failure body is kept verbatim. Only its standing as a
+    search changes, and that decision is the gate's.
+
+    CEILING: a failure the tool does not SIGNAL is not caught. DDG returns a
+    plain `str` with no error flag, and a captcha, a login wall or an "Access
+    denied" page all arrive as a 2xx with words in them. Recognising those
+    needs a model of what a document is, which the zero-LLM rule forbids. The
+    upgrade path is upstream — capturing real search results (J-36) — not a
+    longer list of error phrases here, because a phrase list that LICENSES a
+    record as content would make its own gaps the attack (D-69).
+    """
+    if isinstance(tool_response, dict):
+        if tool_response.get("isError") is True:
+            return "failed"
+        if tool_name in _HAIKU_SUMMARY_TOOLS:
+            code = tool_response.get("code")
+            if isinstance(code, int) and not 200 <= code < 300:
+                return "failed"
+    if tool_name in _EXA_TOOLS:
+        whole = _block_list(tool_response)
+        haystack = "\n".join(whole) if whole is not None else text
+        if _EXA_ERROR_LINE_RE.search(haystack) or _EXA_ERROR_LINE_RE.search(text):
+            return "failed"
+    if not _ANY_WORD_RE.search(unicodedata.normalize("NFKC", text)):
+        return "failed"
+    return "ok"
+
+
 def make_record(
     tool_name: str,
     tool_input: dict,
@@ -298,6 +333,15 @@ def make_record(
     """
     if tool_name not in _RETRIEVAL_TOOLS:
         return None
+    # R20-01: a single record for a multi-document response would glue the
+    # documents together, so a verbatim span could cross between them. Refuse
+    # loudly; `make_records` is the path that keeps them apart.
+    if _documents(tool_name, tool_response) is not None:
+        raise ValueError(
+            "make_record received a response holding several content blocks. "
+            "One record would join them, letting a verbatim span cross from one "
+            "fetched document into another (R20-01). Use make_records."
+        )
 
     # reconstruct_text handles both overflow-file and inline paths.
     # captured_via reflects which path was taken.
@@ -314,12 +358,15 @@ def make_record(
         file_path: str | None = _file_path_from_input(tool_input)
     elif tool_name in _HAIKU_SUMMARY_TOOLS:
         full_text_source = "haiku_summary"
-        url = _url_from_input(tool_input)
+        url = _certain_url(tool_input)
         file_path = None
     else:
         # mcp__exa__web_fetch_exa, web_fetch_exa, mcp__ddg-search__fetch_content
+        # R20-02 / R21-01: `_certain_url`, not "the first URL" — a multi-URL
+        # response that arrives as ONE document (no exa headers) must not be
+        # credited to whichever address the agent listed first.
         full_text_source = "verbatim"
-        url = _url_from_input(tool_input)
+        url = _certain_url(tool_input)
         file_path = None
 
     return RetrievedSource(
@@ -334,7 +381,195 @@ def make_record(
         full_text_source=full_text_source,
         captured_via=captured_via,
         query_provenance=query_provenance,
+        retrieval_status=_retrieval_status(tool_name, tool_response, text),
     )
+
+
+
+# exa's fetch tools. Named separately because exa's response FORMAT, not just its
+# envelope, carries document boundaries — see _documents.
+_EXA_TOOLS: frozenset[str] = frozenset({"mcp__exa__web_fetch_exa", "web_fetch_exa"})
+
+# LIVE-OBSERVED 2026-10-10 (round 21 called exa's MCP server; the orchestrator
+# confirmed with its own `web_fetch_exa` call): a multi-URL fetch returns ONE
+# text block holding every page, each introduced by a `# <title>` line followed
+# by a `URL: <url>` line. The lookahead splits BEFORE each such header and keeps
+# the header with its own section.
+_EXA_SECTION_RE = re.compile(r"(?m)^(?=# [^\n]*\nURL: \S)")
+
+# R22-02 (round 22, 2026-10-10): header VARIANTS — "#"/"##" with or without a
+# title, leading whitespace, a blank line before "URL:", "URL:" with no space.
+# NONE has been observed from live exa; they are recognised anyway because a
+# split can only stop a span from crossing (fail-closed). Used in place of the
+# canonical pattern above, which it subsumes.
+_EXA_SECTION_LOOSE_RE = re.compile(
+    r"(?m)^(?=[ \t\ufeff\u200b]*#+[^\n]*\n(?:[ \t]*\n)?[ \t]*URL:[ \t]*\S)")
+
+# R22-01 (round 22, LIVE-OBSERVED in round 21's raw exa capture): a PARTIAL
+# failure in a multi-URL fetch is appended INLINE after the page that worked —
+# "Error fetching <url>: CRAWL_NOT_FOUND", no header, no isError. The fetch's one
+# search label cannot say which URL succeeded, so ANY such line marks EVERY
+# record of that response failed. Case-insensitive, after stripping invisible
+# characters (R22-03). Refusal-only, so over-matching is safe (D-69).
+_EXA_ERROR_LINE_RE = re.compile(r"(?mi)^[\s\ufeff\u200b]*error fetching\b")
+
+# LIVE-OBSERVED 2026-10-10: exa reports a failed fetch as an ordinary text block
+# beginning with this phrase (e.g. "...: CRAWL_NOT_FOUND"). Its server response
+# also carries `isError: true`, but the hook payload validated for exa is a bare
+# block LIST, which has nowhere to put that flag — so whether the flag reaches
+# the hook is UNKNOWN, and this does not depend on it.
+#
+# This is a list that drives a REFUSAL (it can only mark a record "failed"), so a
+# missing phrase leaves a failure counted as a search — today's behaviour — and
+# can never certify anything (D-69: refusal lists are safe to get wrong; lists
+# that LICENSE an acceptance are not).
+_EXA_ERROR_PREFIX = "Error fetching URL(s):"
+
+
+def _block_list(tool_response: object) -> list[str] | None:
+    """The text of every content block when *tool_response* is a content-block
+    LIST (top level, or under "text", "content", "result" or "file.content");
+    None for every other shape. Pure.
+
+    R21-04: C3 originally looked only at the top level, "text" and "content", so
+    a block list under "result" or "file.content" was still joined. A non-text
+    block raises TypeError, exactly as `_coerce_text_value` does.
+    """
+    if isinstance(tool_response, list):
+        blocks = tool_response
+    elif isinstance(tool_response, dict):
+        candidate = None
+        for key in ("text", "content", "result"):
+            if key in tool_response:
+                candidate = tool_response[key]
+                break
+        else:
+            file_obj = tool_response.get("file")
+            if isinstance(file_obj, dict):
+                candidate = file_obj.get("content")
+        if not isinstance(candidate, list):
+            return None
+        blocks = candidate
+    else:
+        return None
+    texts: list[str] = []
+    for block in blocks:
+        if isinstance(block, dict) and isinstance(block.get("text"), str):
+            texts.append(block["text"])
+        else:
+            raise TypeError(
+                "Unrecognized content-block in a block list: "
+                f"{type(block).__name__!r}. Expected {{'type':'text','text':str}}."
+            )
+    return texts
+
+
+def _documents(tool_name: str, tool_response: object) -> list[str] | None:
+    """The separate DOCUMENTS in a response, when there are TWO OR MORE; None
+    when the response holds one document. Pure.
+
+    R20-01 / R21-01. Joining documents let a verbatim span start in one and end
+    in another. A document boundary is either a content-block boundary or, for
+    exa, a section header INSIDE a block — exa's real multi-URL response is ONE
+    block, so splitting on blocks alone never ran on the live tool (R21-01).
+
+    A page can FORGE an exa header in its own text. That only adds a split, and a
+    split can only stop a span from crossing, so forgery here is fail-closed. The
+    header's `URL:` line is NEVER used for attribution — that would let a page
+    choose which address its text is credited to.
+    """
+    blocks = _block_list(tool_response)
+    if blocks is None:
+        return None
+    pieces: list[str] = []
+    for block in blocks:
+        if tool_name in _EXA_TOOLS:
+            pieces.extend(part for part in _EXA_SECTION_LOOSE_RE.split(block) if part)
+        else:
+            pieces.append(block)
+    return pieces if len(pieces) >= 2 else None
+
+
+def _certain_url(tool_input: dict) -> str | None:
+    """The fetched URL when it is CERTAIN, else None. Pure.
+
+    R20-02 / R21-05. Certain means exactly one URL was requested: a singular
+    `url`, or a `urls` list of exactly one non-empty string. Several URLs — or a
+    `urls` list padded with blanks or non-strings, which used to be filtered down
+    to "one" — mean the address of any given document is a guess, and a guessed
+    address is a silent failure. Both keys present is ambiguous, and also None.
+    """
+    url = tool_input.get("url")
+    urls = tool_input.get("urls")
+    if urls is not None:
+        if url is not None:
+            return None
+        if (isinstance(urls, list) and len(urls) == 1
+                and isinstance(urls[0], str) and urls[0]):
+            return urls[0]
+        return None
+    if isinstance(url, str) and url:
+        return url
+    return None
+
+
+def make_records(
+    tool_name: str,
+    tool_input: dict,
+    tool_response: object,
+    source_id: str,
+    query_provenance: str,
+    fetched_at: str,
+    session_id: str = "",
+) -> list[RetrievedSource]:
+    """Map a tool event to ONE RECORD PER FETCHED DOCUMENT. Pure.
+
+    The hook's path. A one-document response yields exactly `make_record`'s
+    record. A multi-document response (separate blocks, or exa sections inside
+    one block) yields one record per document, so no span crosses between them.
+
+    ADDRESS: `_certain_url` — the requested URL when exactly one was requested,
+    else None. Never taken from the text.
+
+    FILE PATH: kept for `Read`. Dropping it would blind the self-citation check
+    (J-83 identifies the draft by its resolved file path) — the fail-OPEN
+    direction, caught while designing R21-04's fix.
+
+    `query_provenance` is the SAME on every document, deliberately: a label per
+    document would turn one fetch into N searches and RAISE the absence count —
+    PASS-enabling, so not done here.
+
+    CEILING: a content block, or an exa section, is assumed to be one document.
+    If a tool splits one document across blocks, a quote spanning the break is
+    refused — an Error-A, fail-closed, unmeasured on any live multi-block payload.
+    """
+    if tool_name not in _RETRIEVAL_TOOLS:
+        return []
+    documents = _documents(tool_name, tool_response)
+    if documents is None:
+        record = make_record(tool_name, tool_input, tool_response, source_id,
+                             query_provenance, fetched_at, session_id)
+        return [] if record is None else [record]
+    is_read = tool_name == "Read"
+    full_text_source = ("haiku_summary" if tool_name in _HAIKU_SUMMARY_TOOLS
+                        else "verbatim")
+    return [
+        RetrievedSource(
+            session_id=session_id,
+            source_id=source_id,
+            url=None if is_read else _certain_url(tool_input),
+            file_path=_file_path_from_input(tool_input) if is_read else None,
+            fetched_at=fetched_at,
+            tool=tool_name,
+            content_sha256=_sha256_nfkc(text),
+            text=text,
+            full_text_source=full_text_source,
+            captured_via="inline",
+            query_provenance=query_provenance,
+            retrieval_status=_retrieval_status(tool_name, tool_response, text),
+        )
+        for text in documents
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -418,6 +653,7 @@ def append_record(record: RetrievedSource, store_path: str) -> None:
         "captured_via": record.captured_via,
         "query_provenance": record.query_provenance,
         "session_id": record.session_id,
+        "retrieval_status": record.retrieval_status,
     }
     line = json.dumps(obj, ensure_ascii=False)
     with path.open(mode="a", encoding="utf-8") as fh:
@@ -438,20 +674,15 @@ except ImportError:  # pragma: no cover - POSIX-only; absent on Windows
 
 
 def _record_with_source_id(record: RetrievedSource, source_id: str) -> RetrievedSource:
-    """Return a copy of *record* with its source_id replaced (pure)."""
-    return RetrievedSource(
-        session_id=record.session_id,
-        source_id=source_id,
-        url=record.url,
-        file_path=record.file_path,
-        fetched_at=record.fetched_at,
-        tool=record.tool,
-        content_sha256=record.content_sha256,
-        text=record.text,
-        full_text_source=record.full_text_source,
-        captured_via=record.captured_via,
-        query_provenance=record.query_provenance,
-    )
+    """Return a copy of *record* with its source_id replaced (pure).
+
+    `dataclasses.replace`, not a field-by-field rebuild: the rebuild had to be
+    edited every time RetrievedSource gained a field, and a missed edit drops
+    the field SILENTLY — the copy still type-checks and every hand-written
+    JSONL test still passes while nothing reaches disk. Found again on
+    2026-10-10 adding `retrieval_status`; this closes the class, not the case.
+    """
+    return dataclasses.replace(record, source_id=source_id)
 
 
 def assign_and_append(record: RetrievedSource, store_path: str) -> str:

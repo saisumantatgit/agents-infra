@@ -52,7 +52,7 @@ def _row(source_id: str, text: str, query: str) -> str:
         "file_path": None, "fetched_at": "1970-01-01T00:00:00Z",
         "tool": "mcp__exa__web_fetch_exa", "content_sha256": source_id,
         "text": text, "full_text_source": "verbatim", "captured_via": "inline",
-        "query_provenance": query, "session_id": "",
+        "retrieval_status": "ok", "query_provenance": query, "session_id": "",
     })
 
 
