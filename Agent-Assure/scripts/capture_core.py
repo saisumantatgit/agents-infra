@@ -344,6 +344,15 @@ def make_record(
     """
     if tool_name not in _RETRIEVAL_TOOLS:
         return None
+    # R20-01: a single record for a multi-document response would glue the
+    # documents together, so a verbatim span could cross between them. Refuse
+    # loudly; `make_records` is the path that keeps them apart.
+    if _content_block_texts(tool_response) is not None:
+        raise ValueError(
+            "make_record received a response holding several content blocks. "
+            "One record would join them, letting a verbatim span cross from one "
+            "fetched document into another (R20-01). Use make_records."
+        )
 
     # reconstruct_text handles both overflow-file and inline paths.
     # captured_via reflects which path was taken.
@@ -382,6 +391,116 @@ def make_record(
         query_provenance=query_provenance,
         retrieval_status=_retrieval_status(tool_name, tool_response, text),
     )
+
+
+
+def _content_block_texts(tool_response: object) -> list[str] | None:
+    """The text of each block when *tool_response* is an MCP content-block LIST
+    holding TWO OR MORE blocks; None for every other shape. Pure.
+
+    R20-01 (2026-10-10). Joining blocks into one text let a verbatim span start
+    in one fetched document and end in another, and the gate certified a
+    sentence present in neither. A list of one block is returned as None so the
+    single-record path — and every record written before tonight — is unchanged.
+
+    A non-text block raises TypeError, exactly as `_coerce_text_value` does, so
+    shape drift still surfaces as "capture skipped" rather than being dropped.
+    """
+    if isinstance(tool_response, list):
+        blocks = tool_response
+    elif isinstance(tool_response, dict):
+        candidate = tool_response.get("text", tool_response.get("content"))
+        if not isinstance(candidate, list):
+            return None
+        blocks = candidate
+    else:
+        return None
+    if len(blocks) < 2:
+        return None
+    texts: list[str] = []
+    for block in blocks:
+        if isinstance(block, dict) and isinstance(block.get("text"), str):
+            texts.append(block["text"])
+        else:
+            raise TypeError(
+                "Unrecognized content-block in a multi-block response: "
+                f"{type(block).__name__!r}. Expected {{'type':'text','text':str}}."
+            )
+    return texts
+
+
+def _requested_urls(tool_input: dict) -> list[str]:
+    """Every URL the tool was asked for, in request order. Pure."""
+    url = tool_input.get("url")
+    if isinstance(url, str) and url:
+        return [url]
+    urls = tool_input.get("urls")
+    if isinstance(urls, list):
+        return [u for u in urls if isinstance(u, str) and u]
+    return []
+
+
+def make_records(
+    tool_name: str,
+    tool_input: dict,
+    tool_response: object,
+    source_id: str,
+    query_provenance: str,
+    fetched_at: str,
+    session_id: str = "",
+) -> list[RetrievedSource]:
+    """Map a tool event to ONE RECORD PER FETCHED DOCUMENT. Pure.
+
+    The production path (the hook calls this). A response holding one document
+    yields exactly what `make_record` always produced. A response holding
+    several content blocks yields one record per block, so no verbatim span can
+    cross from one document into the next (R20-01).
+
+    ADDRESS — set only when CERTAIN (R20-02). One requested URL: every block can
+    only have come from it. Several URLs: every block's `url` is None. Pairing
+    block i with URL i would assume the tool answers in request order, which
+    nothing here verifies — and a wrong address is a silent failure, where a
+    missing one is visible to whoever reads the report.
+
+    `query_provenance` is the SAME on every block, deliberately. A distinct
+    search label per block would turn one fetch into N searches and raise the
+    absence count — PASS-enabling, so it is not done here.
+
+    CEILING: assumes a content block is the unit of "one document". If a tool
+    splits ONE document across several blocks, a quote spanning that internal
+    break is now refused — an Error-A, fail-closed, and unmeasured on any real
+    exa payload because no live multi-block capture exists yet. The upgrade is
+    a per-block source identifier from the tool itself (e.g. a URL in `_meta`),
+    once one is observed live.
+    """
+    if tool_name not in _RETRIEVAL_TOOLS:
+        return []
+    blocks = _content_block_texts(tool_response)
+    if blocks is None:
+        record = make_record(tool_name, tool_input, tool_response, source_id,
+                             query_provenance, fetched_at, session_id)
+        return [] if record is None else [record]
+    urls = _requested_urls(tool_input)
+    url = urls[0] if len(urls) == 1 else None
+    full_text_source = ("haiku_summary" if tool_name in _HAIKU_SUMMARY_TOOLS
+                        else "verbatim")
+    return [
+        RetrievedSource(
+            session_id=session_id,
+            source_id=source_id,
+            url=url,
+            file_path=None,
+            fetched_at=fetched_at,
+            tool=tool_name,
+            content_sha256=_sha256_nfkc(text),
+            text=text,
+            full_text_source=full_text_source,
+            captured_via="inline",
+            query_provenance=query_provenance,
+            retrieval_status=_retrieval_status(tool_name, tool_response, text),
+        )
+        for text in blocks
+    ]
 
 
 # ---------------------------------------------------------------------------
