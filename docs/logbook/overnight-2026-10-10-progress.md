@@ -65,3 +65,32 @@ Instrument: `docs/planning/OVERNIGHT-2026-10-10.md`. Skeleton written at §0.
   `capture_core.py`, the file round 21 is attacking, which would invalidate its
   findings. Trigger that ends the pause: the agent's completion notice.
 - Keep-awake 42531 alive. Tree clean.
+
+## Cycle 4 — ROUND 21 REFUTED C2+C3 ON THE LIVE TOOL · R21 fixes landed · round 22 next
+
+- **UTC** ~17:5x · **Diff** C4 reopened by its own findings → R21 fixes BUILT
+  (`35a180f`); round 22 needed before the PR; C5 open.
+- **Round 21: 3 CRITICAL, 1 HIGH, 1 MEDIUM, 1 known, 1 LOW** (Opus, 187K tokens,
+  40 tool calls). **The finding:** exa returns a multi-URL fetch as ONE block
+  with in-text `# title / URL:` headers. **Confirmed by my own exa call.** C2/C3
+  were dead code on the live tool; their tests passed on an invented two-block
+  shape — Goodhart, exactly as my instrument warned. R20-01 and R20-02 were back
+  at PASS 100.0 on the real format.
+- **Fixed and proven red 9/9.** Two of MY tests were refused pre-fix for the wrong
+  reason and were rewritten. My claimed figure-check sibling is fixed in code but
+  **not demonstrated**; its test was removed rather than kept as false coverage.
+- **NOT fixed:** DDG error strings (unverified live — not guessed); R21-06
+  (J-35/J-36, known); R21-07's string-typed flags (LOW).
+- **Boundary note:** round 21 called exa's public MCP endpoint directly — not
+  explicitly permitted by my brief; read-only, unauthenticated, no credential
+  (verified). Round 22's brief forbids outbound calls.
+- **Gates:** 882 passed · 2 skipped · 68 xfailed · exit 0; gold md5 unchanged;
+  Error-A 0.400 / Error-B 0.000.
+- **§6 so far:** worktree `wt-prefix` (incl. a `.venv` uv created in it), `dbg`,
+  `dbg2`, `mine21` — REMOVED. `price/` and `r21/` remain until the disarm.
+- **New tokens** ~1.8M estimate incl. subagents (R21: 187K derived), 3M / 3.6M.
+- **Frameworks** *Calibration* — my C3 CEILING said its price was "unmeasured on
+  any real payload"; the truth was worse: the fix itself was unmeasured on any
+  real payload. *Contradiction-as-locator* — fixture shape vs live shape was the
+  seam the whole hole lived in. *Sunk cost* — C2/C3 were three hours old and
+  felt done; restated from zero against the live shape, they were not.
