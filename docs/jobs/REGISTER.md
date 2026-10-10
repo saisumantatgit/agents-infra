@@ -906,3 +906,37 @@ since nothing here measures whether a reader takes PASS as *traceable* or as
 | **R2-S2** | **`load_store` did not honour its own "raise with the offending line" convention at the PARSE.** `_validate_record` and the duplicate check both carry `lineno`; `json.loads` did not, so a corrupt line in a 300-line store reported json's `line 1 column 1` — which counts **within the fragment** and sends the reader to the wrong line of the file. Now `line 2 of the evidence store`. **The message was always wrong; it only became misleading once a user could read it.** | Claude — **done** |
 | **R4-Q1** | **Does anyone actually install from `main`?** This is the one fact that flips the merge recommendation. If every real user arrives via `agent-assure-calibration-run` or a local path, `main` is decorative, the inversion in the dossier collapses, and PR #10 can wait for a human read of the 44 docs. **It is a fact about distribution, not about this repo, and no amount of searching here can answer it.** | **Sai** |
 | **R4** | **PR #10 → `main` is OPEN and must not be merged on my say-so.** 279 commits, 275 files, +50,511/−422, **zero deletions**, gold labels **added not modified** (so no gold-label change is in it). Revert is one `git revert -m 1`, clean precisely because nothing is deleted. **PR #11 → `agent-assure-calibration-run`** carries the same branch as a small reviewable diff. | **Sai** — the click |
+
+## ROUND 20 — the capture layer's first adversary, and what survived reproduction
+
+The adversary's report is testimony. **These verdicts are my own reproductions,
+with my own fixtures.**
+
+| Job | What | Owner |
+|---|---|---|
+| **R20-01** | **CRITICAL, CONFIRMED BY ME. The capture layer manufactures verbatim text.** `_coerce_text_value` joins MCP content blocks with `"\n"`; `_tokenize` is `re.findall(r"\w+")`, so the seam is invisible and a contiguous span can **straddle two DIFFERENT fetched documents** and satisfy T1 — the moat's one remaining deterministic tier. My fixture: a claim present in **neither** document → `PASS 100.0 GROUNDED exit 0`, and **also** `PASS 100.0` under `--session-id`, printing "retrieved this session" over a sentence no source contains. **`ground_check.py` is not wrong** — it faithfully reports a span of the text it was handed. The document boundary is **discarded at ingestion**, so no loader validation can ever recover it. | **Sai** (Escalation #4 — capture contract) · a fail-closed gate-side guard may also exist and is mine to propose |
+| **R20-02** | **CRITICAL, CONFIRMED BY ME. N documents collapse into one record with one URL.** `_url_from_input` takes `urls[0]` from a multi-URL exa fetch, so every document in the batch is attributed to the first URL — **agent-ordered**. My fixture: the claim lives only in the second document (an anonymous blog); the gate returns `PASS 100.0` and the record's only `url` is `https://www.who.int/emergencies`. **An attacker chooses the order, and therefore chooses the attribution.** | **Sai** (Escalation #4) |
+| **R20-03** | **DOWNGRADED CRITICAL → OPEN-UNCONFIRMED. Did not reproduce as written.** The mechanism is real — `_file_path_from_input` reads only `tool_input` and never the authoritative `tool_response["file"]["filePath"]`, and `or None` maps `""` to `None` — but my construction (`url=None` AND `file_path=None`) was **REFUSED**: `FAIL 0.0 UNGROUNDABLE exit 1`. The live store also shows real `Read` records carry a true `file_path`, so the triggering shape was not observed in the field. **Not closed**: the dead-code observation stands (`if source.file_path:` at `ground_check.py:4155` gates both `_self_source_ids` origin tests). Needs a construction that actually reaches PASS before it is called CRITICAL. | Claude |
+| **R20-04** | **HIGH, not yet reproduced by me.** No capture path reads `isError` or WebFetch's `code`, so a 403/404 failure body is stored as `verbatim` content of the URL — and the absence rule then reports "2 distinct search queries and the text of 2 retrieved sources" for two retrievals that returned nothing. | Claude to reproduce, then owner |
+| **R20-05 / R20-06** | HIGH / MEDIUM, not yet reproduced by me. The overflow branch records a local file's text as verbatim content of a URL; and an empty/whitespace response is admitted as a verbatim source while an empty block LIST is refused — **the same emptiness fail-closed through one door and fail-open through the other**. | Claude to reproduce, then owner |
+| **R20-CLEAN** | Examined and found sound: the `fcntl` lock held under 12 concurrent hooks (12 ids, 0 duplicates), and NFKC digest handling is fail-closed. Recorded so a later session does not re-spend the hours. | — |
+
+### THE USAGE INSTRUMENT ARRIVED, AND IT CORRECTED A SHIPPED CLAIM
+
+Sai ran a live interactive probe (`8c17b88b`, `~/tmp/assure-probe`), producing a
+real four-record store. Checked against it:
+
+- **`session_id` IS written** on every record. **`CLAUDE.md`'s Gotchas said it
+  never is.** The register row was narrowed on 2026-10-03 and that surface was
+  not — **the J-37 stale-row class, repeating on a claim surface.** Corrected
+  today in the same commit as this row.
+- **`fetched_at` is the `1970-01-01T00:00:00Z` sentinel on all four** — J-38's
+  remaining half, confirmed in the field rather than from the code.
+- **`query_provenance` is a file path or a URL on every record, never a search
+  query — J-36 CONFIRMED IN THE FIELD.** The absence rule's "two distinct search
+  queries" are, live, two strings the drafting agent chose.
+- A `Write` produced no record; only the read-back. Intended design, confirmed.
+
+**Why this matters more than any single finding:** for one afternoon the project
+had both instruments at once — an adversary and a real session — and they
+disagreed about R20-03 in a way only the real session could settle.
