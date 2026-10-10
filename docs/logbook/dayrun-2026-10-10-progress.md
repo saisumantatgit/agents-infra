@@ -161,3 +161,29 @@ says WAIT for AGREED.**
   recommendation rests on reversibility, not on the work's merits;
   *Contradiction-as-locator* — "main is the safe side" vs "main is nineteen
   rounds old" could not both be true, and the disputed line was one command away.
+
+## Cycle 6 — R5 reported · COMPACTION, not a close · cron still armed
+
+- **UTC** 2026-10-10 ~10:0x · **Diff** 1.5 open (R5 verification, R6), **4 BUILT**
+- **R20: 3 CRITICAL, 2 HIGH, 1 MEDIUM, 3 speculative.** None overlaps
+  J-35/J-36/J-38. Report committed.
+- **R20-01 REPRODUCED BY ME** with my own fixture, not the adversary's: a claim
+  present in **neither** fetched document certifies **PASS 100.0**, and also
+  **PASS 100.0 under `--session-id`** with the "retrieved this session" line
+  printed over it. `_coerce_text_value` joins MCP blocks with `"\n"` and
+  `_tokenize` is `re.findall(r"\w+")`, so the seam is invisible to T1.
+- **R20-02 and R20-03 are NOT yet reproduced by me** and are recorded as
+  testimony, not fact, in both the logbook and the handoff. The next session
+  reproduces them first.
+- **The adversary logged its own protocol deviation unprompted** (one read-only
+  `git status` against instruction). Recorded rather than dropped.
+- **Nothing disarmed, §6 not run.** Clone and `userrepo` already REMOVED;
+  four scratch paths remain and are named in the handoff.
+- **New tokens** ~1.9M cumulative incl. the subagent's 151K, 3M / 5M ceiling.
+- **Frameworks** *Competence boundary* — I named "auditing the layer where the
+  measurement lives rather than where the work lives" as my failure mode at
+  13:40 and aimed the day's adversary at exactly that layer; *FMEA
+  detectability* — the capture layer is the least detectable place in the
+  system because the lie becomes evidence before any check runs; *Calibration* —
+  the subagent's three CRITICALs are testimony until reproduced, and one of
+  three now is.
