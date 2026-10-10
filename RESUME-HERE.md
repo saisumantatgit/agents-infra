@@ -1,9 +1,15 @@
-# RESUME HERE — written 2026-10-10, mid-run, for a compaction. THE RUN CONTINUES.
+# RESUME HERE — 2026-10-10. THE DAY RUN IS OVER: DISARMED AT DIFF ZERO, ALL SIX ROWS BUILT.
 
 # THE CAPTURE LAYER CERTIFIES FABRICATIONS. THAT IS TODAY'S HEADLINE, NOT THE MERGE.
 
-**Cron `5888aa27` is STILL ARMED** (`11,41 14-21 * * *`, hard stop 22:00 IST).
-Nothing is disarmed; §6 disk hygiene has not run. This is a compaction, not a close.
+**Cron `5888aa27` DELETED; `CronList` shows no jobs.** §6 disk hygiene ran
+first; the scratchpad is empty. End-of-day report: foot of
+`docs/logbook/dayrun-2026-10-10-progress.md`.
+
+**FOUR capture-layer CRITICALs confirmed by my own reproductions** — R20-01,
+R20-02, and R20-04 + R20-06 (one class: the absence rule counts stored records,
+not successful reads). All Escalation #4, all Sai's. **These, not the merge, are
+now the real gate before an external tester.**
 
 | | |
 |---|---|
@@ -31,7 +37,13 @@ span of the text it was handed. The lie is written into the store before the
 gate runs, and **the document boundary is discarded at ingestion, so no loader
 validation can ever recover it.**
 
-## DO THIS FIRST, IN THIS ORDER
+## DONE SINCE THE COMPACTION NOTE BELOW — do NOT redo
+
+R20-02 confirmed; R20-03 NOT reproduced (refused FAIL 0.0); R20-04 and R20-06
+UPGRADED to CRITICAL (both reach PASS 100.0); R20-05 trigger unobserved live.
+CR-012 complete. The section below is kept for the trail.
+
+## (superseded) DO THIS FIRST, IN THIS ORDER
 
 1. **Reproduce R20-02 and R20-03 YOURSELF.** They are the adversary's testimony
    and are NOT yet confirmed. Report: `Agent-Assure/reports/RED-TEAM-R20-2026-10-10.md`.

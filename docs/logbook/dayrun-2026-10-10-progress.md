@@ -245,3 +245,126 @@ says WAIT for AGREED.**
   testimony errs in BOTH directions and only reproduction sets severity;
   *Asymmetry of error cost* — an absence certified on zero reads is the purest
   Error-B the product can emit, because the reader has no claim text to check.
+
+---
+
+# END-OF-DAY REPORT — 2026-10-10 · disarmed at DIFF ZERO, before the 22:00 hard stop
+
+## 1. DONE — each with the command that proves it
+
+| Row | Proof command | Output |
+|---|---|---|
+| R1 | `cd Agent-Assure && uv run python -m calibration.measure_rates` | `Error-A 10/25 = 0.400` · `Error-B 0/27 = 0.000` |
+| R2 / J-50 | `uv run python scripts/ground_check.py --draft demo/draft-grounded.md --store demo/evidence-store.jsonl --session-id ""` | `REFUSED: --session-id was given but is empty…` exit 1, no traceback |
+| R3 | report `Agent-Assure/reports/ALPHA-5-2026-10-10.md` | clean clone, `install.sh` exit 0, fabricated demo `FAIL 50.0` |
+| R4 | `gh pr view 10` · dossier `docs/decisions/MERGE-TO-MAIN-DOSSIER-2026-10-10.md` | PR #10 open, not merged |
+| R5 | report `Agent-Assure/reports/RED-TEAM-R20-2026-10-10.md` | 4 CRITICAL reproduced by me |
+| R6 | `Agent-Assure/calibration/CR-012-day-run-2026-10-10.md` | 54 lines, inside the 80-line ceiling |
+| Suite | `cd Agent-Assure && uv run pytest -q` | **861 passed · 2 skipped · 68 xfailed · exit 0** |
+| Gold | `md5 -q Agent-Assure/calibration/labels-v2.csv` | `6215b526d03147295b003d7ccb0d171f` |
+
+## 2. NOT DONE
+
+Nothing in the committed set. **Not attempted, by design:** any fix to the four
+capture-layer CRITICALs — they are Escalation #4.
+
+## 3. DENIED
+
+**Nothing was denied today.** One self-inflicted block: a PreToolUse hook
+refused a heredoc because my own *document text* quoted a git command it
+guards. Reworded; nothing routed elsewhere.
+
+## 4. ONE-WAY DOORS QUEUED — Sai's
+
+1. **Merge PR #10 → `main`.** `gh pr merge 10 --merge --repo saisumantatgit/agents-infra`.
+   Undo: `git revert -m 1 <merge-sha> && git push origin main`. Recommended:
+   merge — `main` ships the engine that certifies a self-citing fabrication at
+   100.0. **It does not fix the four capture CRITICALs, which exist on both sides.**
+2. **PR #11 → integration branch** — today's work as a small reviewable diff.
+3. **A-5-01** — two lines in `install.sh` (Escalation #4).
+4. **The capture contract** — R20-01, R20-02, R20-04/06 plus J-35, J-36, J-38.
+   **This, not the merge, is now the real gate before an external tester.**
+
+## 5. UNKNOWNS
+
+- **R4-Q1, owner Sai:** does anyone actually install from `main`? Flips the merge
+  recommendation.
+- **R20-03:** whether ANY construction reaches PASS. Mine was refused. Owner Claude.
+- **R20-05:** whether any live tool emits the `{"preview","file_path"}` overflow
+  shape. Not seen in Sai's real store. Owner Claude.
+- **Whether a reader takes PASS to mean "traceable" or "supported".** Owner Sai —
+  see §8 below.
+
+## 6. BUDGET — measure named
+
+**Subagent, derived from its completion record: 151,192 tokens, 31 tool calls,
+~10 min** (Opus, round 20). **Main loop: UNKNOWN exactly** — this session has no
+trace-derived read path for its own usage, so the running ~2.5M figure in this
+file is an ESTIMATE, not a measurement. Under the 3M sanctioned and the 5M ceiling
+on any reading.
+
+## 7. WITHDRAWALS — what I said and took back
+
+- **"Going quiet now"** at 13:45 with R1 ready to start. Sai called it; a tick is
+  a heartbeat, not a start gun. R1 shipped 40 minutes later.
+- **"Delete `~/tmp/assure-probe`"** — reversed: it holds the only real
+  hook-written store in the project.
+- **R20-03 as CRITICAL** — withdrawn after my own fixture was refused FAIL 0.0.
+- **R20-04 and R20-06 as HIGH / MEDIUM** — withdrawn upward; both reach PASS 100.0.
+- **"Main is the safe side"** — the framing I started R4 with, withdrawn by its
+  own first measurement.
+- **Two 7-step closes run from memory instead of the `/sg` skill** — they skipped
+  the session-summary file. Rerun through the skill; the file now exists.
+
+## 8. FRAMEWORKS applied to the day's consequential decisions
+
+*Inversion* — asking what happens if we DON'T merge reversed R4. *Competence
+boundary* — named at 13:40, and the day's adversary was aimed at exactly that
+layer. *Calibration* — every subagent finding treated as testimony; reproduction
+moved three of six severities. *FMEA detectability* — naming the sibling turned
+one J-50 fix into three. *Contradiction-as-locator* — adversary and my run
+disagreed on R20-03, and the live store settled it. *Reachability* — the clone,
+not my tree, was the instrument. *Via negativa* — the J-50 guard ends before the
+verdict path.
+
+## §8 OF THE INSTRUMENT — SAI'S STANDING REMINDER: THE 5-USER COMPREHENSION TEST
+
+**Still relevant — more so after today.** D-83 approved the release on the
+strength of the disclosure, and the disclosure rests on one untested assumption:
+that a reader takes `PASS` to mean *traceable* and not *supported*. Today's
+findings sharpen it — four ways to reach PASS 100.0 on text no document holds
+make it matter more what a reader believes PASS promises.
+
+**Who the five are:** people who would plausibly READ a verification report on
+an AI draft — not buyers, not people evaluating the tool. A buyer answers "would
+I pay"; a user answers "what did I just read", and the assumption is about reading.
+
+**What to ask each for:** ten minutes, cold, no preparation, no explanation of the
+tool first. Then run `docs/research/user-test-2026-10-03/PROTOCOL.md` with
+`SHOW-THIS.html`: don't say "traceable", "supported", "grounded" or "verified"
+before they do; ask Q1 before they can scroll; write wrong answers down
+verbatim; run all five before concluding — 2-of-5 and 4-of-5 are different
+decisions.
+
+---
+
+## DISK — §6, run BEFORE the disarm
+
+- **REMOVED by §6, before the disarm:** `prefix_ground_check.py` (220K), `r20/`
+  (232K), `mainprobe/` (68K), `mine20/`, `mine20b/`, `mine20c/`, `mine20d/`.
+  Scratchpad is empty. Earlier today: `alpha5-clone` (16 MB incl. venv) and
+  `userrepo` — REMOVED at R3. `git worktree prune` run; only the main checkout
+  remains. **Nothing over ~20 MB was generated at any point.**
+- **KEPT, deliberately, and Sai's to remove:** `~/tmp/assure-probe` — the only
+  real hook-written store in the project; R20-03 and R20-05 should be checked
+  against it before it goes.
+- **Pre-existing, NOT mine, untouched, for Sai:** `graphify-out/` (5.9 MB,
+  untracked) and `inbox/pending/P2_2026-09-03_from-hq_fyi_three-ci-and-merge-findings-ins-159-160-161.md`
+  (unread since 2026-09-03).
+
+## DISARMED
+
+- **Cron `5888aa27` deleted. `CronList`: "No scheduled jobs."** — verified after
+  the delete, not assumed.
+- **Trigger: DIFF ZERO** — all six committed rows built. The 22:00 hard stop was
+  not reached.
