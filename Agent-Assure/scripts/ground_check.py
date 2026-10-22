@@ -3403,7 +3403,14 @@ def _carries_retrieved_content(source: RetrievedSource) -> bool:
 
     Pure function.
     """
-    return source.retrieval_status == "ok" and bool(_re.search(r"\w", source.text))
+    # J-42 (2026-10-22): a SUMMARY is a real search for the DENOMINATOR but not
+    # for the COUNT. The first ground() call keeps every record (denominator
+    # intact); this predicate feeds only the second, so a summary leaves the
+    # count and stays in the blanket-word gate — the repair J-42's own tripwire
+    # prescribed, made possible by the two-call conjunction (R20-04).
+    return (source.retrieval_status == "ok"
+            and source.full_text_source == "verbatim"
+            and bool(_re.search(r"\w", source.text)))
 
 
 def _session_queries(
@@ -4004,7 +4011,10 @@ def evidence_basis(
         # is what the AST guard in tests/test_display_matches_verdict.py exists
         # to prevent.
         queries = _session_queries(store, self_source_ids)
-        n_src = sum(1 for s in store.values() if s.text)
+        # REVIEW-PR12 MEDIUM: count only fetches that returned content; a failed
+        # fetch is named separately below, never counted as a retrieved source.
+        n_src = sum(1 for s in store.values()
+                    if s.text and s.retrieval_status != "failed")
         if not queries:
             # J-56, the SIBLING: the same overclaim as the citation branch
             # above. Without --session-id the gate cannot say "this session";

@@ -67,16 +67,10 @@ def test_store_of_only_summaries_cannot_certify_an_absence(tmp_path):
     assert rep["per_claim"][0]["verdict"] == "UNVERIFIED_ABSENCE"
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "J-42 OPEN. This briefly PASSED on 2026-10-01 and the fix was WITHDRAWN "
-    "the same night: restricting the query list to verbatim records shrank a "
-    "list that is ALSO the denominator of the blanket-corpus-word refusal "
-    "(len(distinct) >= 3), which switched that refusal OFF and certified "
-    "absences the all-verbatim store refused. Trading this narrow hole for "
-    "that one was a net Error-B, so the restriction was reverted. The correct "
-    "repair passes the FULL query list for the denominator and a "
-    "verbatim-only set for the matching, which needs check_absence's "
-    "signature to change."))
+# J-42 CLOSED 2026-10-22 — by REPAIR, not demotion: _carries_retrieved_content
+# now requires full_text_source == "verbatim", and it feeds only the SECOND
+# ground() absence call, so a summary leaves the COUNT and stays in the
+# blanket-word DENOMINATOR — the repair this tripwire prescribed.
 def test_summaries_cannot_supply_the_distinct_searches(tmp_path):
     """SIBLING: one verbatim source exists, so the basis check passes, but the
     SECOND distinct search comes only from a summary. It must not count."""
