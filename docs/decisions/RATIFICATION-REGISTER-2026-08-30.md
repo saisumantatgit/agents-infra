@@ -1786,3 +1786,14 @@ mine** — named for Sai, not touched.
 | **UNDO** | `CronDelete` the job id in `docs/logbook/overnight-2026-10-10-progress.md` cycle 1; close the PR unmerged; `git push origin --delete capture-contract-2026-10-10`. Every commit lands on that branch alone. |
 | **Frameworks** | *Reversibility* — the authority question is made safe by keeping every change a two-way door until Sai's click. *Asymmetry of error cost* — fail-closed changes cannot manufacture the unrecoverable error, which is what makes acting on the broader reading defensible. |
 | **Budget risk, stated** | Sai did not `/compact` before AGREED. This session is long, and late-session steps have cost ~2× early ones here. The 2.1M estimate may run high; at 80% of the 3.6M ceiling the run stops STARTING work. |
+
+---
+
+## D-95 — overnight 2026-10-22 armed under Sai's "AGREED and a budget"
+
+| | |
+|---|---|
+| **Decided** | Run T1–T6 of `docs/planning/OVERNIGHT-2026-10-22.md` autonomously to the **06:30 IST** hard stop. |
+| **The reading taken** | Sai replied "AGREED and a budget" with no figure. Read as the **2.5M** proposed in the plan he was answering, ceiling **3.0M**. Hard stop and tick were not stated by him; chosen: 06:30, 30 min. |
+| **Authority** | As D-94: fail-closed changes, PRs only, never merged. J-97 is BUILT on its own branch and NOT landed — the ruling stays Sai's. |
+| **UNDO** | `CronDelete` the id in the progress file; close any PR opened tonight; delete branch `j97-absence-advisory`; `git revert` tonight's commits on `capture-contract-2026-10-10` (all of them after `a660c48` + the report commit). |
