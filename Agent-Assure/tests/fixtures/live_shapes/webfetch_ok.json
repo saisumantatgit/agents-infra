@@ -1,0 +1,24 @@
+{
+  "_provenance": "LIVE 2026-10-10: field shape of Sai's probe session 8c17b88b WebFetch record (result text replaced).",
+  "tool_name": "WebFetch",
+  "tool_input": {
+    "url": "https://example.com"
+  },
+  "tool_response": {
+    "bytes": 577,
+    "code": 200,
+    "codeText": "OK",
+    "result": "A short summary of the page.",
+    "durationMs": 120,
+    "url": "https://example.com"
+  },
+  "expect": {
+    "records": 1,
+    "statuses": [
+      "ok"
+    ],
+    "urls": [
+      "https://example.com"
+    ]
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "_provenance": "LIVE 2026-10-10: exa server response for an unreachable URL (round 21 raw capture exa_raw_2); server also set isError:true, which the list envelope cannot carry.",
+  "tool_name": "mcp__exa__web_fetch_exa",
+  "tool_input": {
+    "urls": [
+      "https://www.ecb.europa.eu/press/zentara-bank-doesnotexist-r21.html"
+    ]
+  },
+  "tool_response": [
+    {
+      "type": "text",
+      "text": "Error fetching URL(s): https://www.ecb.europa.eu/press/zentara-bank-doesnotexist-r21.html: CRAWL_NOT_FOUND"
+    }
+  ],
+  "expect": {
+    "records": 1,
+    "statuses": [
+      "failed"
+    ],
+    "urls": [
+      "https://www.ecb.europa.eu/press/zentara-bank-doesnotexist-r21.html"
+    ]
+  }
+}

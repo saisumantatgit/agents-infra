@@ -1,0 +1,26 @@
+{
+  "_provenance": "LIVE 2026-10-10: field shape of Sai's probe session 8c17b88b (text replaced; path kept generic).",
+  "tool_name": "Read",
+  "tool_input": {
+    "file_path": "/tmp/notes.md"
+  },
+  "tool_response": {
+    "type": "text",
+    "file": {
+      "filePath": "/tmp/notes.md",
+      "content": "Two sentences of ordinary file text. Nothing more.",
+      "numLines": 1,
+      "startLine": 1,
+      "totalLines": 1
+    }
+  },
+  "expect": {
+    "records": 1,
+    "statuses": [
+      "ok"
+    ],
+    "urls": [
+      null
+    ]
+  }
+}
