@@ -297,8 +297,14 @@ def _retrieval_status(tool_name: str, tool_response: object, text: str) -> str:
             if isinstance(code, int) and not 200 <= code < 300:
                 return "failed"
     if tool_name in _EXA_TOOLS:
+        # R24-01 (round 24, a regression I introduced in ca466a4): the status is
+        # decided ONCE from the WHOLE response, whatever its envelope. A plain
+        # string or a dict "text" used to fall back to the per-page text, so an
+        # inline partial failure after the last page marked only that page and
+        # left the earlier pages "ok" under the failed URL's search label.
         whole = _block_list(tool_response)
-        haystack = "\n".join(whole) if whole is not None else text
+        haystack = ("\n".join(whole) if whole is not None
+                    else reconstruct_text(tool_response)[0])
         if _EXA_ERROR_LINE_RE.search(haystack) or _EXA_ERROR_LINE_RE.search(text):
             return "failed"
     if not _ANY_WORD_RE.search(unicodedata.normalize("NFKC", text)):

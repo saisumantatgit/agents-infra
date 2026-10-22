@@ -19,6 +19,7 @@ blank was filtered down to "one URL" and credited).
 from __future__ import annotations
 
 import json
+import pytest
 import os
 import subprocess
 import sys
@@ -277,3 +278,17 @@ def test_REVIEW_a_dict_with_a_STRING_text_exa_response_is_split(tmp_path):
     store = tmp_path / "store.jsonl"
     _exa_shape(store, {"text": _TWO})
     assert len(_records(store)) == 2
+
+
+@pytest.mark.parametrize("envelope", ["plain", "dict_text"])
+def test_R24_01_an_inline_partial_failure_fails_EVERY_page_in_any_envelope(tmp_path, envelope):
+    """Round 24: a regression from ca466a4 — outside the block-list envelope the
+    error line was checked page by page, so only the LAST page was marked
+    failed. The status is now decided once, from the whole response."""
+    text = ("# Page A\nURL: https://a.example\n\nalpha bravo charlie delta\n\n"
+            "# Page B\nURL: https://b.example\n\necho foxtrot golf hotel\n\n"
+            "Error fetching https://a.example: CRAWL_NOT_FOUND")
+    response = text if envelope == "plain" else {"text": text}
+    store = tmp_path / "store.jsonl"
+    _exa_shape(store, response)
+    assert {r["retrieval_status"] for r in _records(store)} == {"failed"}
