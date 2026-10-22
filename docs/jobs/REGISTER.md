@@ -991,3 +991,18 @@ right investment instead.
 | `isError` reaching the hook for an MCP failure | **UNKNOWN** — one live hook capture of a failing exa call settles it | Sai (a live session) |
 | J-97 absence advisory | priced, awaiting a one-word ruling | **Sai** |
 | J-35 / J-36 / J-38 | unchanged | **Sai** (Escalation #4) |
+
+## OVERNIGHT 2026-10-22 — PR #12 hardened, J-97 built; what is open and whose
+
+| Job | State | Owner |
+|---|---|---|
+| R23-01 failed fetch grounding via echoed URL | **FIXED** `ca466a4`, proven red | — |
+| Review HIGH: exa text joined outside block lists | **FIXED** `ca466a4` | — |
+| R24-01 my regression: per-page status | **FIXED** `b9b3007`, proven red; **unattacked** | Claude — round 25 first next session |
+| J-42 summaries as searches | **CLOSED by repair** `0c99c8a` | — |
+| J-97 absence advisory | **BUILT**, PR #13 stacked on #12; Error-A 0.400 → 0.440 | **Sai** — merge = advisory, close = keep |
+| Review MEDIUM: absence refused for no content-bearing full-text source, reason not shown | open | Claude |
+| R24 LOW: mixed failed+ok citation — report drops the failed one silently | open | Claude |
+| R21-07 LOW: string-typed `isError`/`code`; `text`-over-`content` | open | Claude |
+| DDG and Read records holding error text recorded "ok" | open, needs a live DDG failure capture | Claude + **Sai** (a live session) |
+| `isError` reaching the hook for a failing MCP call | UNKNOWN | **Sai** (a live session) |
