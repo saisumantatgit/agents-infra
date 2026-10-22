@@ -72,7 +72,9 @@ def test_store_of_only_summaries_cannot_certify_an_absence(tmp_path):
 # ground() absence call, so a summary leaves the COUNT and stays in the
 # blanket-word DENOMINATOR — the repair this tripwire prescribed.
 def test_summaries_cannot_supply_the_distinct_searches(tmp_path):
-    """SIBLING: one verbatim source exists, so the basis check passes, but the
+    """CLOSED BY REPAIR first (J-42, 2026-10-22: summaries leave the count, stay in the denominator), and additionally unreachable under J-97 / ADR-009, where no absence is certified.
+
+    SIBLING: one verbatim source exists, so the basis check passes, but the
     SECOND distinct search comes only from a summary. It must not count."""
     rep = _report(tmp_path, [_verb("SA1", T1, Q1), _summ("SA2", T2, Q2)])
     # J-80 (2026-10-03): asserts the VERDICT, not the gate. A `gate != "PASS"`
@@ -103,8 +105,10 @@ def test_a_summary_may_still_REFUSE_an_absence(tmp_path):
 def test_verbatim_control_still_certifies(tmp_path):
     """Without this the fix could be 'refuse every absence claim'."""
     rep = _report(tmp_path, [_verb("SA1", T1, Q1), _verb("SA2", T2, Q2)])
-    assert rep["gate"] == "PASS"
-    assert rep["per_claim"][0]["verdict"] == "ABSENCE_SUPPORTED"
+    # J-97: certification demoted; the control now rests on absence_diagnostic
+    assert rep["gate"] != "PASS"
+    assert rep["per_claim"][0]["verdict"] == "UNVERIFIED_ABSENCE"
+    assert rep["per_claim"][0]["absence_diagnostic"] == "searches_would_qualify"
 
 
 def test_empty_store_still_refuses(tmp_path):

@@ -160,10 +160,14 @@ def test_absence_delegates_and_supported():
               query_provenance="aspirin contraindications list")
     claim = _classified("There are no contraindications for this drug.")
     assert claim.kind == ClaimKind.ABSENCE
-    result = ground(claim, _store(s1, s2))
-    assert result == Verdict.ABSENCE_SUPPORTED, (
-        f"Expected ABSENCE_SUPPORTED via check_absence delegation, got {result}"
+    store = _store(s1, s2)
+    result = ground(claim, store)
+    # J-97: certification demoted; the control now rests on absence_diagnostic
+    assert result == Verdict.UNVERIFIED_ABSENCE, (
+        f"Expected demoted UNVERIFIED_ABSENCE, got {result}"
     )
+    # The delegation still happens: the full chain would have supported it.
+    assert g._absence_chain(claim, store, frozenset()) == Verdict.ABSENCE_SUPPORTED
 
 
 def test_absence_delegates_and_unverified():

@@ -251,7 +251,10 @@ def test_CONTROL_an_absence_with_REAL_sources_still_certifies(tmp_path):
                 query="safety recall evidence drone fleet audit"),
     ]
     report, _ = _gate(tmp_path, "draft.md", draft, rows)
-    assert report["per_claim"][0]["verdict"] == "ABSENCE_SUPPORTED", report
+    # J-97: certification demoted; the control now rests on absence_diagnostic
+    assert report["per_claim"][0]["verdict"] == "UNVERIFIED_ABSENCE", report
+    assert report["gate"] != "PASS"
+    assert report["per_claim"][0]["absence_diagnostic"] == "searches_would_qualify", report
 
 
 def test_a_FORGED_content_sha256_does_not_evade_the_identity_test():

@@ -56,7 +56,16 @@ def test_display_and_verdict_use_the_SAME_query_source():
     """THE GUARD. If these two ever consult different functions, the report can
     announce a query set the verdict never counted — which is exactly what round
     11-B found."""
-    verdict_sources = _query_sources_called(g.ground)
+    # J-97 (2026-10-22): the absence rule chain MOVED out of ground() into
+    # _absence_chain, unchanged. The guard follows the rule, and a new
+    # assertion pins that ground() still delegates to it — so this is stronger
+    # than before, not a retarget that lets the verdict wander off.
+    import ast, inspect, textwrap
+    ground_tree = ast.parse(textwrap.dedent(inspect.getsource(g.ground)))
+    assert "_absence_chain" in {n.id for n in ast.walk(ground_tree)
+                                if isinstance(n, ast.Name)}, (
+        "ground() no longer delegates absence to _absence_chain")
+    verdict_sources = _query_sources_called(g._absence_chain)
     display_sources = _query_sources_called(g.evidence_basis)
     assert verdict_sources, "ground() consults no query source — rule has moved"
     assert display_sources, "evidence_basis consults no query source"
@@ -101,7 +110,10 @@ def test_an_absence_pass_reports_the_query_count_it_actually_used(tmp_path):
     claim = "We found no evidence of a safety recall affecting the X200 drone.\n"
     rep = g.score_report([g.classify(c) for c in g.decompose(claim)], store)
 
-    assert rep["gate"] == "PASS"
+    # J-97: certification demoted; the control now rests on absence_diagnostic
+    assert rep["gate"] != "PASS"
+    assert rep["per_claim"][0]["verdict"] == "UNVERIFIED_ABSENCE"
+    assert rep["per_claim"][0]["absence_diagnostic"] == "searches_would_qualify"
     basis = rep["per_claim"][0]["evidence_basis"]
     actual = len(g._session_queries(store, frozenset()))
     assert str(actual) in basis, (
