@@ -3794,9 +3794,16 @@ def ground(
     # same breath as the summary rule because it is the same shape — present in
     # the store, incapable of grounding. A claim citing the draft AND a real
     # source still grounds on the real one.
+    # R23-01 (round 23, 2026-10-22): a FAILED fetch cannot ground anything. Its
+    # text is an error message that repeats the requested URL, and a URL slug
+    # is chosen by the agent: fetching ".../zentara-bank-was-sanctioned-by-the-
+    # ecb-for-serious-aml-failures.html" and letting it fail certified that
+    # sentence at PASS 100.0. Only an explicit "failed" is excluded: a record
+    # with NO status (any store before 2026-10-10) grounds exactly as before.
     verbatim = [
         s for s in sources
         if s.full_text_source == "verbatim" and s.source_id not in self_source_ids
+        and s.retrieval_status != "failed"
     ]
     if not verbatim:
         return Verdict.UNGROUNDABLE
@@ -4095,6 +4102,18 @@ def evidence_basis(
                 f"no full text (snippet only), so there is no text to match "
                 f"the claim against.")
 
+    # R23-01's display half: a FAILED fetch is excluded from grounding, so the
+    # report must say so — "checked against S1" over an error message would
+    # send the reader to reword a claim whose real problem is that the fetch
+    # never returned the page (D-35: a display that omits the deciding fact).
+    failed = [s.source_id for s in sources if s.retrieval_status == "failed"]
+    if failed and all(s.retrieval_status == "failed" for s in sources):
+        return (f"{', '.join(failed)} "
+                f"{_plural(len(failed), 'is', 'are')} cited, but the fetch "
+                f"FAILED or came back blank — the stored text is the tool's "
+                f"error message, not the page. A failed fetch never grounds a "
+                f"claim: fetch the page successfully and cite that.")
+    sources = [s for s in sources if s.retrieval_status != "failed"]
     summaries = [s.source_id for s in sources
                  if s.full_text_source != "verbatim"]
     verbatim = [s for s in sources if s.full_text_source == "verbatim"]

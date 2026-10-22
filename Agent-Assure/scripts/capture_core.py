@@ -336,7 +336,10 @@ def make_record(
     # R20-01: a single record for a multi-document response would glue the
     # documents together, so a verbatim span could cross between them. Refuse
     # loudly; `make_records` is the path that keeps them apart.
-    if _documents(tool_name, tool_response) is not None:
+    if _documents(tool_name, tool_response) is not None or (
+            tool_name in _EXA_TOOLS
+            and len([p for p in _EXA_SECTION_LOOSE_RE.split(
+                reconstruct_text(tool_response)[0]) if p]) >= 2):
         raise ValueError(
             "make_record received a response holding several content blocks. "
             "One record would join them, letting a verbatim span cross from one "
@@ -395,7 +398,6 @@ _EXA_TOOLS: frozenset[str] = frozenset({"mcp__exa__web_fetch_exa", "web_fetch_ex
 # text block holding every page, each introduced by a `# <title>` line followed
 # by a `URL: <url>` line. The lookahead splits BEFORE each such header and keeps
 # the header with its own section.
-_EXA_SECTION_RE = re.compile(r"(?m)^(?=# [^\n]*\nURL: \S)")
 
 # R22-02 (round 22, 2026-10-10): header VARIANTS — "#"/"##" with or without a
 # title, leading whitespace, a blank line before "URL:", "URL:" with no space.
@@ -423,7 +425,6 @@ _EXA_ERROR_LINE_RE = re.compile(r"(?mi)^[\s\ufeff\u200b]*error fetching\b")
 # missing phrase leaves a failure counted as a search — today's behaviour — and
 # can never certify anything (D-69: refusal lists are safe to get wrong; lists
 # that LICENSE an acceptance are not).
-_EXA_ERROR_PREFIX = "Error fetching URL(s):"
 
 
 def _block_list(tool_response: object) -> list[str] | None:
@@ -546,6 +547,16 @@ def make_records(
     if tool_name not in _RETRIEVAL_TOOLS:
         return []
     documents = _documents(tool_name, tool_response)
+    captured_via = "inline"
+    if documents is None and tool_name in _EXA_TOOLS:
+        # REVIEW-PR12 HIGH (2026-10-22): exa text that does NOT arrive as a
+        # block list — a plain string, a dict whose "text" is a string, or an
+        # overflow file — skipped the split, so two pages stayed one record
+        # and R20-01's cross-page span still certified. Split whatever text
+        # capture actually extracted, whatever its envelope.
+        text, captured_via = reconstruct_text(tool_response)
+        pieces = [part for part in _EXA_SECTION_LOOSE_RE.split(text) if part]
+        documents = pieces if len(pieces) >= 2 else None
     if documents is None:
         record = make_record(tool_name, tool_input, tool_response, source_id,
                              query_provenance, fetched_at, session_id)
@@ -564,7 +575,7 @@ def make_records(
             content_sha256=_sha256_nfkc(text),
             text=text,
             full_text_source=full_text_source,
-            captured_via="inline",
+            captured_via=captured_via,
             query_provenance=query_provenance,
             retrieval_status=_retrieval_status(tool_name, tool_response, text),
         )

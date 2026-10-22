@@ -239,3 +239,41 @@ def test_R22_02_a_header_VARIANT_still_splits_pages(tmp_path):
             "##\nURL:https://b.example\ndelta echo foxtrot")
     _capture(store, _exa(["https://a.example", "https://b.example"], text))
     assert len(_records(store)) == 2
+
+
+_SLUG = ("https://www.ecb.europa.eu/press/"
+         "zentara-bank-was-sanctioned-by-the-ecb-for-serious-aml-failures.html")
+
+
+def test_R23_01_a_FAILED_fetch_cannot_ground_a_claim_from_its_echoed_URL(tmp_path):
+    """Round 23: exa's error text repeats the requested URL, and the agent
+    chooses the URL. The failed record's text held the claim's words via the
+    slug and certified it at PASS 100.0 GROUNDED."""
+    store = tmp_path / "store.jsonl"
+    _capture(store, _exa([_SLUG], f"Error fetching URL(s): {_SLUG}: CRAWL_NOT_FOUND"))
+    report = _gate(tmp_path, store,
+                   "Zentara Bank was sanctioned by the ECB for serious AML failures [S1].\n")
+    assert report["gate"] != "PASS", report
+    assert "FAILED" in report["per_claim"][0]["evidence_basis"], report
+
+
+_TWO = ("# Page A\nURL: https://a.example\n\nThe central bank raised\n\n"
+        "# Page B\nURL: https://b.example\n\nrates to five percent this year.")
+
+
+def _exa_shape(store, response):
+    _capture(store, {"session_id": _SESSION, "tool_name": "mcp__exa__web_fetch_exa",
+                     "tool_input": {"urls": ["https://a.example", "https://b.example"]},
+                     "tool_response": response})
+
+
+def test_REVIEW_a_PLAIN_STRING_exa_response_is_split(tmp_path):
+    store = tmp_path / "store.jsonl"
+    _exa_shape(store, _TWO)
+    assert len(_records(store)) == 2
+
+
+def test_REVIEW_a_dict_with_a_STRING_text_exa_response_is_split(tmp_path):
+    store = tmp_path / "store.jsonl"
+    _exa_shape(store, {"text": _TWO})
+    assert len(_records(store)) == 2
