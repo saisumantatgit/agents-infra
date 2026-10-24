@@ -100,8 +100,6 @@ MINED_CLOSED = [
 MINED_OPEN = [
     pytest.param("The array rebuilds in place without downtime [S6].\n",
                  id="c3-zero-complementizer-complement-cyrillic-confusable"),
-    pytest.param("The proxy terminates TLS at the edge [S7].\n",
-                 id="c5-retraction-AFTER-the-span-never-inspected"),
 ]
 
 
@@ -235,3 +233,11 @@ def test_header_assertion_with_trailing_s_subject_is_scored(tmp_path: Path) -> N
 def test_cited_zero_content_span_stays_scored(tmp_path: Path) -> None:
     report = _gate(tmp_path, "It is not [S1].\n")
     assert _scored(report), "a cited span left the denominator entirely"
+
+
+def test_c5_retraction_after_the_span_does_not_ground(tmp_path: Path) -> None:
+    """c5, CLOSED by B1 (D-97, 2026-10-25): the retraction after the span
+    ("which is simply not the case") carries a negator the claim lacks, so the
+    negation-polarity guard refuses the unit. Was an XPASS above."""
+    draft = "The proxy terminates TLS at the edge [S7].\n"
+    assert _only_verdict(_gate(tmp_path, draft)) != "GROUNDED"

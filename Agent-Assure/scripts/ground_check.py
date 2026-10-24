@@ -934,9 +934,34 @@ _RELATIONAL_RE = _re.compile(
     _re.IGNORECASE,
 )
 
-# Absence triggers
+# Absence triggers (B1 / D-97, 2026-10-25). An ABSENCE claim asserts that
+# something does not EXIST, or was not FOUND, in some domain. A negated
+# predicate about a definite subject ("the regression was not reproduced",
+# "the merge deletes no files") is a FACTUAL claim and must reach T1, whose
+# negation guard (_negation_polarity_matches) keeps it from grounding against
+# an affirmative source. The old trigger (any "no " / "not ") refused 23 of 177
+# honest claims as UNVERIFIED_ABSENCE (tests/honest_drafts_v2/FINDINGS.md).
+# CEILING: a surface-pattern list of existential / finding shapes; an absence
+# phrased outside it ("nobody has ever seen X") classifies FACTUAL and is then
+# refused unless a source sentence states the same negation verbatim — so a miss
+# costs Error-A, not Error-B. Upgrade path: a parser-based quantifier reading.
 _ABSENCE_RE = _re.compile(
-    r"\b(?:no |not |does not exist|there is no|we found no)",
+    r"^\W*(?:no|none|nothing|nobody|neither)\b"
+    r"|\bthere\s+(?:is|are|was|were|exists?|existed|(?:has|have|had)\s+been)"
+    r"\s+(?:no|not\s+(?:a|an|any|one))\b"
+    r"|\b(?:does|do|did)\s+not\s+exist|\bnever\s+existed\b"
+    r"|\bno\s+(?:[\w-]+\s+){0,5}(?:exists?|existed)\b"
+    r"|\b(?:find|finds|found|finding|identified|identifies|located|observed"
+    r"|detected|uncovered|saw|see|sees)\s+(?:no|none|nothing)\b"
+    r"|\b(?:did|does|do|could|can)\s+not\s+(?:find|identify|locate|observe"
+    r"|detect|uncover|see)\b|\bfailed\s+to\s+(?:find|identify|locate)\b"
+    r"|\bno\s+(?:[\w-]+\s+){0,5}(?:(?:was|were|is|are|has|have|had)\s+"
+    r"(?:ever\s+)?(?:been\s+)?)?(?:found|reported|observed|documented"
+    r"|recorded|detected|identified)\b"
+    r"|\b(?:has|have|had|was|were|is|are)\s+(?:never|not)\s+(?:ever\s+)?"
+    r"(?:been\s+)?(?:found|reported|observed|documented|recorded|detected"
+    r"|identified)\b"
+    r"|\bno\s+(?:evidence|record|mention|trace|sign)\b",
     _re.IGNORECASE,
 )
 
@@ -1196,7 +1221,7 @@ def classify(claim: Claim) -> Claim:
         kind = ClaimKind.NON_CLAIM
     elif _RELATIONAL_RE.search(text):
         kind = ClaimKind.RELATIONAL
-    elif _ABSENCE_RE.search(text):
+    elif _ABSENCE_RE.search(_expand_negation_contractions(_CITATION_RE.sub("", text))):
         kind = ClaimKind.ABSENCE
     elif numeric_tokens:
         kind = ClaimKind.NUMERIC
@@ -1504,6 +1529,26 @@ def _claim_contained_verbatim(
             if (_span_is_hedged(source_tokens, start)
                     or _span_under_nonfactive_complement(source_tokens, start)):
                 continue
+            # B1: some sentence unit holding the span must negate exactly
+            # what the claim negates (a negator outside the span, beyond the
+            # hedge lookback, otherwise goes unseen).
+            if _contained_with_matching_polarity(claim_tokens, source.text):
+                return True
+    return False
+
+
+def _contained_with_matching_polarity(
+    claim_tokens: list[str], source_text: str
+) -> bool:
+    """True iff one sentence unit of *source_text* contains *claim_tokens*
+    contiguously and passes _negation_polarity_matches. Pure."""
+    width = len(claim_tokens)
+    for unit in _source_units(source_text):
+        toks = _tokenize(unit)
+        if not any(toks[i:i + width] == claim_tokens
+                   for i in range(len(toks) - width + 1)):
+            continue
+        if _negation_polarity_matches(claim_tokens, toks):
             return True
     return False
 
@@ -1680,6 +1725,47 @@ def t1_verbatim(
     return False
 
 
+def _negation_bigrams(tokens: list[str]) -> frozenset[tuple[str, str]]:
+    """Return every (negator, following token) pair in *tokens*.
+
+    The negator lexicon is _NEGATION_TOKENS — the one the factivity guard
+    already uses — so there is no second negation list. Contractions are
+    already expanded by _tokenize ("wasn't" -> "was not"). Pure.
+    """
+    return frozenset(
+        (tok, tokens[i + 1] if i + 1 < len(tokens) else "")
+        for i, tok in enumerate(tokens) if tok in _NEGATION_TOKENS
+    )
+
+
+def _negation_polarity_matches(
+    claim_tokens: list[str], unit_tokens: list[str]
+) -> bool:
+    """True iff the claim and the source unit negate exactly the same things.
+
+    B1 (D-97, 2026-10-25). "not"/"no"/"never" are stop words, so T1's coverage
+    could not tell "was not reproduced" from "was reproduced" (round 13:
+    "causes no X" grounded by "causes X"), and an AFFIRMATIVE claim grounded
+    against a source sentence that NEGATES it when the negator fell outside the
+    8-token anchored window — demonstrated PASS before this guard. The rule is
+    symmetric: every (negator, next word) pair of the claim must be in the unit
+    and every pair of the unit in the claim.
+    CEILING: a unit that negates something UNRELATED ("although X was not slow,
+    Y was attacked") refuses an honest affirmative claim about Y — fail-closed,
+    Error-A only. Upgrade path: clause/scope binding (parser), with J-70.
+    Pure.
+    """
+    return _negation_bigrams(claim_tokens) == _negation_bigrams(unit_tokens)
+
+
+def _source_units(source_text: str) -> list[str]:
+    """Sentence units used by the same-sentence and polarity rules. Pure."""
+    return [
+        unit for sentence in _split_sentences(source_text)
+        for unit in _re.split(r"\n+|;|[()]", sentence) if unit.strip()
+    ]
+
+
 def _anchor_sentence_covers(
     claim_tokens: list[str],
     subject_positions: list[int],
@@ -1699,14 +1785,13 @@ def _anchor_sentence_covers(
     # counted as "the same sentence". Cut those too, HERE only — the shared
     # splitter also feeds diagnostics whose numbers tests pin. Smaller units
     # can only make coverage harder: fail-closed.
-    units = [
-        unit for sentence in _split_sentences(source_text)
-        for unit in _re.split(r"\n+|;|[()]", sentence) if unit.strip()
-    ]
-    for sentence in units:
+    for sentence in _source_units(source_text):
         toks = _tokenize(sentence)
         vocab = set(toks)
         if not all(tok in vocab for tok in claim_content):
+            continue
+        # B1: the unit must negate exactly what the claim negates.
+        if not _negation_polarity_matches(claim_tokens, toks):
             continue
         grams = {tuple(toks[i : i + min_quote_len])
                  for i in range(len(toks) - min_quote_len + 1)}
