@@ -1608,10 +1608,14 @@ def _contained_with_matching_polarity(
     """True iff one sentence unit of *source_text* contains *claim_tokens*
     contiguously and passes _negation_polarity_matches. Pure."""
     width = len(claim_tokens)
-    for unit in _source_units(source_text):
-        toks = _tokenize(unit)
-        if not any(toks[i:i + width] == claim_tokens
-                   for i in range(len(toks) - width + 1)):
+    for ctx in _source_unit_contexts(source_text):
+        toks = list(ctx.tokens)
+        starts = [i for i in range(len(toks) - width + 1)
+                  if toks[i:i + width] == claim_tokens]
+        if not starts:
+            continue
+        # H1: a denial before the span or a back-referring denial after it.
+        if all(_unit_denied(ctx, i) for i in starts):
             continue
         if (_negation_polarity_matches(claim_tokens, toks)
                 and not _negated_claim_is_limited(claim_tokens, toks)):
@@ -1866,6 +1870,85 @@ def _source_units(source_text: str) -> list[str]:
     ]
 
 
+@dataclass(frozen=True)
+class _UnitContext:
+    """One sentence unit plus the text around it that can deny it (H1)."""
+    tokens: tuple[str, ...]
+    prefix: tuple[str, ...]     # earlier units of the SAME sentence
+    previous: tuple[str, ...]   # the previous sentence
+    following: tuple[str, ...]  # the next sentence
+
+
+def _source_unit_contexts(source_text: str) -> list[_UnitContext]:
+    """The units of `_source_units`, in the same order, each with its denial
+    context. Pure."""
+    sentences = _split_sentences(source_text)
+    sentence_tokens = [tuple(_tokenize(s)) for s in sentences]
+    out: list[_UnitContext] = []
+    for s, sentence in enumerate(sentences):
+        prefix: list[str] = []
+        for unit in _re.split(r"\n+|;|[()]", sentence):
+            if not unit.strip():
+                continue
+            toks = tuple(_tokenize(unit))
+            out.append(_UnitContext(
+                tokens=toks, prefix=tuple(prefix),
+                previous=sentence_tokens[s - 1] if s > 0 else (),
+                following=sentence_tokens[s + 1] if s + 1 < len(sentences) else ()))
+            prefix.extend(toks)
+    return out
+
+
+# H1 (2026-10-25): words that DENY what follows or what precedes them. Drives
+# refusals only (D-69) — a missing word leaves today's behaviour, never a pass.
+_DENIAL_TOKENS: frozenset[str] = _NEGATION_TOKENS | frozenset({
+    "none", "nothing", "nobody", "hardly", "scarcely", "barely", "untrue",
+    "false", "falsely", "dispute", "disputes", "disputed", "deny", "denies",
+    "denied", "refute", "refutes", "refuted", "debunk", "debunked", "myth",
+    "myths", "incorrect", "wrong", "fabricated", "fiction", "fallacy",
+    "fallacies", "nonsense", "baseless",
+})
+
+# A following sentence that points BACK ("that", "this", ...) and denies.
+_BACK_REFERENCES: frozenset[str] = frozenset({
+    "that", "this", "it", "these", "those", "which", "above", "foregoing",
+})
+
+# A previous sentence that points FORWARD ("the following", "below") and denies.
+_FORWARD_REFERENCES: frozenset[str] = frozenset({
+    "following", "below", "next", "this", "these", "here", "hereafter",
+})
+
+
+def _unit_denied(ctx: _UnitContext, match_start: int) -> bool:
+    """True iff the text around a match at *match_start* in *ctx* denies it.
+
+    H1: a denial word anywhere before the match in the same sentence (across
+    the unit splits, and beyond `_SPAN_HEDGE_LOOKBACK`); a previous sentence
+    that denies and points forward ("We dispute the following.", "This never
+    happened as described below.") or is a bare short denial ("Hardly."); or a
+    following sentence that denies and points back ("None of that happened.").
+    Pure. Refusal only (D-69): a missing word leaves today's behaviour.
+
+    CEILING: lexical, not referential. Over-refuses (Error-A) any same-sentence
+    denial of something unrelated ("Although X was not slow; Y ...") and any
+    forward/back-pointing denial next door ("This does not apply to Z. <claim>").
+    Under-refuses (fail-open) a denial two or more sentences away, a denial word
+    not in `_DENIAL_TOKENS` ("Every word below is invented."), and a previous
+    sentence that denies without a forward reference word. Upgrade path: a
+    discourse/coreference model of what a denial targets.
+    """
+    before = ctx.prefix + ctx.tokens[:match_start]
+    if any(tok in _DENIAL_TOKENS for tok in before):
+        return True
+    previous = set(ctx.previous)
+    if previous & _DENIAL_TOKENS and (
+            previous & _FORWARD_REFERENCES or len(ctx.previous) <= 3):
+        return True
+    following = set(ctx.following)
+    return bool(following & _DENIAL_TOKENS) and bool(following & _BACK_REFERENCES)
+
+
 def _anchor_sentence_covers(
     claim_tokens: list[str],
     subject_positions: list[int],
@@ -1876,17 +1959,17 @@ def _anchor_sentence_covers(
     """True iff one source sentence holds a subject-anchored claim window
     and every claim content word. Pure."""
     n = len(claim_tokens)
-    windows = [
+    windows = {
         tuple(claim_tokens[s : s + min_quote_len])
         for s in subject_positions if s + min_quote_len <= n
-    ]
+    }
     # R26-01 (round 26): the shared splitter cuts only at ". ! ?" + space, so a
     # word borrowed from the next LINE, a ";" clause or a "(...)" aside still
     # counted as "the same sentence". Cut those too, HERE only — the shared
     # splitter also feeds diagnostics whose numbers tests pin. Smaller units
     # can only make coverage harder: fail-closed.
-    for sentence in _source_units(source_text):
-        toks = _tokenize(sentence)
+    for ctx in _source_unit_contexts(source_text):
+        toks = list(ctx.tokens)
         vocab = set(toks)
         if not all(tok in vocab for tok in claim_content):
             continue
@@ -1896,9 +1979,10 @@ def _anchor_sentence_covers(
         # R27-01: a negated claim cut off before a limiter does not hold.
         if _negated_claim_is_limited(claim_tokens, toks):
             continue
-        grams = {tuple(toks[i : i + min_quote_len])
-                 for i in range(len(toks) - min_quote_len + 1)}
-        if any(w in grams for w in windows):
+        # H1: only a window occurrence the context does not deny may ground.
+        if any(tuple(toks[i : i + min_quote_len]) in windows
+               and not _unit_denied(ctx, i)
+               for i in range(len(toks) - min_quote_len + 1)):
             return True
     return False
 

@@ -144,10 +144,8 @@ def test_homographic_noun_measures_must_not_license_speculation(tmp_path: Path) 
         "Researchers were unable to demonstrate that Redis loses acknowledged data.",
         id="unable-to-demonstrate",
     ),
-    pytest.param(
-        "Nobody has established that Redis loses acknowledged data.",
-        id="nobody-has-established",
-    ),
+    # "Nobody has established ..." CLOSED by H1 (2026-10-25, "nobody" is in
+    # _DENIAL_TOKENS); now a passing guard in test_moat_h1_far_denial.py.
     pytest.param(
         "The lab declined to confirm that Redis loses acknowledged data.",
         id="declined-to-confirm",
