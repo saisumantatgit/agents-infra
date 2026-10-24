@@ -81,14 +81,8 @@ def test_the_whitelist_still_refuses_everything_unlisted(tmp_path, verb):
     assert rep["per_claim"][0]["verdict"] != "GROUNDED", rep["per_claim"]
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "Round-7 finding c5 (retraction AFTER the span), already OPEN and tripwired "
-    "in test_moat_r7_open.py. J-22 does not create it — it WIDENS it by two verb "
-    "families. Verified pre-existing on every already-listed verb: 'The study "
-    "found/shown/demonstrated/observed that <claim> does not occur at all' all "
-    "certify GROUNDED. No prefix rule can see a denial that comes after the "
-    "matched span, so adding factive verbs inherits c5's reach by construction. "
-    "Recorded here because the sibling check is what surfaced it."))
+# Was a strict xfail (c5 widened by J-22); CLOSED by B1 (D-97, 2026-10-25):
+# the negation-polarity guard sees the denial after the span.
 def test_denial_under_a_newly_added_verb_is_still_refused(tmp_path):
     """SIBLING — the null case. Adding a factive verb must not let a DENIAL
     ground: a source concluding the OPPOSITE must never certify the claim."""

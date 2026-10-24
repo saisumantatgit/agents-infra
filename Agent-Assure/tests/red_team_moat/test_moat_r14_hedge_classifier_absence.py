@@ -81,13 +81,9 @@ _DENIAL_CLAIM = (
 )
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "R14-01 OPEN, CRITICAL: the D-76 flat relational refusal is gated on "
-    "classify, and _RELATIONAL_RE is a ten-member blacklist over an open "
-    "class. 'triggered' is not in it, so the claim is kind=NUMERIC, takes the "
-    "verbatim path, and T1 certifies it against a source that DENIES it. "
-    "The one-word delta 'causes'->'triggered' flips FAIL 0.0/exit 1 to "
-    "PASS 100.0/exit 0 on the same store."))
+# R14-01 CLOSED for the negated-source shape by B1 (D-97, 2026-10-25): the
+# negation-polarity guard refuses it on the verbatim path. The classify-gated
+# relational refusal it describes is still a blacklist (J-66).
 def test_a_causal_claim_its_source_DENIES_is_refused_whatever_verb_it_uses(tmp_path):
     """J-80: asserts the VERDICT, not just the gate.
 
@@ -129,10 +125,6 @@ _AUDIT_CLAIM = (
 @pytest.mark.parametrize("source,label", [
     pytest.param(
         "The quarterly audit of custodial reconciliation controls at the "
-        "Frankfurt desk identified no material weaknesses whatsoever.",
-        "h1-negated", id="h1-negated"),
-    pytest.param(
-        "The quarterly audit of custodial reconciliation controls at the "
         "Frankfurt desk identified material weaknesses, contrary to what the "
         "record shows; that finding was withdrawn.",
         "h3-withdrawn", id="h3-withdrawn"),
@@ -153,6 +145,20 @@ def test_a_factual_claim_its_source_denies_or_withdraws_is_refused(
     assert entry["verdict"] != "GROUNDED", (
         f"[{label}] still certified: {entry['verdict']}")
     assert report["gate"] != "PASS", (label, report)
+    assert code != 0
+
+
+def test_a_factual_claim_its_source_NEGATES_is_refused(tmp_path):
+    """h1-negated, CLOSED by B1 (D-97, 2026-10-25): the negation-polarity
+    guard requires the source sentence to negate exactly what the claim
+    negates, so "identified no material weaknesses" no longer grounds
+    "identified material weaknesses". Was an XPASS on the R14-04 tripwire;
+    h3-withdrawn (no negator) stays open above."""
+    report, code = _gate(tmp_path, _AUDIT_CLAIM, [_row(
+        "S1", "The quarterly audit of custodial reconciliation controls at the "
+        "Frankfurt desk identified no material weaknesses whatsoever.", "q")])
+    assert report["per_claim"][0]["verdict"] != "GROUNDED"
+    assert report["gate"] != "PASS"
     assert code != 0
 
 
