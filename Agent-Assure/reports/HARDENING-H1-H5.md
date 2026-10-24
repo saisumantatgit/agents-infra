@@ -100,3 +100,27 @@ baseline after every fix.
 - **CEILING (in code):** line-shaped lists only; a label two paragraphs up, a table, an HTML
   list, a colon-less "the following are myths", or an unlisted label word still grounds.
   An item whose words recur elsewhere in the source is refused there too (Error-A).
+- **Commit:** `d755f87`.
+
+## H5: near-copy of the draft diluted with unrelated lines
+
+- **Hole:** R26-04 measures the share of the SOURCE's bigrams found in the draft. A Read file
+  holding the whole draft with 2-3 unrelated lines after each draft line drops that share
+  far below 0.8, so the draft certified itself.
+- **Red (pre-fix = H4 commit d755f87):** `tests/red_team_moat/test_moat_h5_diluted_near_copy.py`:
+  2 failed (both gate `PASS`: the copy diluted 2:1, and the copy diluted 3:1 with one word
+  changed per line), 1 passed (control: a draft under its own title quoting two sentences of
+  a long genuine file).
+- **Fix:** `_source_reproduces_draft`, a second test measured over the DRAFT's own
+  segments: a Read source is the draft when it reproduces ≥80% of the draft's lines or
+  sentences, at least two, each with ≥60% of that segment's bigrams.
+- **Design note:** a pooled share of draft bigrams was rejected before landing: it would have
+  refused the control (27/33 = 0.82 of the draft's bigrams sit in the genuine file).
+- **Green:** 3 passed; R26-04's 5 tests still pass. Full suite 1109 passed, 2 skipped,
+  60 xfailed.
+- **Rates:** Error-A 12/25, Error-B 0/27 — unchanged. This is NON-MEASUREMENT: no gold row
+  uses a Read source copied from the draft (same caveat applies to H3).
+- **CEILING (in code):** fail-open when two or more ORIGINAL headings/lines in a
+  five-segment draft keep the reproduced share under 80%, or the draft is one segment.
+  Error-A on a genuine Read file the draft quotes ≥80% of its segments from. Upgrade path:
+  Write/Edit provenance in the capture store.

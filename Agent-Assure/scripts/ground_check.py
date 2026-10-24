@@ -4974,6 +4974,45 @@ def _near_copy_of_draft(source_text: str, draft_flat: str) -> bool:
     return shared / len(source_bigrams) >= _NEAR_COPY_BIGRAM_SHARE
 
 
+# H5 (2026-10-25): a near-copy DILUTED with unrelated lines drops the share of
+# the SOURCE's bigrams below 0.8 while carrying the draft whole. Second test,
+# measured over the DRAFT's own segments (lines / sentences): the source is the
+# draft when it reproduces >= 80% of them, at least two, each with >= 60% of
+# that segment's bigrams (tolerates a word changed in every few).
+# CEILING: breaks (fail-open) when the copy reproduces under 80% of the draft's
+# segments — e.g. two or more ORIGINAL headings or lines in a five-segment draft
+# — or when the draft is a single segment (a one-sentence draft quoting a Read
+# file is indistinguishable from honest quoting without provenance). Refuses
+# (Error-A) a genuine Read source from which the draft quotes >= 80% of its
+# segments, two or more, verbatim. Upgrade path: Write/Edit provenance in the
+# capture store (same as R26-04).
+_DRAFT_SEGMENT_SHARE = 0.6
+_DRAFT_SEGMENTS_REPRODUCED = 0.8
+
+
+def _draft_segments(draft_text: str) -> list[frozenset[tuple[str, str]]]:
+    """Bigram sets of the draft's lines/sentences that have any bigram. Pure."""
+    text = _nfkc(_strip_citations(draft_text))
+    out: list[frozenset[tuple[str, str]]] = []
+    for segment in _re.split(r"\n+|(?<=[.!?])\s+", text):
+        grams = _bigrams(" ".join(segment.casefold().split()))
+        if grams:
+            out.append(grams)
+    return out
+
+
+def _source_reproduces_draft(source_text: str, draft_text: str) -> bool:
+    """True when *source_text* reproduces most of the draft's segments, however
+    much unrelated text surrounds them (H5). Pure."""
+    segments = _draft_segments(draft_text)
+    if len(segments) < 2:
+        return False
+    source_grams = _bigrams(_identity_flat(source_text))
+    found = sum(1 for grams in segments
+                if len(grams & source_grams) / len(grams) >= _DRAFT_SEGMENT_SHARE)
+    return found >= 2 and found / len(segments) >= _DRAFT_SEGMENTS_REPRODUCED
+
+
 def _self_source_ids(
     draft_path: str, draft_text: str, store: dict[str, RetrievedSource]
 ) -> frozenset[str]:
@@ -5036,7 +5075,8 @@ def _self_source_ids(
         # whole or partial. See `_near_copy_of_draft`. Read only: the draft is a
         # local file, a web fetch is not a draft. Can only match more records.
         if source.tool == "Read" and source.text \
-                and _near_copy_of_draft(source.text, draft_flat):
+                and (_near_copy_of_draft(source.text, draft_flat)
+                     or _source_reproduces_draft(source.text, draft_text)):
             matched.add(source_id)
             continue
         if source.file_path:
