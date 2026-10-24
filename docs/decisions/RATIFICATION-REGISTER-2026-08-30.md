@@ -1822,6 +1822,13 @@ mine** — named for Sai, not touched.
 
 ---
 
+## D-99 — overnight 2026-10-25 armed under Sai's AGREED
+
+| | |
+|---|---|
+| **Decided** | Run C1–C5 of `docs/planning/OVERNIGHT-2026-10-25.md` to the **07:30 IST** hard stop. Budget **4M** new tokens, ceiling **4.8M**. |
+| **Authority** | Fail-closed changes (C3) are mine. PASS-enabling changes (C2) are BUILT and PRICED only — Sai rules. Guide corrections (docs) are mine. PRs only, never merged; no outbound calls by adversaries. |
+| **UNDO** | CronDelete the id in the progress file; close tonight's PRs; delete branches `overnight-2026-10-25`, `c2-*`, `c3-*`. |
 ## D-98 — Sai merged PR #19 (2026-10-25): readiness A + B is on main, q03's price accepted
 
 | | |
