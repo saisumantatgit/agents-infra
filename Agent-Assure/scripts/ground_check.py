@@ -2506,8 +2506,8 @@ def _byte_unit(suffix: str) -> str | None:
     """Canonical storage unit for a lower-cased suffix ("mb" -> "MB",
     "kib" -> "KiB", "bytes" -> "B"), or None. Pure.
 
-    CEILING: case is folded, so "Mb" (megabit) reads as "MB" (megabyte).
-    Upgrade path: keep the suffix's case once sources are seen to distinguish.
+    Case is folded HERE; the caller (_parse_numeric_token) re-reads the
+    original case so "Mb" (megabit) never equals "MB" (megabyte) — R27-02.
     """
     if suffix in ("b", "byte", "bytes"):
         return "B"
@@ -2547,7 +2547,8 @@ def _parse_numeric_token(token: str) -> tuple[float, str] | None:
     match = _re.match(r"^([\d.]+)\s*([a-zA-Z%]*)$", raw.strip())
     if not match:
         return None
-    num_str, suffix = match.group(1), match.group(2).lower()
+    num_str, raw_suffix = match.group(1), match.group(2)
+    suffix = raw_suffix.lower()
     try:
         base = float(num_str)
     except ValueError:
@@ -2557,6 +2558,15 @@ def _parse_numeric_token(token: str) -> tuple[float, str] | None:
     if suffix in _PERCENT_SUFFIXES:
         return (base, "percent")
     byte_unit = _byte_unit(suffix)
+    if byte_unit is not None and _re.fullmatch(r"[kmgtpeKMGTPE]i?b", raw_suffix):
+        # R27-02: in a prefixed storage abbreviation the CASE of the final
+        # letter carries the meaning — "B" is a byte, "b" a bit (8x). Folding
+        # it let "16 Mb" ground "16 MB". A lower-case "b" is a bit unit, which
+        # can only equal another bit unit. Fail-closed: it only splits a match.
+        # CEILING: informal "kb"/"mb" meaning kilobytes now refuses against
+        # "KB"/"MB" (Error-A, recoverable); upgrade path: none needed unless a
+        # source corpus shows lower-case byte usage is common.
+        return (base, "bits:" + byte_unit[:-1] + "b")
     if byte_unit is not None:
         # B2: a storage unit is matched like a unit — never scaled, never
         # equal to a bare or magnitude-suffixed number ("16 MB" != "16 million").
