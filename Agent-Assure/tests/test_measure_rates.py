@@ -50,12 +50,16 @@ def _fingerprint() -> dict[str, str]:
 
 
 def test_the_deployed_rates_reproduce_from_the_live_gate():
+    # R27-01 (2026-10-25): Error-A 11/25 -> 12/25. q03 ("...without failure",
+    # source "...without failure UNDER A RANGE OF TEMPERATURES") is now refused
+    # by the negated-claim limiter guard that closes B1's regression. q03 is a
+    # Sai-ratified grounded row: this price is shown to him in the PR, his call.
     rates, labeled = measure()
     assert rates.n == 52, "the gold corpus is n=52"
     # J-97 branch: one gold row (q13, the only certified gold-grounded absence) is now refused — the measured price of the demotion.
-    assert (rates.fp, rates.tn) == (11, 14), "Error-A's cells"
+    assert (rates.fp, rates.tn) == (12, 13), "Error-A's cells"
     assert (rates.fn, rates.tp) == (0, 27), "Error-B's cells"
-    assert rates.error_a == pytest.approx(0.440)
+    assert rates.error_a == pytest.approx(0.480)
     assert rates.error_b == pytest.approx(0.000)
     # Denominators are asserted separately from the ratio: a rate can be
     # reproduced by a corpus that has SHRUNK, and a smaller Error-B

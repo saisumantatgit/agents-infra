@@ -1282,6 +1282,10 @@ def _expand_negation_contractions(text: str) -> str:
 
     Pure function — returns a new string, mutates nothing.
     """
+    # R27-01b (round 27): "cannot" is one word and was invisible to every
+    # negation guard (polarity, limiter, factivity). Expanded here, once, so all
+    # of them see it — the same place "n't" is already expanded.
+    text = _re.sub(r"\bcannot\b", "can not", text, flags=_re.IGNORECASE)
     return _NEGATION_CONTRACTION_RE.sub(" not", text)
 
 
@@ -1550,7 +1554,8 @@ def _contained_with_matching_polarity(
         if not any(toks[i:i + width] == claim_tokens
                    for i in range(len(toks) - width + 1)):
             continue
-        if _negation_polarity_matches(claim_tokens, toks):
+        if (_negation_polarity_matches(claim_tokens, toks)
+                and not _negated_claim_is_limited(claim_tokens, toks)):
             return True
     return False
 
@@ -1760,6 +1765,40 @@ def _negation_polarity_matches(
     return _negation_bigrams(claim_tokens) == _negation_bigrams(unit_tokens)
 
 
+# R27-01 (round 27, 2026-10-25): words that, right after a matched negated claim,
+# LIMIT it ("no known side effects IN MICE"). Refusal-direction only (D-69).
+_NEGATION_LIMITERS: frozenset[str] = frozenset({
+    "in", "among", "under", "until", "unless", "since", "except", "but", "at",
+    "though", "although", "while", "only", "before", "after", "during", "for",
+    "when", "if", "outside", "within", "apart", "besides", "excluding",
+})
+
+
+def _negated_claim_is_limited(
+    claim_tokens: list[str], unit_tokens: list[str]
+) -> bool:
+    """True iff a NEGATED claim matches only the opening of *unit_tokens* and
+    the next word limits it. Pure.
+
+    R27-01: B1 sent negated claims into T1, which accepts a claim matching the
+    START of a source sentence. "Drug X has no known side effects" then grounded
+    against "Drug X has no known side effects in mice" — the source's limiter
+    inverts the universal negative. Base refused it only by misclassifying it as
+    ABSENCE. Negated claims only: for an affirmative claim a trailing limiter
+    narrows scope rather than inverting it, and refusing every partial quote
+    would refuse honest quoting (option A). That residue is registered.
+    """
+    if not _negation_bigrams(claim_tokens):
+        return False
+    tail = claim_tokens[-min(3, len(claim_tokens)):]
+    k = len(tail)
+    return any(
+        unit_tokens[j:j + k] == tail and j + k < len(unit_tokens)
+        and unit_tokens[j + k] in _NEGATION_LIMITERS
+        for j in range(len(unit_tokens) - k + 1)
+    )
+
+
 def _source_units(source_text: str) -> list[str]:
     """Sentence units used by the same-sentence and polarity rules. Pure."""
     return [
@@ -1794,6 +1833,9 @@ def _anchor_sentence_covers(
             continue
         # B1: the unit must negate exactly what the claim negates.
         if not _negation_polarity_matches(claim_tokens, toks):
+            continue
+        # R27-01: a negated claim cut off before a limiter does not hold.
+        if _negated_claim_is_limited(claim_tokens, toks):
             continue
         grams = {tuple(toks[i : i + min_quote_len])
                  for i in range(len(toks) - min_quote_len + 1)}
