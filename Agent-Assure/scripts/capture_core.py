@@ -307,9 +307,29 @@ def _retrieval_status(tool_name: str, tool_response: object, text: str) -> str:
                     else reconstruct_text(tool_response)[0])
         if _EXA_ERROR_LINE_RE.search(haystack) or _EXA_ERROR_LINE_RE.search(text):
             return "failed"
+    if tool_name == _DDG_FETCH_TOOL and _ddg_text_is_error(text):
+        return "failed"
     if not _ANY_WORD_RE.search(unicodedata.normalize("NFKC", text)):
         return "failed"
     return "ok"
+
+
+def _ddg_text_is_error(text: str) -> bool:
+    """True when a DDG fetch's text, or its JSON {"result": str}, opens "Error:".
+
+    LIVE 2026-10-24: a DDG 404 is stored as the JSON object
+    {"result": "Error: Could not access the webpage (...)"} with no error flag.
+    REFUSAL-ONLY (D-69): can only mark a record failed; the stored text is
+    never unwrapped or altered.
+    """
+    candidates = [text]
+    try:
+        parsed = json.loads(text)
+    except ValueError:
+        parsed = None
+    if isinstance(parsed, dict) and isinstance(parsed.get("result"), str):
+        candidates.append(parsed["result"])
+    return any(_DDG_ERROR_PREFIX_RE.match(c) for c in candidates)
 
 
 def make_record(
@@ -419,6 +439,8 @@ _EXA_SECTION_LOOSE_RE = re.compile(
 # search label cannot say which URL succeeded, so ANY such line marks EVERY
 # record of that response failed. Case-insensitive, after stripping invisible
 # characters (R22-03). Refusal-only, so over-matching is safe (D-69).
+_DDG_FETCH_TOOL = "mcp__ddg-search__fetch_content"
+_DDG_ERROR_PREFIX_RE = re.compile(r"[\s\ufeff\u200b]*error:", re.IGNORECASE)
 _EXA_ERROR_LINE_RE = re.compile(r"(?mi)^[\s\ufeff\u200b]*error fetching\b")
 
 # LIVE-OBSERVED 2026-10-10: exa reports a failed fetch as an ordinary text block
