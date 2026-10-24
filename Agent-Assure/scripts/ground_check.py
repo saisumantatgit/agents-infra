@@ -1694,7 +1694,16 @@ def _anchor_sentence_covers(
         tuple(claim_tokens[s : s + min_quote_len])
         for s in subject_positions if s + min_quote_len <= n
     ]
-    for sentence in _split_sentences(source_text):
+    # R26-01 (round 26): the shared splitter cuts only at ". ! ?" + space, so a
+    # word borrowed from the next LINE, a ";" clause or a "(...)" aside still
+    # counted as "the same sentence". Cut those too, HERE only — the shared
+    # splitter also feeds diagnostics whose numbers tests pin. Smaller units
+    # can only make coverage harder: fail-closed.
+    units = [
+        unit for sentence in _split_sentences(source_text)
+        for unit in _re.split(r"\n+|;|[()]", sentence) if unit.strip()
+    ]
+    for sentence in units:
         toks = _tokenize(sentence)
         vocab = set(toks)
         if not all(tok in vocab for tok in claim_content):
@@ -2354,6 +2363,12 @@ def _figure_qualifiers(before: str, after: str) -> frozenset[str]:
     """
     run: list[str] = []
     i = len(before)
+    # R26-02 (round 26): a qualifier separated from its digit by a space, NBSP
+    # or zero-width character ("- 12%", "~ 40%") was dropped and a bare figure
+    # matched. Skip such gaps first. Fail-closed: it can only find MORE
+    # qualifiers, so a figure can only match FEWER claims.
+    while i > 0 and (before[i - 1].isspace() or before[i - 1] in "\u200b\u200c\u200d\u2060\ufeff"):
+        i -= 1
     while i > 0:
         ch = before[i - 1]
         if ch == "." or unicodedata.category(ch) in _FIGURE_PREFIX_CATEGORIES:
