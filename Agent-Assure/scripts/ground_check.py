@@ -753,6 +753,51 @@ def _is_escaped(text: str, index: int) -> bool:
 # the Error-B path.
 _SAME_LINE_COMMENT_RE = _re.compile(r"<!--[^\n]*?-->")
 
+# S1 (W2C-01 without R29-01). Two rules, each of which can only move a claim
+# AWAY from PASS, so their combination cannot reopen either finding:
+#   1. A citation marker inside ANY <!-- --> (same-line, multi-line, or
+#      unterminated to end of text) is deleted before anything else reads the
+#      text. A reader never sees it (comment hidden; GFM's tagfilter escapes
+#      <textarea>/<xmp> so a comment after them stays hidden too), so it must
+#      never attach to a claim. Deleting a citation can only make a claim
+#      UNCITED. Code regions and backslash-escaped openers are left alone:
+#      there the marker is visible text.
+#   2. A same-line comment inside a CLOSED <textarea>/<xmp> renders as visible
+#      text, so it is kept (scored) instead of stripped. A closing tag is
+#      required: afb9049 protected an UNCLOSED element to end of text, and
+#      with rule 1 absent a later hidden citation counted (R29-01).
+# CEILING: regex reading of HTML. An abrupt-close comment (<!-->) makes rule 1
+# scan to the next "-->", deleting visible citations in between (Error-A only).
+# A tag split by ">" in an attribute is misread. Upgrade path: an HTML tokenizer.
+# R30 (round 30): browsers also end a comment at `--!>`, so a citation after it is
+# VISIBLE and must still count — the scrubber now stops there too.
+_ANY_COMMENT_RE = _re.compile(r"<!--(?:.*?--!?>|.*\Z)", _re.DOTALL)
+_RAW_TEXT_ELEMENT_RE = _re.compile(
+    r"<(textarea|xmp)\b[^>\n]*>.*?</\1\s*>", _re.IGNORECASE | _re.DOTALL,
+)
+
+
+def _scrub_citations_in_comments(text: str) -> str:
+    """Delete citation markers that sit inside an HTML comment. Pure function."""
+    protected: list[tuple[int, int]] = _code_line_spans(text)
+    protected += [(m.start(), m.end()) for m in _CODE_SPAN_RE.finditer(text)]
+
+    def _protected(index: int) -> bool:
+        return any(start <= index < end for start, end in protected)
+
+    out: list[str] = []
+    last = 0
+    for m in _ANY_COMMENT_RE.finditer(text):
+        if _protected(m.start()) or _is_escaped(text, m.start()):
+            continue
+        out.append(text[last:m.start()])
+        # NFKC first: a full-width ［S1］ folds to [S1] later in the pipeline.
+        out.append(_CITATION_RE.sub(" ", _nfkc(m.group(0))))
+        last = m.end()
+    out.append(text[last:])
+    return "".join(out)
+
+
 def _strip_html_comments_outside_code(text: str) -> str:
     """Strip SAME-LINE HTML comments, outside code, unescaped. Pure function.
 
@@ -767,6 +812,7 @@ def _strip_html_comments_outside_code(text: str) -> str:
     """
     protected: list[tuple[int, int]] = _code_line_spans(text)
     protected += [(m.start(), m.end()) for m in _CODE_SPAN_RE.finditer(text)]
+    protected += [(m.start(), m.end()) for m in _RAW_TEXT_ELEMENT_RE.finditer(text)]
 
     def _protected(index: int) -> bool:
         return any(start <= index < end for start, end in protected)
@@ -834,7 +880,8 @@ def _iter_raw_sentences(text: str) -> Iterator[str]:
     """
     import syntok.segmenter as segmenter  # lazy import — keeps top-level pure
 
-    normalized = _nfkc(_break_after_headers(_strip_html_comments_outside_code(text)))
+    normalized = _nfkc(_break_after_headers(_strip_html_comments_outside_code(
+        _scrub_citations_in_comments(text))))
     for paragraph in segmenter.process(normalized):
         for sentence_tokens in paragraph:
             yield _reconstruct_sentence(sentence_tokens)
@@ -1084,7 +1131,19 @@ def _is_non_claim(text: str) -> bool:
     if _CITATION_RE.search(text):
         return False
     body = _strip_citations(text)
-    if not _NUMERIC_RE.search(body) and not _content_words(_tokenize(body)):
+    # R7 (W2C report, "registered, still open"): a span of stop words only is
+    # NOT empty when it negates or compares — "That is not so." retracts the
+    # neighbouring claim and "We had more than that." asserts a quantity; each
+    # left the denominator and a lone grounded claim certified PASS 100.0.
+    # Such a span is kept as a claim (it is then UNCITED/UNGROUNDED). This list
+    # drives a REFUSAL (D-69): a missing member leaves today's behaviour, it
+    # never licenses an acceptance. Fail-closed.
+    # CEILING: only the stop-word negators/comparators are listed (others are
+    # already content words); a stop-word-only span that asserts by some other
+    # means ("So it was.") stays NON_CLAIM. Upgrade path: a parser reading.
+    body_tokens = _tokenize(body)
+    if (not _NUMERIC_RE.search(body) and not _content_words(body_tokens)
+            and not any(t.casefold() in _STOPWORD_NEGATORS_COMPARATORS for t in body_tokens)):
         return True
 
     # Header ('#'-prefixed): a heading that carries a citation marker or a numeric
@@ -1337,7 +1396,7 @@ _SPAN_HEDGE_TOKENS: frozenset[str] = frozenset({
     # denial / falsity — the source says this is NOT so
     "not", "no", "never", "untrue", "false", "falsely", "incorrectly",
     "wrongly", "denies", "denied", "denying", "disputes", "disputed",
-    "refutes", "refuted", "myth", "misconception", "contrary", "without",
+    "refutes", "refuted", "myth", "myths", "misconception", "misconceptions", "contrary", "without",
     # conditionals / hypotheticals — the source is not asserting this
     "if", "unless", "whether", "would", "could", "might", "hypothetically",
     "suppose", "supposing", "assume", "assuming",
@@ -1851,6 +1910,9 @@ def _anchor_sentence_covers(
 # ---------------------------------------------------------------------------
 
 # Stop words for content-word filtering (small functional set).
+# The members of _STOP_WORDS that negate or compare (R7; see _is_non_claim).
+_STOPWORD_NEGATORS_COMPARATORS: frozenset[str] = frozenset({"not", "no", "than", "more"})
+
 _STOP_WORDS: frozenset[str] = frozenset({
     "a", "an", "the", "and", "or", "but", "in", "on", "at", "to", "for",
     "of", "with", "by", "from", "as", "is", "are", "was", "were", "be",
@@ -2506,8 +2568,8 @@ def _byte_unit(suffix: str) -> str | None:
     """Canonical storage unit for a lower-cased suffix ("mb" -> "MB",
     "kib" -> "KiB", "bytes" -> "B"), or None. Pure.
 
-    CEILING: case is folded, so "Mb" (megabit) reads as "MB" (megabyte).
-    Upgrade path: keep the suffix's case once sources are seen to distinguish.
+    Case is folded HERE; the caller (_parse_numeric_token) re-reads the
+    original case so "Mb" (megabit) never equals "MB" (megabyte) — R27-02.
     """
     if suffix in ("b", "byte", "bytes"):
         return "B"
@@ -2547,7 +2609,8 @@ def _parse_numeric_token(token: str) -> tuple[float, str] | None:
     match = _re.match(r"^([\d.]+)\s*([a-zA-Z%]*)$", raw.strip())
     if not match:
         return None
-    num_str, suffix = match.group(1), match.group(2).lower()
+    num_str, raw_suffix = match.group(1), match.group(2)
+    suffix = raw_suffix.lower()
     try:
         base = float(num_str)
     except ValueError:
@@ -2557,6 +2620,15 @@ def _parse_numeric_token(token: str) -> tuple[float, str] | None:
     if suffix in _PERCENT_SUFFIXES:
         return (base, "percent")
     byte_unit = _byte_unit(suffix)
+    if byte_unit is not None and _re.fullmatch(r"[kmgtpeKMGTPE]i?b", raw_suffix):
+        # R27-02: in a prefixed storage abbreviation the CASE of the final
+        # letter carries the meaning — "B" is a byte, "b" a bit (8x). Folding
+        # it let "16 Mb" ground "16 MB". A lower-case "b" is a bit unit, which
+        # can only equal another bit unit. Fail-closed: it only splits a match.
+        # CEILING: informal "kb"/"mb" meaning kilobytes now refuses against
+        # "KB"/"MB" (Error-A, recoverable); upgrade path: none needed unless a
+        # source corpus shows lower-case byte usage is common.
+        return (base, "bits:" + byte_unit[:-1] + "b")
     if byte_unit is not None:
         # B2: a storage unit is matched like a unit — never scaled, never
         # equal to a bare or magnitude-suffixed number ("16 MB" != "16 million").
@@ -2637,6 +2709,19 @@ def _figure_qualifiers(before: str, after: str) -> frozenset[str]:
     if run and i > 0 and before[i - 1].isalnum():
         run = []
     quals = set(run)
+    # R26-03 (round 26): an accounting negative "(12%)" / "($4M)" is a SIGN,
+    # written as a wrapping pair. It was ignored, so a claim of "(12%)"
+    # grounded a source "12%". Marked as its own qualifier so equality is
+    # required both ways. Fail-closed: it only adds a qualifier, so a figure can
+    # only match FEWER figures.
+    # CEILING: a non-negative parenthetical aside ("strong growth (12%)") now
+    # also reads as signed and refuses against a bare "12%" (Error-A); upgrade
+    # path: read the enclosing phrase, not just the wrapping glyphs.
+    j = i
+    while j > 0 and (before[j - 1].isspace() or before[j - 1] in "\u200b\u200c\u200d\u2060\ufeff"):
+        j -= 1
+    if j > 0 and before[j - 1] == "(" and after.lstrip(" \t\u00a0\u200b\u200c\u200d\u2060\ufeff").startswith(")"):
+        quals.add("(")  # one glyph: callers run unicodedata.category on each
     if after:
         ch = after[0]
         if ch in _FIGURE_SUFFIX_MARKS or unicodedata.category(ch) == "Sc":
@@ -4706,6 +4791,42 @@ def _identity_flat(text: str) -> str:
     return " ".join(_nfkc(_strip_citations(text)).casefold().split())
 
 
+def _bigrams(flat: str) -> frozenset[tuple[str, str]]:
+    """Adjacent word pairs of an already-flattened text. Pure."""
+    words = flat.split()
+    return frozenset(zip(words, words[1:]))
+
+
+# R26-04 (2026-10-25): the identity tests were exact (digest) or containment of
+# a NON-whole Read, so a copy one word off read whole, a partial read of an
+# older version, or a whole read of a file holding only the claim line all
+# certified the draft. Criterion: the share of the SOURCE's word bigrams that
+# also occur in the draft. It is measured over the source, not the draft, so it
+# asks "is this source made of the draft?" — a draft quoting two or three
+# sentences of a long genuine source covers a small share of that source's
+# bigrams and still grounds; a short genuine source the draft paraphrases or
+# extends shares few of ITS bigrams with the draft and still grounds. A copy
+# with one word changed loses at most two bigrams.
+# CEILING: 0.8 — breaks (fail-open) when an adversary perturbs more than ~1 word
+# in 10 of the copy (e.g. inserting filler between claims), and refuses
+# (Error-A) a genuine source the draft quotes almost in full. Upgrade path:
+# Write/Edit provenance in the capture store, so agent-authored files are known
+# rather than inferred from text similarity.
+_NEAR_COPY_BIGRAM_SHARE = 0.8
+
+
+def _near_copy_of_draft(source_text: str, draft_flat: str) -> bool:
+    """True when *source_text* is (nearly) made of the draft. Pure."""
+    flat = _identity_flat(source_text)
+    if not flat:
+        return False
+    source_bigrams = _bigrams(flat)
+    if not source_bigrams:  # a single word: fall back to containment
+        return flat in draft_flat.split()
+    shared = len(source_bigrams & _bigrams(draft_flat))
+    return shared / len(source_bigrams) >= _NEAR_COPY_BIGRAM_SHARE
+
+
 def _self_source_ids(
     draft_path: str, draft_text: str, store: dict[str, RetrievedSource]
 ) -> frozenset[str]:
@@ -4764,6 +4885,13 @@ def _self_source_ids(
             if flat and flat in draft_flat:
                 matched.add(source_id)
                 continue
+        # R26-04: a Read whose text is a NEAR-COPY of the draft is the draft —
+        # whole or partial. See `_near_copy_of_draft`. Read only: the draft is a
+        # local file, a web fetch is not a draft. Can only match more records.
+        if source.tool == "Read" and source.text \
+                and _near_copy_of_draft(source.text, draft_flat):
+            matched.add(source_id)
+            continue
         if source.file_path:
             try:
                 # R19-02: `resolve()` follows symlinks but does NOT fold case on

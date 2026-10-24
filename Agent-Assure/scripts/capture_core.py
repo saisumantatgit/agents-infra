@@ -376,21 +376,50 @@ def _retrieval_status(tool_name: str, tool_response: object, text: str) -> str:
 
 
 def _ddg_text_is_error(text: str) -> bool:
-    """True when a DDG fetch's text, or its JSON {"result": str}, opens "Error:".
+    """True when a DDG fetch's text, or any string it wraps in JSON, opens with
+    a failure marker ("Error:", "Failed to fetch", "HTTP Error 403"), or the
+    JSON is an object carrying an "error" key.
 
     LIVE 2026-10-24: a DDG 404 is stored as the JSON object
     {"result": "Error: Could not access the webpage (...)"} with no error flag.
+    R26-05 (round 26): other shapes escaped — "Failed to fetch", "HTTP Error
+    403", {"error": ...}, "**Error:**", a JSON string, a list-wrapped result, a
+    zero-width-joiner prefix and a full-width colon. The text is NFKC-folded
+    (repo rule: before any regex gate) and leading format characters (Cf) and
+    markdown emphasis are skipped before the prefix test.
     REFUSAL-ONLY (D-69): can only mark a record failed; the stored text is
-    never unwrapped or altered.
+    never unwrapped or altered. A missing shape leaves a failure counted as a
+    search (the R20 CEILING), never a page refused as content.
     """
     candidates = [text]
     try:
         parsed = json.loads(text)
     except ValueError:
         parsed = None
-    if isinstance(parsed, dict) and isinstance(parsed.get("result"), str):
-        candidates.append(parsed["result"])
-    return any(_DDG_ERROR_PREFIX_RE.match(c) for c in candidates)
+    stack = [parsed]
+    while stack:
+        node = stack.pop()
+        if isinstance(node, str):
+            candidates.append(node)
+        elif isinstance(node, list):
+            stack.extend(node)
+        elif isinstance(node, dict):
+            if "error" in node:
+                return True
+            if isinstance(node.get("result"), (str, list, dict)):
+                stack.append(node["result"])
+    return any(_DDG_ERROR_PREFIX_RE.match(_ddg_lead(c)) for c in candidates)
+
+
+def _ddg_lead(text: str) -> str:
+    """NFKC text with leading whitespace, format (Cf) chars and markdown
+    emphasis/heading glyphs removed. Pure."""
+    folded = unicodedata.normalize("NFKC", text)
+    i = 0
+    while i < len(folded) and (folded[i].isspace() or folded[i] in "*_#>`"
+                               or unicodedata.category(folded[i]) == "Cf"):
+        i += 1
+    return folded[i:]
 
 
 def make_record(
@@ -506,7 +535,8 @@ _EXA_SECTION_LOOSE_RE = re.compile(
 # record of that response failed. Case-insensitive, after stripping invisible
 # characters (R22-03). Refusal-only, so over-matching is safe (D-69).
 _DDG_FETCH_TOOL = "mcp__ddg-search__fetch_content"
-_DDG_ERROR_PREFIX_RE = re.compile(r"[\s\ufeff\u200b]*error:", re.IGNORECASE)
+_DDG_ERROR_PREFIX_RE = re.compile(
+    r"(?:error\W*:|failed to fetch\b|http error \d{3}\b)", re.IGNORECASE)
 _EXA_ERROR_LINE_RE = re.compile(r"(?mi)^[\s\ufeff\u200b]*error fetching\b")
 
 # LIVE-OBSERVED 2026-10-10: exa reports a failed fetch as an ordinary text block
