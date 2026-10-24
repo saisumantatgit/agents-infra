@@ -26,3 +26,26 @@ Escalation #1 and Sai's.
 
 **Caveats:** AI-written drafts and AI labels; repo sources are markdown-heavy
 (tables, bullets); one writer style per batch. None of these closes 0-of-20.
+
+## Correction and re-measure, 2026-10-25 (after D-97's fixes B1 + B2)
+
+**Two cause attributions above were wrong.** "16 MB" and "ac77b8e" were never
+figure failures — both were refused on word overlap (B2's agent showed this).
+The "causes, ranked" list took its causes from the batch agents' testimony; the
+verdict COUNTS were recounted from the report files and stand.
+
+**Re-measured on readiness-a-b (A + B1 + B2), same 20 drafts, same stores:**
+
+| | Before | After |
+|---|---|---|
+| GROUNDED | 6 | **6** |
+| UNVERIFIED_ABSENCE | 23 | **5** |
+| UNGROUNDED | 121 | 126 |
+| UNVERIFIED_NUMBER | 19 | 32 |
+
+**What B changed:** the REASON for refusal, not the pass count. Negations stopped
+being misread as absence claims and are now refused as unquoted paraphrase,
+which is the accurate reason and the one the tester guide (A) explains.
+**What B did not change:** paraphrase is still refused — by design under A.
+B1 also closed a previously unregistered Error-B (an affirmative claim grounding
+against a source that negates it, when the "not" fell outside the 8-word span).
