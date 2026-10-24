@@ -192,3 +192,21 @@ def test_the_report_does_not_claim_failed_fetches_were_searches(tmp_path):
         _capture(store, _exa_event(q, failed))
     basis = _gate(tmp_path, store)["per_claim"][0]["evidence_basis"]
     assert "returned no content" in basis, basis
+
+
+def test_ddg_404_error_text_fetches_do_not_certify_an_absence(tmp_path):
+    """LIVE 2026-10-24: a DDG 404 arrives as a plain string holding the JSON
+    object {"result": "Error: Could not access the webpage ..."} with no error
+    flag, and was stored "ok". Two of them certified an absence."""
+    store = tmp_path / "store.jsonl"
+    for q in _QUERIES:
+        body = json.dumps({"result": "Error: Could not access the webpage "
+                           "(Client error '404 Not Found' for url '"
+                           + _search_url(q) + "')"})
+        _capture(store, {"session_id": _SESSION,
+                         "tool_name": "mcp__ddg-search__fetch_content",
+                         "tool_input": {"url": _search_url(q)},
+                         "tool_response": body})
+    report = _gate(tmp_path, store)
+    assert report["per_claim"][0]["verdict"] != "ABSENCE_SUPPORTED", report
+    assert report["gate"] != "PASS"
