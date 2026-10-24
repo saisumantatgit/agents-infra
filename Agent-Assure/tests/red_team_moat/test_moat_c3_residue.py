@@ -97,3 +97,43 @@ def test_r26_03_control_same_figure_grounds(tmp_path: Path, fig: str) -> None:
     report = _gate(tmp_path, _REV_FRAME.format(fig) + _REV_TAIL,
                    _REV_FRAME.format(fig) + " [S1].\n")
     assert report["gate"] == "PASS", report["per_claim"]
+
+
+# ---------------------------------------------------------------- R26-05
+def _ddg_status(tmp_path: Path, body: str) -> str:
+    """Drive the REAL capture hook with a DDG fetch; return the stored status."""
+    store = tmp_path / "store.jsonl"
+    out = subprocess.run(
+        [sys.executable, str(_HOOK)],
+        input=json.dumps({"session_id": "sess-c3", "tool_name": "mcp__ddg-search__fetch_content",
+                          "tool_input": {"url": "https://example.com/page"}, "tool_response": body}),
+        text=True, capture_output=True, cwd=str(_AGENT_ASSURE),
+        env={**os.environ, "ASSURE_EVIDENCE_STORE": str(store)},
+    )
+    lines = store.read_text(encoding="utf-8").splitlines() if store.exists() else []
+    assert len(lines) == 1, (out.returncode, out.stderr)
+    return json.loads(lines[0])["retrieval_status"]
+
+
+@pytest.mark.parametrize("body", [
+    "Failed to fetch https://example.com/page: 404 Not Found",
+    "HTTP Error 403: Forbidden",
+    json.dumps({"error": "Request timed out after 30 seconds"}),
+    "**Error:** Could not access the webpage (404)",
+    json.dumps("Error: 404 Not Found"),
+    json.dumps([{"result": "Error: 404 Not Found"}]),
+    "‍Error: Could not access the webpage (404)",
+    "Error： Could not access the webpage (404)",
+], ids=["failed-to-fetch", "http-error", "json-error-key", "bold-error", "json-string",
+        "list-wrapped", "zwj-prefix", "fullwidth-colon"])
+def test_r26_05_ddg_failure_shapes_are_failed(tmp_path: Path, body: str) -> None:
+    assert _ddg_status(tmp_path, body) == "failed"
+
+
+@pytest.mark.parametrize("body", [
+    "Rust error handling relies on the Result type. Panics are reserved for bugs.",
+    json.dumps({"result": "The 2023 annual report lists revenue by region. Figures are unaudited."}),
+    "HTTP errors are grouped into classes. A 404 means the resource was not found.",
+], ids=["prose-mentions-error", "json-result-content", "prose-about-http-errors"])
+def test_r26_05_control_real_pages_stay_ok(tmp_path: Path, body: str) -> None:
+    assert _ddg_status(tmp_path, body) == "ok"
