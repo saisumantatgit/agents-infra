@@ -70,7 +70,7 @@ def _self_store(draft: str, draft_path: Path, queries: list[str]) -> str:
         "fetched_at": "2026-10-03T00:00:00Z", "tool": "Read",
         "content_sha256": digest, "text": draft,
         "full_text_source": "verbatim", "captured_via": "hook",
-        "query_provenance": q, "session_id": "S-LIVE",
+        "retrieval_status": "ok", "query_provenance": q, "session_id": "S-LIVE",
     }) + "\n" for i, q in enumerate(queries, start=1))
 
 
@@ -140,7 +140,7 @@ def test_a_self_record_ADDED_TO_a_real_store_cannot_buy_a_PASS(tmp_path):
             "source_id": sid, "url": None, "file_path": fp,
             "fetched_at": "2026-10-03T00:00:00Z", "tool": "Read",
             "content_sha256": sha, "text": text, "full_text_source": "verbatim",
-            "captured_via": "hook", "query_provenance": query,
+            "captured_via": "hook", "retrieval_status": "ok", "query_provenance": query,
             "session_id": "S-LIVE"})
 
     rows = [

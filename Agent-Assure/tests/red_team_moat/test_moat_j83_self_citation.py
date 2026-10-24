@@ -60,7 +60,7 @@ def _record(source_id: str, text: str, file_path: str,
         "fetched_at": "2026-10-03T00:00:00Z", "tool": "Read",
         "content_sha256": _sha(text), "text": text,
         "full_text_source": "verbatim", "captured_via": "hook",
-        "query_provenance": query if query is not None else file_path,
+        "retrieval_status": "ok", "query_provenance": query if query is not None else file_path,
         "session_id": "S-LIVE",
     })
 
@@ -177,12 +177,12 @@ def test_the_identity_helper_matches_on_either_signal(tmp_path):
             source_id="S1", url=None, file_path="/elsewhere/DRAFT.md",
             fetched_at="x", tool="Read", content_sha256=_sha(_SENTENCE + "\n"),
             text=_SENTENCE + "\n", full_text_source="verbatim",
-            captured_via="hook", query_provenance="q"),
+            captured_via="hook", retrieval_status="ok", query_provenance="q"),
         "S2": g.RetrievedSource(
             source_id="S2", url=None, file_path="/real/other.md",
             fetched_at="x", tool="Read", content_sha256=_sha("unrelated"),
             text="unrelated", full_text_source="verbatim",
-            captured_via="hook", query_provenance="q"),
+            captured_via="hook", retrieval_status="ok", query_provenance="q"),
     }
     ids = g._self_source_ids("/some/draft.md", f"{_SENTENCE[:-1]} [S1].\n", store)
     assert ids == frozenset({"S1"}), ids
@@ -251,7 +251,10 @@ def test_CONTROL_an_absence_with_REAL_sources_still_certifies(tmp_path):
                 query="safety recall evidence drone fleet audit"),
     ]
     report, _ = _gate(tmp_path, "draft.md", draft, rows)
-    assert report["per_claim"][0]["verdict"] == "ABSENCE_SUPPORTED", report
+    # J-97: certification demoted; the control now rests on absence_diagnostic
+    assert report["per_claim"][0]["verdict"] == "UNVERIFIED_ABSENCE", report
+    assert report["gate"] != "PASS"
+    assert report["per_claim"][0]["absence_diagnostic"] == "searches_would_qualify", report
 
 
 def test_a_FORGED_content_sha256_does_not_evade_the_identity_test():
@@ -264,7 +267,7 @@ def test_a_FORGED_content_sha256_does_not_evade_the_identity_test():
     src = g.RetrievedSource(
         source_id="S1", url=None, file_path="/totally/other.md", fetched_at="t",
         tool="Read", content_sha256="deadbeef" * 8, text=draft,
-        full_text_source="verbatim", captured_via="hook", query_provenance="q")
+        full_text_source="verbatim", captured_via="hook", retrieval_status="ok", query_provenance="q")
     assert g._self_source_ids("/draft.md", draft, {"S1": src}) == frozenset({"S1"})
 
 
@@ -277,5 +280,5 @@ def test_a_NUL_byte_in_a_file_path_does_not_crash_the_gate():
     src = g.RetrievedSource(
         source_id="S1", url=None, file_path="/bad\x00path.md", fetched_at="t",
         tool="Read", content_sha256="x", text="some text",
-        full_text_source="verbatim", captured_via="hook", query_provenance="q")
+        full_text_source="verbatim", captured_via="hook", retrieval_status="ok", query_provenance="q")
     assert g._self_source_ids("/draft.md", "hello", {"S1": src}) == frozenset()

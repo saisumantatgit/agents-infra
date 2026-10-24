@@ -92,6 +92,10 @@ def _summary_source(source_id: str, text: str, query_provenance: str) -> Retriev
         full_text_source="haiku_summary",
         captured_via="inline",
         query_provenance=query_provenance,
+        # Corpus fixtures model SUCCESSFUL retrievals, so they say so. Without
+        # this every fixture is "unknown" and no absence can certify — the
+        # corpus would then measure the legacy rule, not the gate (D-46).
+        retrieval_status="ok",
     )
 
 

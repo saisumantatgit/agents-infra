@@ -1,3 +1,25 @@
+# MAIN HAS THE WORK. PR #10 MERGED BY SAI 2026-10-10 21:46 IST — `main` = `a382aa0`.
+
+Verified, not inherited: `a382aa0` is a real merge commit (parents `009c646`
+and `e2f13f2`), and its tree `4a189d5` is byte-identical to the tree tested
+before the merge. Fresh run on that tree: **861 passed · 2 skipped · 68 xfailed
+· exit 0**, gold md5 unchanged, **Error-A 0.400 / Error-B 0.000**. The
+self-citing fabrication `main` used to certify at **PASS 100.0** now returns
+**FAIL 0.0 UNGROUNDABLE** on `main`.
+
+**This merge did NOT close the four capture-layer CRITICALs** (R20-01, R20-02,
+R20-04 + R20-06). They exist on `main` now as they did before. They, not the
+merge, are the gate before an external tester — Escalation #4, Sai's.
+
+**PR #11 is now redundant** (same head, aimed at the integration branch). Sai to
+close it or merge it to keep `agent-assure-calibration-run` in step; nothing
+depends on it.
+
+**Known stale line, fixed here:** the table below said `main` was `009c646` and
+"still without the work". It was true when written and false from 21:46.
+
+---
+
 # RESUME HERE — 2026-10-10. THE DAY RUN IS OVER: DISARMED AT DIFF ZERO, ALL SIX ROWS BUILT.
 
 # THE CAPTURE LAYER CERTIFIES FABRICATIONS. THAT IS TODAY'S HEADLINE, NOT THE MERGE.

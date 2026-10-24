@@ -75,6 +75,13 @@ class RetrievedSource:
     # UNATTRIBUTABLE by assert_single_session and therefore refuses under
     # enforcement — "I don't know" points away from PASS.
     session_id: str = ""
+    # R20-04 + R20-06 (2026-10-10). Whether the fetch RETURNED CONTENT:
+    # "ok" or "failed", set by the capture hook. DEFAULTS TO "" for every
+    # store written before this field existed, and "" is treated exactly like
+    # an empty session_id is: UNKNOWN, so it never counts as a search toward
+    # an absence. A failed fetch is KEPT in the store (it is audit evidence of
+    # what was attempted) and is only barred from counting as a search.
+    retrieval_status: str = ""
 
 
 @dataclass(frozen=True)
@@ -118,6 +125,10 @@ _REQUIRED_STR_FIELDS: tuple[str, ...] = (
 # May be JSON null (Read has no url; a fetch has no file_path), but must be a
 # str when present.
 _OPTIONAL_STR_FIELDS: tuple[str, ...] = ("url", "file_path")
+
+# R20-04 + R20-06. "" is the legacy/unknown value, and it never counts as a
+# search; see RetrievedSource.retrieval_status.
+_RETRIEVAL_STATUSES: frozenset[str] = frozenset({"", "ok", "failed"})
 
 
 def _object_pairs_no_duplicates(
@@ -349,7 +360,17 @@ def load_store(path: str) -> dict[str, RetrievedSource]:
                     f"line {lineno}: field 'session_id' must be a str or absent, "
                     f"got {type(session_id).__name__}"
                 )
+            retrieval_status = obj.get("retrieval_status", "")
+            if retrieval_status not in _RETRIEVAL_STATUSES:
+                raise ValueError(
+                    f"line {lineno}: field 'retrieval_status' must be one of "
+                    f"{sorted(_RETRIEVAL_STATUSES)} or absent, got "
+                    f"{retrieval_status!r}. It is never repaired or defaulted: "
+                    "an unrecognised status could be read as a successful "
+                    "retrieval."
+                )
             source = RetrievedSource(
+                retrieval_status=retrieval_status,
                 session_id=_nfkc(session_id),
                 source_id=source_id,
                 url=obj.get("url"),
@@ -3368,6 +3389,30 @@ def ground_relational(claim: Claim, store: dict[str, RetrievedSource]) -> Verdic
 # Per-claim verdict dispatcher (spec §4.4)
 # ---------------------------------------------------------------------------
 
+
+def _carries_retrieved_content(source: RetrievedSource) -> bool:
+    """True iff *source* demonstrably RETURNED CONTENT, so it may count as a search.
+
+    R20-04 + R20-06. Two conditions, both required:
+      * the capture hook recorded `retrieval_status == "ok"` — so a record
+        with NO status (any store written before 2026-10-10) does not qualify:
+        whether it returned content is unknown, and unknown points away from
+        PASS;
+      * its text holds at least one word, checked here as well as at capture,
+        because a hand-written or legacy store can carry "ok" over a blank.
+
+    Pure function.
+    """
+    # J-42 (2026-10-22): a SUMMARY is a real search for the DENOMINATOR but not
+    # for the COUNT. The first ground() call keeps every record (denominator
+    # intact); this predicate feeds only the second, so a summary leaves the
+    # count and stays in the blanket-word gate — the repair J-42's own tripwire
+    # prescribed, made possible by the two-call conjunction (R20-04).
+    return (source.retrieval_status == "ok"
+            and source.full_text_source == "verbatim"
+            and bool(_re.search(r"\w", source.text)))
+
+
 def _session_queries(
     store: dict[str, RetrievedSource], self_source_ids: frozenset[str]
 ) -> list[str]:
@@ -3412,6 +3457,233 @@ def _distinct_queries(sources: "Iterable[RetrievedSource]") -> list[str]:
             seen.add(q)
             out.append(q)
     return out
+
+
+def _absence_chain(
+    claim: Claim,
+    store: dict[str, RetrievedSource],
+    self_source_ids: frozenset[str],
+) -> Verdict:
+    """The full absence rule chain — the verdict an absence WOULD get if absence
+    could be certified. Pure.
+
+    J-97 / ADR-009: since the demotion, `ground()` maps ABSENCE_SUPPORTED from
+    here to UNVERIFIED_ABSENCE; `absence_diagnostic` reports this function's
+    answer, so a draft is still told whether its searches would have qualified
+    and the moat's positive controls keep a meaning (ADR-007 did the same).
+    Extracted unchanged from `ground()`.
+    """
+    # R10C-03: a store of ONLY haiku_summary records certified an absence at
+    # PASS 100.0, breaking the named invariant that a summary can never
+    # ground a claim.
+    #
+    # THE DIRECTION HERE IS A TRAP. The naive repair — filter source_texts
+    # to verbatim — is FAIL-OPEN: source_texts is scanned for a REFUTATION,
+    # so removing summaries removes chances to find one and makes absence
+    # EASIER to certify. So summaries stay in that scan, and what is
+    # restricted is the BASIS for certification: at least one verbatim
+    # source must exist, and only verbatim records may contribute the
+    # distinct searches. A summary may refuse, never approve.
+    # R17-01 (round 17, 2026-10-03) — J-83 DID NOT REACH THIS BRANCH.
+    #
+    # A store containing nothing but `Read` records OF THE DRAFT returned
+    # ABSENCE_SUPPORTED at PASS 100.0, while `_self_source_ids` had
+    # correctly identified 2 of 2 records as the draft. The filter lived in
+    # the verbatim path and this branch returns above it — **the identical
+    # placement error as R16-01, on the same branch, fixed this morning.**
+    # An agent that reads its own draft and nothing else has done no
+    # searching, and an absence claim certified on that is the emptiest
+    # possible PASS.
+    #
+    # WHY ONLY THE *BASIS* NARROWS, AND NOT THE SCAN. D-54: shrinking the
+    # store for check_absence moves its two arguments in OPPOSITE
+    # directions — fewer `source_texts` means fewer refutations found
+    # (CERTIFY, fail-OPEN), and fewer distinct queries can disable the
+    # blanket-corpus-word refusal (CERTIFY, fail-OPEN). So a filtered store
+    # is not a weaker store, it is a DIFFERENTLY weak one. What narrows is
+    # the BASIS requirement, exactly as it already does for summaries
+    # (R10C-03): at least one verbatim source that is NOT the draft must
+    # exist before any absence can be certified. Strictly fail-closed.
+    # R21-03 (2026-10-10): the BASIS must be a fetch that RETURNED CONTENT.
+    # It counted a failed or blank fetch, so two WebFetch summaries (J-42,
+    # still open) plus one 503 certified an absence after zero successful
+    # full-text reads. Narrowing an existence test can only refuse more.
+    if not any(s.full_text_source == "verbatim" and s.text
+               and s.source_id not in self_source_ids
+               and _carries_retrieved_content(s)
+               for s in store.values()):
+        return Verdict.UNVERIFIED_ABSENCE
+    # R11B-01 (round 11) — WITHDRAWN: passing only VERBATIM queries here was
+    # my own Error-B, introduced hours earlier and claimed fail-closed.
+    #
+    # `queries` is BOTH a numerator and a DENOMINATOR. It supplies the
+    # matches that certify an absence, AND the population size for the
+    # blanket-corpus-word refusal at the `len(distinct) >= 3` gate below.
+    # Shrinking it therefore switches that REFUSAL OFF: the same claim over
+    # the same sources reads UNVERIFIED_ABSENCE with four queries and
+    # ABSENCE_SUPPORTED with two.
+    #
+    # I identified the direction trap in this function (source_texts, above)
+    # and then walked into a second instance of it. The full list is
+    # restored; the verbatim-BASIS requirement above stays, which is what
+    # closes the original R10C-03 headline (a store of only summaries cannot
+    # certify). That a summary can still supply a counting query is OPEN
+    # again, registered as J-42 — a smaller hole than the one I created.
+    # J-62 + J-71 (2026-10-03, Sai's GO). THE FIGURE CHECKS REACH ABSENCE.
+    #
+    # Round 14 R14-03a: the digit 4200, present in NO source text, certified
+    # `ABSENCE_SUPPORTED` at PASS 100.0 / exit 0 — because this branch
+    # returns ABOVE the two figure checks, so `numeric_ok` was unreachable
+    # from here. J-62 is the same hole for a figure spelled in words. One
+    # defect, two spellings; they were briefly registered as two jobs with
+    # different owners, which would have made the register incoherent.
+    #
+    # D-77 made those checks kind-agnostic for the claims that REACH them,
+    # and ADR-007's amendment records that it was written up as covering
+    # ABSENCE when it did not — ABSENCE and RELATIONAL both return earlier.
+    # This closes the ABSENCE half for FIGURES THE EXTRACTOR SEES —
+    # NOT the whole class. Round 16 enumerated the remainder: a bare
+    # `one`, ordinals, `a third`, `half`, `double` and vague
+    # quantifiers all still reach ABSENCE_SUPPORTED, because
+    # `_SPELLED_NUMBER_WORDS` excludes them by a recorded CEILING.
+    #
+    # WHY `store.values()` AND NOT THE CITED SOURCES. An absence claim is
+    # checked against what was SEARCHED, not what was cited, and it often
+    # cites nothing at all (`check_absence` never inspects claim.citations).
+    # Restricting to citations would make the check vacuous on exactly the
+    # claims that need it. Verbatim-only, because a summary may refuse but
+    # never certify (R10C-03).
+    #
+    # DIRECTION: strictly fail-closed. It can only return UNVERIFIED_NUMBER
+    # where ABSENCE_SUPPORTED would have been returned, never the reverse.
+    # MEASURED, not assumed: Error-A 10/25 = 0.400 and Error-B 0/27 = 0.000
+    # are UNCHANGED, and the corpus does exercise this path — 2 of its 7
+    # ABSENCE rows carry a figure (q13, q22), so the zero delta is a
+    # measurement rather than non-measurement. CEILING: both of those
+    # figures are product model numbers (`X200` extracts as `200`, and
+    # `X200 manual` as `200 m` — J-72), so the shape the corpus tests with
+    # is not a quantity. A real-quantity absence row would measure this
+    # better and needs a gold label, which is Sai's.
+    # PLACEMENT CORRECTED 2026-10-03 (R16-01). The figure checks ran HERE,
+    # ABOVE check_absence, and round 16 measured the cost: of the 1,910
+    # verdicts the change altered across 57 stores, **1,904 were
+    # UNVERIFIED_ABSENCE -> UNVERIFIED_NUMBER relabels** — including the
+    # RT3-04 content-contradiction verdict, the absence branch's STRONGEST
+    # refusal. The check was pre-empting better reasons and reporting a
+    # weaker one, so D-46 masking became the default rather than a one-off:
+    # it masked J-33, J-31, J-42 and the r9 control within hours.
+    #
+    # So the checks now run only on a claim check_absence would CERTIFY.
+    # That is the only population the hole ever existed in — R14-03a was a
+    # fabricated figure inside a SUPPORTED absence — and it leaves every
+    # existing refusal with its own reason intact.
+    #
+    # Still strictly fail-closed: the only transition it can cause is
+    # ABSENCE_SUPPORTED -> UNVERIFIED_NUMBER. Round 16 confirmed the
+    # direction structurally as well as empirically — UNVERIFIED_NUMBER is
+    # not in _NUMERATOR_VERDICTS — across 3,705 differential comparisons
+    # with zero moves toward PASS.
+    # J-84 + J-85 (2026-10-03, Sai's GO) — A SELF-`Read` IS NOT A SEARCH, SO
+    # IT MAY FORM NEITHER THE COUNT NOR THE DENOMINATOR.
+    #
+    # `check_absence` derives ONE `distinct` list and uses it for three
+    # jobs: the COUNT (`match_count >= min_absence_searches`), the
+    # DENOMINATOR (`2 * head-noun queries > len(distinct)`), and the
+    # ACTIVATION of that gate (`len(distinct) >= 3`). Feeding it the whole
+    # store let the draft's own records play all three.
+    #
+    # MEASURED, NOT ASSUMED (the trace that set this fix):
+    #   2 self-Reads + 1 irrelevant real source  -> UNVERIFIED_ABSENCE
+    #       ...but ONLY because the blanket gate fired: len=3, head_in=2,
+    #       2*2 > 3. It refused for the WRONG REASON.
+    #   + 3 more irrelevant queries               -> ABSENCE_SUPPORTED
+    #       len=6, head_in=2, 4 > 6 is false, so the refusal SWITCHED OFF.
+    #   self queries removed, both shapes         -> UNVERIFIED_ABSENCE
+    #       at match_count=0, with the blanket gate NOT firing at all.
+    # So the two register rows J-84 and J-85 are ONE hole: the self queries
+    # count, and the only thing that was stopping them is a gate that
+    # padding disables. The fix does not depend on that gate.
+    #
+    # WHY NO SIGNATURE CHANGE, against what the register said. The register
+    # claimed both need COUNT and DENOMINATOR separated. Re-derived from the
+    # code: that is true of J-42 and not of these. A `haiku_summary` IS a
+    # real search, so it must leave the numerator and STAY in the
+    # denominator — two populations, genuinely. A self-`Read` is not a
+    # search in any role, so it leaves one population and the D-54
+    # direction trap cannot arise: nothing is kept in one job and dropped
+    # from another.
+    #
+    # WHY `source_texts` STILL READS THE WHOLE STORE, which looks
+    # inconsistent and is not. That argument feeds the CONTRADICTION check,
+    # which can only REFUSE. A draft that contradicts its own absence
+    # should still refuse it, so including self-sources there is
+    # fail-closed. Excluding them would be the fail-open direction — the
+    # mirror-image mistake to the one above, and worth naming because the
+    # placement class has already produced four instances in two days.
+    absence_verdict = check_absence(
+        claim,
+        _session_queries(store, self_source_ids),
+        source_texts=[s.text for s in store.values() if s.text],
+    )
+    if absence_verdict is not Verdict.ABSENCE_SUPPORTED:
+        return absence_verdict
+    # R20-04 + R20-06 (2026-10-10): A FAILED OR BLANK FETCH IS NOT A SEARCH.
+    #
+    # The absence rule counted STORED RECORDS, not SUCCESSFUL READS: two
+    # fetches that both failed (HTTP 503, `isError: true`) — or returned
+    # only whitespace — certified "there is no ECB press release on X" at
+    # PASS 100.0, while the report said two sources had been read.
+    #
+    # WHY A SECOND CALL AND NOT A FILTERED LIST. Removing the failed
+    # searches from the list above would also shrink the DENOMINATOR of
+    # the blanket-corpus-word gate inside check_absence, and that gate can
+    # then switch OFF and certify a claim it refused a moment ago — the
+    # D-54 trap ("a filtered store is not a weaker store, it is
+    # DIFFERENTLY weak"). So the call above keeps the full population and
+    # its denominator, and this one asks the same question of the
+    # content-bearing population only. Certifying needs BOTH: a
+    # conjunction with the existing verdict can only turn a yes into a no,
+    # which is what makes this fail-closed by construction rather than by
+    # argument. The contradiction texts stay the WHOLE store in both calls,
+    # because more text to contradict a claim can only refuse more.
+    content_store = {
+        source_id: source for source_id, source in store.items()
+        if _carries_retrieved_content(source)
+    }
+    if check_absence(
+        claim,
+        _session_queries(content_store, self_source_ids),
+        source_texts=[s.text for s in store.values() if s.text],
+    ) is not Verdict.ABSENCE_SUPPORTED:
+        return Verdict.UNVERIFIED_ABSENCE
+    # R18-01 — THE FOURTH INSTANCE OF THE PLACEMENT CLASS, AND IT IS FOUR
+    # LINES BELOW THE THIRD. R17-01 narrowed the BASIS check above to
+    # exclude self-sources; this list, which feeds the two FIGURE checks,
+    # was left reading `store.values()`. Adding ONE `Read` record of the
+    # draft flipped `UNVERIFIED_NUMBER` -> `ABSENCE_SUPPORTED` at PASS
+    # 100.0 for a figure present in no retrieved source, because the draft
+    # contains the figure and so "verifies" it.
+    #
+    # The cross-kind guard did not catch it: its ABSENCE fixture carries no
+    # figure, so it never reached this return. That is the CEILING that
+    # file's own docstring records — it enumerates KINDS, not the 15 return
+    # statements — biting within the hour. The fixture now carries a figure.
+    # R21-03's SIBLING, found by the orchestrator: the figure check also
+    # read failed fetches, so an error page echoing ".../report-4200" could
+    # supply the figure 4200. Fewer sources can only refuse more here.
+    _absence_verbatim = [
+        source for source in store.values()
+        if source.full_text_source == "verbatim" and source.text
+        and source.source_id not in self_source_ids
+        and _carries_retrieved_content(source)
+    ]
+    if claim.numeric_tokens and not numeric_ok(claim, _absence_verbatim):
+        return Verdict.UNVERIFIED_NUMBER
+    if not spelled_quantity_ok(claim, _absence_verbatim):
+        return Verdict.UNVERIFIED_NUMBER
+    # Survived every rule: ABSENCE_SUPPORTED. `ground()` reports it as
+    # UNVERIFIED_ABSENCE (J-97 / ADR-009); `absence_diagnostic` exposes it.
+    return absence_verdict
 
 
 def ground(
@@ -3522,177 +3794,14 @@ def ground(
         return Verdict.UNVERIFIED_RELATION
 
     if claim.kind == ClaimKind.ABSENCE:
-        # R10C-03: a store of ONLY haiku_summary records certified an absence at
-        # PASS 100.0, breaking the named invariant that a summary can never
-        # ground a claim.
-        #
-        # THE DIRECTION HERE IS A TRAP. The naive repair — filter source_texts
-        # to verbatim — is FAIL-OPEN: source_texts is scanned for a REFUTATION,
-        # so removing summaries removes chances to find one and makes absence
-        # EASIER to certify. So summaries stay in that scan, and what is
-        # restricted is the BASIS for certification: at least one verbatim
-        # source must exist, and only verbatim records may contribute the
-        # distinct searches. A summary may refuse, never approve.
-        # R17-01 (round 17, 2026-10-03) — J-83 DID NOT REACH THIS BRANCH.
-        #
-        # A store containing nothing but `Read` records OF THE DRAFT returned
-        # ABSENCE_SUPPORTED at PASS 100.0, while `_self_source_ids` had
-        # correctly identified 2 of 2 records as the draft. The filter lived in
-        # the verbatim path and this branch returns above it — **the identical
-        # placement error as R16-01, on the same branch, fixed this morning.**
-        # An agent that reads its own draft and nothing else has done no
-        # searching, and an absence claim certified on that is the emptiest
-        # possible PASS.
-        #
-        # WHY ONLY THE *BASIS* NARROWS, AND NOT THE SCAN. D-54: shrinking the
-        # store for check_absence moves its two arguments in OPPOSITE
-        # directions — fewer `source_texts` means fewer refutations found
-        # (CERTIFY, fail-OPEN), and fewer distinct queries can disable the
-        # blanket-corpus-word refusal (CERTIFY, fail-OPEN). So a filtered store
-        # is not a weaker store, it is a DIFFERENTLY weak one. What narrows is
-        # the BASIS requirement, exactly as it already does for summaries
-        # (R10C-03): at least one verbatim source that is NOT the draft must
-        # exist before any absence can be certified. Strictly fail-closed.
-        if not any(s.full_text_source == "verbatim" and s.text
-                   and s.source_id not in self_source_ids
-                   for s in store.values()):
+        # J-97 / ADR-009 (2026-10-22, BUILT FOR SAI'S RULING, NOT LANDED BY ME):
+        # an absence that survives every rule is REPORTED, never certified —
+        # J-36: the 'searches' are strings the drafting agent chose, so no rule
+        # here can establish that something does not exist.
+        chain = _absence_chain(claim, store, self_source_ids)
+        if chain is Verdict.ABSENCE_SUPPORTED:
             return Verdict.UNVERIFIED_ABSENCE
-        # R11B-01 (round 11) — WITHDRAWN: passing only VERBATIM queries here was
-        # my own Error-B, introduced hours earlier and claimed fail-closed.
-        #
-        # `queries` is BOTH a numerator and a DENOMINATOR. It supplies the
-        # matches that certify an absence, AND the population size for the
-        # blanket-corpus-word refusal at the `len(distinct) >= 3` gate below.
-        # Shrinking it therefore switches that REFUSAL OFF: the same claim over
-        # the same sources reads UNVERIFIED_ABSENCE with four queries and
-        # ABSENCE_SUPPORTED with two.
-        #
-        # I identified the direction trap in this function (source_texts, above)
-        # and then walked into a second instance of it. The full list is
-        # restored; the verbatim-BASIS requirement above stays, which is what
-        # closes the original R10C-03 headline (a store of only summaries cannot
-        # certify). That a summary can still supply a counting query is OPEN
-        # again, registered as J-42 — a smaller hole than the one I created.
-        # J-62 + J-71 (2026-10-03, Sai's GO). THE FIGURE CHECKS REACH ABSENCE.
-        #
-        # Round 14 R14-03a: the digit 4200, present in NO source text, certified
-        # `ABSENCE_SUPPORTED` at PASS 100.0 / exit 0 — because this branch
-        # returns ABOVE the two figure checks, so `numeric_ok` was unreachable
-        # from here. J-62 is the same hole for a figure spelled in words. One
-        # defect, two spellings; they were briefly registered as two jobs with
-        # different owners, which would have made the register incoherent.
-        #
-        # D-77 made those checks kind-agnostic for the claims that REACH them,
-        # and ADR-007's amendment records that it was written up as covering
-        # ABSENCE when it did not — ABSENCE and RELATIONAL both return earlier.
-        # This closes the ABSENCE half for FIGURES THE EXTRACTOR SEES —
-        # NOT the whole class. Round 16 enumerated the remainder: a bare
-        # `one`, ordinals, `a third`, `half`, `double` and vague
-        # quantifiers all still reach ABSENCE_SUPPORTED, because
-        # `_SPELLED_NUMBER_WORDS` excludes them by a recorded CEILING.
-        #
-        # WHY `store.values()` AND NOT THE CITED SOURCES. An absence claim is
-        # checked against what was SEARCHED, not what was cited, and it often
-        # cites nothing at all (`check_absence` never inspects claim.citations).
-        # Restricting to citations would make the check vacuous on exactly the
-        # claims that need it. Verbatim-only, because a summary may refuse but
-        # never certify (R10C-03).
-        #
-        # DIRECTION: strictly fail-closed. It can only return UNVERIFIED_NUMBER
-        # where ABSENCE_SUPPORTED would have been returned, never the reverse.
-        # MEASURED, not assumed: Error-A 10/25 = 0.400 and Error-B 0/27 = 0.000
-        # are UNCHANGED, and the corpus does exercise this path — 2 of its 7
-        # ABSENCE rows carry a figure (q13, q22), so the zero delta is a
-        # measurement rather than non-measurement. CEILING: both of those
-        # figures are product model numbers (`X200` extracts as `200`, and
-        # `X200 manual` as `200 m` — J-72), so the shape the corpus tests with
-        # is not a quantity. A real-quantity absence row would measure this
-        # better and needs a gold label, which is Sai's.
-        # PLACEMENT CORRECTED 2026-10-03 (R16-01). The figure checks ran HERE,
-        # ABOVE check_absence, and round 16 measured the cost: of the 1,910
-        # verdicts the change altered across 57 stores, **1,904 were
-        # UNVERIFIED_ABSENCE -> UNVERIFIED_NUMBER relabels** — including the
-        # RT3-04 content-contradiction verdict, the absence branch's STRONGEST
-        # refusal. The check was pre-empting better reasons and reporting a
-        # weaker one, so D-46 masking became the default rather than a one-off:
-        # it masked J-33, J-31, J-42 and the r9 control within hours.
-        #
-        # So the checks now run only on a claim check_absence would CERTIFY.
-        # That is the only population the hole ever existed in — R14-03a was a
-        # fabricated figure inside a SUPPORTED absence — and it leaves every
-        # existing refusal with its own reason intact.
-        #
-        # Still strictly fail-closed: the only transition it can cause is
-        # ABSENCE_SUPPORTED -> UNVERIFIED_NUMBER. Round 16 confirmed the
-        # direction structurally as well as empirically — UNVERIFIED_NUMBER is
-        # not in _NUMERATOR_VERDICTS — across 3,705 differential comparisons
-        # with zero moves toward PASS.
-        # J-84 + J-85 (2026-10-03, Sai's GO) — A SELF-`Read` IS NOT A SEARCH, SO
-        # IT MAY FORM NEITHER THE COUNT NOR THE DENOMINATOR.
-        #
-        # `check_absence` derives ONE `distinct` list and uses it for three
-        # jobs: the COUNT (`match_count >= min_absence_searches`), the
-        # DENOMINATOR (`2 * head-noun queries > len(distinct)`), and the
-        # ACTIVATION of that gate (`len(distinct) >= 3`). Feeding it the whole
-        # store let the draft's own records play all three.
-        #
-        # MEASURED, NOT ASSUMED (the trace that set this fix):
-        #   2 self-Reads + 1 irrelevant real source  -> UNVERIFIED_ABSENCE
-        #       ...but ONLY because the blanket gate fired: len=3, head_in=2,
-        #       2*2 > 3. It refused for the WRONG REASON.
-        #   + 3 more irrelevant queries               -> ABSENCE_SUPPORTED
-        #       len=6, head_in=2, 4 > 6 is false, so the refusal SWITCHED OFF.
-        #   self queries removed, both shapes         -> UNVERIFIED_ABSENCE
-        #       at match_count=0, with the blanket gate NOT firing at all.
-        # So the two register rows J-84 and J-85 are ONE hole: the self queries
-        # count, and the only thing that was stopping them is a gate that
-        # padding disables. The fix does not depend on that gate.
-        #
-        # WHY NO SIGNATURE CHANGE, against what the register said. The register
-        # claimed both need COUNT and DENOMINATOR separated. Re-derived from the
-        # code: that is true of J-42 and not of these. A `haiku_summary` IS a
-        # real search, so it must leave the numerator and STAY in the
-        # denominator — two populations, genuinely. A self-`Read` is not a
-        # search in any role, so it leaves one population and the D-54
-        # direction trap cannot arise: nothing is kept in one job and dropped
-        # from another.
-        #
-        # WHY `source_texts` STILL READS THE WHOLE STORE, which looks
-        # inconsistent and is not. That argument feeds the CONTRADICTION check,
-        # which can only REFUSE. A draft that contradicts its own absence
-        # should still refuse it, so including self-sources there is
-        # fail-closed. Excluding them would be the fail-open direction — the
-        # mirror-image mistake to the one above, and worth naming because the
-        # placement class has already produced four instances in two days.
-        absence_verdict = check_absence(
-            claim,
-            _session_queries(store, self_source_ids),
-            source_texts=[s.text for s in store.values() if s.text],
-        )
-        if absence_verdict is not Verdict.ABSENCE_SUPPORTED:
-            return absence_verdict
-        # R18-01 — THE FOURTH INSTANCE OF THE PLACEMENT CLASS, AND IT IS FOUR
-        # LINES BELOW THE THIRD. R17-01 narrowed the BASIS check above to
-        # exclude self-sources; this list, which feeds the two FIGURE checks,
-        # was left reading `store.values()`. Adding ONE `Read` record of the
-        # draft flipped `UNVERIFIED_NUMBER` -> `ABSENCE_SUPPORTED` at PASS
-        # 100.0 for a figure present in no retrieved source, because the draft
-        # contains the figure and so "verifies" it.
-        #
-        # The cross-kind guard did not catch it: its ABSENCE fixture carries no
-        # figure, so it never reached this return. That is the CEILING that
-        # file's own docstring records — it enumerates KINDS, not the 15 return
-        # statements — biting within the hour. The fixture now carries a figure.
-        _absence_verbatim = [
-            source for source in store.values()
-            if source.full_text_source == "verbatim" and source.text
-            and source.source_id not in self_source_ids
-        ]
-        if claim.numeric_tokens and not numeric_ok(claim, _absence_verbatim):
-            return Verdict.UNVERIFIED_NUMBER
-        if not spelled_quantity_ok(claim, _absence_verbatim):
-            return Verdict.UNVERIFIED_NUMBER
-        return absence_verdict
+        return chain
 
     if not claim.citations:
         return Verdict.UNCITED
@@ -3718,9 +3827,16 @@ def ground(
     # same breath as the summary rule because it is the same shape — present in
     # the store, incapable of grounding. A claim citing the draft AND a real
     # source still grounds on the real one.
+    # R23-01 (round 23, 2026-10-22): a FAILED fetch cannot ground anything. Its
+    # text is an error message that repeats the requested URL, and a URL slug
+    # is chosen by the agent: fetching ".../zentara-bank-was-sanctioned-by-the-
+    # ecb-for-serious-aml-failures.html" and letting it fail certified that
+    # sentence at PASS 100.0. Only an explicit "failed" is excluded: a record
+    # with NO status (any store before 2026-10-10) grounds exactly as before.
     verbatim = [
         s for s in sources
         if s.full_text_source == "verbatim" and s.source_id not in self_source_ids
+        and s.retrieval_status != "failed"
     ]
     if not verbatim:
         return Verdict.UNGROUNDABLE
@@ -3921,7 +4037,10 @@ def evidence_basis(
         # is what the AST guard in tests/test_display_matches_verdict.py exists
         # to prevent.
         queries = _session_queries(store, self_source_ids)
-        n_src = sum(1 for s in store.values() if s.text)
+        # REVIEW-PR12 MEDIUM: count only fetches that returned content; a failed
+        # fetch is named separately below, never counted as a retrieved source.
+        n_src = sum(1 for s in store.values()
+                    if s.text and s.retrieval_status != "failed")
         if not queries:
             # J-56, the SIBLING: the same overclaim as the citation branch
             # above. Without --session-id the gate cannot say "this session";
@@ -3950,6 +4069,27 @@ def evidence_basis(
         # that narrows it; the verdict remains the single authority on how many
         # qualified. Display must never become decision (D-34).
         listed = "; ".join(f'"{q}"' for q in queries)
+        # R20-04 + R20-06: the report said "the text of 2 retrieved sources"
+        # when both fetches had failed. It now names the searches that
+        # returned no content, using the SAME predicate the verdict uses
+        # (`_carries_retrieved_content` through `_session_queries`), so the
+        # display cannot drift from the decision. It still does not recompute
+        # the count — the verdict stays the single authority (D-34).
+        countable = set(_session_queries(
+            {sid: s for sid, s in store.items() if _carries_retrieved_content(s)},
+            self_source_ids,
+        ))
+        uncounted = [q for q in queries if q not in countable]
+        no_content_note = ""
+        if uncounted:
+            no_content_note = (
+                f" {len(uncounted)} of these searches returned no "
+                f"content — the fetch failed, came back blank, or was captured "
+                f"before the store recorded whether it succeeded — and "
+                f"{_plural(len(uncounted), 'does', 'do')} NOT count as a "
+                f"search: "
+                + "; ".join(f'"{q}"' for q in uncounted) + "."
+            )
         return (f"An absence claim is checked against what was SEARCHED, not "
                 f"what was cited. Complete record consulted: "
                 f"{len(queries)} distinct search "
@@ -3960,7 +4100,8 @@ def evidence_basis(
                 f"the set that counted. A query counts toward the minimum only "
                 f"if it addresses the claim's asserted SCOPE and carries the "
                 f"subject's head noun, so fewer of the above may have "
-                f"qualified than are listed.{_absence_figure_note(claim)}")
+                f"qualified than are listed.{no_content_note}"
+                f"{_absence_figure_note(claim)}")
 
     if not claim.citations:
         n_src = len(store)
@@ -3997,6 +4138,18 @@ def evidence_basis(
                 f"no full text (snippet only), so there is no text to match "
                 f"the claim against.")
 
+    # R23-01's display half: a FAILED fetch is excluded from grounding, so the
+    # report must say so — "checked against S1" over an error message would
+    # send the reader to reword a claim whose real problem is that the fetch
+    # never returned the page (D-35: a display that omits the deciding fact).
+    failed = [s.source_id for s in sources if s.retrieval_status == "failed"]
+    if failed and all(s.retrieval_status == "failed" for s in sources):
+        return (f"{', '.join(failed)} "
+                f"{_plural(len(failed), 'is', 'are')} cited, but the fetch "
+                f"FAILED or came back blank — the stored text is the tool's "
+                f"error message, not the page. A failed fetch never grounds a "
+                f"claim: fetch the page successfully and cite that.")
+    sources = [s for s in sources if s.retrieval_status != "failed"]
     summaries = [s.source_id for s in sources
                  if s.full_text_source != "verbatim"]
     verbatim = [s for s in sources if s.full_text_source == "verbatim"]
@@ -4417,6 +4570,14 @@ def score_report(
         # the verdict path is how a demotion silently un-demotes itself.
         if claim.kind == ClaimKind.RELATIONAL:
             entry["relation_diagnostic"] = relational_diagnostic(claim, store)
+        if claim.kind == ClaimKind.ABSENCE:
+            # J-97: whether the searches WOULD have qualified. Display only —
+            # no verdict path may read it (pinned by an AST guard).
+            entry["absence_diagnostic"] = (
+                "searches_would_qualify"
+                if _absence_chain(claim, store, self_source_ids)
+                is Verdict.ABSENCE_SUPPORTED
+                else "searches_do_not_qualify")
         # J-74: emitted for EVERY claim, not gated on kind. A check gated on a
         # classifier branch is a check an author routes around by adding one
         # word — that was R14-01, and D-77 learned it the expensive way.

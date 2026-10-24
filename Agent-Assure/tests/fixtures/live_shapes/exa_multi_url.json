@@ -1,0 +1,27 @@
+{
+  "_provenance": "LIVE 2026-10-10: orchestrator's own web_fetch_exa call for two URLs (text trimmed). ONE block, pages introduced by '# title' then 'URL:'.",
+  "tool_name": "mcp__exa__web_fetch_exa",
+  "tool_input": {
+    "urls": [
+      "https://example.com",
+      "https://www.iana.org/help/example-domains"
+    ]
+  },
+  "tool_response": [
+    {
+      "type": "text",
+      "text": "# Example Domain\nURL: https://example.com\n\nExample Domain\n\nThis domain is for use in documentation examples without needing permission.\n\n# Example Domains\nURL: https://www.iana.org/help/example-domains\n\nExample Domains\n\nA number of domains such as example.com and example.org are maintained for documentation purposes."
+    }
+  ],
+  "expect": {
+    "records": 2,
+    "statuses": [
+      "ok",
+      "ok"
+    ],
+    "urls": [
+      null,
+      null
+    ]
+  }
+}

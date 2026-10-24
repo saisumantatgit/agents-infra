@@ -389,3 +389,23 @@ decisions.
 - **Returned to Sai** with exact steps for both the GitHub web route and the
   terminal route. **Verification stays mine:** once he pushes the resolution, I
   re-run the suite, gold md5 and rates on the merged tree before he clicks merge.
+
+## 21:46 IST — SAI MERGED PR #10. `main` = `a382aa0`. Verified.
+
+- **By Sai's hand**, `gh pr merge 10 --merge`, after he resolved the
+  `insights-log.md` conflict by the union I prepared and pushed `e2f13f2`.
+  (The three `fatal: not a git repository` lines in his window were from
+  re-running already-done steps in `~`; harmless.)
+- **Verified rather than assumed:** a real merge commit, parents `009c646` +
+  `e2f13f2`; `main`'s tree `4a189d5` **identical** to the tested tree. Fresh run:
+  **861 passed · 2 skipped · 68 xfailed · exit 0**, gold md5 unchanged, rates
+  0.400 / 0.000. **The fabrication `main` certified at PASS 100.0 this
+  afternoon now returns FAIL 0.0 UNGROUNDABLE on `main`.** Scratch REMOVED.
+- **Not closed by the merge:** the four capture CRITICALs. They are now on
+  `main` exactly as before.
+- **Stale claim on `main` itself:** `main`'s `RESUME-HERE.md` arrived saying
+  `main` had never received the work. Corrected on the branch; it reaches `main`
+  only with the next PR. **Delivery is not consumption**, even for a handoff.
+- **Frameworks** *Calibration* — "merged" was confirmed by tree identity plus a
+  fresh run, not by the green tick in Sai's terminal; *Reachability* — the merge
+  made the fixes reachable and simultaneously made one handoff line false.

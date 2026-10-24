@@ -1773,3 +1773,37 @@ BEFORE the disarm in the same turn: every clone, venv and scratch tree created
 today is deleted and named `REMOVED` in the progress file. `graphify-out/`
 (5.9 MB, untracked) and one unread HQ inbox item are **pre-existing and not
 mine** — named for Sai, not touched.
+
+---
+
+## D-94 — the 2026-10-10 overnight capture-contract run is armed under Sai's AGREED
+
+| | |
+|---|---|
+| **Decided** | Arm a 30-minute tick from 22:43 IST to the **07:00 IST** hard stop to build C1–C5 of `docs/planning/OVERNIGHT-2026-10-10.md`: three fail-closed fixes to `capture_core.py` (R20-04+06, R20-02, R20-01), an Opus round 21 against them, CR-013, and a PR to `main`. |
+| **Basis** | Sai's "AGREED" at 22:12 IST to the nine-item handshake shown to him in full. **3M new tokens sanctioned, ceiling 3.6M.** |
+| **THE READING I TOOK, recorded because it is acted on** | The handshake asked for "AGREED, with 'capture fixes authorised'". Sai replied **"AGREED" alone.** I read AGREED to a plan whose COMMITTED deliverables are the three capture fixes as authorising those deliverables — and nothing beyond them. **Why that reading is safe to act on:** every change is fail-closed by construction (it can only move a claim away from PASS), ships only as a PR, and **nothing reaches `main` without Sai's own click**, so his review of the diff is the authority check this reading defers to. **Not covered by it:** `install.sh`, `hooks/hooks.json`, `SOUL.md`, J-35, J-36, J-38, any merge. If Sai meant the narrower reading, the remedy is to close the PR unmerged — nothing else has moved. |
+| **UNDO** | `CronDelete` the job id in `docs/logbook/overnight-2026-10-10-progress.md` cycle 1; close the PR unmerged; `git push origin --delete capture-contract-2026-10-10`. Every commit lands on that branch alone. |
+| **Frameworks** | *Reversibility* — the authority question is made safe by keeping every change a two-way door until Sai's click. *Asymmetry of error cost* — fail-closed changes cannot manufacture the unrecoverable error, which is what makes acting on the broader reading defensible. |
+| **Budget risk, stated** | Sai did not `/compact` before AGREED. This session is long, and late-session steps have cost ~2× early ones here. The 2.1M estimate may run high; at 80% of the 3.6M ceiling the run stops STARTING work. |
+
+---
+
+## D-95 — overnight 2026-10-22 armed under Sai's "AGREED and a budget"
+
+| | |
+|---|---|
+| **Decided** | Run T1–T6 of `docs/planning/OVERNIGHT-2026-10-22.md` autonomously to the **06:30 IST** hard stop. |
+| **The reading taken** | Sai replied "AGREED and a budget" with no figure. Read as the **2.5M** proposed in the plan he was answering, ceiling **3.0M**. Hard stop and tick were not stated by him; chosen: 06:30, 30 min. |
+| **Authority** | As D-94: fail-closed changes, PRs only, never merged. J-97 is BUILT on its own branch and NOT landed — the ruling stays Sai's. |
+| **UNDO** | `CronDelete` the id in the progress file; close any PR opened tonight; delete branch `j97-absence-advisory`; `git revert` tonight's commits on `capture-contract-2026-10-10` (all of them after `a660c48` + the report commit). |
+
+---
+
+## D-96 — 2026-10-24 burst run (6M, ~2h) armed under Sai's "GO"
+
+| | |
+|---|---|
+| **Decided** | Run W1–W6 of the plan shown to Sai at 18:09, 11 agents in parallel, hard stop **20:15**. Budget **6M** new tokens. |
+| **Authority** | As D-94/D-95: fail-closed changes, PRs only, never merged; no outbound calls by adversaries; W3 labels are CANDIDATE, never gold. |
+| **UNDO** | `CronDelete` the id in `docs/logbook/burst-2026-10-24-progress.md`; close any PR opened today; revert today's commits on `capture-contract-2026-10-10`; delete `Agent-Assure/tests/honest_drafts_v2/`. |
