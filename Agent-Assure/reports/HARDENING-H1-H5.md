@@ -33,3 +33,20 @@ baseline after every fix.
 - **CEILING (in code):** lexical, not referential. Over-refuses an unrelated same-sentence
   denial; under-refuses a denial two sentences away, an unlisted denial word, or a
   previous-sentence denial with no forward reference.
+- **Commit:** `82821cf`.
+
+## H2: short denial reply next to the grounding sentence
+
+- **Hole:** "<claim>. No." (also "Not so.", "Untrue.", "False.", "Hardly.", "Nope.")
+  certified the claim. Before-side replies were already refused by the hedge lookback,
+  except "Nope." (not a listed word).
+- **Red (pre-fix = H1 commit 82821cf):** `tests/red_team_moat/test_moat_h2_short_reply.py`:
+  7 failed, 8 passed. Failing: all 6 after-side replies + before-side "Nope.". The 5 other
+  before-side cases and 3 affirmation controls passed.
+- **Fix:** in `_unit_denied`, a following sentence of ≤3 tokens holding a denial word
+  denies; "nope" added to `_DENIAL_TOKENS` (H1's ≤3-token previous-sentence rule then
+  covers the before side).
+- **Green:** 15 passed. Full suite 1071 passed, 2 skipped, 60 xfailed.
+- **Rates:** Error-A 12/25, Error-B 0/27 — unchanged; zero gold rows drifted.
+- **CEILING (in code):** 3-token cut. A longer bare reply ("No, not at all, sir.") stays
+  open; an honest short negative after the claim ("Not always.") is refused (Error-A).

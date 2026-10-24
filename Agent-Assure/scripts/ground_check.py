@@ -1906,7 +1906,7 @@ _DENIAL_TOKENS: frozenset[str] = _NEGATION_TOKENS | frozenset({
     "false", "falsely", "dispute", "disputes", "disputed", "deny", "denies",
     "denied", "refute", "refutes", "refuted", "debunk", "debunked", "myth",
     "myths", "incorrect", "wrong", "fabricated", "fiction", "fallacy",
-    "fallacies", "nonsense", "baseless",
+    "fallacies", "nonsense", "baseless", "nope",
 })
 
 # A following sentence that points BACK ("that", "this", ...) and denies.
@@ -1946,7 +1946,14 @@ def _unit_denied(ctx: _UnitContext, match_start: int) -> bool:
             previous & _FORWARD_REFERENCES or len(ctx.previous) <= 3):
         return True
     following = set(ctx.following)
-    return bool(following & _DENIAL_TOKENS) and bool(following & _BACK_REFERENCES)
+    if not following & _DENIAL_TOKENS:
+        return False
+    # H2: a bare short reply right after ("No.", "Not so.", "Untrue.") denies
+    # the sentence before it, back-reference or not.
+    # CEILING: a 3-token cut. A longer bare reply ("No, not at all, sir.")
+    # stays open (fail-open); an honest short negative after the claim
+    # ("Not always.") is refused (Error-A). Upgrade path: dialogue-act tagging.
+    return len(ctx.following) <= 3 or bool(following & _BACK_REFERENCES)
 
 
 def _anchor_sentence_covers(
