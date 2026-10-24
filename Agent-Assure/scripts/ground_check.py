@@ -769,7 +769,9 @@ _SAME_LINE_COMMENT_RE = _re.compile(r"<!--[^\n]*?-->")
 # CEILING: regex reading of HTML. An abrupt-close comment (<!-->) makes rule 1
 # scan to the next "-->", deleting visible citations in between (Error-A only).
 # A tag split by ">" in an attribute is misread. Upgrade path: an HTML tokenizer.
-_ANY_COMMENT_RE = _re.compile(r"<!--(?:.*?-->|.*\Z)", _re.DOTALL)
+# R30 (round 30): browsers also end a comment at `--!>`, so a citation after it is
+# VISIBLE and must still count — the scrubber now stops there too.
+_ANY_COMMENT_RE = _re.compile(r"<!--(?:.*?--!?>|.*\Z)", _re.DOTALL)
 _RAW_TEXT_ELEMENT_RE = _re.compile(
     r"<(textarea|xmp)\b[^>\n]*>.*?</\1\s*>", _re.IGNORECASE | _re.DOTALL,
 )

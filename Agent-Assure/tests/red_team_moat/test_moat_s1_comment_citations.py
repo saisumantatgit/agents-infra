@@ -76,3 +76,25 @@ def test_citation_inside_comment_never_counts(tmp_path: Path, draft: str) -> Non
 def test_control_visible_citation_still_grounds(tmp_path: Path) -> None:
     report = _gate(tmp_path, _CLAIM + " [S1].\n\n<!-- editor note: check later -->\n")
     assert report["gate"] == "PASS", report["per_claim"]
+
+
+def test_R30_a_citation_after_a_bang_closed_comment_stays_visible(tmp_path):
+    """Round 30: `<!-- a --!> [S1].` — browsers end the comment at `--!>`, so the
+    [S1] is visible and must count. The scrubber used to read on and delete it."""
+    import json, subprocess, sys
+    from pathlib import Path
+    aa = Path(__file__).resolve().parents[2]
+    src = ("Redis sustained approximately 128000 operations per second in the "
+           "benchmark. The test ran on a single node.")
+    rec = {"source_id": "S1", "url": "https://x.example/a", "file_path": None,
+           "fetched_at": "1970-01-01T00:00:00Z", "tool": "mcp__exa__web_fetch_exa",
+           "content_sha256": "0" * 64, "text": src, "full_text_source": "verbatim",
+           "captured_via": "inline", "query_provenance": "q", "session_id": "s",
+           "retrieval_status": "ok"}
+    (tmp_path / "s.jsonl").write_text(json.dumps(rec) + "\n")
+    (tmp_path / "d.md").write_text("Redis sustained approximately 128000 operations "
+                                   "per second <!-- a --!> [S1].\n")
+    out = subprocess.run([sys.executable, str(aa / "scripts/ground_check.py"), "--draft",
+                          str(tmp_path / "d.md"), "--store", str(tmp_path / "s.jsonl"),
+                          "--json"], capture_output=True, text=True, cwd=str(aa))
+    assert json.loads(out.stdout)["per_claim"][0]["verdict"] != "UNCITED"

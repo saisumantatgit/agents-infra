@@ -3,8 +3,9 @@ to it (reports/RED-TEAM-R26-2026-10-24.md): a copy one word off read whole, a
 partial read of an older version, a whole read of a file holding only the claim.
 
 Real hook (`process_event`) -> real gate CLI. The fix treats a Read source as the
-draft when >= 70% of its word 5-gram shingles occur in the draft (or, for a
-source under 5 words, when it is contained in the draft).
+draft when >= 80% of its adjacent word pairs (bigrams) occur in the draft — the
+code's _NEAR_COPY_BIGRAM_SHARE. (Corrected 2026-10-25: this docstring first said
+70% of 5-word shingles, which the code never did.)
 """
 from __future__ import annotations
 
