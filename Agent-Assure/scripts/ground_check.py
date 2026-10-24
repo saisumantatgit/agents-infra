@@ -753,6 +753,49 @@ def _is_escaped(text: str, index: int) -> bool:
 # the Error-B path.
 _SAME_LINE_COMMENT_RE = _re.compile(r"<!--[^\n]*?-->")
 
+# S1 (W2C-01 without R29-01). Two rules, each of which can only move a claim
+# AWAY from PASS, so their combination cannot reopen either finding:
+#   1. A citation marker inside ANY <!-- --> (same-line, multi-line, or
+#      unterminated to end of text) is deleted before anything else reads the
+#      text. A reader never sees it (comment hidden; GFM's tagfilter escapes
+#      <textarea>/<xmp> so a comment after them stays hidden too), so it must
+#      never attach to a claim. Deleting a citation can only make a claim
+#      UNCITED. Code regions and backslash-escaped openers are left alone:
+#      there the marker is visible text.
+#   2. A same-line comment inside a CLOSED <textarea>/<xmp> renders as visible
+#      text, so it is kept (scored) instead of stripped. A closing tag is
+#      required: afb9049 protected an UNCLOSED element to end of text, and
+#      with rule 1 absent a later hidden citation counted (R29-01).
+# CEILING: regex reading of HTML. An abrupt-close comment (<!-->) makes rule 1
+# scan to the next "-->", deleting visible citations in between (Error-A only).
+# A tag split by ">" in an attribute is misread. Upgrade path: an HTML tokenizer.
+_ANY_COMMENT_RE = _re.compile(r"<!--(?:.*?-->|.*\Z)", _re.DOTALL)
+_RAW_TEXT_ELEMENT_RE = _re.compile(
+    r"<(textarea|xmp)\b[^>\n]*>.*?</\1\s*>", _re.IGNORECASE | _re.DOTALL,
+)
+
+
+def _scrub_citations_in_comments(text: str) -> str:
+    """Delete citation markers that sit inside an HTML comment. Pure function."""
+    protected: list[tuple[int, int]] = _code_line_spans(text)
+    protected += [(m.start(), m.end()) for m in _CODE_SPAN_RE.finditer(text)]
+
+    def _protected(index: int) -> bool:
+        return any(start <= index < end for start, end in protected)
+
+    out: list[str] = []
+    last = 0
+    for m in _ANY_COMMENT_RE.finditer(text):
+        if _protected(m.start()) or _is_escaped(text, m.start()):
+            continue
+        out.append(text[last:m.start()])
+        # NFKC first: a full-width ［S1］ folds to [S1] later in the pipeline.
+        out.append(_CITATION_RE.sub(" ", _nfkc(m.group(0))))
+        last = m.end()
+    out.append(text[last:])
+    return "".join(out)
+
+
 def _strip_html_comments_outside_code(text: str) -> str:
     """Strip SAME-LINE HTML comments, outside code, unescaped. Pure function.
 
@@ -767,6 +810,7 @@ def _strip_html_comments_outside_code(text: str) -> str:
     """
     protected: list[tuple[int, int]] = _code_line_spans(text)
     protected += [(m.start(), m.end()) for m in _CODE_SPAN_RE.finditer(text)]
+    protected += [(m.start(), m.end()) for m in _RAW_TEXT_ELEMENT_RE.finditer(text)]
 
     def _protected(index: int) -> bool:
         return any(start <= index < end for start, end in protected)
@@ -834,7 +878,8 @@ def _iter_raw_sentences(text: str) -> Iterator[str]:
     """
     import syntok.segmenter as segmenter  # lazy import — keeps top-level pure
 
-    normalized = _nfkc(_break_after_headers(_strip_html_comments_outside_code(text)))
+    normalized = _nfkc(_break_after_headers(_strip_html_comments_outside_code(
+        _scrub_citations_in_comments(text))))
     for paragraph in segmenter.process(normalized):
         for sentence_tokens in paragraph:
             yield _reconstruct_sentence(sentence_tokens)
