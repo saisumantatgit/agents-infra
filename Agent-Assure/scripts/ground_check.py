@@ -82,6 +82,12 @@ class RetrievedSource:
     # an absence. A failed fetch is KEPT in the store (it is audit evidence of
     # what was attempted) and is only barred from counting as a search.
     retrieval_status: str = ""
+    # W2D-02 (2026-10-24). For a Read: "whole" when the harness's line counts
+    # show the entire file came back, "partial" for a slice (offset/limit,
+    # token-cap truncation). "" = unknown (every older store, every non-Read).
+    # Unknown is treated exactly like "partial" by _self_source_ids — a
+    # Read whose text sits inside the draft is the draft (fail-closed).
+    read_extent: str = ""
 
 
 @dataclass(frozen=True)
@@ -129,6 +135,9 @@ _OPTIONAL_STR_FIELDS: tuple[str, ...] = ("url", "file_path")
 # R20-04 + R20-06. "" is the legacy/unknown value, and it never counts as a
 # search; see RetrievedSource.retrieval_status.
 _RETRIEVAL_STATUSES: frozenset[str] = frozenset({"", "ok", "failed"})
+
+# W2D-02. "" is legacy/unknown and is read as possibly partial.
+_READ_EXTENTS: frozenset[str] = frozenset({"", "whole", "partial"})
 
 
 def _object_pairs_no_duplicates(
@@ -369,7 +378,16 @@ def load_store(path: str) -> dict[str, RetrievedSource]:
                     "an unrecognised status could be read as a successful "
                     "retrieval."
                 )
+            read_extent = obj.get("read_extent", "")
+            if read_extent not in _READ_EXTENTS:
+                raise ValueError(
+                    f"line {lineno}: field 'read_extent' must be one of "
+                    f"{sorted(_READ_EXTENTS)} or absent, got {read_extent!r}. "
+                    "It is never repaired or defaulted: an unrecognised extent "
+                    "could be read as a whole-file Read."
+                )
             source = RetrievedSource(
+                read_extent=read_extent,
                 retrieval_status=retrieval_status,
                 session_id=_nfkc(session_id),
                 source_id=source_id,
@@ -1641,9 +1659,59 @@ def t1_verbatim(
                 break
             if anchored:
                 break
-        if anchored:
+        if not anchored:
+            continue
+
+        # W2A-01/02/04 (2026-10-24): the coverage check above is whole-source
+        # set membership, so a long subject can hold the whole 8-gram while
+        # the predicate word ("Spanner", "all", "Apache") is BORROWED from a
+        # sibling sentence. No hedge is involved, so no hedge scan sees it.
+        # Additional conjunct (fail-closed, it can only refuse more): some
+        # single raw-text sentence (same splitter as support_diagnostic) must
+        # contain the anchored window AND every claim content word.
+        # CEILING: sentence scope only; a reversal or actor swap inside ONE
+        # sentence (W2A-03, W2A-04 as reproduced) still certifies. Upgrade
+        # path: clause/role binding (parser), J-70.
+        if _anchor_sentence_covers(
+                claim_tokens, subject_positions, min_quote_len,
+                claim_content, source.text):
             return True
 
+    return False
+
+
+def _anchor_sentence_covers(
+    claim_tokens: list[str],
+    subject_positions: list[int],
+    min_quote_len: int,
+    claim_content: list[str],
+    source_text: str,
+) -> bool:
+    """True iff one source sentence holds a subject-anchored claim window
+    and every claim content word. Pure."""
+    n = len(claim_tokens)
+    windows = [
+        tuple(claim_tokens[s : s + min_quote_len])
+        for s in subject_positions if s + min_quote_len <= n
+    ]
+    # R26-01 (round 26): the shared splitter cuts only at ". ! ?" + space, so a
+    # word borrowed from the next LINE, a ";" clause or a "(...)" aside still
+    # counted as "the same sentence". Cut those too, HERE only — the shared
+    # splitter also feeds diagnostics whose numbers tests pin. Smaller units
+    # can only make coverage harder: fail-closed.
+    units = [
+        unit for sentence in _split_sentences(source_text)
+        for unit in _re.split(r"\n+|;|[()]", sentence) if unit.strip()
+    ]
+    for sentence in units:
+        toks = _tokenize(sentence)
+        vocab = set(toks)
+        if not all(tok in vocab for tok in claim_content):
+            continue
+        grams = {tuple(toks[i : i + min_quote_len])
+                 for i in range(len(toks) - min_quote_len + 1)}
+        if any(w in grams for w in windows):
+            return True
     return False
 
 
@@ -2242,10 +2310,86 @@ def _parse_numeric_token(token: str) -> tuple[float, str] | None:
     return (base * multiplier, "absolute")
 
 
+# W2B-01..05 (red team 2026-10-24) — a figure is VALUE + QUALIFIERS.
+#
+# Both numeric regexes start at the first digit, so everything written in front
+# of it was discarded: a source's "-12%" grounded a claim of "12%", "~40%" /
+# ">40%" / "≤4%" grounded a bare figure, "¥40M" grounded "$40M", ".5%" grounded
+# "5%" and "4‰" grounded a bare "4" — each at PASS 100.0.
+#
+# The repair is one parse, not a list of symbols: the qualifier of a figure is
+# the run of non-alphanumeric, non-space glyphs IMMEDIATELY before its first
+# digit whose Unicode category is a math symbol (Sm: + − < > ≈ ≤ ≥ ± ~), a
+# currency symbol (Sc: $ € £ ¥ ₹ ...), a dash (Pd: -), or the decimal point
+# "." — plus a trailing currency (Sc) or per-mille/per-myriad sign (‰ ‱).
+# Two figures match only when their qualifier SETS are EQUAL, in both
+# directions: the source's qualifier must be stated by the claim, and the
+# claim's by the source — with ONE exception, below. Fail-closed: this only
+# adds a condition to a match.
+#
+# The exception: a claim's CURRENCY glyph is not required of a source figure
+# that carries NO currency glyph at all, because a source may state the
+# currency in words ("4 million USD" grounds "$4M" — test_numeric pins this).
+# A source with a DIFFERENT currency glyph still refuses ("¥40M" vs "$40M").
+# CEILING: claim "$4M" against source "4 million yen" is not refused by this
+# check (status quo before W2B); upgrade path is reading currency words.
+#
+# A prefix run attached to a word or digit ("COVID-19", "2019-2020", "v.2") is
+# a joiner, not a qualifier, and is ignored — otherwise every hyphenated range
+# end would refuse.
+# CEILING: a joiner-attached sign IS dropped, so "from 5 to-3%" reads as 3%;
+# and word-form qualifiers ("about", "minus", "USD") are left to the lexical
+# tier. Upgrade path: a tokenizer that reads the figure's whole phrase.
+_FIGURE_PREFIX_CATEGORIES: frozenset[str] = frozenset({"Sm", "Sc", "Pd"})
+_FIGURE_SUFFIX_MARKS: frozenset[str] = frozenset({"\u2030", "\u2031"})
+
+
+def _qualifiers_match(claim_quals: frozenset[str], source_quals: frozenset[str]) -> bool:
+    """True iff two figures' qualifier sets agree (see W2B comment). Pure."""
+    if claim_quals == source_quals:
+        return True
+    source_has_currency = any(unicodedata.category(c) == "Sc" for c in source_quals)
+    if source_has_currency:
+        return False
+    claim_non_currency = frozenset(c for c in claim_quals if unicodedata.category(c) != "Sc")
+    return claim_non_currency == source_quals
+
+
+def _figure_qualifiers(before: str, after: str) -> frozenset[str]:
+    """Return the qualifier glyphs of a figure from its surrounding text.
+
+    *before* is the text up to (not including) the figure's first digit;
+    *after* is the text following the figure token. Pure.
+    """
+    run: list[str] = []
+    i = len(before)
+    # R26-02 (round 26): a qualifier separated from its digit by a space, NBSP
+    # or zero-width character ("- 12%", "~ 40%") was dropped and a bare figure
+    # matched. Skip such gaps first. Fail-closed: it can only find MORE
+    # qualifiers, so a figure can only match FEWER claims.
+    while i > 0 and (before[i - 1].isspace() or before[i - 1] in "\u200b\u200c\u200d\u2060\ufeff"):
+        i -= 1
+    while i > 0:
+        ch = before[i - 1]
+        if ch == "." or unicodedata.category(ch) in _FIGURE_PREFIX_CATEGORIES:
+            run.append(ch)
+            i -= 1
+            continue
+        break
+    if run and i > 0 and before[i - 1].isalnum():
+        run = []
+    quals = set(run)
+    if after:
+        ch = after[0]
+        if ch in _FIGURE_SUFFIX_MARKS or unicodedata.category(ch) == "Sc":
+            quals.add(ch)
+    return frozenset(quals)
+
+
 def _extract_numeric_mentions(
     text: str,
-) -> list[tuple[float, str, str | None, str | None]]:
-    """Return all parseable (value, unit, rate, quantity) tuples in *text*.
+) -> list[tuple[float, str, str | None, str | None, frozenset[str]]]:
+    """Return all parseable (value, unit, rate, quantity, qualifiers) tuples in *text*.
 
     NFKC-normalizes before scanning; the dimensional context (measured quantity
     + rate denominator) is read from the windows around each numeric mention:
@@ -2254,7 +2398,7 @@ def _extract_numeric_mentions(
     May contain duplicates. Pure function.
     """
     normalized = _nfkc(text)
-    out: list[tuple[float, str, str | None, str | None]] = []
+    out: list[tuple[float, str, str | None, str | None, frozenset[str]]] = []
     for m in _SOURCE_NUMERIC_RE.finditer(normalized):
         result = _parse_numeric_token(m.group(0))
         if result is not None:
@@ -2262,7 +2406,11 @@ def _extract_numeric_mentions(
             quantity, rate = _numeric_context(
                 normalized[: m.start()], normalized[m.end():]
             )
-            out.append((value, unit, rate, quantity))
+            digit_start = m.start() + (len(m.group(0)) - len(m.group(0).lstrip("$")))
+            quals = _figure_qualifiers(
+                normalized[:digit_start], normalized[m.end():]
+            )
+            out.append((value, unit, rate, quantity, quals))
     return out
 
 
@@ -2304,7 +2452,7 @@ def numeric_ok(claim: Claim, sources: list[RetrievedSource]) -> bool:
         return False
 
     # Pre-compute all source (value, unit, rate, quantity) mentions once.
-    source_mentions: list[tuple[float, str, str | None, str | None]] = []
+    source_mentions: list[tuple[float, str, str | None, str | None, frozenset[str]]] = []
     for source in sources:
         source_mentions.extend(_extract_numeric_mentions(source.text))
 
@@ -2323,6 +2471,9 @@ def numeric_ok(claim: Claim, sources: list[RetrievedSource]) -> bool:
 
         claim_rate: str | None = None
         claim_quantity: str | None = None
+        # W2B: a token not locatable in the text carries only the "$" its own
+        # string states — never fewer qualifiers than it visibly has.
+        claim_quals: frozenset[str] = frozenset({"$"}) if token.startswith("$") else frozenset()
         pos = claim_text_normalized.find(token, search_from)
         if pos == -1:
             pos = claim_text_normalized.find(token)
@@ -2331,11 +2482,20 @@ def numeric_ok(claim: Claim, sources: list[RetrievedSource]) -> bool:
             claim_quantity, claim_rate = _numeric_context(
                 claim_text_normalized[:pos], claim_text_normalized[token_end:]
             )
+            digit_start = pos + (len(token) - len(token.lstrip("$")))
+            claim_quals = _figure_qualifiers(
+                claim_text_normalized[:digit_start],
+                claim_text_normalized[token_end:],
+            )
             search_from = token_end
 
         matched = False
-        for s_val, s_unit, s_rate, s_quantity in source_mentions:
+        for s_val, s_unit, s_rate, s_quantity, s_quals in source_mentions:
             if claim_val != s_val or claim_unit != s_unit:
+                continue
+            # W2B: sign / comparator / currency / leading point / per-mille
+            # must be stated identically on both sides.
+            if not _qualifiers_match(claim_quals, s_quals):
                 continue
             # An asserted rate/quantity must be matched by the source mention;
             # an unasserted one imposes no constraint.
@@ -4269,6 +4429,12 @@ def _identity_digest(text: str) -> str:
     return hashlib.sha256(normalised.encode("utf-8")).hexdigest()
 
 
+def _identity_flat(text: str) -> str:
+    """NFKC, citations removed, ALL whitespace collapsed to one space,
+    casefolded — the form used for the W2D-02 containment test. Pure."""
+    return " ".join(_nfkc(_strip_citations(text)).casefold().split())
+
+
 def _self_source_ids(
     draft_path: str, draft_text: str, store: dict[str, RetrievedSource]
 ) -> frozenset[str]:
@@ -4303,8 +4469,30 @@ def _self_source_ids(
     # because collapsing can only make MORE records match and refuse MORE
     # claims, never fewer.
     draft_digest = _identity_digest(draft_text)
+    draft_flat = _identity_flat(draft_text)
+    draft_basename = os.path.basename(draft_path)
     matched: set[str] = set()
     for source_id, source in store.items():
+        # W2D-01: a stored path that is not absolute (relative, `~`) has an
+        # unknown origin — resolving it against the GATE's cwd guesses. Treat
+        # it as the draft whenever the basename agrees (fail-closed).
+        if source.file_path and not os.path.isabs(source.file_path) \
+                and draft_basename \
+                and os.path.basename(source.file_path) == draft_basename:
+            matched.add(source_id)
+            continue
+        # W2D-02: a Read that is not KNOWN to be whole, whose text sits inside
+        # the draft, is (part of) the draft. The whole-draft digest below
+        # cannot see a slice. Can only match more records — fail-closed.
+        # CEILING: a genuine source short enough to be quoted IN FULL inside
+        # the draft, read partially or by an older hook, is refused (Error-A);
+        # upgrade path: compare against the draft file's own line range.
+        if source.tool == "Read" and source.read_extent != "whole" \
+                and source.text:
+            flat = _identity_flat(source.text)
+            if flat and flat in draft_flat:
+                matched.add(source_id)
+                continue
         if source.file_path:
             try:
                 # R19-02: `resolve()` follows symlinks but does NOT fold case on
