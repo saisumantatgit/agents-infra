@@ -1807,3 +1807,15 @@ mine** — named for Sai, not touched.
 | **Decided** | Run W1–W6 of the plan shown to Sai at 18:09, 11 agents in parallel, hard stop **20:15**. Budget **6M** new tokens. |
 | **Authority** | As D-94/D-95: fail-closed changes, PRs only, never merged; no outbound calls by adversaries; W3 labels are CANDIDATE, never gold. |
 | **UNDO** | `CronDelete` the id in `docs/logbook/burst-2026-10-24-progress.md`; close any PR opened today; revert today's commits on `capture-contract-2026-10-10`; delete `Agent-Assure/tests/honest_drafts_v2/`. |
+
+---
+
+## D-97 — SAI'S RULING 2026-10-25: readiness option A + B
+
+| | |
+|---|---|
+| **Decided by Sai** | "2 - Ok proceed" to the recommendation A + B. **A:** the product stays strict — a claim must quote its source; the tester-facing docs say so first. **B:** two narrow, PASS-enabling fixes are authorised (Escalation #1): B1 ordinary negations are not ABSENCE claims; B2 figure misparsing (units such as MB, digits inside identifiers — J-72's narrowing — trailing punctuation). |
+| **Basis** | `Agent-Assure/tests/honest_drafts_v2/FINDINGS.md`: 0 of 20 honest drafts pass; 23 refusals are negations read as absence, 19 are figure misparsing. |
+| **Guard on B1** | Negation is a stop word in T1, and round 13 showed "causes no X" grounding against "causes X". B1 must make the grounding path negation-aware and must face an adversary round before any PR. |
+| **Not authorised** | Paraphrase tolerance, a shorter span, NLI (option C). |
+| **UNDO** | Close the PR(s); delete branch `readiness-a-b` and the B1/B2 branches. |
