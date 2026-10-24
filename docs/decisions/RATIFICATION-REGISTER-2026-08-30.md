@@ -1836,3 +1836,14 @@ mine** — named for Sai, not touched.
 | **Decided by Sai** | Merged PR #19 by his own command, its body stating the price: **Error-A 0.440 → 0.480**, gold row q03 refused by the R27-01 negated-claim limiter guard. Read as accepting that price under option A (a claim that drops a source's stated condition is refused). |
 | **Measured on main `80196b2`** | Suite 996 passed · 61 xfailed; gold md5 unchanged; Error-B 0/27; usage set 6 of 177 grounded (unchanged by B). |
 | **UNDO** | `git revert -m 1 80196b2`. |
+
+---
+
+## D-100 — STANDING AUTHORISATION (Sai, 2026-10-25): Claude merges after due diligence
+
+| | |
+|---|---|
+| **Decided by Sai** | "I am authorizing you to do merge after due diligence for all things to come." Replaces the per-PR GO for merges. |
+| **The due-diligence bar (what "after DD" means here)** | Every one of: (1) suite green on the PR head AND on the merged result; (2) gold md5 `6215b526…d171f` unchanged; (3) Error-B unchanged, Error-A movement stated; (4) every fix proven red; (5) any change to the grounding/capture path has faced an adversary round with no unfixed regression; (6) any PASS-enabling change carries Sai's explicit ruling (Escalation #1 is NOT delegated by this); (7) the PR body states the diff and any price. |
+| **NOT covered** | Pushing to `main` directly; force-pushing shared branches; Escalation #1 rulings, gold labels, `install.sh`, hook registration, `SOUL.md`, anything outward. A merge denied by the harness classifier is NOT routed around — it returns to Sai. |
+| **UNDO** | Sai revokes in one sentence; any merge is reverted with `git revert -m 1 <sha>`. |
