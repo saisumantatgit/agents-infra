@@ -178,3 +178,25 @@ def test_r7_stopword_only_negation_or_comparison_is_scored(tmp_path: Path, tail:
 def test_r7_control_stopword_only_without_negation_stays_non_claim(tmp_path: Path, tail: str) -> None:
     report = _gate(tmp_path, _REDIS_SRC, _REDIS_CLAIM.rstrip("\n") + tail + "\n")
     assert report["gate"] == "PASS", report["per_claim"]
+
+
+def test_C2_GUARD3_a_myths_label_over_a_bullet_does_not_ground(tmp_path):
+    """Found by the C2 agent (2026-10-25): 'Myths:' heading a bullet list grounded
+    the bullet it was debunking — 'myth' was a hedge word, 'myths' was not.
+    Refusal-list widening only (D-69)."""
+    import json, subprocess, sys
+    from pathlib import Path
+    aa = Path(__file__).resolve().parents[2]
+    src = ("Common myths:\n- the bank collapsed in March after the audit.\n"
+           "The regulator published its findings in June.")
+    rec = {"source_id": "S1", "url": "https://x.example/a", "file_path": None,
+           "fetched_at": "1970-01-01T00:00:00Z", "tool": "mcp__exa__web_fetch_exa",
+           "content_sha256": "0" * 64, "text": src, "full_text_source": "verbatim",
+           "captured_via": "inline", "query_provenance": "q", "session_id": "s",
+           "retrieval_status": "ok"}
+    (tmp_path / "s.jsonl").write_text(json.dumps(rec) + "\n")
+    (tmp_path / "d.md").write_text("The bank collapsed in March after the audit [S1].\n")
+    out = subprocess.run([sys.executable, str(aa / "scripts/ground_check.py"), "--draft",
+                          str(tmp_path / "d.md"), "--store", str(tmp_path / "s.jsonl"),
+                          "--json"], capture_output=True, text=True, cwd=str(aa))
+    assert json.loads(out.stdout)["per_claim"][0]["verdict"] != "GROUNDED"

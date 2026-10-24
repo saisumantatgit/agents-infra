@@ -1364,7 +1364,7 @@ _SPAN_HEDGE_TOKENS: frozenset[str] = frozenset({
     # denial / falsity — the source says this is NOT so
     "not", "no", "never", "untrue", "false", "falsely", "incorrectly",
     "wrongly", "denies", "denied", "denying", "disputes", "disputed",
-    "refutes", "refuted", "myth", "misconception", "contrary", "without",
+    "refutes", "refuted", "myth", "myths", "misconception", "misconceptions", "contrary", "without",
     # conditionals / hypotheticals — the source is not asserting this
     "if", "unless", "whether", "would", "could", "might", "hypothetically",
     "suppose", "supposing", "assume", "assuming",
