@@ -50,3 +50,32 @@ baseline after every fix.
 - **Rates:** Error-A 12/25, Error-B 0/27 — unchanged; zero gold rows drifted.
 - **CEILING (in code):** 3-token cut. A longer bare reply ("No, not at all, sir.") stays
   open; an honest short negative after the claim ("Not always.") is refused (Error-A).
+- **Commit:** `ab18151`.
+
+## H3: DuckDuckGo failure texts read as successful reads
+
+- **Source of strings (read, not guessed):** `duckduckgo_mcp_server` 0.7.0 `server.py`
+  (md5 `b7d61b6791f8aad2fd78172f36a13fa4`, identical in all 9 uv-cache copies; the
+  configured `ddg-search` MCP runs it via `uvx`). Every `fetch_content` error return is
+  already `Error: ...`-prefixed (covered by R26-05). New shapes found:
+  - `"No results were found for your search query. ..."` (`format_results_for_llm`);
+  - `"An error occurred while searching: {e}"` (search tool except-branch);
+  - `_CLOUDFLARE_BODY_SIGNALS` (`cf-mitigated`, `Just a moment...`, `Enable JavaScript
+    and cookies to continue`, `Checking your browser before accessing`): a challenge body
+    that the curl retry also hits is returned as page text;
+  - an EMPTY page returns only the metadata trailer `---\n[Content info: Showing characters
+    0-0 of 0 total ...]`, which has words, so the no-word rule never fired.
+- **NOT_LOCATED_UNDER**(`grep -n -i "anomaly|captcha|bots use|rate limit|429|too many"` over
+  that `server.py`, returned strings only): no DDG anomaly/captcha page text and no
+  rate-limit failure string (the limiter waits; it returns nothing). Not recognised.
+  Note also: `mcp__ddg-search__search` is not a captured tool, so its two strings only
+  matter if they ever arrive through `fetch_content`; recognised anyway (refusal-only).
+- **Red (pre-fix = H2 commit ab18151):** `tests/red_team_moat/test_moat_h3_ddg_failure_texts.py`:
+  8 failed (all 8 failure shapes stored `"ok"`), 2 passed (controls: a real page with its
+  trailer; a page saying "no results were significant").
+- **Fix:** `capture_core._ddg_text_is_error` gains the two prefixes, the four challenge
+  signals, and "body empty once the trailer is removed".
+- **Green:** 10 passed. Full suite 1081 passed, 2 skipped, 60 xfailed.
+- **Rates:** Error-A 12/25, Error-B 0/27 — unchanged (capture-side; no gold row drifted).
+- **CEILING (in code):** a phrase list; a site's own block page not in the server source
+  stays `"ok"` (the existing R20 CEILING).

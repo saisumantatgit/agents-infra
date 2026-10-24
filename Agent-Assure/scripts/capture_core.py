@@ -408,7 +408,19 @@ def _ddg_text_is_error(text: str) -> bool:
                 return True
             if isinstance(node.get("result"), (str, list, dict)):
                 stack.append(node["result"])
-    return any(_DDG_ERROR_PREFIX_RE.match(_ddg_lead(c)) for c in candidates)
+    for c in candidates:
+        lead = _ddg_lead(c)
+        if _DDG_ERROR_PREFIX_RE.match(lead):
+            return True
+        # H3: a challenge body passed through as page text (server checks the
+        # first 4096 chars of the HTML; the text is shorter, so the whole lead).
+        if any(sig in lead for sig in _DDG_CHALLENGE_SIGNALS):
+            return True
+        # H3: an EMPTY page is only the server's "[Content info: ...]" trailer,
+        # which has words, so the no-word rule in _retrieval_status missed it.
+        if not _ANY_WORD_RE.search(_DDG_TRAILER_RE.sub("", lead)):
+            return True
+    return False
 
 
 def _ddg_lead(text: str) -> str:
@@ -535,8 +547,29 @@ _EXA_SECTION_LOOSE_RE = re.compile(
 # record of that response failed. Case-insensitive, after stripping invisible
 # characters (R22-03). Refusal-only, so over-matching is safe (D-69).
 _DDG_FETCH_TOOL = "mcp__ddg-search__fetch_content"
+# H3 (2026-10-25), copied from duckduckgo_mcp_server 0.7.0 server.py (md5
+# b7d61b6791f8aad2fd78172f36a13fa4): the search tool's two non-"Error:" failure
+# strings ("No results were found for your search query..." from
+# format_results_for_llm, "An error occurred while searching: ..." from the
+# tool's except-branch) are matched as prefixes.
+# NOT_LOCATED_UNDER(grep -n -i "anomaly|captcha|bots use|rate limit|429|too many"
+# over that server.py, returned strings only): no DDG anomaly/captcha page text
+# and no rate-limit failure string — the server's limiter WAITS (acquire), it
+# returns nothing. Those shapes are not recognised here.
+# CEILING: a phrase list. A failure page whose text the server source does not
+# contain (a site's own block page) stays "ok" — the R20 CEILING above.
 _DDG_ERROR_PREFIX_RE = re.compile(
-    r"(?:error\W*:|failed to fetch\b|http error \d{3}\b)", re.IGNORECASE)
+    r"(?:error\W*:|failed to fetch\b|http error \d{3}\b"
+    r"|no results were found for your search query\b"
+    r"|an error occurred while searching\b)", re.IGNORECASE)
+# _CLOUDFLARE_BODY_SIGNALS, same file, verbatim (case-sensitive there too).
+_DDG_CHALLENGE_SIGNALS: tuple[str, ...] = (
+    "cf-mitigated", "Just a moment...",
+    "Enable JavaScript and cookies to continue",
+    "Checking your browser before accessing",
+)
+# fetch_and_parse appends "\n\n---\n[Content info: Showing characters ...]".
+_DDG_TRAILER_RE = re.compile(r"-{3}\s*\[Content info:[^\]]*\]\s*\Z")
 _EXA_ERROR_LINE_RE = re.compile(r"(?mi)^[\s\ufeff\u200b]*error fetching\b")
 
 # LIVE-OBSERVED 2026-10-10: exa reports a failed fetch as an ordinary text block
