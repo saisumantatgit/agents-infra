@@ -753,6 +753,51 @@ def _is_escaped(text: str, index: int) -> bool:
 # the Error-B path.
 _SAME_LINE_COMMENT_RE = _re.compile(r"<!--[^\n]*?-->")
 
+# S1 (W2C-01 without R29-01). Two rules, each of which can only move a claim
+# AWAY from PASS, so their combination cannot reopen either finding:
+#   1. A citation marker inside ANY <!-- --> (same-line, multi-line, or
+#      unterminated to end of text) is deleted before anything else reads the
+#      text. A reader never sees it (comment hidden; GFM's tagfilter escapes
+#      <textarea>/<xmp> so a comment after them stays hidden too), so it must
+#      never attach to a claim. Deleting a citation can only make a claim
+#      UNCITED. Code regions and backslash-escaped openers are left alone:
+#      there the marker is visible text.
+#   2. A same-line comment inside a CLOSED <textarea>/<xmp> renders as visible
+#      text, so it is kept (scored) instead of stripped. A closing tag is
+#      required: afb9049 protected an UNCLOSED element to end of text, and
+#      with rule 1 absent a later hidden citation counted (R29-01).
+# CEILING: regex reading of HTML. An abrupt-close comment (<!-->) makes rule 1
+# scan to the next "-->", deleting visible citations in between (Error-A only).
+# A tag split by ">" in an attribute is misread. Upgrade path: an HTML tokenizer.
+# R30 (round 30): browsers also end a comment at `--!>`, so a citation after it is
+# VISIBLE and must still count — the scrubber now stops there too.
+_ANY_COMMENT_RE = _re.compile(r"<!--(?:.*?--!?>|.*\Z)", _re.DOTALL)
+_RAW_TEXT_ELEMENT_RE = _re.compile(
+    r"<(textarea|xmp)\b[^>\n]*>.*?</\1\s*>", _re.IGNORECASE | _re.DOTALL,
+)
+
+
+def _scrub_citations_in_comments(text: str) -> str:
+    """Delete citation markers that sit inside an HTML comment. Pure function."""
+    protected: list[tuple[int, int]] = _code_line_spans(text)
+    protected += [(m.start(), m.end()) for m in _CODE_SPAN_RE.finditer(text)]
+
+    def _protected(index: int) -> bool:
+        return any(start <= index < end for start, end in protected)
+
+    out: list[str] = []
+    last = 0
+    for m in _ANY_COMMENT_RE.finditer(text):
+        if _protected(m.start()) or _is_escaped(text, m.start()):
+            continue
+        out.append(text[last:m.start()])
+        # NFKC first: a full-width ［S1］ folds to [S1] later in the pipeline.
+        out.append(_CITATION_RE.sub(" ", _nfkc(m.group(0))))
+        last = m.end()
+    out.append(text[last:])
+    return "".join(out)
+
+
 def _strip_html_comments_outside_code(text: str) -> str:
     """Strip SAME-LINE HTML comments, outside code, unescaped. Pure function.
 
@@ -767,6 +812,7 @@ def _strip_html_comments_outside_code(text: str) -> str:
     """
     protected: list[tuple[int, int]] = _code_line_spans(text)
     protected += [(m.start(), m.end()) for m in _CODE_SPAN_RE.finditer(text)]
+    protected += [(m.start(), m.end()) for m in _RAW_TEXT_ELEMENT_RE.finditer(text)]
 
     def _protected(index: int) -> bool:
         return any(start <= index < end for start, end in protected)
@@ -834,7 +880,8 @@ def _iter_raw_sentences(text: str) -> Iterator[str]:
     """
     import syntok.segmenter as segmenter  # lazy import — keeps top-level pure
 
-    normalized = _nfkc(_break_after_headers(_strip_html_comments_outside_code(text)))
+    normalized = _nfkc(_break_after_headers(_strip_html_comments_outside_code(
+        _scrub_citations_in_comments(text))))
     for paragraph in segmenter.process(normalized):
         for sentence_tokens in paragraph:
             yield _reconstruct_sentence(sentence_tokens)
@@ -4744,6 +4791,42 @@ def _identity_flat(text: str) -> str:
     return " ".join(_nfkc(_strip_citations(text)).casefold().split())
 
 
+def _bigrams(flat: str) -> frozenset[tuple[str, str]]:
+    """Adjacent word pairs of an already-flattened text. Pure."""
+    words = flat.split()
+    return frozenset(zip(words, words[1:]))
+
+
+# R26-04 (2026-10-25): the identity tests were exact (digest) or containment of
+# a NON-whole Read, so a copy one word off read whole, a partial read of an
+# older version, or a whole read of a file holding only the claim line all
+# certified the draft. Criterion: the share of the SOURCE's word bigrams that
+# also occur in the draft. It is measured over the source, not the draft, so it
+# asks "is this source made of the draft?" — a draft quoting two or three
+# sentences of a long genuine source covers a small share of that source's
+# bigrams and still grounds; a short genuine source the draft paraphrases or
+# extends shares few of ITS bigrams with the draft and still grounds. A copy
+# with one word changed loses at most two bigrams.
+# CEILING: 0.8 — breaks (fail-open) when an adversary perturbs more than ~1 word
+# in 10 of the copy (e.g. inserting filler between claims), and refuses
+# (Error-A) a genuine source the draft quotes almost in full. Upgrade path:
+# Write/Edit provenance in the capture store, so agent-authored files are known
+# rather than inferred from text similarity.
+_NEAR_COPY_BIGRAM_SHARE = 0.8
+
+
+def _near_copy_of_draft(source_text: str, draft_flat: str) -> bool:
+    """True when *source_text* is (nearly) made of the draft. Pure."""
+    flat = _identity_flat(source_text)
+    if not flat:
+        return False
+    source_bigrams = _bigrams(flat)
+    if not source_bigrams:  # a single word: fall back to containment
+        return flat in draft_flat.split()
+    shared = len(source_bigrams & _bigrams(draft_flat))
+    return shared / len(source_bigrams) >= _NEAR_COPY_BIGRAM_SHARE
+
+
 def _self_source_ids(
     draft_path: str, draft_text: str, store: dict[str, RetrievedSource]
 ) -> frozenset[str]:
@@ -4802,6 +4885,13 @@ def _self_source_ids(
             if flat and flat in draft_flat:
                 matched.add(source_id)
                 continue
+        # R26-04: a Read whose text is a NEAR-COPY of the draft is the draft —
+        # whole or partial. See `_near_copy_of_draft`. Read only: the draft is a
+        # local file, a web fetch is not a draft. Can only match more records.
+        if source.tool == "Read" and source.text \
+                and _near_copy_of_draft(source.text, draft_flat):
+            matched.add(source_id)
+            continue
         if source.file_path:
             try:
                 # R19-02: `resolve()` follows symlinks but does NOT fold case on
