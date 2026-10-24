@@ -1797,3 +1797,13 @@ mine** — named for Sai, not touched.
 | **The reading taken** | Sai replied "AGREED and a budget" with no figure. Read as the **2.5M** proposed in the plan he was answering, ceiling **3.0M**. Hard stop and tick were not stated by him; chosen: 06:30, 30 min. |
 | **Authority** | As D-94: fail-closed changes, PRs only, never merged. J-97 is BUILT on its own branch and NOT landed — the ruling stays Sai's. |
 | **UNDO** | `CronDelete` the id in the progress file; close any PR opened tonight; delete branch `j97-absence-advisory`; `git revert` tonight's commits on `capture-contract-2026-10-10` (all of them after `a660c48` + the report commit). |
+
+---
+
+## D-96 — 2026-10-24 burst run (6M, ~2h) armed under Sai's "GO"
+
+| | |
+|---|---|
+| **Decided** | Run W1–W6 of the plan shown to Sai at 18:09, 11 agents in parallel, hard stop **20:15**. Budget **6M** new tokens. |
+| **Authority** | As D-94/D-95: fail-closed changes, PRs only, never merged; no outbound calls by adversaries; W3 labels are CANDIDATE, never gold. |
+| **UNDO** | `CronDelete` the id in `docs/logbook/burst-2026-10-24-progress.md`; close any PR opened today; revert today's commits on `capture-contract-2026-10-10`; delete `Agent-Assure/tests/honest_drafts_v2/`. |
