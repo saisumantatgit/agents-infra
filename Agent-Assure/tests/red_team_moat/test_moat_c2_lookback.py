@@ -87,7 +87,7 @@ def test_error_b_guards_still_refuse(tmp_path, source, claim):
 # _SPAN_HEDGE_TOKENS and the window holds no other hedge, so this grounds on the
 # pre-C2 code too. C2 cannot touch it (no sentence boundary is involved). Left
 # strict-xfail for Sai's ruling rather than widening the blacklist here.
-@pytest.mark.xfail(strict=True, reason="pre-existing: 'myths' not a hedge token")
+# CLOSED by C3 ('myths' added to the hedge words) — now a permanent guard.
 def test_myths_list_lead_in_refuses(tmp_path):
     assert _verdict(tmp_path, "Myths:\n- the bank collapsed in March",
                     "The bank collapsed in March [S1].") != "GROUNDED"
