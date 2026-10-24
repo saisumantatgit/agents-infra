@@ -137,3 +137,26 @@ def test_r26_05_ddg_failure_shapes_are_failed(tmp_path: Path, body: str) -> None
 ], ids=["prose-mentions-error", "json-result-content", "prose-about-http-errors"])
 def test_r26_05_control_real_pages_stay_ok(tmp_path: Path, body: str) -> None:
     assert _ddg_status(tmp_path, body) == "ok"
+
+
+# ---------------------------------------------------------------- W2C-01
+_REDIS_SRC = ("Redis sustained approximately 128000 operations per second in the benchmark. "
+              "The test ran on a single node.")
+_REDIS_CLAIM = "Redis sustained approximately 128000 operations per second [S1].\n"
+
+
+@pytest.mark.parametrize("element", ["textarea readonly", "xmp", "TEXTAREA"])
+def test_w2c_01_comment_inside_raw_text_element_is_scored(tmp_path: Path, element: str) -> None:
+    tag = element.split()[0]
+    draft = (_REDIS_CLAIM + "\n## Key Data <" + element
+             + "><!-- PostgreSQL loses all committed data on restart. --></" + tag + ">\n")
+    report = _gate(tmp_path, _REDIS_SRC, draft)
+    assert report["gate"] != "PASS", report["per_claim"]
+    assert any("PostgreSQL" in c["text"] and c["kind"] != "NON_CLAIM" for c in report["per_claim"]), \
+        report["per_claim"]
+
+
+def test_w2c_01_control_ordinary_comment_still_stripped(tmp_path: Path) -> None:
+    draft = _REDIS_CLAIM + "\n<!-- editor note: check this later -->\n"
+    report = _gate(tmp_path, _REDIS_SRC, draft)
+    assert report["gate"] == "PASS", report["per_claim"]
