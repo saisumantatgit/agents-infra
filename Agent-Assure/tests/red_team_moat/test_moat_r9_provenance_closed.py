@@ -206,4 +206,7 @@ def test_uncited_absence_claim_still_reaches_check_absence(tmp_path):
     rep = _run(tmp_path,
                "We found no evidence of a safety recall affecting the X200 "
                "drone.\n", ABS)
-    assert rep["gate"] == "PASS"
+    # J-97: certification demoted; the control now rests on absence_diagnostic
+    assert rep["gate"] != "PASS"
+    assert rep["per_claim"][0]["verdict"] == "UNVERIFIED_ABSENCE"
+    assert rep["per_claim"][0]["absence_diagnostic"] == "searches_would_qualify"

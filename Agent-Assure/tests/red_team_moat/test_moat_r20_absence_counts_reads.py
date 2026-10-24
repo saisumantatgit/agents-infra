@@ -131,7 +131,10 @@ def test_POSITIVE_CONTROL_two_SUCCESSFUL_fetches_still_certify(tmp_path):
     for q in _QUERIES:
         _capture(store, _exa_event(q, _content(_REAL_PAGE)))
     report = _gate(tmp_path, store)
-    assert report["per_claim"][0]["verdict"] == "ABSENCE_SUPPORTED", report
+    # J-97: certification demoted; the control now rests on absence_diagnostic
+    assert report["per_claim"][0]["verdict"] == "UNVERIFIED_ABSENCE", report
+    assert report["gate"] != "PASS"
+    assert report["per_claim"][0]["absence_diagnostic"] == "searches_would_qualify", report
 
 
 def test_the_hook_RECORDS_the_failure_rather_than_dropping_it(tmp_path):

@@ -283,7 +283,9 @@ def test_the_same_absence_WITHOUT_a_figure_is_untouched():
     rep = _report("There is no fatality record for the aviation deaths.",
                   _ABS_STORE)
     entry = rep["per_claim"][0]
-    assert entry["verdict"] == "ABSENCE_SUPPORTED", entry
+    # J-97: certification demoted; the control now rests on absence_diagnostic
+    assert entry["verdict"] == "UNVERIFIED_ABSENCE", entry
+    assert entry["absence_diagnostic"] == "searches_would_qualify", entry
     assert "also asserts" not in entry["evidence_basis"]
 
 
