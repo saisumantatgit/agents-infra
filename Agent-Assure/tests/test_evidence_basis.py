@@ -207,7 +207,8 @@ def test_a_figure_refusal_names_the_figures_the_claim_asserts():
     basis = _basis_for(
         "The audit of the X200 drone programme recorded 94 advisories [S1].",
         "The audit of the X200 drone programme recorded 17 advisories in total.")
-    assert '"200"' in basis and '"94"' in basis, basis
+    # B2 (D-97): the identifier is listed whole, not as its digits "200".
+    assert '"X200"' in basis and '"94"' in basis, basis
     assert "value, unit and rate qualifier" in basis
 
 

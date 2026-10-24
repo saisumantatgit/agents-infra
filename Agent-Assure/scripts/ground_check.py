@@ -922,8 +922,13 @@ _RELATIONAL_TRIGGERS: tuple[str, ...] = (
 )
 
 # NumericToken pattern: optional $, digit cluster with optional suffix
+# B2 (D-97): a storage unit (B, KB, MB, GB, KiB, bytes ...) is a UNIT, not a
+# magnitude suffix — "16 MB" used to read as "16 M" (sixteen million). Every
+# alphabetic suffix must also END the word (`(?![A-Za-z])`), so "200 manual"
+# and "0.5 means" no longer borrow a letter as "m".
+_BYTE_SUFFIX = r"(?:kilo|mega|giga|tera|peta|exa)?bytes?|[kmgtpe]i?b|(?-i:B)"
 _NUMERIC_RE = _re.compile(
-    r"\$?\d[\d,.]*\s?(?:%|million|billion|k|m|bn)?",
+    r"\$?\d[\d,.]*\s?(?:(?:%|" + _BYTE_SUFFIX + r"|million|billion|bn|k|m)(?![A-Za-z]))?",
     _re.IGNORECASE,
 )
 
@@ -1203,7 +1208,6 @@ def classify(claim: Claim) -> Claim:
     # --- Extract numeric tokens from citation-stripped scratch copy ---
     # This prevents bracket digits like [S3] → '3' from leaking into numeric_tokens.
     _text_for_numeric = _CITATION_RE.sub("", text)
-    _raw_numeric = _NUMERIC_RE.findall(_text_for_numeric)
     # Strip a single trailing period from each token (sentence-boundary artifact).
     # Preserves $4M, 25%, $4,000,000 unchanged since they don't end with '.'.
     # OI-NUM-02: rstrip the token. _NUMERIC_RE's optional `\s?` exists so
@@ -1212,9 +1216,7 @@ def classify(claim: Claim) -> Claim:
     # against the source window (t2's numeric-presence gate), where it cannot
     # match a number ending a sentence — a false alarm on a real claim.
     # rstrip only touches the tail, so "$4 million"'s internal space survives.
-    numeric_tokens: tuple[str, ...] = tuple(
-        (t[:-1] if t.endswith(".") else t).rstrip() for t in _raw_numeric
-    )
+    numeric_tokens: tuple[str, ...] = _claim_figures(_text_for_numeric)
 
     # --- Ordered classification cascade ---
     if _is_non_claim(text):
@@ -1918,6 +1920,111 @@ def _best_window_score(
     return best
 
 
+# ---------------------------------------------------------------------------
+# B2 (D-97) — figures vs identifiers, storage units, trailing punctuation.
+#
+# A digit run FUSED with letters in one word — "ac77b8e", "X200", "T5",
+# "GPT-4", "ISO-27001", "o3-mini", "arXiv:2402.14207" — is an IDENTIFIER, not
+# a quantity. It used to be read as the figures 77, 8, 200, 5, 4 ... and then
+# refused (UNVERIFIED_NUMBER) whenever a source spelled the quantity
+# differently, or grounded on an unrelated bare number.
+#
+# An identifier is NOT dropped: it is emitted as ONE token, the whole word, and
+# numeric_ok requires that word itself, whole-word and casefolded, in a source
+# (and t2's window gate requires it verbatim in the window). So "X300" can never
+# be covered by "X200", nor "GPT-5" by "GPT-4", nor "ac77b8f" by "ac77b8e":
+# removing identifiers from VALUE matching replaced it with EXACT matching.
+#
+# Fused means: a letter immediately before the digits; or a letter/digit
+# immediately after the figure (and its unit, if any); or a joiner (- _ . : /)
+# before the digits whose preceding word segment looks like a CODE (it holds a
+# letter and an uppercase letter or digit: "GPT-4", "CR-007", "R21-01").
+# "13K-claim", "770M-parameter", "6-month" stay figures (the joiner FOLLOWS),
+# and so do "depth-1", "top-5" (an all-lowercase word before the joiner).
+# CEILING: "1990s" and "4x" read as identifiers (exact-match only, so it can
+# only refuse more, never ground a different figure); "Top-5" at a sentence
+# start is an identifier. Upgrade path: a
+# tokenizer with a lexicon of figure-forming suffixes.
+_ID_JOINERS = "-_.:/"
+
+
+def _identifier_span(text: str, start: int, end: int) -> tuple[int, int] | None:
+    """Return the (start, end) of the identifier word containing the figure
+    match text[start:end], or None when the match is a genuine figure. Pure.
+
+    *start* must point at the first digit (any "$" excluded by the caller).
+    """
+    body_end = end
+    while body_end > start and (text[body_end - 1] in ".," or text[body_end - 1].isspace()):
+        body_end -= 1  # trailing sentence punctuation is not part of a figure
+    before = text[start - 1] if start > 0 else ""
+    after = text[body_end] if body_end < len(text) else ""
+    fused = before.isalpha() or after.isalnum()
+    if not fused and before and before in _ID_JOINERS:
+        j = start - 1
+        k = j
+        while k > 0 and text[k - 1].isalnum():
+            k -= 1
+        seg = text[k:j]
+        fused = any(c.isalpha() for c in seg) and any(c.isupper() or c.isdigit() for c in seg)
+    if not fused:
+        return None
+    lo = start
+    while lo > 0 and (text[lo - 1].isalnum()
+                      or (text[lo - 1] in _ID_JOINERS and lo > 1 and text[lo - 2].isalnum())):
+        lo -= 1
+    hi = start
+    while hi < len(text) and (text[hi].isalnum()
+                              or (text[hi] in _ID_JOINERS and hi + 1 < len(text)
+                                  and text[hi + 1].isalnum())):
+        hi += 1
+    return (lo, hi)
+
+
+def _clean_figure(token: str) -> str:
+    """Strip whitespace and trailing sentence punctuation (". ,") from a figure
+    token: "20," and "1." are the figures 20 and 1. Pure."""
+    return token.rstrip().rstrip(".,").rstrip()
+
+
+def _claim_figures(text: str) -> tuple[str, ...]:
+    """Return the figure and identifier tokens asserted by *text* (already
+    NFKC-normalised and citation-stripped), in order. Pure."""
+    out: list[str] = []
+    seen_ids: set[tuple[int, int]] = set()
+    for m in _NUMERIC_RE.finditer(text):
+        tok = m.group(0)
+        digit_start = m.start() + (len(tok) - len(tok.lstrip("$")))
+        span = None if tok.startswith("$") else _identifier_span(text, digit_start, m.end())
+        if span is None:
+            cleaned = _clean_figure(tok)
+            if cleaned and any(c.isdigit() for c in cleaned):
+                out.append(cleaned)
+            continue
+        if span in seen_ids:
+            continue
+        seen_ids.add(span)
+        out.append(text[span[0]:span[1]])
+    return tuple(out)
+
+
+def _is_identifier_token(token: str) -> bool:
+    """True iff *token* is an identifier emitted by _claim_figures: one word
+    (no whitespace) holding a digit and a letter that does not parse as a
+    figure. Pure."""
+    return (not any(c.isspace() for c in token)
+            and any(c.isdigit() for c in token)
+            and any(c.isalpha() for c in token)
+            and _parse_numeric_token(token) is None)
+
+
+def _identifier_in_sources(token: str, sources: list[RetrievedSource]) -> bool:
+    """True iff the identifier *token* appears whole-word (casefolded, NFKC) in
+    the text of at least one source. Pure."""
+    pat = _re.compile(r"(?<!\w)" + _re.escape(_nfkc(token).casefold()) + r"(?!\w)")
+    return any(pat.search(_nfkc(src.text).casefold()) for src in sources)
+
+
 def _numeric_tokens_from_text(text: str) -> tuple[str, ...]:
     """Return numeric tokens extracted from *text*.
 
@@ -1933,9 +2040,8 @@ def _numeric_tokens_from_text(text: str) -> tuple[str, ...]:
     """
     normalized = _nfkc(text)
     text_for_numeric = _CITATION_RE.sub("", normalized)
-    raw_numeric = _NUMERIC_RE.findall(text_for_numeric)
-    # rstrip per OI-NUM-02 — must stay identical to classify()'s extraction.
-    return tuple((t[:-1] if t.endswith(".") else t).rstrip() for t in raw_numeric)
+    # Must stay identical to classify()'s extraction — both call one helper.
+    return _claim_figures(text_for_numeric)
 
 
 def t2_lexical_score(claim_text: str, source_text: str) -> float:
@@ -2106,7 +2212,8 @@ def t2_lexical(
 # Word-boundary anchored on suffix to avoid substring matches (e.g. "25%" in
 # source must not also yield a stray "5" or "2" match from inside the token).
 _SOURCE_NUMERIC_RE = _re.compile(
-    r"\$?\d[\d,.]*\s?(?:million|billion|percent|k|m|bn|%)?(?!\d)",
+    r"\$?\d[\d,.]*\s?(?:(?:million|billion|percent|" + _BYTE_SUFFIX
+    + r"|bn|k|m|%)(?![A-Za-z]))?(?!\d)",
     _re.IGNORECASE,
 )
 
@@ -2353,6 +2460,25 @@ def _numeric_context(before_text: str, after_text: str) -> tuple[str | None, str
     return quantity, rate
 
 
+def _byte_unit(suffix: str) -> str | None:
+    """Canonical storage unit for a lower-cased suffix ("mb" -> "MB",
+    "kib" -> "KiB", "bytes" -> "B"), or None. Pure.
+
+    CEILING: case is folded, so "Mb" (megabit) reads as "MB" (megabyte).
+    Upgrade path: keep the suffix's case once sources are seen to distinguish.
+    """
+    if suffix in ("b", "byte", "bytes"):
+        return "B"
+    words = {"kilo": "K", "mega": "M", "giga": "G", "tera": "T", "peta": "P", "exa": "E"}
+    w = _re.fullmatch(r"(kilo|mega|giga|tera|peta|exa)bytes?", suffix)
+    if w is not None:
+        return words[w.group(1)] + "B"
+    m = _re.fullmatch(r"([kmgtpe])(i?)b", suffix)
+    if m is None:
+        return None
+    return m.group(1).upper() + m.group(2) + "B"
+
+
 def _parse_numeric_token(token: str) -> tuple[float, str] | None:
     """Parse a numeric token string into a canonical (value, unit) pair.
 
@@ -2388,6 +2514,11 @@ def _parse_numeric_token(token: str) -> tuple[float, str] | None:
         return (base, "absolute")
     if suffix in _PERCENT_SUFFIXES:
         return (base, "percent")
+    byte_unit = _byte_unit(suffix)
+    if byte_unit is not None:
+        # B2: a storage unit is matched like a unit — never scaled, never
+        # equal to a bare or magnitude-suffixed number ("16 MB" != "16 million").
+        return (base, "bytes:" + byte_unit)
     multiplier = _ABSOLUTE_MULTIPLIERS.get(suffix)
     if multiplier is None:
         # Exotic unit — fail-closed
@@ -2485,6 +2616,11 @@ def _extract_numeric_mentions(
     normalized = _nfkc(text)
     out: list[tuple[float, str, str | None, str | None, frozenset[str]]] = []
     for m in _SOURCE_NUMERIC_RE.finditer(normalized):
+        _tok = m.group(0)
+        _ds = m.start() + (len(_tok) - len(_tok.lstrip("$")))
+        if not _tok.startswith("$") and _identifier_span(normalized, _ds, m.end()) is not None:
+            # B2: digits inside an identifier ("X200") are not a source figure.
+            continue
         result = _parse_numeric_token(m.group(0))
         if result is not None:
             value, unit = result
@@ -2548,6 +2684,14 @@ def numeric_ok(claim: Claim, sources: list[RetrievedSource]) -> bool:
     claim_text_normalized = _CITATION_RE.sub("", _nfkc(claim.text))
     search_from = 0
     for token in claim.numeric_tokens:
+        if _is_identifier_token(token):
+            # B2: an identifier is matched EXACTLY (whole word), never by value.
+            if not _identifier_in_sources(token, sources):
+                return False
+            pos = claim_text_normalized.find(token, search_from)
+            if pos != -1:
+                search_from = pos + len(token)
+            continue
         claim_pair = _parse_numeric_token(token)
         if claim_pair is None:
             # Cannot parse claim token — fail-closed.
