@@ -1829,3 +1829,10 @@ mine** — named for Sai, not touched.
 | **Decided** | Run C1–C5 of `docs/planning/OVERNIGHT-2026-10-25.md` to the **07:30 IST** hard stop. Budget **4M** new tokens, ceiling **4.8M**. |
 | **Authority** | Fail-closed changes (C3) are mine. PASS-enabling changes (C2) are BUILT and PRICED only — Sai rules. Guide corrections (docs) are mine. PRs only, never merged; no outbound calls by adversaries. |
 | **UNDO** | CronDelete the id in the progress file; close tonight's PRs; delete branches `overnight-2026-10-25`, `c2-*`, `c3-*`. |
+## D-98 — Sai merged PR #19 (2026-10-25): readiness A + B is on main, q03's price accepted
+
+| | |
+|---|---|
+| **Decided by Sai** | Merged PR #19 by his own command, its body stating the price: **Error-A 0.440 → 0.480**, gold row q03 refused by the R27-01 negated-claim limiter guard. Read as accepting that price under option A (a claim that drops a source's stated condition is refused). |
+| **Measured on main `80196b2`** | Suite 996 passed · 61 xfailed; gold md5 unchanged; Error-B 0/27; usage set 6 of 177 grounded (unchanged by B). |
+| **UNDO** | `git revert -m 1 80196b2`. |
