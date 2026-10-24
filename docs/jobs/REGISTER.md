@@ -1006,3 +1006,19 @@ right investment instead.
 | R21-07 LOW: string-typed `isError`/`code`; `text`-over-`content` | open | Claude |
 | DDG and Read records holding error text recorded "ok" | open, needs a live DDG failure capture | Claude + **Sai** (a live session) |
 | `isError` reaching the hook for a failing MCP call | UNKNOWN | **Sai** (a live session) |
+
+## BURST 2026-10-24 — what is open and whose
+
+| Job | State | Owner |
+|---|---|---|
+| Merge #13 → #12 → #11 (in that order) | Due diligence complete; `gh pr merge` DENIED by the auto-mode classifier | **Sai** |
+| PR #14 DDG failure text | built, live-verified on Sai's probe record | **Sai** — review/merge |
+| PR #15 W2A same-sentence coverage | built, proven red, no Error-A price | **Sai** |
+| PR #16 W2D Read paths + extent | built, proven red; CEILING: a short source quoted whole is refused | **Sai** |
+| PR #17 W2B figure qualifiers | built, proven red, no Error-A price | **Sai** |
+| #14–#17 attacks | **NOT attacked** by any round | Claude — next session |
+| **USAGE: 0 of 20 honest drafts PASS; 171/177 true claims refused** | the readiness finding; every remedy is PASS-enabling | **Sai** (Escalation #1) |
+| DDG stored as a JSON wrapper `{"result":...}` | live-observed; unwrapping lets more pass | **Sai** (Escalation #1) |
+| W2A-03 / W2A-04-same-sentence | open, strict xfail (needs clause binding, J-70) | Claude |
+| W2C-01 textarea/xmp comment under a heading; R7 stop-word & irregular-verb heading | open | Claude |
+| W2B-06 `#3`; word-attached signs; `$` vs "yen" with no glyph | open (CEILINGs) | Claude |
