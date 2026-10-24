@@ -70,13 +70,8 @@ def test_attribution_over_a_non_determiner_function_word_must_not_ground(tmp_pat
     assert gate != "PASS"
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="R8A-02 RESIDUE OPEN: same gap, exercised against an explicit "
-           "DENIAL. The gate certifies the negation of its own source at "
-           "PASS/100.0 whenever the frame is longer than _span_is_hedged's "
-           "5-token lookback. J-21.",
-)
+# R8A-02 residue (explicit denial) CLOSED by B1 (D-97, 2026-10-25): the
+# negation-polarity guard refuses a unit whose negators the claim lacks.
 def test_explicit_denial_over_a_non_determiner_function_word_must_not_ground(tmp_path):
     verdict, gate = _verdict(
         tmp_path, f"At least three Redis nodes silently lose acknowledged "
