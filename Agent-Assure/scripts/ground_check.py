@@ -1877,11 +1877,64 @@ class _UnitContext:
     prefix: tuple[str, ...]     # earlier units of the SAME sentence
     previous: tuple[str, ...]   # the previous sentence
     following: tuple[str, ...]  # the next sentence
+    disowned: bool              # H4: sits under a "Myths:"-style list label
+
+
+# H4 (2026-10-25): label words that DISOWN the list under them ("Myths:",
+# "Fallacies:", "Debunked:", "False claims:", "Rumours:"). Refusal only (D-69).
+_DISOWNING_LABEL_TOKENS: frozenset[str] = frozenset({
+    "myth", "myths", "misconception", "misconceptions", "fallacy", "fallacies",
+    "debunked", "false", "untrue", "falsehood", "falsehoods", "rumour",
+    "rumours", "rumor", "rumors", "hoax", "hoaxes", "disinformation",
+    "misinformation", "fake",
+})
+_LABEL_LINE_RE = _re.compile(r"^[\s#>*_]*(?P<label>[^:\n]{1,60}):(?P<rest>.*)$")
+_LIST_ITEM_RE = _re.compile(r"^\s*(?:[-*+\u2022]|\d+[.)])\s")
+
+
+def _disowned_lines(source_text: str) -> list[tuple[str, ...]]:
+    """Token tuples of every line that sits under a disowning list label. Pure.
+
+    A label is a line "<= 6 words that include a disowning word>:"; the text
+    after its colon and every following list-item line (blank lines allowed)
+    are disowned, until the first non-blank line that is not a list item.
+
+    CEILING: line-shaped markdown/plain lists only. A label two paragraphs
+    above, a table, an HTML <ul>, prose "the following are myths" with no
+    colon, or an unlisted label word ("Nonsense:") still grounds (fail-open);
+    any item whose words repeat elsewhere in the source is refused there too
+    (Error-A). Upgrade path: a real document-structure parse.
+    """
+    out: list[tuple[str, ...]] = []
+    under_label = False
+    for line in _nfkc(source_text).split("\n"):
+        if not line.strip():
+            continue
+        match = _LABEL_LINE_RE.match(line)
+        label_tokens = _tokenize(match.group("label")) if match else []
+        if match and len(label_tokens) <= 6 and set(label_tokens) & _DISOWNING_LABEL_TOKENS:
+            under_label = True
+            rest = _tokenize(match.group("rest"))
+            if rest:
+                out.append(tuple(rest))
+            continue
+        if under_label and _LIST_ITEM_RE.match(line):
+            out.append(tuple(_tokenize(line)))
+            continue
+        under_label = False
+    return out
+
+
+def _within(inner: tuple[str, ...], outer: tuple[str, ...]) -> bool:
+    """True iff *inner* occurs contiguously in *outer*. Pure."""
+    width = len(inner)
+    return any(outer[i:i + width] == inner for i in range(len(outer) - width + 1))
 
 
 def _source_unit_contexts(source_text: str) -> list[_UnitContext]:
     """The units of `_source_units`, in the same order, each with its denial
     context. Pure."""
+    disowned = _disowned_lines(source_text)
     sentences = _split_sentences(source_text)
     sentence_tokens = [tuple(_tokenize(s)) for s in sentences]
     out: list[_UnitContext] = []
@@ -1893,6 +1946,7 @@ def _source_unit_contexts(source_text: str) -> list[_UnitContext]:
             toks = tuple(_tokenize(unit))
             out.append(_UnitContext(
                 tokens=toks, prefix=tuple(prefix),
+                disowned=bool(toks) and any(_within(toks, d) for d in disowned),
                 previous=sentence_tokens[s - 1] if s > 0 else (),
                 following=sentence_tokens[s + 1] if s + 1 < len(sentences) else ()))
             prefix.extend(toks)
@@ -1938,6 +1992,8 @@ def _unit_denied(ctx: _UnitContext, match_start: int) -> bool:
     sentence that denies without a forward reference word. Upgrade path: a
     discourse/coreference model of what a denial targets.
     """
+    if ctx.disowned:
+        return True
     before = ctx.prefix + ctx.tokens[:match_start]
     if any(tok in _DENIAL_TOKENS for tok in before):
         return True

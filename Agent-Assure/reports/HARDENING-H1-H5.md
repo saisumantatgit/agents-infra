@@ -79,3 +79,24 @@ baseline after every fix.
 - **Rates:** Error-A 12/25, Error-B 0/27 — unchanged (capture-side; no gold row drifted).
 - **CEILING (in code):** a phrase list; a site's own block page not in the server source
   stays `"ok"` (the existing R20 CEILING).
+- **Commit:** `7bacc9b`.
+
+## H4: disowning list labels
+
+- **Hole:** "Myths:" refused only the FIRST item (via the 5-token lookback). "Rumours:" /
+  "Rumors:" refused nothing; "Fallacies:", "Debunked:", "False claims:", "Myths:",
+  "Misconceptions:" refused the first item but grounded the second and later items.
+- **Red (pre-fix = H3 commit 7bacc9b):** `tests/red_team_moat/test_moat_h4_list_labels.py`:
+  16 failed, 9 passed. Failing: all 7 labels on the second item and on a numbered list
+  under a `##` heading; Rumours/Rumors also on the first item. Passing pre-fix: 5 first-item
+  cases (already refused, by the lookback or H1's same-sentence rule) and 4 controls
+  (neutral labels "Key facts:", "Timeline:", "Findings:"; a list that ends at a plain
+  paragraph).
+- **Fix:** `_disowned_lines` marks the text after a short disowning label's colon and every
+  following list-item line (blank lines allowed) until the first non-item line;
+  `_UnitContext.disowned` makes `_unit_denied` refuse such units.
+- **Green:** 25 passed. Full suite 1106 passed, 2 skipped, 60 xfailed.
+- **Rates:** Error-A 12/25, Error-B 0/27 — unchanged; zero gold rows drifted.
+- **CEILING (in code):** line-shaped lists only; a label two paragraphs up, a table, an HTML
+  list, a colon-less "the following are myths", or an unlisted label word still grounds.
+  An item whose words recur elsewhere in the source is refused there too (Error-A).
