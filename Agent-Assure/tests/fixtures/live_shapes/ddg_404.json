@@ -1,0 +1,17 @@
+{
+  "_provenance": "LIVE 2026-10-24: Sai's probe session, DDG fetch of a dead ECB URL, stored via the real capture hook",
+  "tool_name": "mcp__ddg-search__fetch_content",
+  "tool_input": {
+    "url": "https://www.ecb.europa.eu/this-page-does-not-exist-assure-probe"
+  },
+  "tool_response": "{\"result\":\"Error: Could not access the webpage (Client error '404 Not Found' for url 'https://www.ecb.europa.eu/this-page-does-not-exist-assure-probe'\\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/404)\"}",
+  "expect": {
+    "records": 1,
+    "statuses": [
+      "failed"
+    ],
+    "urls": [
+      "https://www.ecb.europa.eu/this-page-does-not-exist-assure-probe"
+    ]
+  }
+}
