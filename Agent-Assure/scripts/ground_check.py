@@ -2301,10 +2301,80 @@ def _parse_numeric_token(token: str) -> tuple[float, str] | None:
     return (base * multiplier, "absolute")
 
 
+# W2B-01..05 (red team 2026-10-24) — a figure is VALUE + QUALIFIERS.
+#
+# Both numeric regexes start at the first digit, so everything written in front
+# of it was discarded: a source's "-12%" grounded a claim of "12%", "~40%" /
+# ">40%" / "≤4%" grounded a bare figure, "¥40M" grounded "$40M", ".5%" grounded
+# "5%" and "4‰" grounded a bare "4" — each at PASS 100.0.
+#
+# The repair is one parse, not a list of symbols: the qualifier of a figure is
+# the run of non-alphanumeric, non-space glyphs IMMEDIATELY before its first
+# digit whose Unicode category is a math symbol (Sm: + − < > ≈ ≤ ≥ ± ~), a
+# currency symbol (Sc: $ € £ ¥ ₹ ...), a dash (Pd: -), or the decimal point
+# "." — plus a trailing currency (Sc) or per-mille/per-myriad sign (‰ ‱).
+# Two figures match only when their qualifier SETS are EQUAL, in both
+# directions: the source's qualifier must be stated by the claim, and the
+# claim's by the source — with ONE exception, below. Fail-closed: this only
+# adds a condition to a match.
+#
+# The exception: a claim's CURRENCY glyph is not required of a source figure
+# that carries NO currency glyph at all, because a source may state the
+# currency in words ("4 million USD" grounds "$4M" — test_numeric pins this).
+# A source with a DIFFERENT currency glyph still refuses ("¥40M" vs "$40M").
+# CEILING: claim "$4M" against source "4 million yen" is not refused by this
+# check (status quo before W2B); upgrade path is reading currency words.
+#
+# A prefix run attached to a word or digit ("COVID-19", "2019-2020", "v.2") is
+# a joiner, not a qualifier, and is ignored — otherwise every hyphenated range
+# end would refuse.
+# CEILING: a joiner-attached sign IS dropped, so "from 5 to-3%" reads as 3%;
+# and word-form qualifiers ("about", "minus", "USD") are left to the lexical
+# tier. Upgrade path: a tokenizer that reads the figure's whole phrase.
+_FIGURE_PREFIX_CATEGORIES: frozenset[str] = frozenset({"Sm", "Sc", "Pd"})
+_FIGURE_SUFFIX_MARKS: frozenset[str] = frozenset({"\u2030", "\u2031"})
+
+
+def _qualifiers_match(claim_quals: frozenset[str], source_quals: frozenset[str]) -> bool:
+    """True iff two figures' qualifier sets agree (see W2B comment). Pure."""
+    if claim_quals == source_quals:
+        return True
+    source_has_currency = any(unicodedata.category(c) == "Sc" for c in source_quals)
+    if source_has_currency:
+        return False
+    claim_non_currency = frozenset(c for c in claim_quals if unicodedata.category(c) != "Sc")
+    return claim_non_currency == source_quals
+
+
+def _figure_qualifiers(before: str, after: str) -> frozenset[str]:
+    """Return the qualifier glyphs of a figure from its surrounding text.
+
+    *before* is the text up to (not including) the figure's first digit;
+    *after* is the text following the figure token. Pure.
+    """
+    run: list[str] = []
+    i = len(before)
+    while i > 0:
+        ch = before[i - 1]
+        if ch == "." or unicodedata.category(ch) in _FIGURE_PREFIX_CATEGORIES:
+            run.append(ch)
+            i -= 1
+            continue
+        break
+    if run and i > 0 and before[i - 1].isalnum():
+        run = []
+    quals = set(run)
+    if after:
+        ch = after[0]
+        if ch in _FIGURE_SUFFIX_MARKS or unicodedata.category(ch) == "Sc":
+            quals.add(ch)
+    return frozenset(quals)
+
+
 def _extract_numeric_mentions(
     text: str,
-) -> list[tuple[float, str, str | None, str | None]]:
-    """Return all parseable (value, unit, rate, quantity) tuples in *text*.
+) -> list[tuple[float, str, str | None, str | None, frozenset[str]]]:
+    """Return all parseable (value, unit, rate, quantity, qualifiers) tuples in *text*.
 
     NFKC-normalizes before scanning; the dimensional context (measured quantity
     + rate denominator) is read from the windows around each numeric mention:
@@ -2313,7 +2383,7 @@ def _extract_numeric_mentions(
     May contain duplicates. Pure function.
     """
     normalized = _nfkc(text)
-    out: list[tuple[float, str, str | None, str | None]] = []
+    out: list[tuple[float, str, str | None, str | None, frozenset[str]]] = []
     for m in _SOURCE_NUMERIC_RE.finditer(normalized):
         result = _parse_numeric_token(m.group(0))
         if result is not None:
@@ -2321,7 +2391,11 @@ def _extract_numeric_mentions(
             quantity, rate = _numeric_context(
                 normalized[: m.start()], normalized[m.end():]
             )
-            out.append((value, unit, rate, quantity))
+            digit_start = m.start() + (len(m.group(0)) - len(m.group(0).lstrip("$")))
+            quals = _figure_qualifiers(
+                normalized[:digit_start], normalized[m.end():]
+            )
+            out.append((value, unit, rate, quantity, quals))
     return out
 
 
@@ -2363,7 +2437,7 @@ def numeric_ok(claim: Claim, sources: list[RetrievedSource]) -> bool:
         return False
 
     # Pre-compute all source (value, unit, rate, quantity) mentions once.
-    source_mentions: list[tuple[float, str, str | None, str | None]] = []
+    source_mentions: list[tuple[float, str, str | None, str | None, frozenset[str]]] = []
     for source in sources:
         source_mentions.extend(_extract_numeric_mentions(source.text))
 
@@ -2382,6 +2456,9 @@ def numeric_ok(claim: Claim, sources: list[RetrievedSource]) -> bool:
 
         claim_rate: str | None = None
         claim_quantity: str | None = None
+        # W2B: a token not locatable in the text carries only the "$" its own
+        # string states — never fewer qualifiers than it visibly has.
+        claim_quals: frozenset[str] = frozenset({"$"}) if token.startswith("$") else frozenset()
         pos = claim_text_normalized.find(token, search_from)
         if pos == -1:
             pos = claim_text_normalized.find(token)
@@ -2390,11 +2467,20 @@ def numeric_ok(claim: Claim, sources: list[RetrievedSource]) -> bool:
             claim_quantity, claim_rate = _numeric_context(
                 claim_text_normalized[:pos], claim_text_normalized[token_end:]
             )
+            digit_start = pos + (len(token) - len(token.lstrip("$")))
+            claim_quals = _figure_qualifiers(
+                claim_text_normalized[:digit_start],
+                claim_text_normalized[token_end:],
+            )
             search_from = token_end
 
         matched = False
-        for s_val, s_unit, s_rate, s_quantity in source_mentions:
+        for s_val, s_unit, s_rate, s_quantity, s_quals in source_mentions:
             if claim_val != s_val or claim_unit != s_unit:
+                continue
+            # W2B: sign / comparator / currency / leading point / per-mille
+            # must be stated identically on both sides.
+            if not _qualifiers_match(claim_quals, s_quals):
                 continue
             # An asserted rate/quantity must be matched by the source mention;
             # an unasserted one imposes no constraint.
