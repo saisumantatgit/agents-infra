@@ -1,0 +1,25 @@
+{
+  "_provenance": "LIVE 2026-10-10: round 21 raw capture exa_raw_3 (verified by orchestrator) — a failed URL's error appended INLINE after the page that worked, no header.",
+  "tool_name": "mcp__exa__web_fetch_exa",
+  "tool_input": {
+    "urls": [
+      "https://example.com",
+      "https://www.ecb.europa.eu/press/zentara-bank-doesnotexist-r21.html"
+    ]
+  },
+  "tool_response": [
+    {
+      "type": "text",
+      "text": "# Example Domain\nURL: https://example.com\n\nExample Domain\n\nThis domain is for use in documentation examples without needing permission.\n\nError fetching https://www.ecb.europa.eu/press/zentara-bank-doesnotexist-r21.html: CRAWL_NOT_FOUND"
+    }
+  ],
+  "expect": {
+    "records": 1,
+    "statuses": [
+      "failed"
+    ],
+    "urls": [
+      null
+    ]
+  }
+}

@@ -118,7 +118,7 @@ def _rec(sid="S1", text="Redis replicates to three replicas.",
             "fetched_at": "2026-09-13T00:00:00Z", "tool": tool,
             "content_sha256": "a" * 64, "text": text,
             "full_text_source": fts, "captured_via": "inline",
-            "query_provenance": qp}
+            "retrieval_status": "ok", "query_provenance": qp}
 
 
 def _verdicts(tmp_path, draft, records):
@@ -216,7 +216,12 @@ def test_LIMITATION_absence_queries_are_chosen_by_the_agent(tmp_path):
     """NOT PROMISED: that "we found no evidence of X" was checked against a real
     search. ACCEPTED DESIGN (Sai, 2026-10-01): no search tool is captured, so
     the "distinct searches" behind an absence claim are strings the agent
-    supplied as `query_provenance`."""
+    supplied as `query_provenance`.
+
+    J-97 / ADR-009 (2026-10-22): this LIMITATION no longer certifies. Absence is
+    demoted, so agent-chosen queries cannot produce a PASS; the diagnostic still
+    reports that the agent-supplied searches WOULD have qualified.
+    """
     recs = [_rec("SA1", "Nothing was found in the recall archive for the X200.",
                  qp="recall evidence search X200 drone"),
             _rec("SA2", "The recall database returned zero results for X200.",
@@ -224,18 +229,11 @@ def test_LIMITATION_absence_queries_are_chosen_by_the_agent(tmp_path):
     rep = _verdicts(tmp_path,
                     "We found no evidence of a safety recall affecting the "
                     "X200 drone.\n", recs)
-    # J-81 note (2026-10-03): this PASS is now partly INCIDENTAL. Since
-    # J-62+J-71 gave the ABSENCE branch the figure checks, `X200` extracts as
-    # the numeric token `200` (J-72, a model number read as a quantity) and the
-    # claim survives only because both source texts happen to contain "X200".
-    # Change either source to omit the model number and this test fails with
-    # UNVERIFIED_NUMBER — and the message below would then misdirect the reader
-    # toward the absence rules, which are not what refused it. The asserted
-    # property is still the right one; its margin is thinner than it looks.
-    assert rep["gate"] == "PASS", (
-        "absence certification changed — update the claim text, BUT check "
-        "per_claim[0]['verdict'] first: UNVERIFIED_NUMBER means the X200 "
-        "model-number misparse refused it (J-72), not the absence rules")
+    assert rep["gate"] != "PASS", "absence certified — J-97 demotion regressed"
+    assert rep["per_claim"][0]["verdict"] == "UNVERIFIED_ABSENCE", rep["per_claim"][0]
+    assert rep["per_claim"][0]["absence_diagnostic"] == "searches_would_qualify", (
+        "agent-chosen queries no longer reach the full chain — the diagnostic "
+        "is the only place this limitation is still visible")
 
 
 def test_LIMITATION_a_multi_line_authoring_note_is_scored(tmp_path):

@@ -15,7 +15,7 @@ import unicodedata
 
 import pytest
 
-from scripts.capture_core import make_record
+from scripts.capture_core import make_record, make_records
 from scripts.ground_check import RetrievedSource
 
 
@@ -504,16 +504,31 @@ class TestContentBlockList:
         assert rec.full_text_source == "verbatim"
         assert rec.content_sha256 == _sha("Redis did 128000 ops")
 
-    def test_multiple_content_blocks_joined(self):
-        rec = make_record(
+    def test_multiple_content_blocks_are_SEPARATE_records(self):
+        """REPLACED 2026-10-10 — the assertion this test used to make pinned a
+        DEFECT. It was `test_multiple_content_blocks_joined` and asserted
+        `rec.text == "Alpha\\nBeta"`: the very join that let a verbatim span
+        cross from one fetched document into another and certify a sentence
+        present in neither (R20-01, PASS 100.0). The replacement is STRONGER,
+        not weaker: it asserts each block is its own record, AND that the
+        single-record API now refuses rather than silently re-gluing."""
+        records = make_records(
             tool_name="mcp__ddg-search__fetch_content",
             tool_input={"url": "https://example.com"},
             tool_response={"content": [{"type": "text", "text": "Alpha"},
                                         {"type": "text", "text": "Beta"}]},
             source_id=FIXED_ID, query_provenance=FIXED_QP, fetched_at=FIXED_AT,
         )
-        assert rec is not None
-        assert rec.text == "Alpha\nBeta"
+        assert [r.text for r in records] == ["Alpha", "Beta"]
+        assert all(r.url == "https://example.com" for r in records)
+        with pytest.raises(ValueError, match="R20-01"):
+            make_record(
+                tool_name="mcp__ddg-search__fetch_content",
+                tool_input={"url": "https://example.com"},
+                tool_response={"content": [{"type": "text", "text": "Alpha"},
+                                            {"type": "text", "text": "Beta"}]},
+                source_id=FIXED_ID, query_provenance=FIXED_QP, fetched_at=FIXED_AT,
+            )
 
     def test_non_string_non_list_value_fails_loud(self):
         """A 'text' value that is neither str nor a content-block list must raise

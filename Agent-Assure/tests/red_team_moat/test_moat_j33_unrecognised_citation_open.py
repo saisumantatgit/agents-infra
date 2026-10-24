@@ -50,7 +50,7 @@ def _rec(sid, text, qp):
             "fetched_at": "2026-09-13T00:00:00Z", "tool": "Read",
             "content_sha256": "a" * 64, "text": text,
             "full_text_source": "verbatim", "captured_via": "inline",
-            "query_provenance": qp}
+            "retrieval_status": "ok", "query_provenance": qp}
 
 
 REL = [

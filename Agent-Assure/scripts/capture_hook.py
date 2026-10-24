@@ -48,7 +48,7 @@ if str(_REPO_ROOT) not in sys.path:
 from scripts.capture_core import (  # noqa: E402
     assign_and_append,
     is_retrieval_tool,
-    make_record,
+    make_records,
 )
 
 
@@ -146,7 +146,7 @@ def process_event(event: dict, store_path: str) -> str | None:
 
     query_provenance = _derive_query_provenance(tool_input, event)
 
-    record = make_record(
+    records = make_records(
         tool_name=tool_name,
         tool_input=tool_input,
         tool_response=tool_response,
@@ -158,11 +158,16 @@ def process_event(event: dict, store_path: str) -> str | None:
         # expressible at all. Empty when the harness omits it, which
         # assert_single_session treats as UNATTRIBUTABLE and refuses.
         session_id=_event_session_id(event),
+        # W2D-01: the agent's cwd, so a relative Read path is stored absolute.
+        cwd=event["cwd"] if isinstance(event.get("cwd"), str) else "",
     )
-    if record is None:
+    if not records:
         return None
-
-    return assign_and_append(record, store_path)
+    # One record per fetched document (R20-01): each gets its own source_id.
+    # The FIRST id is returned, which is the whole answer for every
+    # single-document tool and what the hook's callers have always used.
+    assigned = [assign_and_append(record, store_path) for record in records]
+    return assigned[0]
 
 
 def main() -> int:

@@ -33,7 +33,7 @@ def _rec(sid, text, fts="verbatim", tool="Read"):
     return {"source_id": sid, "url": None, "file_path": "/tmp/a",
             "fetched_at": "2026-09-13T00:00:00Z", "tool": tool,
             "content_sha256": "a", "text": text, "full_text_source": fts,
-            "captured_via": "inline", "query_provenance": "q-" + sid}
+            "captured_via": "inline", "retrieval_status": "ok", "query_provenance": "q-" + sid}
 
 
 def _run(tmp_path, draft, records):
@@ -54,10 +54,10 @@ REL = [
 ABS = [
     {**_rec("SA1", "No recall evidence was found in the manufacturer's safety "
                    "bulletin archive for the X200 drone line."),
-     "query_provenance": "recall evidence search X200 drone"},
+     "retrieval_status": "ok", "query_provenance": "recall evidence search X200 drone"},
     {**_rec("SA2", "The public recall database returned zero results for X200 "
                    "drone safety evidence."),
-     "query_provenance": "regulatory database evidence query X200"},
+     "retrieval_status": "ok", "query_provenance": "regulatory database evidence query X200"},
 ]
 
 
@@ -206,4 +206,7 @@ def test_uncited_absence_claim_still_reaches_check_absence(tmp_path):
     rep = _run(tmp_path,
                "We found no evidence of a safety recall affecting the X200 "
                "drone.\n", ABS)
-    assert rep["gate"] == "PASS"
+    # J-97: certification demoted; the control now rests on absence_diagnostic
+    assert rep["gate"] != "PASS"
+    assert rep["per_claim"][0]["verdict"] == "UNVERIFIED_ABSENCE"
+    assert rep["per_claim"][0]["absence_diagnostic"] == "searches_would_qualify"

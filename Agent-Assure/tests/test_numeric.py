@@ -194,10 +194,12 @@ def test_numeric_ok_nfkc_normalization():
     # the ASCII _NUMERIC_RE in classify() and exercise _parse_numeric_token directly.
     claim_with_fw = Claim(
         index=0,
-        text="Revenue was ４Ｍ last year.",  # ４Ｍ (full-width)
+        # W2B: the source states "$", so the claim must too — a claim dropping
+        # the source's currency no longer matches (fail-closed, 2026-10-24).
+        text="Revenue was $４Ｍ last year.",  # ４Ｍ (full-width)
         kind=ClaimKind.NUMERIC,
         citations=(),
-        numeric_tokens=("４Ｍ",),  # ４Ｍ — full-width token
+        numeric_tokens=("$４Ｍ",),  # ４Ｍ — full-width token
     )
     sources = [src("Revenue totalled $4,000,000 in the period.")]
     assert numeric_ok(claim_with_fw, sources) is True

@@ -35,7 +35,7 @@ def _store_row(source_id: str, text: str, query_provenance: str) -> dict:
         "file_path": None, "fetched_at": "2026-09-12T00:00:00Z", "tool": "mcp__exa__web_fetch_exa",
         "content_sha256": "a" * 64, "text": text,
         "full_text_source": "verbatim", "captured_via": "exa",
-        "query_provenance": query_provenance,
+        "retrieval_status": "ok", "query_provenance": query_provenance,
     }
 
 
@@ -73,15 +73,11 @@ def _basis(report: dict) -> str:
 # searches certify a worldwide absence at 100.0/PASS.
 # ---------------------------------------------------------------------------
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="R8C-01 OPEN: _absence_scope_terms only recognises scope "
-    "expressed as a preposition (in/within/across/...). A scope expressed as "
-    "an adverb ('worldwide') produces no scope terms, the scope check "
-    "becomes vacuously true, and two FDA/US-only searches certify a "
-    "WORLDWIDE absence.",
-)
 def test_adverbial_worldwide_scope_must_not_be_certified_by_us_only_searches(tmp_path: Path) -> None:
+    """CLOSED BY DEMOTION (J-97 / ADR-009, 2026-10-22) — not repaired: the mechanism below is unchanged, but no absence can be certified, so it cannot produce a PASS. If absence is ever re-promoted, this hole reopens.
+
+    R8C-01: an adverbial scope ('worldwide') yields no scope terms.
+    """
     draft = "There is no recall of the Zentara inhaler worldwide.\n"
     rows = [
         _store_row("S1", "The weather in Ohio was mild.", "Zentara inhaler recall FDA"),
@@ -109,15 +105,11 @@ def test_control_prepositional_scope_form_is_correctly_refused(tmp_path: Path) -
 # the session's queries happen to satisfy.
 # ---------------------------------------------------------------------------
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="R8C-02 OPEN: _absence_scope_terms keeps only the LAST scope "
-    "preposition in the sentence. A broad scope ('in any regulated market') "
-    "asserted early is discarded in favor of a narrow trailing PP "
-    "('in FDA filings') that the session's queries do satisfy, so the broad "
-    "claim is certified by evidence that only covers the narrow one.",
-)
 def test_trailing_narrow_scope_must_not_shadow_the_broad_scope_actually_asserted(tmp_path: Path) -> None:
+    """CLOSED BY DEMOTION (J-97 / ADR-009, 2026-10-22) — not repaired: the mechanism below is unchanged, but no absence can be certified, so it cannot produce a PASS. If absence is ever re-promoted, this hole reopens.
+
+    R8C-02: a trailing narrow scope shadows the broad scope asserted earlier.
+    """
     draft = ("There is no recall of the Zentara inhaler in any regulated "
              "market, according to the records in FDA filings.\n")
     rows = [
@@ -136,15 +128,11 @@ def test_trailing_narrow_scope_must_not_shadow_the_broad_scope_actually_asserted
 # negation elsewhere.
 # ---------------------------------------------------------------------------
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="R8C-03 OPEN: the RT3-04 contradiction check skips any retrieved-"
-    "source window matching _ABSENCE_NEGATION_RE anywhere in the sentence. A "
-    "source sentence that affirmatively announces the recall, with an "
-    "unrelated subordinate negation ('though it is not yet clear how many "
-    "units are affected'), is skipped instead of refuting the absence claim.",
-)
 def test_unrelated_negation_in_the_same_sentence_must_not_disarm_the_contradiction_check(tmp_path: Path) -> None:
+    """CLOSED BY DEMOTION (J-97 / ADR-009, 2026-10-22) — not repaired: the mechanism below is unchanged, but no absence can be certified, so it cannot produce a PASS. If absence is ever re-promoted, this hole reopens.
+
+    R8C-03: an unrelated negation disarms the contradiction check.
+    """
     draft = "There is no recall of the Zentara inhaler.\n"
     text = ("The Zentara inhaler recall was announced on 3 May, though it is "
             "not yet clear how many units are affected.")
