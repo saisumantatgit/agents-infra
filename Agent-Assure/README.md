@@ -6,6 +6,8 @@ Verification-first grounding gate for AI-generated drafts. Checks every factual 
 
 ---
 
+> **Quote your sources.** A claim passes only when its words appear verbatim (8+ words in a row) in a retrieved source; paraphrase is refused by design. Measured 2026-10-24: 0 of 20 paraphrased honest drafts passed. See `docs/ALPHA-TESTER-GUIDE.md`.
+
 ## How it works — two halves
 
 1. **Capture (automatic).** A `PostToolUse` hook (`hooks/hooks.json` → `scripts/capture_hook.py`) fires after every retrieval tool call — Exa fetch, `Read`, native `WebFetch`, DDG fetch — and appends a verbatim-tagged record to `.assure/evidence-store.jsonl`. You do nothing; the store is built as you research. All payload shapes are live-validated against a real Claude Code session (2026-07-03): large `Read` results truncate inline (the store holds exactly what the model saw); native `WebFetch` (Haiku-summarized) is tagged `haiku_summary` so the gate refuses to certify against it.

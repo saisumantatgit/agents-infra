@@ -6,6 +6,23 @@ Every statement here comes from the repo (README, install.sh, the skill, the com
 
 ---
 
+## Before you start: this tool expects you to QUOTE your sources
+
+Agent-Assure passes a claim only when it can see the claim's words in a source
+the session actually retrieved — at least eight words in a row, copied exactly.
+It does not judge whether a paraphrase means the same thing; that would need an
+AI inside the checker, which this tool deliberately does not have.
+
+**What that means in practice.** Measured on 2026-10-24: 20 honest research
+drafts, written the way people normally write, every claim true to its source —
+**none passed**; 171 of 177 true claims were refused, mostly because they were
+paraphrased. Write the factual core of each claim as a short quotation from
+the source and cite it inside the sentence: `The audit found "material
+weaknesses in custodial reconciliation" [S1].`
+
+**So a FAIL usually means "quote your source", not "your claim is false".**
+Read the per-claim reason before concluding anything about your draft.
+
 ## 1. What it does
 
 Agent-Assure checks that every factual claim in an AI-written draft is TRACEABLE to text that your Claude Code session actually retrieved. While you research, a hook records each retrieved source word for word into a file called the evidence store. When you ask for a check, a plain Python program (no AI model, no network) compares each claim and its citation marker (for example `[S2]`) against that store. If the draft cites `[S3]` and no `[S3]` was ever retrieved, the program refuses it. Nobody can talk it out of that.
