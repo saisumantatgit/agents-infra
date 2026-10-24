@@ -1,0 +1,509 @@
+[
+ {
+  "draft": 1,
+  "claim": 1,
+  "variant": "literal",
+  "sentence": "The log records that Sai's rulings of 2026-10-02 \"authorised each item individually and fixed their ORDER\" [S1].",
+  "quotes": [
+   "authorised each item individually and fixed their ORDER"
+  ],
+  "tokens": [
+   8
+  ],
+  "words": [
+   8
+  ],
+  "feat": "line-break, number(date)"
+ },
+ {
+  "draft": 1,
+  "claim": 1,
+  "variant": "natural",
+  "sentence": "Sai's 2026-10-02 rulings \"authorised each item individually\" and, per the log, \"fixed their ORDER\" [S1].",
+  "quotes": [
+   "authorised each item individually",
+   "fixed their ORDER"
+  ],
+  "tokens": [
+   4,
+   3
+  ],
+  "words": [
+   4,
+   3
+  ],
+  "feat": "line-break, number(date)"
+ },
+ {
+  "draft": 1,
+  "claim": 2,
+  "variant": "literal",
+  "sentence": "Decision D-72 was that the \"seven pre-existing Error-Bs registered, not fixed\" [S1].",
+  "quotes": [
+   "seven pre-existing Error-Bs registered, not fixed"
+  ],
+  "tokens": [
+   8
+  ],
+  "words": [
+   6
+  ],
+  "feat": "bullet, number"
+ },
+ {
+  "draft": 1,
+  "claim": 2,
+  "variant": "natural",
+  "sentence": "The D-72 decision registered the \"seven pre-existing Error-Bs\" rather than fixing them [S1].",
+  "quotes": [
+   "seven pre-existing Error-Bs"
+  ],
+  "tokens": [
+   5
+  ],
+  "words": [
+   3
+  ],
+  "feat": "bullet, number"
+ },
+ {
+  "draft": 1,
+  "claim": 3,
+  "variant": "literal",
+  "sentence": "The D-71 bullet reports that \"Making a preposition a run boundary\" does not shorten the endpoint [S1].",
+  "quotes": [
+   "Making a preposition a run boundary"
+  ],
+  "tokens": [
+   6
+  ],
+  "words": [
+   6
+  ],
+  "feat": "bullet, line-break"
+ },
+ {
+  "draft": 1,
+  "claim": 3,
+  "variant": "natural",
+  "sentence": "D-71 found that making a preposition a run boundary \"does not shorten the endpoint\" [S1].",
+  "quotes": [
+   "does not shorten the endpoint"
+  ],
+  "tokens": [
+   5
+  ],
+  "words": [
+   5
+  ],
+  "feat": "bullet, line-break"
+ },
+ {
+  "draft": 2,
+  "claim": 1,
+  "variant": "literal",
+  "sentence": "The log states that \"T1 and corroboration are not nested\" [S2].",
+  "quotes": [
+   "T1 and corroboration are not nested"
+  ],
+  "tokens": [
+   6
+  ],
+  "words": [
+   6
+  ],
+  "feat": "bullet, number(T1)"
+ },
+ {
+  "draft": 2,
+  "claim": 1,
+  "variant": "natural",
+  "sentence": "The log concludes that \"T1 and corroboration\" are \"not nested\" [S2].",
+  "quotes": [
+   "T1 and corroboration",
+   "not nested"
+  ],
+  "tokens": [
+   3,
+   2
+  ],
+  "words": [
+   3,
+   2
+  ],
+  "feat": "bullet, number(T1)"
+ },
+ {
+  "draft": 2,
+  "claim": 2,
+  "variant": "literal",
+  "sentence": "Sai ruled on the relational branch: \"branch (demote to a diagnostic, keep the machinery, ship after the demotion\" [S2].",
+  "quotes": [
+   "branch (demote to a diagnostic, keep the machinery, ship after the demotion"
+  ],
+  "tokens": [
+   12
+  ],
+  "words": [
+   12
+  ],
+  "feat": "line-break"
+ },
+ {
+  "draft": 2,
+  "claim": 2,
+  "variant": "natural",
+  "sentence": "Sai ruled to \"demote to a diagnostic\" and \"keep the machinery\" [S2].",
+  "quotes": [
+   "demote to a diagnostic",
+   "keep the machinery"
+  ],
+  "tokens": [
+   4,
+   3
+  ],
+  "words": [
+   4,
+   3
+  ],
+  "feat": "line-break"
+ },
+ {
+  "draft": 2,
+  "claim": 3,
+  "variant": "literal",
+  "sentence": "Round 12 \"ended it with seven demonstrated Error-B shapes\" on the relational branch [S2].",
+  "quotes": [
+   "ended it with seven demonstrated Error-B shapes"
+  ],
+  "tokens": [
+   8
+  ],
+  "words": [
+   7
+  ],
+  "feat": "line-break, number(word)"
+ },
+ {
+  "draft": 2,
+  "claim": 3,
+  "variant": "natural",
+  "sentence": "Round 12 had ended the morning with \"seven demonstrated Error-B shapes\" on the relational branch [S2].",
+  "quotes": [
+   "seven demonstrated Error-B shapes"
+  ],
+  "tokens": [
+   5
+  ],
+  "words": [
+   4
+  ],
+  "feat": "line-break, number(word)"
+ },
+ {
+  "draft": 3,
+  "claim": 1,
+  "variant": "literal",
+  "sentence": "The log says J-62+J-71 \"landed in the verdict path under his GO, and immediately started masking\" other findings [S3].",
+  "quotes": [
+   "landed in the verdict path under his GO, and immediately started masking"
+  ],
+  "tokens": [
+   12
+  ],
+  "words": [
+   12
+  ],
+  "feat": "line-break"
+ },
+ {
+  "draft": 3,
+  "claim": 1,
+  "variant": "natural",
+  "sentence": "J-62+J-71 landed in the verdict path \"under his GO\" and \"immediately started masking other findings\" [S3].",
+  "quotes": [
+   "under his GO",
+   "immediately started masking other findings"
+  ],
+  "tokens": [
+   3,
+   5
+  ],
+  "words": [
+   3,
+   5
+  ],
+  "feat": "line-break"
+ },
+ {
+  "draft": 3,
+  "claim": 2,
+  "variant": "literal",
+  "sentence": "The suite finished at \"822 passed \u00b7 2 skipped \u00b7 66 xfailed\" [S3].",
+  "quotes": [
+   "822 passed \u00b7 2 skipped \u00b7 66 xfailed"
+  ],
+  "tokens": [
+   6
+  ],
+  "words": [
+   8
+  ],
+  "feat": "numbers"
+ },
+ {
+  "draft": 3,
+  "claim": 2,
+  "variant": "natural",
+  "sentence": "The suite finished at \"822 passed\" with \"2 skipped\" and \"66 xfailed\" [S3].",
+  "quotes": [
+   "822 passed",
+   "2 skipped",
+   "66 xfailed"
+  ],
+  "tokens": [
+   2,
+   2,
+   2
+  ],
+  "words": [
+   2,
+   2,
+   2
+  ],
+  "feat": "numbers"
+ },
+ {
+  "draft": 3,
+  "claim": 3,
+  "variant": "literal",
+  "sentence": "Under D-83, \"release APPROVED on the current disclosure\" [S3].",
+  "quotes": [
+   "release APPROVED on the current disclosure"
+  ],
+  "tokens": [
+   6
+  ],
+  "words": [
+   6
+  ],
+  "feat": "bullet, number(D-83)"
+ },
+ {
+  "draft": 3,
+  "claim": 3,
+  "variant": "natural",
+  "sentence": "Release was \"APPROVED on the current disclosure\" under D-83 [S3].",
+  "quotes": [
+   "APPROVED on the current disclosure"
+  ],
+  "tokens": [
+   5
+  ],
+  "words": [
+   5
+  ],
+  "feat": "bullet, number(D-83)"
+ },
+ {
+  "draft": 4,
+  "claim": 1,
+  "variant": "literal",
+  "sentence": "The day's adversarial rounds ended with \"Seven CRITICALs found, every one mine\" [S4].",
+  "quotes": [
+   "Seven CRITICALs found, every one mine"
+  ],
+  "tokens": [
+   6
+  ],
+  "words": [
+   6
+  ],
+  "feat": "line-break, number(word)"
+ },
+ {
+  "draft": 4,
+  "claim": 1,
+  "variant": "natural",
+  "sentence": "The day's adversarial rounds found \"Seven CRITICALs\", \"every one mine\" [S4].",
+  "quotes": [
+   "Seven CRITICALs",
+   "every one mine"
+  ],
+  "tokens": [
+   2,
+   3
+  ],
+  "words": [
+   2,
+   3
+  ],
+  "feat": "line-break, number(word)"
+ },
+ {
+  "draft": 4,
+  "claim": 2,
+  "variant": "literal",
+  "sentence": "The suite ended at \"848 passed \u00b7 2 skipped \u00b7 68 xfailed \u00b7 exit 0\" [S4].",
+  "quotes": [
+   "848 passed \u00b7 2 skipped \u00b7 68 xfailed \u00b7 exit 0"
+  ],
+  "tokens": [
+   8
+  ],
+  "words": [
+   11
+  ],
+  "feat": "numbers"
+ },
+ {
+  "draft": 4,
+  "claim": 2,
+  "variant": "natural",
+  "sentence": "The suite ended at \"848 passed\" with \"68 xfailed\" [S4].",
+  "quotes": [
+   "848 passed",
+   "68 xfailed"
+  ],
+  "tokens": [
+   2,
+   2
+  ],
+  "words": [
+   2,
+   2
+  ],
+  "feat": "numbers"
+ },
+ {
+  "draft": 4,
+  "claim": 3,
+  "variant": "literal",
+  "sentence": "The finding was that ground() has \"15 return statements across 6 kinds, and a check written at one\" of them protecting one [S4].",
+  "quotes": [
+   "15 return statements across 6 kinds, and a check written at one"
+  ],
+  "tokens": [
+   12
+  ],
+  "words": [
+   12
+  ],
+  "feat": "line-break, numbers"
+ },
+ {
+  "draft": 4,
+  "claim": 3,
+  "variant": "natural",
+  "sentence": "The day's finding was that ground() has \"15 return statements across 6 kinds\" [S4].",
+  "quotes": [
+   "15 return statements across 6 kinds"
+  ],
+  "tokens": [
+   6
+  ],
+  "words": [
+   6
+  ],
+  "feat": "line-break, numbers"
+ },
+ {
+  "draft": 5,
+  "claim": 1,
+  "variant": "literal",
+  "sentence": "The log says main already ships Agent-Assure \"at the Phase-1 engine \u2014 1,388 lines\" [S5].",
+  "quotes": [
+   "at the Phase-1 engine \u2014 1,388 lines"
+  ],
+  "tokens": [
+   8
+  ],
+  "words": [
+   7
+  ],
+  "feat": "line-break, numbers"
+ },
+ {
+  "draft": 5,
+  "claim": 1,
+  "variant": "natural",
+  "sentence": "main already ships Agent-Assure \"at the Phase-1 engine\" of \"1,388 lines\" [S5].",
+  "quotes": [
+   "at the Phase-1 engine",
+   "1,388 lines"
+  ],
+  "tokens": [
+   5,
+   3
+  ],
+  "words": [
+   4,
+   2
+  ],
+  "feat": "line-break, numbers"
+ },
+ {
+  "draft": 5,
+  "claim": 2,
+  "variant": "literal",
+  "sentence": "The log says R1 \"made the deployed error rates re-derivable by one read-only command\" [S5].",
+  "quotes": [
+   "made the deployed error rates re-derivable by one read-only command"
+  ],
+  "tokens": [
+   12
+  ],
+  "words": [
+   10
+  ],
+  "feat": "line-break"
+ },
+ {
+  "draft": 5,
+  "claim": 2,
+  "variant": "natural",
+  "sentence": "R1 made the error rates \"re-derivable by one read-only command\" [S5].",
+  "quotes": [
+   "re-derivable by one read-only command"
+  ],
+  "tokens": [
+   7
+  ],
+  "words": [
+   5
+  ],
+  "feat": "line-break"
+ },
+ {
+  "draft": 5,
+  "claim": 3,
+  "variant": "literal",
+  "sentence": "The day run records that \"Four of six committed rows built\" [S5].",
+  "quotes": [
+   "Four of six committed rows built"
+  ],
+  "tokens": [
+   6
+  ],
+  "words": [
+   6
+  ],
+  "feat": "number(word)"
+ },
+ {
+  "draft": 5,
+  "claim": 3,
+  "variant": "natural",
+  "sentence": "The day run built \"Four of six committed rows\" [S5].",
+  "quotes": [
+   "Four of six committed rows"
+  ],
+  "tokens": [
+   5
+  ],
+  "words": [
+   5
+  ],
+  "feat": "number(word)"
+ }
+]
