@@ -1364,6 +1364,81 @@ def _span_is_hedged(source_tokens: list[str], start: int) -> bool:
     return any(tok in _SPAN_HEDGE_TOKENS for tok in window)
 
 
+
+# --- C2: the look-back must not cross a sentence boundary --------------------
+#
+# _span_is_hedged works on whole-source tokens and cannot see punctuation, so a
+# claim copied EXACTLY from a source sentence was refused whenever the previous
+# sentence happened to end in a hedge token: "... was not. The bank collapsed in
+# March." refused "The bank collapsed in March [S1]." That is an Error-A (honest
+# claim refused), and it is the commonest look-back refusal in the quoting set.
+#
+# RULE. Clip the look-back at a sentence boundary ONLY when the span starts at a
+# sentence start, and ONLY when every hedge token the clip would drop is a plain
+# negator ("not", "no", "never") in a previous sentence that does not pass a
+# truth judgement. Everything else keeps today's behaviour (fail-closed):
+#   * boundary = [.!?] (optionally closing quote/bracket) + whitespace, and the
+#     span's first character is upper-case or a digit. A colon is NOT a boundary
+#     ("The following claim is false: the bank collapsed"). A bare newline is NOT
+#     a boundary: "Myths:\n- the bank collapsed" is a list governed by its lead-in,
+#     and a line break cannot tell a governed list item from a new statement.
+#   * attribution / falsity / conditional tokens across the boundary still refuse
+#     ("Critics claimed X. X.", "That is false. X."): only negators are dropped.
+#   * a previous sentence containing a truth predicate refuses ("It is not true.
+#     The bank collapsed." / "That is not the case. X.") — it may be a verdict on
+#     what follows, and we cannot parse which way it points.
+#
+# CEILING: boundary detection is a regex, not a sentence splitter. An abbreviation
+# followed by a capitalised word ("Not per the U.S. Treasury ...") reads as a
+# boundary; it only matters when a plain negator sits in the dropped tokens and no
+# truth predicate does. Upgrade path: a real splitter with an abbreviation list,
+# shared with _contained_with_matching_polarity's sentence units.
+_SENTENCE_BOUNDARY_RE = _re.compile(r"[.!?][\"'\u201d\u2019)\]]*\s+$")
+_DROPPABLE_HEDGES: frozenset[str] = frozenset({"not", "no", "never"})
+_TRUTH_PREDICATES: frozenset[str] = frozenset({
+    "true", "truth", "so", "case", "correct", "accurate", "right", "real",
+    "fact", "facts", "myth", "myths", "false", "untrue", "wrong", "following",
+})
+
+
+def _span_is_hedged_in_source(
+    source_text: str, source_tokens: list[str], start: int
+) -> bool:
+    """Sentence-aware wrapper over _span_is_hedged (C2). Pure function.
+
+    Returns _span_is_hedged's answer unless the span at *start* begins a source
+    sentence and the only hedges in the window lie in the previous sentence and
+    are droppable negators under the rule above; then returns False.
+    """
+    if not _span_is_hedged(source_tokens, start):
+        return False
+    if start == 0:
+        return False  # empty window; unreachable since hedged implies start>0
+    prepared = _expand_negation_contractions(_nfkc(source_text))
+    matches = list(_re.finditer(r"\w+", prepared))
+    if len(matches) != len(source_tokens):
+        return True  # tokenisation disagreement: fail closed
+    first = matches[start]
+    gap = prepared[matches[start - 1].end():first.start()]
+    if not _SENTENCE_BOUNDARY_RE.search(gap):
+        return True
+    head = first.group(0)[0]
+    if not (head.isupper() or head.isdigit()):
+        return True
+    window = source_tokens[max(0, start - _SPAN_HEDGE_LOOKBACK):start]
+    if not all(t in _DROPPABLE_HEDGES for t in window if t in _SPAN_HEDGE_TOKENS):
+        return True
+    # the whole previous sentence must be free of truth predicates
+    prev_start = 0
+    for i in range(start - 1, 0, -1):
+        g = prepared[matches[i - 1].end():matches[i].start()]
+        if _SENTENCE_BOUNDARY_RE.search(g):
+            prev_start = i
+            break
+    if any(t in _TRUTH_PREDICATES for t in source_tokens[prev_start:start]):
+        return True
+    return False
+
 # --- OI-MOAT-27 / J-19: factivity, not a longer blacklist -------------------
 #
 # Round 7 defeated _SPAN_HEDGE_TOKENS five ways: a hedge beyond the 5-token
@@ -1532,7 +1607,7 @@ def _claim_contained_verbatim(
         for start in range(len(source_tokens) - width + 1):
             if source_tokens[start:start + width] != claim_tokens:
                 continue
-            if (_span_is_hedged(source_tokens, start)
+            if (_span_is_hedged_in_source(source.text, source_tokens, start)
                     or _span_under_nonfactive_complement(source_tokens, start)):
                 continue
             # B1: some sentence unit holding the span must negate exactly
@@ -1703,7 +1778,8 @@ def t1_verbatim(
                 continue
             window = tuple(claim_tokens[start : start + min_quote_len])
             for src_start in source_ngram_starts.get(window, ()):
-                if (_span_is_hedged(source_tokens, src_start)
+                if (_span_is_hedged_in_source(
+                        source.text, source_tokens, src_start)
                         or _span_under_nonfactive_complement(
                             source_tokens, src_start)):
                     continue
