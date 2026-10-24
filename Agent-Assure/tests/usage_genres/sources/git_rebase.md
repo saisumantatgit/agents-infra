@@ -1,0 +1,3 @@
+# Rebasing a feature branch
+
+Rebasing replays the commits of the current branch on top of another base commit. The command `git rebase main` moves the feature branch so that it starts from the tip of `main`. Each replayed commit receives a new hash, because its parent has changed. Conflicts are resolved one commit at a time, and `git rebase --continue` resumes after each fix. The option `--abort` restores the branch to the state it had before the rebase began. Rewriting history is unsafe for branches that other people have already pulled. The interactive form, `git rebase -i`, lets the author reorder, squash, edit or drop commits. A rebase that goes wrong can usually be recovered with `git reflog`, which lists the previous positions of `HEAD`.

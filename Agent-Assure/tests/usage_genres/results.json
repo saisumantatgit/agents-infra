@@ -1,0 +1,2370 @@
+{
+ "gates": {
+  "b01_bullets_copied": "PASS",
+  "b02_bullets_copied": "PASS",
+  "b03_bullets_copied": "FAIL",
+  "b04_bullets_copied": "PASS",
+  "b05_bullets_copied": "NEEDS_WORK",
+  "b06_bullets_copied": "FAIL",
+  "b07_bullets_copied": "PASS",
+  "b08_bullets_paraphrased": "FAIL",
+  "b09_bullets_paraphrased": "FAIL",
+  "b10_bullets_paraphrased": "FAIL",
+  "b11_bullets_paraphrased": "FAIL",
+  "b12_bullets_paraphrased": "FAIL",
+  "b13_bullets_paraphrased": "FAIL",
+  "b14_bullets_paraphrased": "FAIL",
+  "c01_code_copied": "FAIL",
+  "c02_code_copied": "FAIL",
+  "c03_code_copied": "NEEDS_WORK",
+  "c04_code_copied": "NEEDS_WORK",
+  "c05_code_copied": "NEEDS_WORK",
+  "c06_code_copied": "FAIL",
+  "c07_code_copied": "NEEDS_WORK",
+  "c08_code_paraphrased": "FAIL",
+  "c09_code_paraphrased": "FAIL",
+  "c10_code_paraphrased": "FAIL",
+  "c11_code_paraphrased": "FAIL",
+  "c12_code_paraphrased": "FAIL",
+  "c13_code_paraphrased": "FAIL",
+  "t01_tables_copied": "FAIL",
+  "t02_tables_copied": "FAIL",
+  "t03_tables_copied": "FAIL",
+  "t04_tables_copied": "FAIL",
+  "t05_tables_copied": "FAIL",
+  "t06_tables_copied": "FAIL",
+  "t07_tables_copied": "FAIL",
+  "t08_tables_paraphrased": "FAIL",
+  "t09_tables_paraphrased": "FAIL",
+  "t10_tables_paraphrased": "FAIL",
+  "t11_tables_paraphrased": "FAIL",
+  "t12_tables_paraphrased": "FAIL",
+  "t13_tables_paraphrased": "FAIL"
+ },
+ "authored_grounded": {
+  "b01_bullets_copied": [
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "b02_bullets_copied": [
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "b03_bullets_copied": [
+   true,
+   true,
+   false,
+   false,
+   true,
+   false
+  ],
+  "b04_bullets_copied": [
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "b05_bullets_copied": [
+   false,
+   false,
+   true,
+   true,
+   true
+  ],
+  "b06_bullets_copied": [
+   true,
+   false,
+   false,
+   false,
+   false,
+   false
+  ],
+  "b07_bullets_copied": [
+   true,
+   true,
+   true,
+   true
+  ],
+  "b08_bullets_paraphrased": [
+   false,
+   false,
+   false,
+   false,
+   false
+  ],
+  "b09_bullets_paraphrased": [
+   false,
+   false,
+   false,
+   false
+  ],
+  "b10_bullets_paraphrased": [
+   false,
+   false,
+   false,
+   false,
+   false
+  ],
+  "b11_bullets_paraphrased": [
+   false,
+   false,
+   false,
+   false,
+   false
+  ],
+  "b12_bullets_paraphrased": [
+   false,
+   false,
+   false,
+   false,
+   false
+  ],
+  "b13_bullets_paraphrased": [
+   false,
+   false,
+   false,
+   false,
+   false
+  ],
+  "b14_bullets_paraphrased": [
+   false,
+   false,
+   false,
+   false
+  ],
+  "c01_code_copied": [
+   true,
+   true,
+   false,
+   true,
+   true
+  ],
+  "c02_code_copied": [
+   true,
+   true,
+   true,
+   true
+  ],
+  "c03_code_copied": [
+   true,
+   true,
+   true
+  ],
+  "c04_code_copied": [
+   true,
+   true,
+   true
+  ],
+  "c05_code_copied": [
+   true,
+   true,
+   false,
+   true
+  ],
+  "c06_code_copied": [
+   true,
+   false,
+   false,
+   true
+  ],
+  "c07_code_copied": [
+   true,
+   true,
+   true,
+   false
+  ],
+  "c08_code_paraphrased": [
+   false,
+   false,
+   false,
+   false,
+   false
+  ],
+  "c09_code_paraphrased": [
+   false,
+   false,
+   false
+  ],
+  "c10_code_paraphrased": [
+   false,
+   false,
+   false,
+   false
+  ],
+  "c11_code_paraphrased": [
+   false,
+   false,
+   false,
+   true
+  ],
+  "c12_code_paraphrased": [
+   false,
+   false,
+   true,
+   false
+  ],
+  "c13_code_paraphrased": [
+   true,
+   false,
+   false
+  ],
+  "t01_tables_copied": [
+   true,
+   false,
+   false,
+   false,
+   true,
+   true
+  ],
+  "t02_tables_copied": [
+   false,
+   false,
+   false,
+   false,
+   false
+  ],
+  "t03_tables_copied": [
+   false,
+   false,
+   false,
+   false,
+   true
+  ],
+  "t04_tables_copied": [
+   false,
+   false,
+   false
+  ],
+  "t05_tables_copied": [
+   false,
+   false,
+   false
+  ],
+  "t06_tables_copied": [
+   false,
+   false,
+   true
+  ],
+  "t07_tables_copied": [
+   false,
+   false,
+   false,
+   true
+  ],
+  "t08_tables_paraphrased": [
+   false,
+   false,
+   false,
+   false,
+   false
+  ],
+  "t09_tables_paraphrased": [
+   false,
+   false,
+   false,
+   false
+  ],
+  "t10_tables_paraphrased": [
+   false,
+   false,
+   false
+  ],
+  "t11_tables_paraphrased": [
+   false,
+   false,
+   false
+  ],
+  "t12_tables_paraphrased": [
+   false,
+   false,
+   false
+  ],
+  "t13_tables_paraphrased": [
+   false,
+   false,
+   false,
+   false,
+   false
+  ]
+ },
+ "unfaithful_copied": {},
+ "claims": [
+  {
+   "draft": "b01_bullets_copied",
+   "genre": "bullets",
+   "variant": "copied",
+   "text": "# Harbour notes",
+   "kind": "NON_CLAIM",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "b01_bullets_copied",
+   "genre": "bullets",
+   "variant": "copied",
+   "text": "- The tide table for the harbour is published each December for the coming year [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b01_bullets_copied",
+   "genre": "bullets",
+   "variant": "copied",
+   "text": "- Spring tides occur twice a month, near the new moon and the full moon [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b01_bullets_copied",
+   "genre": "bullets",
+   "variant": "copied",
+   "text": "- Vessels drawing more than six metres must enter the channel within two hours of high water [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b01_bullets_copied",
+   "genre": "bullets",
+   "variant": "copied",
+   "text": "- The pilot boat leaves the quay thirty minutes before each scheduled arrival [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b01_bullets_copied",
+   "genre": "bullets",
+   "variant": "copied",
+   "text": "- Fog signals are sounded every two minutes when visibility falls below one kilometre [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b02_bullets_copied",
+   "genre": "bullets",
+   "variant": "copied",
+   "text": "# Harbour facts",
+   "kind": "NON_CLAIM",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "b02_bullets_copied",
+   "genre": "bullets",
+   "variant": "copied",
+   "text": "- The lighthouse on the northern breakwater was rebuilt in 1894 [S1]",
+   "kind": "NUMERIC",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b02_bullets_copied",
+   "genre": "bullets",
+   "variant": "copied",
+   "text": "automated in 1962 [S1].",
+   "kind": "NUMERIC",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b02_bullets_copied",
+   "genre": "bullets",
+   "variant": "copied",
+   "text": "- Fishing boats may moor at the east pier without charge for up to twelve hours [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b02_bullets_copied",
+   "genre": "bullets",
+   "variant": "copied",
+   "text": "- A red flag at the signal mast means the channel is closed to all traffic [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b02_bullets_copied",
+   "genre": "bullets",
+   "variant": "copied",
+   "text": "- The harbour dredging programme removes about forty thousand cubic metres of silt each year [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b02_bullets_copied",
+   "genre": "bullets",
+   "variant": "copied",
+   "text": "- Visiting yachts must report to the harbour office within one hour of arrival [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b03_bullets_copied",
+   "genre": "bullets",
+   "variant": "copied",
+   "text": "# Verdicts in short",
+   "kind": "FACTUAL",
+   "verdict": "UNCITED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "b03_bullets_copied",
+   "genre": "bullets",
+   "variant": "copied",
+   "text": "- UNCITED: a factual claim with no citation marker [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b03_bullets_copied",
+   "genre": "bullets",
+   "variant": "copied",
+   "text": "- UNVERIFIED_NUMBER: a number in the claim matches no source [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b03_bullets_copied",
+   "genre": "bullets",
+   "variant": "copied",
+   "text": "- UNVERIFIED_ABSENCE: a \"no X exists\" claim with fewer than 2 recorded searches that name the full subject [S1].",
+   "kind": "ABSENCE",
+   "verdict": "UNVERIFIED_ABSENCE",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b03_bullets_copied",
+   "genre": "bullets",
+   "variant": "copied",
+   "text": "- UNGROUNDABLE: every cited source is non-verbatim (for example a `haiku_summary` from native `WebFetch`), or empty [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b03_bullets_copied",
+   "genre": "bullets",
+   "variant": "copied",
+   "text": "- PASS: every scored claim is traceable AND the score is at or above the threshold [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b03_bullets_copied",
+   "genre": "bullets",
+   "variant": "copied",
+   "text": "- FAIL: the score is below 60 [S1].",
+   "kind": "NUMERIC",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b04_bullets_copied",
+   "genre": "bullets",
+   "variant": "copied",
+   "text": "# Rebase cheat sheet",
+   "kind": "NON_CLAIM",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "b04_bullets_copied",
+   "genre": "bullets",
+   "variant": "copied",
+   "text": "- Rebasing replays the commits of the current branch on top of another base commit [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b04_bullets_copied",
+   "genre": "bullets",
+   "variant": "copied",
+   "text": "- Each replayed commit receives a new hash, because its parent has changed [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b04_bullets_copied",
+   "genre": "bullets",
+   "variant": "copied",
+   "text": "- Conflicts are resolved one commit at a time [S1]",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b04_bullets_copied",
+   "genre": "bullets",
+   "variant": "copied",
+   "text": "`git rebase --continue` resumes after each fix [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b04_bullets_copied",
+   "genre": "bullets",
+   "variant": "copied",
+   "text": "- Rewriting history is unsafe for branches that other people have already pulled [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b04_bullets_copied",
+   "genre": "bullets",
+   "variant": "copied",
+   "text": "- A rebase that goes wrong can usually be recovered with `git reflog`, which lists the previous positions of `HEAD` [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b05_bullets_copied",
+   "genre": "bullets",
+   "variant": "copied",
+   "text": "# WAL in brief",
+   "kind": "NON_CLAIM",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "b05_bullets_copied",
+   "genre": "bullets",
+   "variant": "copied",
+   "text": "- Readers do not block writers [S1]",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b05_bullets_copied",
+   "genre": "bullets",
+   "variant": "copied",
+   "text": "a writer does not block readers [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b05_bullets_copied",
+   "genre": "bullets",
+   "variant": "copied",
+   "text": "- Only one writer can be active at a time [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b05_bullets_copied",
+   "genre": "bullets",
+   "variant": "copied",
+   "text": "- A checkpoint copies the pages from the log back into the main database file [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b05_bullets_copied",
+   "genre": "bullets",
+   "variant": "copied",
+   "text": "- By default a checkpoint is attempted automatically when the log reaches 1000 pages [S1].",
+   "kind": "NUMERIC",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b05_bullets_copied",
+   "genre": "bullets",
+   "variant": "copied",
+   "text": "- Long-running read transactions can prevent a checkpoint from finishing, which makes the log file grow [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b06_bullets_copied",
+   "genre": "bullets",
+   "variant": "copied",
+   "text": "# CLI notes",
+   "kind": "NON_CLAIM",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "b06_bullets_copied",
+   "genre": "bullets",
+   "variant": "copied",
+   "text": "- Exit codes: `0` = gate PASS, `1` = NEEDS_WORK or FAIL [S1].",
+   "kind": "NUMERIC",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b06_bullets_copied",
+   "genre": "bullets",
+   "variant": "copied",
+   "text": "- With `--json`: prints the full report as JSON to stdout (no file written) [S1].\n- The plugin ships one command (`/assure-verify`), one skill (`verify-grounding`), and the capture hook [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b06_bullets_copied",
+   "genre": "bullets",
+   "variant": "copied",
+   "text": "- One JSON object per line [S1].",
+   "kind": "ATTRIBUTION",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b06_bullets_copied",
+   "genre": "bullets",
+   "variant": "copied",
+   "text": "- Blank lines are skipped [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b06_bullets_copied",
+   "genre": "bullets",
+   "variant": "copied",
+   "text": "- All text fields are NFKC-normalized before matching [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "cited_sentence_may_not_assert_claim"
+  },
+  {
+   "draft": "b07_bullets_copied",
+   "genre": "bullets",
+   "variant": "copied",
+   "text": "# Rainfall points",
+   "kind": "NON_CLAIM",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "b07_bullets_copied",
+   "genre": "bullets",
+   "variant": "copied",
+   "text": "- Dunmore records the lowest total of the four stations [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b07_bullets_copied",
+   "genre": "bullets",
+   "variant": "copied",
+   "text": "- The measurements were taken with standard eight-inch gauges [S1]",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b07_bullets_copied",
+   "genre": "bullets",
+   "variant": "copied",
+   "text": "read at nine each morning [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b07_bullets_copied",
+   "genre": "bullets",
+   "variant": "copied",
+   "text": "- Totals are averaged over the thirty years ending in 2020 [S1].",
+   "kind": "NUMERIC",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b07_bullets_copied",
+   "genre": "bullets",
+   "variant": "copied",
+   "text": "- Rainfall at Brecon is nearly double that at Ashford because the station lies on the windward side of the hills [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b08_bullets_paraphrased",
+   "genre": "bullets",
+   "variant": "paraphrased",
+   "text": "# Harbour summary",
+   "kind": "NON_CLAIM",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "b08_bullets_paraphrased",
+   "genre": "bullets",
+   "variant": "paraphrased",
+   "text": "- Each year's tide table comes out in December [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b08_bullets_paraphrased",
+   "genre": "bullets",
+   "variant": "paraphrased",
+   "text": "- Large spring tides arrive twice a month, at new moon and at full moon [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b08_bullets_paraphrased",
+   "genre": "bullets",
+   "variant": "paraphrased",
+   "text": "- Ships that sit deeper than six metres have to enter the channel no more than two hours from high water [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b08_bullets_paraphrased",
+   "genre": "bullets",
+   "variant": "paraphrased",
+   "text": "- The pilot boat sets off from the quay half an hour before every scheduled arrival [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b08_bullets_paraphrased",
+   "genre": "bullets",
+   "variant": "paraphrased",
+   "text": "- Fog signals sound at two-minute intervals once visibility drops below a kilometre [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b09_bullets_paraphrased",
+   "genre": "bullets",
+   "variant": "paraphrased",
+   "text": "# Harbour summary, part two",
+   "kind": "NON_CLAIM",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "b09_bullets_paraphrased",
+   "genre": "bullets",
+   "variant": "paraphrased",
+   "text": "- The northern breakwater lighthouse was rebuilt in 1894 and went automatic in 1962 [S1].",
+   "kind": "NUMERIC",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b09_bullets_paraphrased",
+   "genre": "bullets",
+   "variant": "paraphrased",
+   "text": "- Fishing boats can tie up at the east pier for up to twelve hours at no charge [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "cited_sentence_may_not_assert_claim"
+  },
+  {
+   "draft": "b09_bullets_paraphrased",
+   "genre": "bullets",
+   "variant": "paraphrased",
+   "text": "- When the signal mast shows a red flag, the channel is closed to all traffic [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b09_bullets_paraphrased",
+   "genre": "bullets",
+   "variant": "paraphrased",
+   "text": "- Yachts visiting the harbour must check in with the harbour office within an hour of arriving [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b10_bullets_paraphrased",
+   "genre": "bullets",
+   "variant": "paraphrased",
+   "text": "# Rebase in a nutshell",
+   "kind": "NON_CLAIM",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "b10_bullets_paraphrased",
+   "genre": "bullets",
+   "variant": "paraphrased",
+   "text": "- A rebase takes the commits on your branch [S1]",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b10_bullets_paraphrased",
+   "genre": "bullets",
+   "variant": "paraphrased",
+   "text": "applies them again on top of a different base commit [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b10_bullets_paraphrased",
+   "genre": "bullets",
+   "variant": "paraphrased",
+   "text": "- Replayed commits get new hashes because their parents are different [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b10_bullets_paraphrased",
+   "genre": "bullets",
+   "variant": "paraphrased",
+   "text": "- You deal with conflicts one commit at a time, then continue with `git rebase --continue` [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b10_bullets_paraphrased",
+   "genre": "bullets",
+   "variant": "paraphrased",
+   "text": "- The `--abort` option puts the branch back the way it was before the rebase began [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b10_bullets_paraphrased",
+   "genre": "bullets",
+   "variant": "paraphrased",
+   "text": "- Rewriting history is unsafe on branches that other people have already pulled [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b11_bullets_paraphrased",
+   "genre": "bullets",
+   "variant": "paraphrased",
+   "text": "# WAL essentials",
+   "kind": "NON_CLAIM",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "b11_bullets_paraphrased",
+   "genre": "bullets",
+   "variant": "paraphrased",
+   "text": "- Changes go to a separate `-wal` file rather than straight into the database file [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b11_bullets_paraphrased",
+   "genre": "bullets",
+   "variant": "paraphrased",
+   "text": "- Readers and writers do not block each other [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b11_bullets_paraphrased",
+   "genre": "bullets",
+   "variant": "paraphrased",
+   "text": "- You switch the mode on with `PRAGMA journal_mode=WAL`, and the setting stays on for later connections [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b11_bullets_paraphrased",
+   "genre": "bullets",
+   "variant": "paraphrased",
+   "text": "- It cannot be used over a network filesystem, since every process has to share memory on one host [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b11_bullets_paraphrased",
+   "genre": "bullets",
+   "variant": "paraphrased",
+   "text": "- A checkpoint is attempted automatically once the log reaches 1000 pages [S1].",
+   "kind": "NUMERIC",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b12_bullets_paraphrased",
+   "genre": "bullets",
+   "variant": "paraphrased",
+   "text": "# Reading a verdict",
+   "kind": "FACTUAL",
+   "verdict": "UNCITED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "b12_bullets_paraphrased",
+   "genre": "bullets",
+   "variant": "paraphrased",
+   "text": "- GROUNDED means the claim's words appear word for word in a source that was retrieved [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "cited_sentence_may_not_assert_claim"
+  },
+  {
+   "draft": "b12_bullets_paraphrased",
+   "genre": "bullets",
+   "variant": "paraphrased",
+   "text": "- UNCITED is the verdict for a factual claim that has no citation marker [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b12_bullets_paraphrased",
+   "genre": "bullets",
+   "variant": "paraphrased",
+   "text": "- A PASS needs every scored claim to be traceable and the score to reach the threshold [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b12_bullets_paraphrased",
+   "genre": "bullets",
+   "variant": "paraphrased",
+   "text": "- When the store is empty the gate returns NEEDS_WORK, meaning there was nothing to check against [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "cited_sentence_may_not_assert_claim"
+  },
+  {
+   "draft": "b12_bullets_paraphrased",
+   "genre": "bullets",
+   "variant": "paraphrased",
+   "text": "- Headers, questions, instructions [S1]",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b12_bullets_paraphrased",
+   "genre": "bullets",
+   "variant": "paraphrased",
+   "text": "pure opinion are left out of the count [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b13_bullets_paraphrased",
+   "genre": "bullets",
+   "variant": "paraphrased",
+   "text": "# Cache-Control quick list",
+   "kind": "NON_CLAIM",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "b13_bullets_paraphrased",
+   "genre": "bullets",
+   "variant": "paraphrased",
+   "text": "- `max-age=N` keeps a response fresh for N seconds [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b13_bullets_paraphrased",
+   "genre": "bullets",
+   "variant": "paraphrased",
+   "text": "- `no-store` tells every cache not to store the response [S1].",
+   "kind": "ABSENCE",
+   "verdict": "UNVERIFIED_ABSENCE",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b13_bullets_paraphrased",
+   "genre": "bullets",
+   "variant": "paraphrased",
+   "text": "- A `no-cache` response may be stored, but it has to be revalidated before it is reused [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b13_bullets_paraphrased",
+   "genre": "bullets",
+   "variant": "paraphrased",
+   "text": "- `private` allows only the browser cache to store the response [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b13_bullets_paraphrased",
+   "genre": "bullets",
+   "variant": "paraphrased",
+   "text": "- An `ETag` identifies one specific version of a resource [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b14_bullets_paraphrased",
+   "genre": "bullets",
+   "variant": "paraphrased",
+   "text": "# Rainfall takeaways",
+   "kind": "NON_CLAIM",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "b14_bullets_paraphrased",
+   "genre": "bullets",
+   "variant": "paraphrased",
+   "text": "- Brecon gets nearly twice the rain that Ashford does, because it lies on the windward side of the hills [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b14_bullets_paraphrased",
+   "genre": "bullets",
+   "variant": "paraphrased",
+   "text": "- Dunmore has the lowest total of the four stations [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b14_bullets_paraphrased",
+   "genre": "bullets",
+   "variant": "paraphrased",
+   "text": "- Readings were taken each morning at nine with standard eight-inch gauges [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "b14_bullets_paraphrased",
+   "genre": "bullets",
+   "variant": "paraphrased",
+   "text": "- All the totals are averages over the thirty years ending in 2020 [S1].",
+   "kind": "NUMERIC",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c01_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "# Temporary files, part 1",
+   "kind": "NUMERIC",
+   "verdict": "UNCITED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "c01_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "The `tempfile` module creates temporary files [S1]",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c01_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "directories safely [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c01_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "`NamedTemporaryFile` returns a file object that is deleted as soon as it is closed [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c01_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "The function `mkstemp` returns a tuple of an open file descriptor [S1]",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c01_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "an absolute path, and the caller is responsible for deleting the file [S1].",
+   "kind": "RELATIONAL",
+   "verdict": "UNVERIFIED_RELATION",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c01_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "A `TemporaryDirectory` context manager removes the directory [S1]",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c01_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "everything inside it when the block exits [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c01_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "By default the files are created in the directory returned by `gettempdir`, which honors the `TMPDIR` environment variable [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c01_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "```python\nimport tempfile",
+   "kind": "FACTUAL",
+   "verdict": "UNCITED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "c01_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "with tempfile.",
+   "kind": "FACTUAL",
+   "verdict": "UNCITED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "c01_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "TemporaryDirectory() as d:\n    print(d)\n```",
+   "kind": "FACTUAL",
+   "verdict": "UNCITED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "c02_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "# Temporary files, part 2",
+   "kind": "NUMERIC",
+   "verdict": "UNCITED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "c02_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "Passing `delete=False` to `NamedTemporaryFile` keeps the file after it is closed, so that another process can open it by name [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c02_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "On Windows a file opened by `NamedTemporaryFile` cannot be opened a second time while it is still open [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c02_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "The `SpooledTemporaryFile` class keeps data in memory until it grows beyond `max_size` bytes [S1]",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c02_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "then rolls it over to disk [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c02_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "The module also offers `mktemp`, which is deprecated because it returns a name without creating the file, leaving a race condition between the call and the first use [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c02_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "```python\nimport tempfile",
+   "kind": "FACTUAL",
+   "verdict": "UNCITED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "c02_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "with tempfile.",
+   "kind": "FACTUAL",
+   "verdict": "UNCITED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "c02_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "TemporaryDirectory() as d:\n    print(d)\n```",
+   "kind": "FACTUAL",
+   "verdict": "UNCITED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "c03_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "# Rebase commands",
+   "kind": "NON_CLAIM",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "c03_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "The command `git rebase main` moves the feature branch so that it starts from the tip of `main` [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c03_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "The option `--abort` restores the branch to the state it had before the rebase began [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c03_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "The interactive form, `git rebase -i`, lets the author reorder, squash, edit or drop commits [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c03_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "```bash\ngit rebase main\ngit rebase --continue\n```",
+   "kind": "FACTUAL",
+   "verdict": "UNCITED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "c04_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "# Enabling WAL",
+   "kind": "FACTUAL",
+   "verdict": "UNCITED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "c04_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "The mode is enabled with the statement `PRAGMA journal_mode=WAL` [S1]",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c04_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "it persists across connections [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c04_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "In write-ahead logging mode, changes are appended to a separate file ending in `-wal` instead of being written straight into the database file [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c04_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "The write-ahead log does not work over a network filesystem, because all processes must share memory on the same host [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c04_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "```sql\nPRAGMA journal_mode=WAL;",
+   "kind": "FACTUAL",
+   "verdict": "UNCITED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "c04_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "```",
+   "kind": "NON_CLAIM",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "c05_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "# Index notes",
+   "kind": "NON_CLAIM",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "c05_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "The default index type is B-tree [S1]",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "cited_sentence_may_not_assert_claim"
+  },
+  {
+   "draft": "c05_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "`CREATE INDEX` builds one unless another method is named with `USING` [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "cited_sentence_may_not_assert_claim"
+  },
+  {
+   "draft": "c05_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "A partial index covers only the rows that satisfy a `WHERE` condition, which keeps it small [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c05_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "An index on an expression such as `lower(email)` speeds up queries that use the same expression [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c05_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "Building an index with `CREATE INDEX CONCURRENTLY` does not block writes to the table, although it takes longer to finish [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c06_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "# Validators and headers",
+   "kind": "FACTUAL",
+   "verdict": "UNCITED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "c06_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "An `ETag` is an opaque validator that identifies a specific version of a resource [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c06_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "A client sends the value back in an `If-None-Match` header [S1]",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "cited_sentence_may_not_assert_claim"
+  },
+  {
+   "draft": "c06_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "the server answers with status 304 when the resource has not changed [S1].",
+   "kind": "NUMERIC",
+   "verdict": "GROUNDED",
+   "diagnostic": "cited_sentence_may_not_assert_claim"
+  },
+  {
+   "draft": "c06_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "The `Vary` header lists the request headers that change the response, so that a cache keeps separate copies for each combination [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c06_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "The `Cache-Control` header carries the directives that govern this behaviour [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c07_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "# Install notes",
+   "kind": "NON_CLAIM",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "c07_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "`install.sh` creates a `.venv` folder, installs the dependencies [S1]",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c07_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "checks that the engine and hook import [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c07_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "On success it prints `engine + hook + deps: OK` [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c07_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "The store is written to `.assure/evidence-store.jsonl` in the project you work in [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c07_code_copied",
+   "genre": "code",
+   "variant": "copied",
+   "text": "Optional flag: `--threshold N` sets the score bar (default 90) [S1].",
+   "kind": "NUMERIC",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c08_code_paraphrased",
+   "genre": "code",
+   "variant": "paraphrased",
+   "text": "# Temp file behaviour",
+   "kind": "NON_CLAIM",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "c08_code_paraphrased",
+   "genre": "code",
+   "variant": "paraphrased",
+   "text": "`NamedTemporaryFile` gives you a file that is deleted the moment it is closed [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c08_code_paraphrased",
+   "genre": "code",
+   "variant": "paraphrased",
+   "text": "With `delete=False` the file survives the close, so another process can open it by name [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c08_code_paraphrased",
+   "genre": "code",
+   "variant": "paraphrased",
+   "text": "A `TemporaryDirectory` block removes the whole directory when the block ends [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c08_code_paraphrased",
+   "genre": "code",
+   "variant": "paraphrased",
+   "text": "`mkstemp` hands back an open file descriptor [S1]",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c08_code_paraphrased",
+   "genre": "code",
+   "variant": "paraphrased",
+   "text": "an absolute path, and deleting the file is up to the caller [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c08_code_paraphrased",
+   "genre": "code",
+   "variant": "paraphrased",
+   "text": "`mktemp` is deprecated because it only returns a name [S1]",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "cited_sentence_may_not_assert_claim"
+  },
+  {
+   "draft": "c08_code_paraphrased",
+   "genre": "code",
+   "variant": "paraphrased",
+   "text": "never creates the file, which leaves a race [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "cited_sentence_may_not_assert_claim"
+  },
+  {
+   "draft": "c08_code_paraphrased",
+   "genre": "code",
+   "variant": "paraphrased",
+   "text": "```python\nimport tempfile",
+   "kind": "FACTUAL",
+   "verdict": "UNCITED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "c08_code_paraphrased",
+   "genre": "code",
+   "variant": "paraphrased",
+   "text": "with tempfile.",
+   "kind": "FACTUAL",
+   "verdict": "UNCITED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "c08_code_paraphrased",
+   "genre": "code",
+   "variant": "paraphrased",
+   "text": "TemporaryDirectory() as d:\n    print(d)\n```",
+   "kind": "FACTUAL",
+   "verdict": "UNCITED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "c09_code_paraphrased",
+   "genre": "code",
+   "variant": "paraphrased",
+   "text": "# Where temp files live",
+   "kind": "FACTUAL",
+   "verdict": "UNCITED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "c09_code_paraphrased",
+   "genre": "code",
+   "variant": "paraphrased",
+   "text": "`gettempdir` decides where temporary files go by default [S1]",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c09_code_paraphrased",
+   "genre": "code",
+   "variant": "paraphrased",
+   "text": "it honors `TMPDIR` [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c09_code_paraphrased",
+   "genre": "code",
+   "variant": "paraphrased",
+   "text": "`SpooledTemporaryFile` holds data in memory [S1]",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c09_code_paraphrased",
+   "genre": "code",
+   "variant": "paraphrased",
+   "text": "moves it to disk once it grows past `max_size` bytes [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c09_code_paraphrased",
+   "genre": "code",
+   "variant": "paraphrased",
+   "text": "On Windows you cannot open a `NamedTemporaryFile` a second time while it is still open [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c10_code_paraphrased",
+   "genre": "code",
+   "variant": "paraphrased",
+   "text": "# Using rebase",
+   "kind": "FACTUAL",
+   "verdict": "UNCITED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "c10_code_paraphrased",
+   "genre": "code",
+   "variant": "paraphrased",
+   "text": "`git rebase main` makes the feature branch start from the tip of `main` [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c10_code_paraphrased",
+   "genre": "code",
+   "variant": "paraphrased",
+   "text": "After you fix a conflict, `git rebase --continue` resumes the rebase [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c10_code_paraphrased",
+   "genre": "code",
+   "variant": "paraphrased",
+   "text": "Interactive rebasing with `git rebase -i` allows reordering, squashing, editing [S1]",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c10_code_paraphrased",
+   "genre": "code",
+   "variant": "paraphrased",
+   "text": "dropping commits [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c10_code_paraphrased",
+   "genre": "code",
+   "variant": "paraphrased",
+   "text": "If a rebase goes wrong, `git reflog` lists the previous positions of `HEAD`, which usually allows a recovery [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c10_code_paraphrased",
+   "genre": "code",
+   "variant": "paraphrased",
+   "text": "```bash\ngit rebase -i main\n```",
+   "kind": "FACTUAL",
+   "verdict": "UNCITED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "c11_code_paraphrased",
+   "genre": "code",
+   "variant": "paraphrased",
+   "text": "# WAL behaviour",
+   "kind": "NON_CLAIM",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "c11_code_paraphrased",
+   "genre": "code",
+   "variant": "paraphrased",
+   "text": "Run `PRAGMA journal_mode=WAL` to turn the mode on, and the setting persists across connections [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c11_code_paraphrased",
+   "genre": "code",
+   "variant": "paraphrased",
+   "text": "Only one writer can be active at a time, but readers are not blocked by it [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c11_code_paraphrased",
+   "genre": "code",
+   "variant": "paraphrased",
+   "text": "The `-wal` file can grow when a long-running read transaction stops a checkpoint from finishing [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c11_code_paraphrased",
+   "genre": "code",
+   "variant": "paraphrased",
+   "text": "A checkpoint is attempted automatically when the log reaches 1000 pages by default [S1].",
+   "kind": "NUMERIC",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c12_code_paraphrased",
+   "genre": "code",
+   "variant": "paraphrased",
+   "text": "# Index creation",
+   "kind": "NON_CLAIM",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "c12_code_paraphrased",
+   "genre": "code",
+   "variant": "paraphrased",
+   "text": "`CREATE INDEX` builds a B-tree unless a different method is named with `USING` [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "cited_sentence_may_not_assert_claim"
+  },
+  {
+   "draft": "c12_code_paraphrased",
+   "genre": "code",
+   "variant": "paraphrased",
+   "text": "A partial index restricted by a `WHERE` condition stays small because it covers fewer rows [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c12_code_paraphrased",
+   "genre": "code",
+   "variant": "paraphrased",
+   "text": "`CREATE INDEX CONCURRENTLY` does not block writes to the table, but it takes longer to finish [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c12_code_paraphrased",
+   "genre": "code",
+   "variant": "paraphrased",
+   "text": "An index on `lower(email)` speeds up queries that use the same expression [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c13_code_paraphrased",
+   "genre": "code",
+   "variant": "paraphrased",
+   "text": "# Revalidation",
+   "kind": "NON_CLAIM",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "c13_code_paraphrased",
+   "genre": "code",
+   "variant": "paraphrased",
+   "text": "A response with status 304 carries no body, which saves bandwidth on every revalidation [S1].",
+   "kind": "NUMERIC",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "c13_code_paraphrased",
+   "genre": "code",
+   "variant": "paraphrased",
+   "text": "Clients send an `ETag` value back in `If-None-Match`, and the server answers with 304 when the resource is unchanged [S1].",
+   "kind": "NUMERIC",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "cited_sentence_may_not_assert_claim"
+  },
+  {
+   "draft": "c13_code_paraphrased",
+   "genre": "code",
+   "variant": "paraphrased",
+   "text": "The `Vary` header names the request headers that change the response, so caches keep a separate copy for each combination [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "t01_tables_copied",
+   "genre": "tables",
+   "variant": "copied",
+   "text": "# Cache directives",
+   "kind": "NON_CLAIM",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "t01_tables_copied",
+   "genre": "tables",
+   "variant": "copied",
+   "text": "The `Cache-Control` header carries the directives that govern this behaviour [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "t01_tables_copied",
+   "genre": "tables",
+   "variant": "copied",
+   "text": "| Directive | Meaning |\n|---|---|\n| max-age=N | The response stays fresh for N seconds [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "t01_tables_copied",
+   "genre": "tables",
+   "variant": "copied",
+   "text": "|\n| no-store | The response must not be stored by any cache [S1].",
+   "kind": "ABSENCE",
+   "verdict": "UNVERIFIED_ABSENCE",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "t01_tables_copied",
+   "genre": "tables",
+   "variant": "copied",
+   "text": "|\n| no-cache | The response may be stored but must be revalidated before reuse [S1].",
+   "kind": "ABSENCE",
+   "verdict": "UNVERIFIED_ABSENCE",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "t01_tables_copied",
+   "genre": "tables",
+   "variant": "copied",
+   "text": "|\n| private | Only the browser cache may store the response [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "t01_tables_copied",
+   "genre": "tables",
+   "variant": "copied",
+   "text": "|\n| public | Shared caches may also store the response [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "t01_tables_copied",
+   "genre": "tables",
+   "variant": "copied",
+   "text": "|",
+   "kind": "NON_CLAIM",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "t02_tables_copied",
+   "genre": "tables",
+   "variant": "copied",
+   "text": "# Index types",
+   "kind": "NON_CLAIM",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "t02_tables_copied",
+   "genre": "tables",
+   "variant": "copied",
+   "text": "| Index type | Best suited for | Supports range queries |\n|---|---|---|\n| B-tree | Equality",
+   "kind": "FACTUAL",
+   "verdict": "UNCITED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "t02_tables_copied",
+   "genre": "tables",
+   "variant": "copied",
+   "text": "range comparisons [S1] | Yes |\n| Hash | Simple equality comparisons [S1] | No |\n| GIN | Values that contain many elements, such as arrays and documents [S1] | No |\n| GiST | Geometric data and nearest-neighbour searches [S1] | Yes |\n| BRIN | Very large tables whose values correlate with physical order [S1] | Yes |",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "cited_sentence_may_not_assert_claim"
+  },
+  {
+   "draft": "t03_tables_copied",
+   "genre": "tables",
+   "variant": "copied",
+   "text": "# Rainfall by station",
+   "kind": "NON_CLAIM",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "t03_tables_copied",
+   "genre": "tables",
+   "variant": "copied",
+   "text": "| Station | Annual rainfall (mm) | Wettest month |\n|---|---|---|\n| Ashford | 780 | November [S1] |\n| Brecon | 1450 | December [S1] |\n| Carlow | 910 | October [S1] |\n| Dunmore | 640 | January [S1] |",
+   "kind": "NUMERIC",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "t03_tables_copied",
+   "genre": "tables",
+   "variant": "copied",
+   "text": "Dunmore records the lowest total of the four stations [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "t04_tables_copied",
+   "genre": "tables",
+   "variant": "copied",
+   "text": "# Journal modes",
+   "kind": "NON_CLAIM",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "t04_tables_copied",
+   "genre": "tables",
+   "variant": "copied",
+   "text": "| Mode | Readers block writers | Writers block readers |\n|---|---|---|\n| DELETE | Yes [S1] | Yes |\n| WAL | No [S1] | No |",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "t04_tables_copied",
+   "genre": "tables",
+   "variant": "copied",
+   "text": "Readers do not block writers [S1]",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "t04_tables_copied",
+   "genre": "tables",
+   "variant": "copied",
+   "text": "a writer does not block readers [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "t05_tables_copied",
+   "genre": "tables",
+   "variant": "copied",
+   "text": "# Store field values",
+   "kind": "NON_CLAIM",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "t05_tables_copied",
+   "genre": "tables",
+   "variant": "copied",
+   "text": "| Value | Meaning | Grounding tiers run?",
+   "kind": "FACTUAL",
+   "verdict": "UNCITED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "t05_tables_copied",
+   "genre": "tables",
+   "variant": "copied",
+   "text": "|\n|---|---|---|\n| `verbatim` | Full text captured directly from the source [S1] | Yes |\n| `haiku_summary` | Text is an LLM summary, not the original [S1] | No |",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "cited_sentence_may_not_assert_claim"
+  },
+  {
+   "draft": "t05_tables_copied",
+   "genre": "tables",
+   "variant": "copied",
+   "text": "All text fields are NFKC-normalized before matching [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "cited_sentence_may_not_assert_claim"
+  },
+  {
+   "draft": "t06_tables_copied",
+   "genre": "tables",
+   "variant": "copied",
+   "text": "# Gate conditions",
+   "kind": "NON_CLAIM",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "t06_tables_copied",
+   "genre": "tables",
+   "variant": "copied",
+   "text": "| Gate | Condition |\n|---|---|\n| `PASS` | **empty retained appendix** (zero violation-class verdicts) AND score \u2265 threshold [S1] |\n| `NEEDS_WORK` | score \u2265 60 AND (any retained violation OR below threshold) [S1]",
+   "kind": "NUMERIC",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "cited_sentence_may_not_assert_claim"
+  },
+  {
+   "draft": "t06_tables_copied",
+   "genre": "tables",
+   "variant": "copied",
+   "text": "|\n| `FAIL` | score < 60 \u2014 **checked first**, so a sub-60 score is `FAIL` even when other overrides apply [S1] |",
+   "kind": "NUMERIC",
+   "verdict": "GROUNDED",
+   "diagnostic": "cited_sentence_may_not_assert_claim"
+  },
+  {
+   "draft": "t07_tables_copied",
+   "genre": "tables",
+   "variant": "copied",
+   "text": "# Indexes for special data",
+   "kind": "FACTUAL",
+   "verdict": "UNCITED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "t07_tables_copied",
+   "genre": "tables",
+   "variant": "copied",
+   "text": "| Index type | Best suited for |\n|---|---|\n| GIN | Values that contain many elements, such as arrays",
+   "kind": "FACTUAL",
+   "verdict": "UNCITED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "t07_tables_copied",
+   "genre": "tables",
+   "variant": "copied",
+   "text": "documents [S1] |\n| GiST | Geometric data and nearest-neighbour searches [S1] |\n| BRIN | Very large tables whose values correlate with physical order [S1] |",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "cited_sentence_may_not_assert_claim"
+  },
+  {
+   "draft": "t07_tables_copied",
+   "genre": "tables",
+   "variant": "copied",
+   "text": "A partial index covers only the rows that satisfy a `WHERE` condition, which keeps it small [S1].",
+   "kind": "FACTUAL",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "t08_tables_paraphrased",
+   "genre": "tables",
+   "variant": "paraphrased",
+   "text": "# Cache directives, reworded",
+   "kind": "FACTUAL",
+   "verdict": "UNCITED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "t08_tables_paraphrased",
+   "genre": "tables",
+   "variant": "paraphrased",
+   "text": "| Directive | Effect |\n|---|---|\n| max-age=N | Keeps the response fresh for N seconds [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "t08_tables_paraphrased",
+   "genre": "tables",
+   "variant": "paraphrased",
+   "text": "|\n| no-store | No cache may keep a copy of the response [S1].",
+   "kind": "ABSENCE",
+   "verdict": "UNVERIFIED_ABSENCE",
+   "diagnostic": "cited_sentence_may_not_assert_claim"
+  },
+  {
+   "draft": "t08_tables_paraphrased",
+   "genre": "tables",
+   "variant": "paraphrased",
+   "text": "|\n| no-cache | A copy may be kept, but it has to be revalidated before it is reused [S1].",
+   "kind": "ABSENCE",
+   "verdict": "UNVERIFIED_ABSENCE",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "t08_tables_paraphrased",
+   "genre": "tables",
+   "variant": "paraphrased",
+   "text": "|\n| private | Only the browser cache is allowed to store the response [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "t08_tables_paraphrased",
+   "genre": "tables",
+   "variant": "paraphrased",
+   "text": "|\n| public | Shared caches are allowed to store it as well [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "t08_tables_paraphrased",
+   "genre": "tables",
+   "variant": "paraphrased",
+   "text": "|",
+   "kind": "NON_CLAIM",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "t09_tables_paraphrased",
+   "genre": "tables",
+   "variant": "paraphrased",
+   "text": "# Index types, reworded",
+   "kind": "FACTUAL",
+   "verdict": "UNCITED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "t09_tables_paraphrased",
+   "genre": "tables",
+   "variant": "paraphrased",
+   "text": "| Index type | Use it for | Range queries |\n|---|---|---|\n| B-tree | Comparisons for equality",
+   "kind": "FACTUAL",
+   "verdict": "UNCITED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "t09_tables_paraphrased",
+   "genre": "tables",
+   "variant": "paraphrased",
+   "text": "for ranges [S1] | Supported |\n| Hash | Plain equality comparisons [S1] | Not supported |\n| GiST | Geometric data and nearest-neighbour searches [S1] | Supported |\n| BRIN | Huge tables where the values follow the physical order [S1] | Supported |",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "cited_sentence_may_not_assert_claim"
+  },
+  {
+   "draft": "t10_tables_paraphrased",
+   "genre": "tables",
+   "variant": "paraphrased",
+   "text": "# Rainfall, reworded",
+   "kind": "NON_CLAIM",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "t10_tables_paraphrased",
+   "genre": "tables",
+   "variant": "paraphrased",
+   "text": "| Station | Rainfall per year | Peak month |\n|---|---|---|\n| Brecon | 1450 mm, the wettest of the four stations [S1] | December |\n| Dunmore | 640 mm, the driest of the four stations [S1] | January |",
+   "kind": "NUMERIC",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "t10_tables_paraphrased",
+   "genre": "tables",
+   "variant": "paraphrased",
+   "text": "Brecon receives nearly twice the rainfall of Ashford because it lies on the windward side of the hills [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "t11_tables_paraphrased",
+   "genre": "tables",
+   "variant": "paraphrased",
+   "text": "# Journal modes, reworded",
+   "kind": "FACTUAL",
+   "verdict": "UNCITED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "t11_tables_paraphrased",
+   "genre": "tables",
+   "variant": "paraphrased",
+   "text": "| Mode | Do readers block writers?",
+   "kind": "FACTUAL",
+   "verdict": "UNCITED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "t11_tables_paraphrased",
+   "genre": "tables",
+   "variant": "paraphrased",
+   "text": "| Do writers block readers?",
+   "kind": "FACTUAL",
+   "verdict": "UNCITED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "t11_tables_paraphrased",
+   "genre": "tables",
+   "variant": "paraphrased",
+   "text": "|\n|---|---|---|\n| DELETE | Yes, they do [S1] | Yes, they do |\n| WAL | No, they do not [S1] | No, they do not |",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "t11_tables_paraphrased",
+   "genre": "tables",
+   "variant": "paraphrased",
+   "text": "Only a single writer can be active at any moment [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  },
+  {
+   "draft": "t12_tables_paraphrased",
+   "genre": "tables",
+   "variant": "paraphrased",
+   "text": "# Gate summary",
+   "kind": "NON_CLAIM",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "t12_tables_paraphrased",
+   "genre": "tables",
+   "variant": "paraphrased",
+   "text": "| Gate | When it applies |\n|---|---|\n| `PASS` | No violation-class verdicts remain",
+   "kind": "FACTUAL",
+   "verdict": "UNCITED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "t12_tables_paraphrased",
+   "genre": "tables",
+   "variant": "paraphrased",
+   "text": "the score is at or above the threshold [S1] |\n| `NEEDS_WORK` | The score is at least 60 but a violation remains or the score is below the threshold [S1] |\n| `FAIL` | The score is below 60, and this is checked first [S1] |",
+   "kind": "NUMERIC",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "cited_sentence_may_not_assert_claim"
+  },
+  {
+   "draft": "t13_tables_paraphrased",
+   "genre": "tables",
+   "variant": "paraphrased",
+   "text": "# Two reference tables",
+   "kind": "NON_CLAIM",
+   "verdict": "GROUNDED",
+   "diagnostic": "no_cited_verbatim_source"
+  },
+  {
+   "draft": "t13_tables_paraphrased",
+   "genre": "tables",
+   "variant": "paraphrased",
+   "text": "| Item | Note |\n|---|---|\n| `private` | Only the browser cache may keep the response [S1] |\n| `no-store` | No cache may store the response [S1] |\n| B-tree | The default index type [S2] |\n| Hash | Only suitable for simple equality comparisons [S2] |",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "cited_sentence_may_not_assert_claim"
+  },
+  {
+   "draft": "t13_tables_paraphrased",
+   "genre": "tables",
+   "variant": "paraphrased",
+   "text": "An `ETag` identifies one specific version of a resource [S1].",
+   "kind": "FACTUAL",
+   "verdict": "UNGROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
+  }
+ ]
+}

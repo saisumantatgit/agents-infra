@@ -1,0 +1,323 @@
+[
+ {
+  "id": "b01_bullets_copied",
+  "genre": "bullets",
+  "variant": "copied",
+  "sources": [
+   "sources/harbour_notes.md"
+  ]
+ },
+ {
+  "id": "b02_bullets_copied",
+  "genre": "bullets",
+  "variant": "copied",
+  "sources": [
+   "sources/harbour_notes.md"
+  ]
+ },
+ {
+  "id": "b03_bullets_copied",
+  "genre": "bullets",
+  "variant": "copied",
+  "sources": [
+   "docs/ALPHA-TESTER-GUIDE.md"
+  ]
+ },
+ {
+  "id": "b04_bullets_copied",
+  "genre": "bullets",
+  "variant": "copied",
+  "sources": [
+   "sources/git_rebase.md"
+  ]
+ },
+ {
+  "id": "b05_bullets_copied",
+  "genre": "bullets",
+  "variant": "copied",
+  "sources": [
+   "sources/sqlite_wal.md"
+  ]
+ },
+ {
+  "id": "b06_bullets_copied",
+  "genre": "bullets",
+  "variant": "copied",
+  "sources": [
+   "README.md"
+  ]
+ },
+ {
+  "id": "b07_bullets_copied",
+  "genre": "bullets",
+  "variant": "copied",
+  "sources": [
+   "sources/rainfall_summary.md"
+  ]
+ },
+ {
+  "id": "b08_bullets_paraphrased",
+  "genre": "bullets",
+  "variant": "paraphrased",
+  "sources": [
+   "sources/harbour_notes.md"
+  ]
+ },
+ {
+  "id": "b09_bullets_paraphrased",
+  "genre": "bullets",
+  "variant": "paraphrased",
+  "sources": [
+   "sources/harbour_notes.md"
+  ]
+ },
+ {
+  "id": "b10_bullets_paraphrased",
+  "genre": "bullets",
+  "variant": "paraphrased",
+  "sources": [
+   "sources/git_rebase.md"
+  ]
+ },
+ {
+  "id": "b11_bullets_paraphrased",
+  "genre": "bullets",
+  "variant": "paraphrased",
+  "sources": [
+   "sources/sqlite_wal.md"
+  ]
+ },
+ {
+  "id": "b12_bullets_paraphrased",
+  "genre": "bullets",
+  "variant": "paraphrased",
+  "sources": [
+   "docs/ALPHA-TESTER-GUIDE.md"
+  ]
+ },
+ {
+  "id": "b13_bullets_paraphrased",
+  "genre": "bullets",
+  "variant": "paraphrased",
+  "sources": [
+   "sources/http_caching.md"
+  ]
+ },
+ {
+  "id": "b14_bullets_paraphrased",
+  "genre": "bullets",
+  "variant": "paraphrased",
+  "sources": [
+   "sources/rainfall_summary.md"
+  ]
+ },
+ {
+  "id": "c01_code_copied",
+  "genre": "code",
+  "variant": "copied",
+  "sources": [
+   "sources/python_tempfile.md"
+  ]
+ },
+ {
+  "id": "c02_code_copied",
+  "genre": "code",
+  "variant": "copied",
+  "sources": [
+   "sources/python_tempfile.md"
+  ]
+ },
+ {
+  "id": "c03_code_copied",
+  "genre": "code",
+  "variant": "copied",
+  "sources": [
+   "sources/git_rebase.md"
+  ]
+ },
+ {
+  "id": "c04_code_copied",
+  "genre": "code",
+  "variant": "copied",
+  "sources": [
+   "sources/sqlite_wal.md"
+  ]
+ },
+ {
+  "id": "c05_code_copied",
+  "genre": "code",
+  "variant": "copied",
+  "sources": [
+   "sources/postgres_indexes.md"
+  ]
+ },
+ {
+  "id": "c06_code_copied",
+  "genre": "code",
+  "variant": "copied",
+  "sources": [
+   "sources/http_caching.md"
+  ]
+ },
+ {
+  "id": "c07_code_copied",
+  "genre": "code",
+  "variant": "copied",
+  "sources": [
+   "docs/ALPHA-TESTER-GUIDE.md"
+  ]
+ },
+ {
+  "id": "c08_code_paraphrased",
+  "genre": "code",
+  "variant": "paraphrased",
+  "sources": [
+   "sources/python_tempfile.md"
+  ]
+ },
+ {
+  "id": "c09_code_paraphrased",
+  "genre": "code",
+  "variant": "paraphrased",
+  "sources": [
+   "sources/python_tempfile.md"
+  ]
+ },
+ {
+  "id": "c10_code_paraphrased",
+  "genre": "code",
+  "variant": "paraphrased",
+  "sources": [
+   "sources/git_rebase.md"
+  ]
+ },
+ {
+  "id": "c11_code_paraphrased",
+  "genre": "code",
+  "variant": "paraphrased",
+  "sources": [
+   "sources/sqlite_wal.md"
+  ]
+ },
+ {
+  "id": "c12_code_paraphrased",
+  "genre": "code",
+  "variant": "paraphrased",
+  "sources": [
+   "sources/postgres_indexes.md"
+  ]
+ },
+ {
+  "id": "c13_code_paraphrased",
+  "genre": "code",
+  "variant": "paraphrased",
+  "sources": [
+   "sources/http_caching.md"
+  ]
+ },
+ {
+  "id": "t01_tables_copied",
+  "genre": "tables",
+  "variant": "copied",
+  "sources": [
+   "sources/http_caching.md"
+  ]
+ },
+ {
+  "id": "t02_tables_copied",
+  "genre": "tables",
+  "variant": "copied",
+  "sources": [
+   "sources/postgres_indexes.md"
+  ]
+ },
+ {
+  "id": "t03_tables_copied",
+  "genre": "tables",
+  "variant": "copied",
+  "sources": [
+   "sources/rainfall_summary.md"
+  ]
+ },
+ {
+  "id": "t04_tables_copied",
+  "genre": "tables",
+  "variant": "copied",
+  "sources": [
+   "sources/sqlite_wal.md"
+  ]
+ },
+ {
+  "id": "t05_tables_copied",
+  "genre": "tables",
+  "variant": "copied",
+  "sources": [
+   "README.md"
+  ]
+ },
+ {
+  "id": "t06_tables_copied",
+  "genre": "tables",
+  "variant": "copied",
+  "sources": [
+   "README.md"
+  ]
+ },
+ {
+  "id": "t07_tables_copied",
+  "genre": "tables",
+  "variant": "copied",
+  "sources": [
+   "sources/postgres_indexes.md"
+  ]
+ },
+ {
+  "id": "t08_tables_paraphrased",
+  "genre": "tables",
+  "variant": "paraphrased",
+  "sources": [
+   "sources/http_caching.md"
+  ]
+ },
+ {
+  "id": "t09_tables_paraphrased",
+  "genre": "tables",
+  "variant": "paraphrased",
+  "sources": [
+   "sources/postgres_indexes.md"
+  ]
+ },
+ {
+  "id": "t10_tables_paraphrased",
+  "genre": "tables",
+  "variant": "paraphrased",
+  "sources": [
+   "sources/rainfall_summary.md"
+  ]
+ },
+ {
+  "id": "t11_tables_paraphrased",
+  "genre": "tables",
+  "variant": "paraphrased",
+  "sources": [
+   "sources/sqlite_wal.md"
+  ]
+ },
+ {
+  "id": "t12_tables_paraphrased",
+  "genre": "tables",
+  "variant": "paraphrased",
+  "sources": [
+   "README.md"
+  ]
+ },
+ {
+  "id": "t13_tables_paraphrased",
+  "genre": "tables",
+  "variant": "paraphrased",
+  "sources": [
+   "sources/http_caching.md",
+   "sources/postgres_indexes.md"
+  ]
+ }
+]
