@@ -872,3 +872,72 @@ direction.
 separate "did this session search for the subject" from "is the subject's head
 noun a blanket word in this corpus" — the second is a property of the corpus and
 cannot be a ratio over a list the author controls the length of.
+
+## ALPHA-5 2026-10-10 — the branch is installable by a stranger, and one row is Sai's
+
+| Job | What | Owner | Blocked on |
+|---|---|---|---|
+| **A-5-01** | **`install.sh`'s own session-id snippet crashes in a fresh install.** The `SID=$(...)` subshell opens `.assure/evidence-store.jsonl`, which **cannot exist** before the capture hook has fired, and dies with a raw `FileNotFoundError`. It is **J-50's sibling one layer out, and today's CLI fix cannot reach it** — the subshell dies before `ground_check.py` is invoked. So the last thing a brand-new user is shown is a command that fails if pasted immediately. Two lines: a sentence saying the store appears only after the hook fires, and a missing-file branch that prints rather than raises. **The obvious repair is a trap:** defaulting to `""` turns a missing file into an unattributable id and produces today's `--session-id ""` refusal for a second, unrelated reason — a silent fallback wearing a helpful face. | **Sai** | Escalation #4 (install.sh) |
+| **A-5-02** | **`grounding-report.yaml` is written into the user's CWD** on every non-`--json` run. Documented, not a defect, and noted here only because a tester running from their own repo will find an untracked file in it. No action proposed; recorded so it is not rediscovered as a surprise. | Claude | nothing — informational |
+
+**What ALPHA-5 proved:** a `--depth 1` clone of `testing-live-2026-10-10`
+installs with `install.sh` exit 0 on a machine with no `.venv` and no `.assure`,
+and the moat holds on it — the demo's fabricated `[S3]` is refused **FAIL 50.0
+exit 1**, the grounded draft passes 100.0, the J-73 scope disclosure prints on
+every verdict including FAIL, and this morning's J-50 refusals arrive as
+sentences. **Reachability is therefore established WITHOUT touching `main`**,
+which is a fact the merge decision needs and did not have.
+
+**What it did not prove, stated so it cannot be read as coverage:** not the
+plugin path (`claude --plugin-dir`, `/hooks`, a live hook firing — J-54 closed
+that separately on 2026-10-03 and this run did not re-prove it); not the capture
+layer, since the demo store is a frozen fixture and every field a real hook
+writes is untested here, which is where J-35/J-36/J-38 live; and not a human,
+since nothing here measures whether a reader takes PASS as *traceable* or as
+*supported*.
+
+## DAY RUN 2026-10-10 — R1, R2 and the two defects naming the sibling found
+
+| Job | What | Owner |
+|---|---|---|
+| **R1** | **The deployed rates are re-derivable by one command.** `uv run python -m calibration.measure_rates` prints `Error-A 10/25 = 0.400` and `Error-B 0/27 = 0.000` on n=52, **recomputed from the live gate** rather than read back from `feature_rows-v2.jsonl`, so the number that describes the product is pinned to the code that produces it. Until today it was quoted in seven CRs, CLAUDE.md, three instrument files and the launch claim, and **three kinds of search found no command that produced it**. Read-only, and the no-write claim is ENFORCED by a content-hash detector carrying a positive control aimed at `run_calibration`, which rewrites CR-001 while measuring. | Claude — **done** |
+| **J-50** | **CLOSED.** The first-run refusals read as decisions: `REFUSED: <the original message>`, exit 1, no traceback. Nothing softened — same exit code, same words, packaging only. The guard catches two named exception types at three named INPUT sites and **ends before the verdict path** (AST-pinned), so a defect in scoring still surfaces as a traceback; `--debug` re-raises intact. PROVEN RED 5/7 against HEAD's pre-fix script. | Claude — **done** |
+| **R2-S1** | **The draft's `open()` was unguarded on the same path** — a mistyped `--draft` had J-50's crash shape. Found by naming the sibling, fixed in the same change. | Claude — **done** |
+| **R2-S2** | **`load_store` did not honour its own "raise with the offending line" convention at the PARSE.** `_validate_record` and the duplicate check both carry `lineno`; `json.loads` did not, so a corrupt line in a 300-line store reported json's `line 1 column 1` — which counts **within the fragment** and sends the reader to the wrong line of the file. Now `line 2 of the evidence store`. **The message was always wrong; it only became misleading once a user could read it.** | Claude — **done** |
+| **R4-Q1** | **Does anyone actually install from `main`?** This is the one fact that flips the merge recommendation. If every real user arrives via `agent-assure-calibration-run` or a local path, `main` is decorative, the inversion in the dossier collapses, and PR #10 can wait for a human read of the 44 docs. **It is a fact about distribution, not about this repo, and no amount of searching here can answer it.** | **Sai** |
+| **R4** | **PR #10 → `main` is OPEN and must not be merged on my say-so.** 279 commits, 275 files, +50,511/−422, **zero deletions**, gold labels **added not modified** (so no gold-label change is in it). Revert is one `git revert -m 1`, clean precisely because nothing is deleted. **PR #11 → `agent-assure-calibration-run`** carries the same branch as a small reviewable diff. | **Sai** — the click |
+
+## ROUND 20 — the capture layer's first adversary, and what survived reproduction
+
+The adversary's report is testimony. **These verdicts are my own reproductions,
+with my own fixtures.**
+
+| Job | What | Owner |
+|---|---|---|
+| **R20-01** | **CRITICAL, CONFIRMED BY ME. The capture layer manufactures verbatim text.** `_coerce_text_value` joins MCP content blocks with `"\n"`; `_tokenize` is `re.findall(r"\w+")`, so the seam is invisible and a contiguous span can **straddle two DIFFERENT fetched documents** and satisfy T1 — the moat's one remaining deterministic tier. My fixture: a claim present in **neither** document → `PASS 100.0 GROUNDED exit 0`, and **also** `PASS 100.0` under `--session-id`, printing "retrieved this session" over a sentence no source contains. **`ground_check.py` is not wrong** — it faithfully reports a span of the text it was handed. The document boundary is **discarded at ingestion**, so no loader validation can ever recover it. | **Sai** (Escalation #4 — capture contract) · a fail-closed gate-side guard may also exist and is mine to propose |
+| **R20-02** | **CRITICAL, CONFIRMED BY ME. N documents collapse into one record with one URL.** `_url_from_input` takes `urls[0]` from a multi-URL exa fetch, so every document in the batch is attributed to the first URL — **agent-ordered**. My fixture: the claim lives only in the second document (an anonymous blog); the gate returns `PASS 100.0` and the record's only `url` is `https://www.who.int/emergencies`. **An attacker chooses the order, and therefore chooses the attribution.** | **Sai** (Escalation #4) |
+| **R20-03** | **DOWNGRADED CRITICAL → OPEN-UNCONFIRMED. Did not reproduce as written.** The mechanism is real — `_file_path_from_input` reads only `tool_input` and never the authoritative `tool_response["file"]["filePath"]`, and `or None` maps `""` to `None` — but my construction (`url=None` AND `file_path=None`) was **REFUSED**: `FAIL 0.0 UNGROUNDABLE exit 1`. The live store also shows real `Read` records carry a true `file_path`, so the triggering shape was not observed in the field. **Not closed**: the dead-code observation stands (`if source.file_path:` at `ground_check.py:4155` gates both `_self_source_ids` origin tests). Needs a construction that actually reaches PASS before it is called CRITICAL. | Claude |
+| **R20-04** | **UPGRADED TO CRITICAL — reproduced by me to PASS 100.0, further than the adversary got.** Two fetches that BOTH failed (`isError: true`, HTTP 503) certify *"There is no ECB press release on the resolution of Zentara Bank"* at `PASS 100.0 ABSENCE_SUPPORTED`, the gate stating it consulted "2 distinct search queries and the text of 2 retrieved sources". **Nothing was retrieved.** Compounds with J-36: the agent picks the query strings, and failures count as the search. Owner: **Sai** (Escalation #4). Original adversary text follows for the record: **HIGH, not yet reproduced by me.** No capture path reads `isError` or WebFetch's `code`, so a 403/404 failure body is stored as `verbatim` content of the URL — and the absence rule then reports "2 distinct search queries and the text of 2 retrieved sources" for two retrievals that returned nothing. | Claude to reproduce, then owner |
+| **R20-06** | **UPGRADED MEDIUM → CRITICAL, reproduced by me to PASS 100.0.** Two whitespace-only fetches certify an absence claim. Control: an empty block LIST is refused at capture, a list with one blank block is admitted. **Same class as R20-04 — the absence rule counts stored records, not successful reads; fix them as ONE class with a positive requirement (a record counts toward absence only if it demonstrably carries retrieved content), never as two symptom patches.** Owner: **Sai** (Escalation #4). |
+| **R20-05** | HIGH, trigger UNOBSERVED live (all real records are `captured_via: inline`). Original adversary text: HIGH / MEDIUM, not yet reproduced by me. The overflow branch records a local file's text as verbatim content of a URL; and an empty/whitespace response is admitted as a verbatim source while an empty block LIST is refused — **the same emptiness fail-closed through one door and fail-open through the other**. | Claude to reproduce, then owner |
+| **R20-CLEAN** | Examined and found sound: the `fcntl` lock held under 12 concurrent hooks (12 ids, 0 duplicates), and NFKC digest handling is fail-closed. Recorded so a later session does not re-spend the hours. | — |
+
+### THE USAGE INSTRUMENT ARRIVED, AND IT CORRECTED A SHIPPED CLAIM
+
+Sai ran a live interactive probe (`8c17b88b`, `~/tmp/assure-probe`), producing a
+real four-record store. Checked against it:
+
+- **`session_id` IS written** on every record. **`CLAUDE.md`'s Gotchas said it
+  never is.** The register row was narrowed on 2026-10-03 and that surface was
+  not — **the J-37 stale-row class, repeating on a claim surface.** Corrected
+  today in the same commit as this row.
+- **`fetched_at` is the `1970-01-01T00:00:00Z` sentinel on all four** — J-38's
+  remaining half, confirmed in the field rather than from the code.
+- **`query_provenance` is a file path or a URL on every record, never a search
+  query — J-36 CONFIRMED IN THE FIELD.** The absence rule's "two distinct search
+  queries" are, live, two strings the drafting agent chose.
+- A `Write` produced no record; only the read-back. Intended design, confirmed.
+
+**Why this matters more than any single finding:** for one afternoon the project
+had both instruments at once — an adversary and a real session — and they
+disagreed about R20-03 in a way only the real session could settle.

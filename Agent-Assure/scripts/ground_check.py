@@ -316,7 +316,24 @@ def load_store(path: str) -> dict[str, RetrievedSource]:
             line = raw_line.strip()
             if not line:
                 continue
-            obj = json.loads(line, object_pairs_hook=_object_pairs_no_duplicates)
+            try:
+                obj = json.loads(
+                    line, object_pairs_hook=_object_pairs_no_duplicates)
+            except ValueError as exc:
+                # The store's convention is "raise with the offending line",
+                # and every OTHER failure here honours it — _validate_record
+                # and the duplicate check both take `lineno`. The parse itself
+                # did not, so a corrupt line in a 300-line store reported
+                # json's own "line 1 column 1", which counts lines WITHIN the
+                # fragment and sends the reader to the wrong line of the file.
+                # Found 2026-10-10 while making these refusals legible (J-50):
+                # the message only became misleading once a user could read it.
+                raise ValueError(
+                    f"line {lineno} of the evidence store is not valid JSON: "
+                    f"{exc}. The store is append-only audit evidence, so a "
+                    "malformed line is never skipped or repaired — fix or "
+                    "remove that line."
+                ) from exc
             _validate_record(obj, lineno)
             source_id = _nfkc(obj["source_id"])
             if source_id in store:
@@ -4471,6 +4488,38 @@ def score_report(
 # CLI entry point (Task 10)
 # ---------------------------------------------------------------------------
 
+def _refuse_input(message: str, exc: BaseException, *, debug: bool) -> None:
+    """Print a legible refusal for a bad INPUT and exit 1. Never a verdict.
+
+    J-50. `install.sh` routes a first-time user straight into the
+    `--session-id ""` refusal against the demo store, whose records carry no
+    session id. The refusal is CORRECT and its wording is good; it arrived
+    behind a ten-line traceback from `<module>`, so a stranger's first thirty
+    seconds with the tool looked like a crash rather than a decision the gate
+    had made on purpose.
+
+    Three deliberate constraints, because the tidy version of "don't show a
+    traceback" is the silent fallback this codebase forbids:
+
+    1. **The message is not softened and the exit code does not change.** The
+       gate still refuses, still exits non-zero, and the original exception's
+       own text is what gets printed. Legibility is a packaging change.
+    2. **Only INPUT-reading failures route here** — the draft, the store, the
+       session assertion. Everything downstream of them (classify, score,
+       ground) is left unguarded on purpose: a traceback out of the verdict
+       path is a BUG REPORT, and swallowing it would hide the one class of
+       failure that most needs to be loud.
+    3. **`--debug` re-raises the original exception** with its traceback
+       intact, so nothing is lost — the detail moves, it does not disappear.
+    """
+    import sys as _sys_local
+
+    if debug:
+        raise exc
+    print(f"REFUSED: {message}", file=_sys_local.stderr)
+    _sys_local.exit(1)
+
+
 def main() -> None:
     """CLI entry point for Agent-Assure ground_check.
 
@@ -4514,6 +4563,11 @@ def main() -> None:
                         help="Assert every record was captured in this session; "
                              "REFUSE a store containing another session's "
                              "evidence (J-38). Omit for no enforcement.")
+    parser.add_argument("--debug", action="store_true",
+                        help="Re-raise input errors with their traceback "
+                             "instead of printing a one-line refusal. The "
+                             "refusal text is identical either way; this only "
+                             "adds the Python detail.")
     parser.add_argument("--json", dest="json_mode", action="store_true",
                         help="Print JSON report to stdout; skip writing YAML file.")
     args = parser.parse_args()
@@ -4531,15 +4585,47 @@ def main() -> None:
         )
 
     # Pipeline: read → decompose → classify → score_report
-    with open(args.draft, encoding="utf-8") as fh:
-        draft_text = fh.read()
+    #
+    # J-50: each of the three INPUT steps below is guarded individually and
+    # catches only (OSError, ValueError) — never Exception, and never as one
+    # blanket try around the pipeline. The guard ends at the last input step;
+    # everything after it is unguarded, so a defect in the verdict path still
+    # surfaces as a traceback.
+    try:
+        with open(args.draft, encoding="utf-8") as fh:
+            draft_text = fh.read()
+    except OSError as exc:
+        _refuse_input(
+            f"the draft {args.draft!r} could not be read: {exc.strerror}. "
+            "Pass --draft with a path to the file you want checked.",
+            exc, debug=args.debug)
 
-    store = load_store(args.store)
+    try:
+        store = load_store(args.store)
+    except FileNotFoundError as exc:
+        # load_store authors this message itself, and it already names the
+        # hook, says why the store may not exist yet, and points at the
+        # shipped demo store. Wrapping it would make it worse.
+        _refuse_input(str(exc), exc, debug=args.debug)
+    except OSError as exc:
+        _refuse_input(
+            f"the evidence store {args.store!r} could not be read: "
+            f"{exc.strerror}.",
+            exc, debug=args.debug)
+    except ValueError as exc:
+        _refuse_input(
+            f"the evidence store {args.store!r} is not usable as audit "
+            f"evidence: {exc}",
+            exc, debug=args.debug)
+
     # J-38: enforce BEFORE any scoring, so a foreign-session store never
     # produces a verdict at all. Raising here rather than filtering is
     # deliberate — see assert_single_session.
     if args.session_id is not None:
-        assert_single_session(store, args.session_id)
+        try:
+            assert_single_session(store, args.session_id)
+        except ValueError as exc:
+            _refuse_input(str(exc), exc, debug=args.debug)
     claims = [classify(c) for c in decompose(draft_text)]
     report = score_report(
         claims, store, threshold=args.threshold,
