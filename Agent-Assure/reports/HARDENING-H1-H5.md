@@ -124,3 +124,23 @@ baseline after every fix.
   five-segment draft keep the reproduced share under 80%, or the draft is one segment.
   Error-A on a genuine Read file the draft quotes ≥80% of its segments from. Upgrade path:
   Write/Edit provenance in the capture store.
+- **Commit:** `9662c48`.
+
+## Summary
+
+| Fix | Commit | Red pre-fix | Green | Error-A | Error-B |
+|---|---|---|---|---|---|
+| H1 far/unlisted denials | `82821cf` | 8 attacks PASS | 11/11 | 12/25 | 0/27 |
+| H2 short denial reply | `ab18151` | 7 attacks PASS | 15/15 | 12/25 | 0/27 |
+| H3 DDG failure texts | `7bacc9b` | 8 shapes "ok" | 10/10 | 12/25 | 0/27 |
+| H4 disowning list labels | `d755f87` | 16 attacks PASS | 25/25 | 12/25 | 0/27 |
+| H5 diluted near-copy | `9662c48` | 2 attacks PASS | 3/3 | 12/25 | 0/27 |
+
+Final suite: 1109 passed, 2 skipped, 60 xfailed (baseline 1045 / 2 / 61; one xfail promoted
+to a guard by H1). `tests/test_measure_rates.py` pin (fp,tn)=(12,13) untouched and green.
+Gold md5 unchanged. Not pushed.
+
+**Load-bearing assumption:** the gold corpus does not exercise denial context, list labels,
+DDG failures or diluted self-copies, so "rates unchanged" says these fixes cost nothing on
+the 52 rows. It does NOT measure their Error-A cost on real sources; the CEILING comments
+name where each over-refuses.
