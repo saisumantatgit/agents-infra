@@ -1641,9 +1641,50 @@ def t1_verbatim(
                 break
             if anchored:
                 break
-        if anchored:
+        if not anchored:
+            continue
+
+        # W2A-01/02/04 (2026-10-24): the coverage check above is whole-source
+        # set membership, so a long subject can hold the whole 8-gram while
+        # the predicate word ("Spanner", "all", "Apache") is BORROWED from a
+        # sibling sentence. No hedge is involved, so no hedge scan sees it.
+        # Additional conjunct (fail-closed, it can only refuse more): some
+        # single raw-text sentence (same splitter as support_diagnostic) must
+        # contain the anchored window AND every claim content word.
+        # CEILING: sentence scope only; a reversal or actor swap inside ONE
+        # sentence (W2A-03, W2A-04 as reproduced) still certifies. Upgrade
+        # path: clause/role binding (parser), J-70.
+        if _anchor_sentence_covers(
+                claim_tokens, subject_positions, min_quote_len,
+                claim_content, source.text):
             return True
 
+    return False
+
+
+def _anchor_sentence_covers(
+    claim_tokens: list[str],
+    subject_positions: list[int],
+    min_quote_len: int,
+    claim_content: list[str],
+    source_text: str,
+) -> bool:
+    """True iff one source sentence holds a subject-anchored claim window
+    and every claim content word. Pure."""
+    n = len(claim_tokens)
+    windows = [
+        tuple(claim_tokens[s : s + min_quote_len])
+        for s in subject_positions if s + min_quote_len <= n
+    ]
+    for sentence in _split_sentences(source_text):
+        toks = _tokenize(sentence)
+        vocab = set(toks)
+        if not all(tok in vocab for tok in claim_content):
+            continue
+        grams = {tuple(toks[i : i + min_quote_len])
+                 for i in range(len(toks) - min_quote_len + 1)}
+        if any(w in grams for w in windows):
+            return True
     return False
 
 
