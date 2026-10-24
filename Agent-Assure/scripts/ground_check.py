@@ -1099,7 +1099,19 @@ def _is_non_claim(text: str) -> bool:
     if _CITATION_RE.search(text):
         return False
     body = _strip_citations(text)
-    if not _NUMERIC_RE.search(body) and not _content_words(_tokenize(body)):
+    # R7 (W2C report, "registered, still open"): a span of stop words only is
+    # NOT empty when it negates or compares — "That is not so." retracts the
+    # neighbouring claim and "We had more than that." asserts a quantity; each
+    # left the denominator and a lone grounded claim certified PASS 100.0.
+    # Such a span is kept as a claim (it is then UNCITED/UNGROUNDED). This list
+    # drives a REFUSAL (D-69): a missing member leaves today's behaviour, it
+    # never licenses an acceptance. Fail-closed.
+    # CEILING: only the stop-word negators/comparators are listed (others are
+    # already content words); a stop-word-only span that asserts by some other
+    # means ("So it was.") stays NON_CLAIM. Upgrade path: a parser reading.
+    body_tokens = _tokenize(body)
+    if (not _NUMERIC_RE.search(body) and not _content_words(body_tokens)
+            and not any(t.casefold() in _STOPWORD_NEGATORS_COMPARATORS for t in body_tokens)):
         return True
 
     # Header ('#'-prefixed): a heading that carries a citation marker or a numeric
@@ -1866,6 +1878,9 @@ def _anchor_sentence_covers(
 # ---------------------------------------------------------------------------
 
 # Stop words for content-word filtering (small functional set).
+# The members of _STOP_WORDS that negate or compare (R7; see _is_non_claim).
+_STOPWORD_NEGATORS_COMPARATORS: frozenset[str] = frozenset({"not", "no", "than", "more"})
+
 _STOP_WORDS: frozenset[str] = frozenset({
     "a", "an", "the", "and", "or", "but", "in", "on", "at", "to", "for",
     "of", "with", "by", "from", "as", "is", "are", "was", "were", "be",

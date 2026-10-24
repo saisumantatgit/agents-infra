@@ -160,3 +160,21 @@ def test_w2c_01_control_ordinary_comment_still_stripped(tmp_path: Path) -> None:
     draft = _REDIS_CLAIM + "\n<!-- editor note: check this later -->\n"
     report = _gate(tmp_path, _REDIS_SRC, draft)
     assert report["gate"] == "PASS", report["per_claim"]
+
+
+# ---------------------------------------------------------------- R7 stop-word sentence
+@pytest.mark.parametrize("tail", [
+    " That is not so.",
+    " We had more than that.",
+    "\n\nNo. It was not. We had more than that, up to more than that.",
+    " It isn't.",
+])
+def test_r7_stopword_only_negation_or_comparison_is_scored(tmp_path: Path, tail: str) -> None:
+    report = _gate(tmp_path, _REDIS_SRC, _REDIS_CLAIM.rstrip("\n") + tail + "\n")
+    assert report["gate"] != "PASS", report["per_claim"]
+
+
+@pytest.mark.parametrize("tail", [" That is it.", ""])
+def test_r7_control_stopword_only_without_negation_stays_non_claim(tmp_path: Path, tail: str) -> None:
+    report = _gate(tmp_path, _REDIS_SRC, _REDIS_CLAIM.rstrip("\n") + tail + "\n")
+    assert report["gate"] == "PASS", report["per_claim"]
