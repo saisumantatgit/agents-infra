@@ -1819,3 +1819,13 @@ mine** — named for Sai, not touched.
 | **Guard on B1** | Negation is a stop word in T1, and round 13 showed "causes no X" grounding against "causes X". B1 must make the grounding path negation-aware and must face an adversary round before any PR. |
 | **Not authorised** | Paraphrase tolerance, a shorter span, NLI (option C). |
 | **UNDO** | Close the PR(s); delete branch `readiness-a-b` and the B1/B2 branches. |
+
+---
+
+## D-98 — Sai merged PR #19 (2026-10-25): readiness A + B is on main, q03's price accepted
+
+| | |
+|---|---|
+| **Decided by Sai** | Merged PR #19 by his own command, its body stating the price: **Error-A 0.440 → 0.480**, gold row q03 refused by the R27-01 negated-claim limiter guard. Read as accepting that price under option A (a claim that drops a source's stated condition is refused). |
+| **Measured on main `80196b2`** | Suite 996 passed · 61 xfailed; gold md5 unchanged; Error-B 0/27; usage set 6 of 177 grounded (unchanged by B). |
+| **UNDO** | `git revert -m 1 80196b2`. |
