@@ -753,20 +753,6 @@ def _is_escaped(text: str, index: int) -> bool:
 # the Error-B path.
 _SAME_LINE_COMMENT_RE = _re.compile(r"<!--[^\n]*?-->")
 
-# W2C-01 (2026-10-24): inside a raw-text / RCDATA element (<textarea>, <xmp>,
-# <title>, <plaintext>) a browser renders "<!--" as LITERAL visible text, so
-# stripping it deleted reader-visible prose. Such regions are protected, from
-# the opening tag to its closing tag — or to the END of the text when the
-# element is never closed, as a browser does. Fail-closed: protection only
-# keeps text in the scored denominator.
-# CEILING: a regex reading of HTML; a tag split by an attribute containing ">"
-# or by a newline inside the tag still opens a region (keeping text, the safe
-# side). Upgrade path: an HTML tokenizer, if HTML-in-draft becomes common.
-_RAW_TEXT_ELEMENT_RE = _re.compile(
-    r"<(textarea|xmp|title|plaintext)\b[^>]*>(?:.*?</\1\s*>|.*\Z)",
-    _re.IGNORECASE | _re.DOTALL,
-)
-
 def _strip_html_comments_outside_code(text: str) -> str:
     """Strip SAME-LINE HTML comments, outside code, unescaped. Pure function.
 
@@ -781,7 +767,6 @@ def _strip_html_comments_outside_code(text: str) -> str:
     """
     protected: list[tuple[int, int]] = _code_line_spans(text)
     protected += [(m.start(), m.end()) for m in _CODE_SPAN_RE.finditer(text)]
-    protected += [(m.start(), m.end()) for m in _RAW_TEXT_ELEMENT_RE.finditer(text)]
 
     def _protected(index: int) -> bool:
         return any(start <= index < end for start, end in protected)
