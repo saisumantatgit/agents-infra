@@ -4789,6 +4789,42 @@ def _identity_flat(text: str) -> str:
     return " ".join(_nfkc(_strip_citations(text)).casefold().split())
 
 
+def _bigrams(flat: str) -> frozenset[tuple[str, str]]:
+    """Adjacent word pairs of an already-flattened text. Pure."""
+    words = flat.split()
+    return frozenset(zip(words, words[1:]))
+
+
+# R26-04 (2026-10-25): the identity tests were exact (digest) or containment of
+# a NON-whole Read, so a copy one word off read whole, a partial read of an
+# older version, or a whole read of a file holding only the claim line all
+# certified the draft. Criterion: the share of the SOURCE's word bigrams that
+# also occur in the draft. It is measured over the source, not the draft, so it
+# asks "is this source made of the draft?" — a draft quoting two or three
+# sentences of a long genuine source covers a small share of that source's
+# bigrams and still grounds; a short genuine source the draft paraphrases or
+# extends shares few of ITS bigrams with the draft and still grounds. A copy
+# with one word changed loses at most two bigrams.
+# CEILING: 0.8 — breaks (fail-open) when an adversary perturbs more than ~1 word
+# in 10 of the copy (e.g. inserting filler between claims), and refuses
+# (Error-A) a genuine source the draft quotes almost in full. Upgrade path:
+# Write/Edit provenance in the capture store, so agent-authored files are known
+# rather than inferred from text similarity.
+_NEAR_COPY_BIGRAM_SHARE = 0.8
+
+
+def _near_copy_of_draft(source_text: str, draft_flat: str) -> bool:
+    """True when *source_text* is (nearly) made of the draft. Pure."""
+    flat = _identity_flat(source_text)
+    if not flat:
+        return False
+    source_bigrams = _bigrams(flat)
+    if not source_bigrams:  # a single word: fall back to containment
+        return flat in draft_flat.split()
+    shared = len(source_bigrams & _bigrams(draft_flat))
+    return shared / len(source_bigrams) >= _NEAR_COPY_BIGRAM_SHARE
+
+
 def _self_source_ids(
     draft_path: str, draft_text: str, store: dict[str, RetrievedSource]
 ) -> frozenset[str]:
@@ -4847,6 +4883,13 @@ def _self_source_ids(
             if flat and flat in draft_flat:
                 matched.add(source_id)
                 continue
+        # R26-04: a Read whose text is a NEAR-COPY of the draft is the draft —
+        # whole or partial. See `_near_copy_of_draft`. Read only: the draft is a
+        # local file, a web fetch is not a draft. Can only match more records.
+        if source.tool == "Read" and source.text \
+                and _near_copy_of_draft(source.text, draft_flat):
+            matched.add(source_id)
+            continue
         if source.file_path:
             try:
                 # R19-02: `resolve()` follows symlinks but does NOT fold case on
