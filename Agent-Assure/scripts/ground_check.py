@@ -2647,6 +2647,19 @@ def _figure_qualifiers(before: str, after: str) -> frozenset[str]:
     if run and i > 0 and before[i - 1].isalnum():
         run = []
     quals = set(run)
+    # R26-03 (round 26): an accounting negative "(12%)" / "($4M)" is a SIGN,
+    # written as a wrapping pair. It was ignored, so a claim of "(12%)"
+    # grounded a source "12%". Marked as its own qualifier so equality is
+    # required both ways. Fail-closed: it only adds a qualifier, so a figure can
+    # only match FEWER figures.
+    # CEILING: a non-negative parenthetical aside ("strong growth (12%)") now
+    # also reads as signed and refuses against a bare "12%" (Error-A); upgrade
+    # path: read the enclosing phrase, not just the wrapping glyphs.
+    j = i
+    while j > 0 and (before[j - 1].isspace() or before[j - 1] in "\u200b\u200c\u200d\u2060\ufeff"):
+        j -= 1
+    if j > 0 and before[j - 1] == "(" and after.lstrip(" \t\u00a0\u200b\u200c\u200d\u2060\ufeff").startswith(")"):
+        quals.add("(")  # one glyph: callers run unicodedata.category on each
     if after:
         ch = after[0]
         if ch in _FIGURE_SUFFIX_MARKS or unicodedata.category(ch) == "Sc":

@@ -71,3 +71,29 @@ def test_r27_02_control_same_unit_grounds(tmp_path: Path, unit: str) -> None:
     report = _gate(tmp_path, _SIZE_FRAME.format(unit) + _SIZE_TAIL,
                    _SIZE_FRAME.format(unit) + " [S1].\n")
     assert report["gate"] == "PASS", report["per_claim"]
+
+
+# ---------------------------------------------------------------- R26-03
+# The 8-token tail lets T1 find a span without the figure, so only the figure
+# check stands between the claim and PASS. On this branch the source-side
+# "(12%)" -> claim "12%" direction was already refused (kept as guards); the
+# claim-side "(12%)" against a source "12%" was a live PASS (seen RED).
+_REV_FRAME = "Revenue changed {} while the board of directors approved the new annual budget plan"
+_REV_TAIL = ". Figures are unaudited."
+
+
+@pytest.mark.parametrize("src_fig,claim_fig", [
+    ("12%", "(12%)"), ("12%", "( 12% )"), ("$4M", "($4M)"),
+    ("(12%)", "12%"), ("( 12% )", "12%"), ("($4M)", "$4M"),
+])
+def test_r26_03_accounting_negative_is_not_the_bare_figure(tmp_path: Path, src_fig: str, claim_fig: str) -> None:
+    report = _gate(tmp_path, _REV_FRAME.format(src_fig) + _REV_TAIL,
+                   _REV_FRAME.format(claim_fig) + " [S1].\n")
+    assert report["gate"] != "PASS", report["per_claim"]
+
+
+@pytest.mark.parametrize("fig", ["12%", "$4M"])
+def test_r26_03_control_same_figure_grounds(tmp_path: Path, fig: str) -> None:
+    report = _gate(tmp_path, _REV_FRAME.format(fig) + _REV_TAIL,
+                   _REV_FRAME.format(fig) + " [S1].\n")
+    assert report["gate"] == "PASS", report["per_claim"]
