@@ -13,12 +13,26 @@ the session actually retrieved — at least eight words in a row, copied exactly
 It does not judge whether a paraphrase means the same thing; that would need an
 AI inside the checker, which this tool deliberately does not have.
 
-**What that means in practice.** Measured on 2026-10-24: 20 honest research
-drafts, written the way people normally write, every claim true to its source —
-**none passed**; 171 of 177 true claims were refused, mostly because they were
-paraphrased. Write the factual core of each claim as a short quotation from
-the source and cite it inside the sentence: `The audit found "material
-weaknesses in custodial reconciliation" [S1].`
+**What that means in practice.** Measured on 2026-10-24/25: honest drafts that
+paraphrase almost never pass (0 of 20), and — corrected on 2026-10-25 — **neither do
+claims that wrap a quotation in your own framing**. "The audit found "material
+weaknesses ..."" fails, even with a 15-word quotation, because the gate anchors its
+check on the start of the claim and "The audit found" is not in the source.
+
+**What works: make the claim the source's own sentence, then cite it.** Copy the
+source sentence — or at least its opening eight words — as the claim itself, with the
+citation inside, before the full stop. Quote marks are optional.
+
+<!-- guide-example: GROUNDED -->
+`The 2025 internal audit identified material weaknesses in custodial reconciliation at the Frankfurt desk [S1].`
+
+<!-- guide-example: REFUSED -->
+`The audit found "material weaknesses in custodial reconciliation" [S1].`
+
+Both examples are run by `tests/test_guide_examples.py` against the source
+`The 2025 internal audit identified material weaknesses in custodial reconciliation
+at the Frankfurt desk during the third quarter.` — so if the gate changes, this page
+fails a test instead of silently giving wrong advice.
 
 **So a FAIL usually means "quote your source", not "your claim is false".**
 Read the per-claim reason before concluding anything about your draft.
