@@ -20,7 +20,8 @@ inside the tool_response dict IS permitted (that is the whole point of Task 2).
 #     truncatedByTokenCap=true with numLines < totalLines. No temp-file
 #     offload shape was observed. The store holds exactly what was delivered
 #     (= what the model saw this session), which is the correct grounding set.
-#   - file_path is read from tool_input["file_path"].
+#   - file_path: file.filePath (absolute), else tool_input["file_path"]
+#     resolved with ~ and the event cwd (W2D-01); read_extent from the counts.
 #
 # WebFetch (native):
 #   {"bytes": int, "code": int, "codeText": str, "result": str,
@@ -52,6 +53,7 @@ from __future__ import annotations
 import dataclasses
 import hashlib
 import json
+import os
 import re
 import unicodedata
 from pathlib import Path
@@ -183,6 +185,65 @@ def _sha256_nfkc(text: str) -> str:
 def _file_path_from_input(tool_input: dict) -> str | None:
     """Extract file_path from tool_input; returns None if absent."""
     return tool_input.get("file_path") or None
+
+
+def _harness_file(tool_response: object) -> dict:
+    """The Read response's `file` dict, or {} when the shape lacks one. Pure."""
+    if isinstance(tool_response, dict):
+        file_obj = tool_response.get("file")
+        if isinstance(file_obj, dict):
+            return file_obj
+    return {}
+
+
+def _read_file_path(tool_input: dict, tool_response: object,
+                    cwd: str) -> str | None:
+    """ABSOLUTE path of the file a Read returned (W2D-01). Pure, no I/O.
+
+    Order: the harness's own `tool_response.file.filePath` when absolute; else
+    `tool_input.file_path` with `~` expanded and, if still relative, joined to
+    the event's `cwd` when that is absolute. A path that cannot be made
+    absolute is stored AS GIVEN — the gate treats any non-absolute stored path
+    as matching a draft with the same basename (fail-closed), so the unknown
+    origin points away from PASS.
+    """
+    harness = _harness_file(tool_response).get("filePath")
+    if isinstance(harness, str) and harness and os.path.isabs(harness):
+        return os.path.normpath(harness)
+    given = _file_path_from_input(tool_input)
+    if not isinstance(given, str) or not given:
+        return given
+    expanded = os.path.expanduser(given)
+    if os.path.isabs(expanded):
+        return os.path.normpath(expanded)
+    if cwd and os.path.isabs(cwd):
+        return os.path.normpath(os.path.join(cwd, expanded))
+    return given
+
+
+def _read_extent(tool_input: dict, tool_response: object) -> str:
+    """"partial", "whole", or "" (unknown) for a Read (W2D-02). Pure.
+
+    Partial when the harness reports startLine > 1, numLines < totalLines or
+    truncatedByTokenCap, or the input asked for an offset/limit. "whole" only
+    when the harness's own line counts say the whole file came back; anything
+    the counts cannot confirm is "" — which the gate treats like "partial".
+    """
+    file_obj = _harness_file(tool_response)
+    start = file_obj.get("startLine")
+    num = file_obj.get("numLines")
+    total = file_obj.get("totalLines")
+    if file_obj.get("truncatedByTokenCap") is True:
+        return "partial"
+    if isinstance(start, int) and start > 1:
+        return "partial"
+    if isinstance(num, int) and isinstance(total, int) and num < total:
+        return "partial"
+    if tool_input.get("offset") is not None or tool_input.get("limit") is not None:
+        return "partial"
+    if isinstance(start, int) and isinstance(num, int) and isinstance(total, int):
+        return "whole"
+    return ""
 
 
 # ---------------------------------------------------------------------------
@@ -340,6 +401,7 @@ def make_record(
     query_provenance: str,
     fetched_at: str,
     session_id: str = "",
+    cwd: str = "",
 ) -> RetrievedSource | None:
     """Map a tool event to a RetrievedSource, or None for non-retrieval tools.
 
@@ -384,11 +446,13 @@ def make_record(
         # lines genuinely start with <digits><TAB> (e.g. TSV).
         full_text_source = "verbatim"
         url: str | None = None
-        file_path: str | None = _file_path_from_input(tool_input)
+        file_path: str | None = _read_file_path(tool_input, tool_response, cwd)
+        read_extent = _read_extent(tool_input, tool_response)
     elif tool_name in _HAIKU_SUMMARY_TOOLS:
         full_text_source = "haiku_summary"
         url = _certain_url(tool_input)
         file_path = None
+        read_extent = ""
     else:
         # mcp__exa__web_fetch_exa, web_fetch_exa, mcp__ddg-search__fetch_content
         # R20-02 / R21-01: `_certain_url`, not "the first URL" — a multi-URL
@@ -397,6 +461,7 @@ def make_record(
         full_text_source = "verbatim"
         url = _certain_url(tool_input)
         file_path = None
+        read_extent = ""
 
     return RetrievedSource(
         session_id=session_id,
@@ -411,6 +476,7 @@ def make_record(
         captured_via=captured_via,
         query_provenance=query_provenance,
         retrieval_status=_retrieval_status(tool_name, tool_response, text),
+        read_extent=read_extent,
     )
 
 
@@ -550,6 +616,7 @@ def make_records(
     query_provenance: str,
     fetched_at: str,
     session_id: str = "",
+    cwd: str = "",
 ) -> list[RetrievedSource]:
     """Map a tool event to ONE RECORD PER FETCHED DOCUMENT. Pure.
 
@@ -587,7 +654,7 @@ def make_records(
         documents = pieces if len(pieces) >= 2 else None
     if documents is None:
         record = make_record(tool_name, tool_input, tool_response, source_id,
-                             query_provenance, fetched_at, session_id)
+                             query_provenance, fetched_at, session_id, cwd)
         return [] if record is None else [record]
     is_read = tool_name == "Read"
     full_text_source = ("haiku_summary" if tool_name in _HAIKU_SUMMARY_TOOLS
@@ -597,7 +664,8 @@ def make_records(
             session_id=session_id,
             source_id=source_id,
             url=None if is_read else _certain_url(tool_input),
-            file_path=_file_path_from_input(tool_input) if is_read else None,
+            file_path=(_read_file_path(tool_input, tool_response, cwd)
+                       if is_read else None),
             fetched_at=fetched_at,
             tool=tool_name,
             content_sha256=_sha256_nfkc(text),
@@ -606,6 +674,8 @@ def make_records(
             captured_via=captured_via,
             query_provenance=query_provenance,
             retrieval_status=_retrieval_status(tool_name, tool_response, text),
+            # One block of several is never the whole file.
+            read_extent="partial" if is_read else "",
         )
         for text in documents
     ]
@@ -693,6 +763,7 @@ def append_record(record: RetrievedSource, store_path: str) -> None:
         "query_provenance": record.query_provenance,
         "session_id": record.session_id,
         "retrieval_status": record.retrieval_status,
+        "read_extent": record.read_extent,
     }
     line = json.dumps(obj, ensure_ascii=False)
     with path.open(mode="a", encoding="utf-8") as fh:

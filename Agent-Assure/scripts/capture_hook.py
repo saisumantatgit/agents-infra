@@ -158,6 +158,8 @@ def process_event(event: dict, store_path: str) -> str | None:
         # expressible at all. Empty when the harness omits it, which
         # assert_single_session treats as UNATTRIBUTABLE and refuses.
         session_id=_event_session_id(event),
+        # W2D-01: the agent's cwd, so a relative Read path is stored absolute.
+        cwd=event["cwd"] if isinstance(event.get("cwd"), str) else "",
     )
     if not records:
         return None

@@ -82,6 +82,12 @@ class RetrievedSource:
     # an absence. A failed fetch is KEPT in the store (it is audit evidence of
     # what was attempted) and is only barred from counting as a search.
     retrieval_status: str = ""
+    # W2D-02 (2026-10-24). For a Read: "whole" when the harness's line counts
+    # show the entire file came back, "partial" for a slice (offset/limit,
+    # token-cap truncation). "" = unknown (every older store, every non-Read).
+    # Unknown is treated exactly like "partial" by _self_source_ids — a
+    # Read whose text sits inside the draft is the draft (fail-closed).
+    read_extent: str = ""
 
 
 @dataclass(frozen=True)
@@ -129,6 +135,9 @@ _OPTIONAL_STR_FIELDS: tuple[str, ...] = ("url", "file_path")
 # R20-04 + R20-06. "" is the legacy/unknown value, and it never counts as a
 # search; see RetrievedSource.retrieval_status.
 _RETRIEVAL_STATUSES: frozenset[str] = frozenset({"", "ok", "failed"})
+
+# W2D-02. "" is legacy/unknown and is read as possibly partial.
+_READ_EXTENTS: frozenset[str] = frozenset({"", "whole", "partial"})
 
 
 def _object_pairs_no_duplicates(
@@ -369,7 +378,16 @@ def load_store(path: str) -> dict[str, RetrievedSource]:
                     "an unrecognised status could be read as a successful "
                     "retrieval."
                 )
+            read_extent = obj.get("read_extent", "")
+            if read_extent not in _READ_EXTENTS:
+                raise ValueError(
+                    f"line {lineno}: field 'read_extent' must be one of "
+                    f"{sorted(_READ_EXTENTS)} or absent, got {read_extent!r}. "
+                    "It is never repaired or defaulted: an unrecognised extent "
+                    "could be read as a whole-file Read."
+                )
             source = RetrievedSource(
+                read_extent=read_extent,
                 retrieval_status=retrieval_status,
                 session_id=_nfkc(session_id),
                 source_id=source_id,
@@ -4310,6 +4328,12 @@ def _identity_digest(text: str) -> str:
     return hashlib.sha256(normalised.encode("utf-8")).hexdigest()
 
 
+def _identity_flat(text: str) -> str:
+    """NFKC, citations removed, ALL whitespace collapsed to one space,
+    casefolded — the form used for the W2D-02 containment test. Pure."""
+    return " ".join(_nfkc(_strip_citations(text)).casefold().split())
+
+
 def _self_source_ids(
     draft_path: str, draft_text: str, store: dict[str, RetrievedSource]
 ) -> frozenset[str]:
@@ -4344,8 +4368,30 @@ def _self_source_ids(
     # because collapsing can only make MORE records match and refuse MORE
     # claims, never fewer.
     draft_digest = _identity_digest(draft_text)
+    draft_flat = _identity_flat(draft_text)
+    draft_basename = os.path.basename(draft_path)
     matched: set[str] = set()
     for source_id, source in store.items():
+        # W2D-01: a stored path that is not absolute (relative, `~`) has an
+        # unknown origin — resolving it against the GATE's cwd guesses. Treat
+        # it as the draft whenever the basename agrees (fail-closed).
+        if source.file_path and not os.path.isabs(source.file_path) \
+                and draft_basename \
+                and os.path.basename(source.file_path) == draft_basename:
+            matched.add(source_id)
+            continue
+        # W2D-02: a Read that is not KNOWN to be whole, whose text sits inside
+        # the draft, is (part of) the draft. The whole-draft digest below
+        # cannot see a slice. Can only match more records — fail-closed.
+        # CEILING: a genuine source short enough to be quoted IN FULL inside
+        # the draft, read partially or by an older hook, is refused (Error-A);
+        # upgrade path: compare against the draft file's own line range.
+        if source.tool == "Read" and source.read_extent != "whole" \
+                and source.text:
+            flat = _identity_flat(source.text)
+            if flat and flat in draft_flat:
+                matched.add(source_id)
+                continue
         if source.file_path:
             try:
                 # R19-02: `resolve()` follows symlinks but does NOT fold case on
