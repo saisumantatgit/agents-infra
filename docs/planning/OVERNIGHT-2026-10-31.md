@@ -8,8 +8,8 @@ ceiling 6M. Hard stop 07:30 IST 2026-11-01. Tick 30 min. Worktree ../ai-overnigh
 
 ## §1 Each cycle, derive state (code first)
 1. `git -C <wt> log --oneline origin/main..HEAD`, `gh pr list --state open`, fresh
-   `cd Agent-Assure && uv run pytest -q > out 2>&1; echo $?`, gold md5 (feature_rows-v2.jsonl
-   per tests/test_measure_rates.py) == 6215b526d03147295b003d7ccb0d171f.
+   `cd Agent-Assure && uv run pytest -q > out 2>&1; echo $?`, gold md5 of Agent-Assure/calibration/labels-v2.csv
+   == 6215b526d03147295b003d7ccb0d171f.
 2. Diff rule — the queue is whatever of these is NOT yet true, in order:
    C1 R31 adversary round on hardening-2026-10-25 complete, report in Agent-Assure/reports/.
    C2 Every R31 BLOCKER (branch passes what main refuses) fixed fail-closed + proven red, or the

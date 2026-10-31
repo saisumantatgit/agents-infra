@@ -144,3 +144,10 @@ Gold md5 unchanged. Not pushed.
 DDG failures or diluted self-copies, so "rates unchanged" says these fixes cost nothing on
 the 52 rows. It does NOT measure their Error-A cost on real sources; the CEILING comments
 name where each over-refuses.
+
+## H5 WITHDRAWN (overnight 2026-10-31, after round 31)
+R31-02: H5 drops a genuine source as "the draft" whenever the draft copies most of its lines from it —
+which is exactly what the tester guide tells writers to do. tests/usage_genres (40 honest drafts):
+main 4 PASS / 57 claims grounded; H1–H4 4 PASS / 51; H1–H5 0 PASS / 13. Reverted; R31-03 (heading
+padding bypasses the 0.8 near-copy bar) remains OPEN, pre-existing on main. A future H5 must measure
+against the draft's provenance (Write/Edit records), not text similarity to the source.
