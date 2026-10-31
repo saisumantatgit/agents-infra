@@ -1847,3 +1847,10 @@ mine** — named for Sai, not touched.
 | **The due-diligence bar (what "after DD" means here)** | Every one of: (1) suite green on the PR head AND on the merged result; (2) gold md5 `6215b526…d171f` unchanged; (3) Error-B unchanged, Error-A movement stated; (4) every fix proven red; (5) any change to the grounding/capture path has faced an adversary round with no unfixed regression; (6) any PASS-enabling change carries Sai's explicit ruling (Escalation #1 is NOT delegated by this); (7) the PR body states the diff and any price. |
 | **NOT covered** | Pushing to `main` directly; force-pushing shared branches; Escalation #1 rulings, gold labels, `install.sh`, hook registration, `SOUL.md`, anything outward. A merge denied by the harness classifier is NOT routed around — it returns to Sai. |
 | **UNDO** | Sai revokes in one sentence; any merge is reverted with `git revert -m 1 <sha>`. |
+
+## D-101 — Overnight autonomous run 2026-10-31 (Assure hardening to main)
+| Field | Value |
+|---|---|
+| **Decided** | Claude, under Sai's pre-given AGREED ("Consider you have my agreed and proceed"), 5M budget. |
+| **Scope** | R31 adversary on hardening-2026-10-25; fail-closed fixes for its blockers; merge under D-100. Instrument: docs/planning/OVERNIGHT-2026-10-31.md. |
+| **UNDO** | CronDelete the tick; any merge reverted with `git revert -m 1 <sha>`; branch deletable. |
