@@ -898,13 +898,14 @@ def _label_only(text: str) -> bool:
             and _figures_are_section_numbers(text))
 
 
-def _blank_structural_lines(text: str) -> str:
-    """Replace D-102 structural lines with empty lines. Pure.
+def _closed_fence_lines(lines: list[str]) -> list[bool]:
+    """Per line: True iff it belongs to a CLOSED fenced block (delimiters
+    included) whose opener has at most a one-word info string. Pure.
 
-    See the comment above `_CITATION_LIKE_RE` for the exact rule."""
-    lines = text.split("\n")
-    blank = [False] * len(lines)
-    # Fences: only CLOSED blocks; the delimiter needs a one-word info string.
+    Deliberately STRICT, unlike `_code_line_spans`: both callers (D-102 rows 1
+    and 2) WIDEN passes for code, so over-detecting code is the fail-open
+    direction here. No indented blocks, no unclosed fences."""
+    out = [False] * len(lines)
     open_at: int | None = None
     fence_char, fence_len = "", 0
     for i, line in enumerate(lines):
@@ -916,9 +917,45 @@ def _blank_structural_lines(text: str) -> str:
         elif (m is not None and m.group("fence")[0] == fence_char
               and len(m.group("fence")) >= fence_len and not m.group("info").strip()):
             for j in range(open_at, i + 1):
-                if not _CITATION_LIKE_RE.search(_nfkc(lines[j])):
-                    blank[j] = True
+                out[j] = True
             open_at = None
+    return out
+
+
+# D-102 row 2 (Sai, 2026-11-01): H1 denial words count in PROSE only. A
+# single-line `inline code` span and a closed fenced block are masked for the
+# denial checks: every word in them becomes the neutral token "q", after the
+# same NFKC + "n't"/"cannot" expansion `_tokenize` applies, so the masked text
+# tokenizes to exactly as many tokens, in the same places, as the original.
+# Only the denial view uses it; claim matching reads the original text.
+# CEILING: a denial the source wraps in backticks ("`That is false.`") no
+# longer denies (fail-open, accepted by Sai and pinned by
+# test_d102_ceiling_denial_hidden_in_backticks_grounds); a stray pair of
+# backticks around prose on one line masks that prose too. Upgrade path: mask
+# only spans whose content parses as code.
+_INLINE_CODE_SPAN_RE = _re.compile(r"`[^`\n]+`")
+
+
+def _mask_code_for_denial(text: str) -> str:
+    """*text* NFKC-normalised, with code words replaced by "q". Pure."""
+    def _mask(chunk: str) -> str:
+        return _re.sub(r"\w+", "q", _expand_negation_contractions(chunk))
+
+    lines = _nfkc(text).split("\n")
+    in_fence = _closed_fence_lines(lines)
+    out = [_mask(line) if fenced else _INLINE_CODE_SPAN_RE.sub(lambda m: _mask(m.group(0)), line)
+           for fenced, line in zip(in_fence, lines)]
+    return "\n".join(out)
+
+
+def _blank_structural_lines(text: str) -> str:
+    """Replace D-102 structural lines with empty lines. Pure.
+
+    See the comment above `_CITATION_LIKE_RE` for the exact rule."""
+    lines = text.split("\n")
+    in_fence = _closed_fence_lines(lines)
+    blank = [f and not _CITATION_LIKE_RE.search(_nfkc(line))
+             for f, line in zip(in_fence, lines)]
     for i, line in enumerate(lines):
         if blank[i]:
             continue
@@ -1962,6 +1999,12 @@ class _UnitContext:
     following: tuple[str, ...]  # the next sentence
     disowned: bool              # H4: sits under a "Myths:"-style list label
     scope_denied: bool = False  # R31-04: an earlier "None of the following ..."
+    # D-102 row 2: the same four token runs with code words masked to "q".
+    # Denial checks read these; positions match the unmasked fields.
+    d_tokens: tuple[str, ...] = ()
+    d_prefix: tuple[str, ...] = ()
+    d_previous: tuple[str, ...] = ()
+    d_following: tuple[str, ...] = ()
 
 
 # H4 (2026-10-25): label words that DISOWN the list under them ("Myths:",
@@ -2062,21 +2105,37 @@ def _source_unit_contexts(source_text: str) -> list[_UnitContext]:
     disowned = _disowned_lines(source_text)
     sentences = _split_sentences(source_text)
     sentence_tokens = [tuple(_tokenize(s)) for s in sentences]
-    scope_start = _denial_scope_start(sentence_tokens)
+    masked_sentences = _split_sentences(_mask_code_for_denial(source_text))
+    masked_tokens = [tuple(_tokenize(s)) for s in masked_sentences]
+    if [len(t) for t in masked_tokens] != [len(t) for t in sentence_tokens]:
+        raise ValueError(
+            "D-102 code mask changed the sentence/token layout of a source; "
+            "the denial view would be misaligned with the match positions.")
+    scope_start = _denial_scope_start(masked_tokens)
     out: list[_UnitContext] = []
     for s, sentence in enumerate(sentences):
         prefix: list[str] = []
-        for unit in _re.split(r"\n+|;|[()]", sentence):
-            if not unit.strip():
-                continue
+        d_prefix: list[str] = []
+        units = [u for u in _re.split(r"\n+|;|[()]", sentence) if u.strip()]
+        d_units = [u for u in _re.split(r"\n+|;|[()]", masked_sentences[s]) if u.strip()]
+        if len(units) != len(d_units):
+            raise ValueError("D-102 code mask changed the unit layout of a source sentence.")
+        for unit, d_unit in zip(units, d_units):
             toks = tuple(_tokenize(unit))
+            d_toks = tuple(_tokenize(d_unit))
+            if len(d_toks) != len(toks):
+                raise ValueError("D-102 code mask changed the token count of a source unit.")
             out.append(_UnitContext(
                 tokens=toks, prefix=tuple(prefix),
                 disowned=bool(toks) and any(_within(toks, d) for d in disowned),
                 previous=sentence_tokens[s - 1] if s > 0 else (),
                 following=sentence_tokens[s + 1] if s + 1 < len(sentences) else (),
-                scope_denied=s > scope_start))
+                scope_denied=s > scope_start,
+                d_tokens=d_toks, d_prefix=tuple(d_prefix),
+                d_previous=masked_tokens[s - 1] if s > 0 else (),
+                d_following=masked_tokens[s + 1] if s + 1 < len(sentences) else ()))
             prefix.extend(toks)
+            d_prefix.extend(d_toks)
     return out
 
 
@@ -2190,24 +2249,25 @@ def _unit_denied(ctx: _UnitContext, match_start: int) -> bool:
     """
     if ctx.disowned or ctx.scope_denied:
         return True
-    before = ctx.prefix + ctx.tokens[:match_start]
+    # D-102 row 2: read the code-masked view (positions are identical).
+    before = ctx.d_prefix + ctx.d_tokens[:match_start]
     if _has_denial(before):
         return True
-    previous = set(ctx.previous)
+    previous = set(ctx.d_previous)
     if _has_denial(previous) and (
-            previous & _FORWARD_REFERENCES or _is_bare_denial(ctx.previous)):
+            previous & _FORWARD_REFERENCES or _is_bare_denial(ctx.d_previous)):
         return True
-    following = set(ctx.following)
+    following = set(ctx.d_following)
     if not _has_denial(following):
         return False
-    if _is_bare_denial(ctx.following):
+    if _is_bare_denial(ctx.d_following):
         return True
     # H2: a bare short reply right after ("No.", "Not so.", "Untrue.") denies
     # the sentence before it, back-reference or not.
     # CEILING: a 3-token cut. A longer bare reply ("No, not at all, sir.")
     # stays open (fail-open); an honest short negative after the claim
     # ("Not always.") is refused (Error-A). Upgrade path: dialogue-act tagging.
-    return len(ctx.following) <= 3 or bool(following & _BACK_REFERENCES)
+    return len(ctx.d_following) <= 3 or bool(following & _BACK_REFERENCES)
 
 
 def _anchor_sentence_covers(
