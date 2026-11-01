@@ -2018,6 +2018,10 @@ _DENIAL_TOKENS: frozenset[str] = _NEGATION_TOKENS | frozenset({
 _SCOPE_FORWARD_REFERENCES: frozenset[str] = frozenset({
     "following", "below", "hereafter", "hereunder",
 })
+# CEILING: a longer scope sentence ("We have checked every one of the claims
+# listed below and none of them is true.") does not reach past the next
+# sentence (fail-open). Upgrade path: clause-level scope detection.
+_SCOPE_MAX_TOKENS: int = 12
 # R31-04: a denial of the WHOLE text ("Every word of this page is invented.")
 # needs a whole-text noun AND a determiner that makes it this/all of it.
 _SCOPE_SELF_NOUNS: frozenset[str] = frozenset({
@@ -2061,7 +2065,12 @@ def _denial_scope_start(sentence_tokens: list[tuple[str, ...]]) -> int:
     """
     for i, toks in enumerate(sentence_tokens):
         vocab = set(toks)
-        if _has_denial(toks) and (
+        # A SHORT sentence only (<= _SCOPE_MAX_TOKENS): the splitter welds
+        # long runs of real documents (tables, code, lists) into one
+        # "sentence", where a "not" and a "below" co-occur by accident and
+        # would disown the rest of the page (measured on the usage genres:
+        # sentence 10 of 240 of the alpha guide).
+        if len(toks) <= _SCOPE_MAX_TOKENS and _has_denial(toks) and (
                 vocab & _SCOPE_FORWARD_REFERENCES
                 or (vocab & _SCOPE_SELF_NOUNS and vocab & _SCOPE_SELF_DETERMINERS)):
             return i

@@ -48,6 +48,11 @@ CONTROLS = {
     "trail_affirmative": CLAIM + ". That is well documented." + TAIL,
     "label_neutral_list": ("Here are the events that happened last year:\n"
                            "- Depositors queued for days.\n- " + CLAIM + ".\n" + TAIL),
+    # a LONG sentence that happens to hold "not" and "below" is not a scope
+    # denial (usage genres: it disowned 230 of 240 alpha-guide sentences)
+    "long_sentence_not_below_is_no_scope": (
+        "The settings listed below were not changed during the upgrade, and the operators "
+        "kept the previous values for every node in the cluster." + _FILLER + " " + CLAIM + "." + TAIL),
     "label_neutral_long": ("These are the facts we have checked and found accurate:\n"
                            "- " + CLAIM + ".\n" + TAIL),
 }
