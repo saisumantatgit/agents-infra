@@ -1878,6 +1878,7 @@ class _UnitContext:
     previous: tuple[str, ...]   # the previous sentence
     following: tuple[str, ...]  # the next sentence
     disowned: bool              # H4: sits under a "Myths:"-style list label
+    scope_denied: bool = False  # R31-04: an earlier "None of the following ..."
 
 
 # H4 (2026-10-25): label words that DISOWN the list under them ("Myths:",
@@ -1887,8 +1888,43 @@ _DISOWNING_LABEL_TOKENS: frozenset[str] = frozenset({
     "debunked", "false", "untrue", "falsehood", "falsehoods", "rumour",
     "rumours", "rumor", "rumors", "hoax", "hoaxes", "disinformation",
     "misinformation", "fake",
+    # R31-04 (2026-11-01): "Nonsense:", "Lies:", "Bogus:" ... Refusal only.
+    "nonsense", "lie", "lies", "bogus", "invented", "fabricated",
+    "fabrication", "fabrications", "fiction", "baseless", "wrong", "incorrect",
 })
 _LABEL_LINE_RE = _re.compile(r"^[\s#>*_]*(?P<label>[^:\n]{1,60}):(?P<rest>.*)$")
+# R31-04: a prose label of ANY length that ENDS the line with ":" ("Here are the
+# rumours that circulated last year:"). Only when nothing follows the colon, so
+# a long sentence with a mid-line colon is not mistaken for a label.
+_LONG_LABEL_LINE_RE = _re.compile(r"^[\s#>*_]*(?P<label>[^:\n]{1,400}):(?P<rest>\s*)$")
+
+# R31-04 (2026-11-01): look-alike letters folded ONLY for the refusal-driving
+# denial / label word checks (D-69). NFKC folds full-width "ＦＡＬＳＥ" but not
+# Cyrillic "FАLSE" or "Мyths". Tokens are already casefolded, so upper-case
+# Cyrillic arrives here as its lower-case form. Matching of claim text is
+# untouched: this map can only turn a non-denial token into a denial token.
+# CEILING: a fixed map of common Cyrillic/Greek look-alikes, not the full
+# Unicode TR39 confusables table; an unmapped look-alike still grounds
+# (fail-open). Upgrade path: a TR39 skeleton pass over the same two checks.
+_DENIAL_CONFUSABLES: dict[int, str] = str.maketrans({
+    "а": "a", "е": "e", "о": "o", "р": "p", "с": "c", "х": "x", "у": "y",
+    "і": "i", "ј": "j", "һ": "h", "ѕ": "s", "ԁ": "d", "ԛ": "q", "ԝ": "w",
+    "м": "m", "т": "t", "в": "b", "н": "h", "к": "k", "ł": "l",
+    "ο": "o", "α": "a", "ρ": "p", "υ": "u", "ι": "i", "κ": "k", "ν": "v",
+    "τ": "t", "ε": "e", "μ": "m", "ɡ": "g", "ӏ": "l",
+})
+
+
+def _confusable_fold(tok: str) -> str:
+    """Casefolded *tok* with look-alike letters mapped to Latin. Pure."""
+    return tok.casefold().translate(_DENIAL_CONFUSABLES)
+
+
+def _folded(tokens) -> set[str]:
+    """The token set plus its confusable-folded forms. Pure."""
+    out = set(tokens)
+    out.update(_confusable_fold(t) for t in tokens)
+    return out
 _LIST_ITEM_RE = _re.compile(r"^\s*(?:[-*+\u2022]|\d+[.)])\s")
 
 
@@ -1899,9 +1935,12 @@ def _disowned_lines(source_text: str) -> list[tuple[str, ...]]:
     after its colon and every following list-item line (blank lines allowed)
     are disowned, until the first non-blank line that is not a list item.
 
+    R31-04: a label line of 7+ words also counts when it ENDS with ":"
+    (`_LONG_LABEL_LINE_RE`), and label words are checked confusable-folded.
+
     CEILING: line-shaped markdown/plain lists only. A label two paragraphs
     above, a table, an HTML <ul>, prose "the following are myths" with no
-    colon, or an unlisted label word ("Nonsense:") still grounds (fail-open);
+    colon, or an unlisted label word still grounds (fail-open);
     any item whose words repeat elsewhere in the source is refused there too
     (Error-A). Upgrade path: a real document-structure parse.
     """
@@ -1912,7 +1951,10 @@ def _disowned_lines(source_text: str) -> list[tuple[str, ...]]:
             continue
         match = _LABEL_LINE_RE.match(line)
         label_tokens = _tokenize(match.group("label")) if match else []
-        if match and len(label_tokens) <= 6 and set(label_tokens) & _DISOWNING_LABEL_TOKENS:
+        long_match = _LONG_LABEL_LINE_RE.match(line)
+        if long_match and not (match and len(label_tokens) <= 6):
+            match, label_tokens = long_match, _tokenize(long_match.group("label"))
+        if match and _folded(label_tokens) & _DISOWNING_LABEL_TOKENS:
             under_label = True
             rest = _tokenize(match.group("rest"))
             if rest:
@@ -1937,6 +1979,7 @@ def _source_unit_contexts(source_text: str) -> list[_UnitContext]:
     disowned = _disowned_lines(source_text)
     sentences = _split_sentences(source_text)
     sentence_tokens = [tuple(_tokenize(s)) for s in sentences]
+    scope_start = _denial_scope_start(sentence_tokens)
     out: list[_UnitContext] = []
     for s, sentence in enumerate(sentences):
         prefix: list[str] = []
@@ -1948,7 +1991,8 @@ def _source_unit_contexts(source_text: str) -> list[_UnitContext]:
                 tokens=toks, prefix=tuple(prefix),
                 disowned=bool(toks) and any(_within(toks, d) for d in disowned),
                 previous=sentence_tokens[s - 1] if s > 0 else (),
-                following=sentence_tokens[s + 1] if s + 1 < len(sentences) else ()))
+                following=sentence_tokens[s + 1] if s + 1 < len(sentences) else (),
+                scope_denied=s > scope_start))
             prefix.extend(toks)
     return out
 
@@ -1961,7 +2005,67 @@ _DENIAL_TOKENS: frozenset[str] = _NEGATION_TOKENS | frozenset({
     "denied", "refute", "refutes", "refuted", "debunk", "debunked", "myth",
     "myths", "incorrect", "wrong", "fabricated", "fiction", "fallacy",
     "fallacies", "nonsense", "baseless", "nope",
+    # R31-04 (2026-11-01): "That is a lie.", "Lies.", "Bogus.", "Fake." and
+    # "Every word of this page is invented." "fake" was already a label word.
+    # CEILING: "lie"/"lies" are also verbs ("the answers lie in ..."); such a
+    # sentence next to a match is refused (Error-A), never passed.
+    "lie", "lies", "bogus", "fake", "fakes", "invented", "fabrication",
+    "fabrications", "hoax", "untruth", "untruths", "falsehood", "falsehoods",
 })
+
+# R31-04: forward words that reach to the END of the text ("None of the
+# following is true." six sentences above the claim).
+_SCOPE_FORWARD_REFERENCES: frozenset[str] = frozenset({
+    "following", "below", "hereafter", "hereunder",
+})
+# R31-04: a denial of the WHOLE text ("Every word of this page is invented.")
+# needs a whole-text noun AND a determiner that makes it this/all of it.
+_SCOPE_SELF_NOUNS: frozenset[str] = frozenset({
+    "page", "document", "article", "text", "post", "piece",
+})
+_SCOPE_SELF_DETERMINERS: frozenset[str] = frozenset({
+    "this", "every", "entire", "whole", "all",
+})
+
+
+def _has_denial(tokens) -> bool:
+    """True iff *tokens* hold a denial word, look-alike letters folded. Pure."""
+    return bool(_folded(tokens) & _DENIAL_TOKENS)
+
+
+def _is_bare_denial(tokens: tuple[str, ...]) -> bool:
+    """A short sentence that is nothing but a denial: <= 3 tokens with a denial
+    word ("Lies.", "Not so."), or <= 8 tokens at least half of which are
+    denial words ("No, not at all, sir, never."). Pure.
+
+    CEILING: a length/ratio cut. An honest short negative ("Not always.") is
+    refused (Error-A); a longer, wordier reply stays open (fail-open).
+    Upgrade path: dialogue-act tagging."""
+    if not tokens or not _has_denial(tokens):
+        return False
+    if len(tokens) <= 3:
+        return True
+    hits = sum(1 for t in tokens if _confusable_fold(t) in _DENIAL_TOKENS or t in _DENIAL_TOKENS)
+    return len(tokens) <= 8 and 2 * hits >= len(tokens)
+
+
+def _denial_scope_start(sentence_tokens: list[tuple[str, ...]]) -> int:
+    """Index of the first sentence that denies AND points to everything after
+    it ("None of the following is true.", "All claims below are false.") or
+    to the whole text ("Every word of this page is invented."), or
+    len(sentence_tokens) when none does. Every later sentence is denied. Pure.
+
+    CEILING: no end of scope. An honest "This does not apply to the cases
+    below." refuses the rest of the source (Error-A). Upgrade path: section
+    boundaries from a document-structure parse.
+    """
+    for i, toks in enumerate(sentence_tokens):
+        vocab = set(toks)
+        if _has_denial(toks) and (
+                vocab & _SCOPE_FORWARD_REFERENCES
+                or (vocab & _SCOPE_SELF_NOUNS and vocab & _SCOPE_SELF_DETERMINERS)):
+            return i
+    return len(sentence_tokens)
 
 # A following sentence that points BACK ("that", "this", ...) and denies.
 _BACK_REFERENCES: frozenset[str] = frozenset({
@@ -1992,18 +2096,20 @@ def _unit_denied(ctx: _UnitContext, match_start: int) -> bool:
     sentence that denies without a forward reference word. Upgrade path: a
     discourse/coreference model of what a denial targets.
     """
-    if ctx.disowned:
+    if ctx.disowned or ctx.scope_denied:
         return True
     before = ctx.prefix + ctx.tokens[:match_start]
-    if any(tok in _DENIAL_TOKENS for tok in before):
+    if _has_denial(before):
         return True
     previous = set(ctx.previous)
-    if previous & _DENIAL_TOKENS and (
-            previous & _FORWARD_REFERENCES or len(ctx.previous) <= 3):
+    if _has_denial(previous) and (
+            previous & _FORWARD_REFERENCES or _is_bare_denial(ctx.previous)):
         return True
     following = set(ctx.following)
-    if not following & _DENIAL_TOKENS:
+    if not _has_denial(following):
         return False
+    if _is_bare_denial(ctx.following):
+        return True
     # H2: a bare short reply right after ("No.", "Not so.", "Untrue.") denies
     # the sentence before it, back-reference or not.
     # CEILING: a 3-token cut. A longer bare reply ("No, not at all, sir.")
