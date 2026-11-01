@@ -1863,3 +1863,13 @@ mine** — named for Sai, not touched.
 | S1 hedge look-back crossing the sentence boundary ("per line." → refuses next sentence) | **NO** (for now) | Guards "per the vendor"-style attribution; prior adversary rounds rely on it; revisit after the 5-user test shows real frequency. | — | Sai re-rules |
 | Run GO | Fail-closed denial gaps (R31-04) + the two YES items, merge under D-100 | — | D-100 bar | revert |
 Decided by Sai: "2 yes, 3 yes, 4 no, GO".
+
+## D-103 — D-102 rows 1–2 NOT merged after two refuted rounds (Claude, 2026-11-01)
+| Field | Value |
+|---|---|
+| **Outcome** | Row 1 (unscored structure) refuted by R32 (4 blockers) and, after a narrow rebuild, by R33 (4 blockers): code-language fences holding prose, label-number headings carrying verbs, claim-bearing table headers, Unicode digits in header cells. Each passes a fabrication main refuses. |
+| **Why stop, not a third attempt** | "Makes no claim" cannot be decided by line-shape heuristics: every exemption shape so far has also admitted a claim. Measured relief is small: tests/usage_genres PASS 4→4; 3 drafts FAIL→NEEDS_WORK. Error-B risk is unrecoverable; refuted twice ⇒ step back (routing rule 2). |
+| **Row 2 (code denials)** | Code-only grounding held under R33, but the accepted cost is WIDER than presented to Sai: denials in fences and code comments, backticked "Myths:" labels and "None of the following…" sentences also stop denying. Returned to Sai for re-ruling with the true cost. |
+| **Where** | Branch `run-2026-11-01-bc` (pushed, unmerged); reports RED-TEAM-R32.md, RED-TEAM-R33.md. |
+| **Next if revived** | Mark structure by an explicit author signal (e.g. `<!-- assure: structure -->`) or require the line to share no content word with any claim — not by shape. |
+| **UNDO** | Sai can order a merge of the branch; nothing on main changed. |
