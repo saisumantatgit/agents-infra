@@ -853,6 +853,84 @@ def _break_after_headers(text: str) -> str:
     return _HEADER_LINE_RE.sub(lambda m: m.group(1) + "\n", text)
 
 
+# D-102 row 1 (Sai, 2026-11-01): document STRUCTURE is not scored as a claim.
+# Headings are handled in `_is_non_claim` (they stay visible as NON_CLAIM rows);
+# fenced code and table header/separator rows are blanked here.
+# Headings, fenced-code lines and table header/separator rows were each scored
+# UNCITED and alone blocked PASS (31 segments in 17 of 40 honest usage drafts,
+# tests/usage_genres/FINDINGS.md). This is PASS-WIDENING: a blanked line leaves
+# the scored denominator. So a line is blanked only when it CANNOT carry a
+# claim the reader would read as one:
+#   - any citation-shaped bracket (checked under NFKC, generously) keeps it;
+#   - a heading (NON_CLAIM) or table-header row (blanked) is exempt only if
+#     `_header_asserts` is false (no auxiliary, no verb-like token before its last content word)
+#     and every figure in it is a bare section number (<= 3 digits, no %, $,
+#     unit, decimal or thousands separator): "Part 1", "Step 2" are labels;
+#     "40% fraud", "$4 million", "Fraud in 2019" stay scored;
+#   - a table separator row is blanked (it has no words);
+#   - a fence delimiter line is blanked only when its info string is one word;
+#     lines inside a CLOSED fence are blanked. An unclosed fence is not code
+#     here (everything after it stays scored).
+# A blanked line becomes an empty line, i.e. a paragraph break: it can split
+# text, never weld it.
+# CEILING: uncited prose typed INSIDE a closed fence is not scored (the reader
+# sees it as code); a verb-final or verbless uncited heading with no figure
+# ("# Redis Fails", OI-MOAT-19) is not scored, as before. Indented code blocks
+# and `>`-quoted fences are not recognised and stay scored (Error-A only).
+# Upgrade path: a CommonMark block parse feeding the same three predicates.
+_CITATION_LIKE_RE = _re.compile(r"\[\s*(?:S\s*\d|source\s*:)", _re.IGNORECASE)
+_TABLE_SEPARATOR_RE = _re.compile(r"^\s*\|?\s*:?-{3,}:?\s*(?:\|\s*:?-{3,}:?\s*)*\|?\s*$")
+_SECTION_NUMBER_RE = _re.compile(r"^\d{1,3}[.)]?$")
+
+
+def _figures_are_section_numbers(text: str) -> bool:
+    """True iff every numeric token in *text* is a bare section number. Pure."""
+    for m in _NUMERIC_RE.finditer(text):
+        if not _SECTION_NUMBER_RE.match(m.group(0).strip().rstrip(",")):
+            return False
+    return True
+
+
+def _label_only(text: str) -> bool:
+    """A heading / header-row body that can only be a label. Pure."""
+    return (not _CITATION_LIKE_RE.search(_nfkc(text))
+            and not _header_asserts(text)
+            and _figures_are_section_numbers(text))
+
+
+def _blank_structural_lines(text: str) -> str:
+    """Replace D-102 structural lines with empty lines. Pure.
+
+    See the comment above `_CITATION_LIKE_RE` for the exact rule."""
+    lines = text.split("\n")
+    blank = [False] * len(lines)
+    # Fences: only CLOSED blocks; the delimiter needs a one-word info string.
+    open_at: int | None = None
+    fence_char, fence_len = "", 0
+    for i, line in enumerate(lines):
+        m = _FENCE_RE.match(line.rstrip("\r"))
+        if open_at is None:
+            if m is not None and len(m.group("info").split()) <= 1 \
+                    and "`" not in m.group("info"):
+                open_at, fence_char, fence_len = i, m.group("fence")[0], len(m.group("fence"))
+        elif (m is not None and m.group("fence")[0] == fence_char
+              and len(m.group("fence")) >= fence_len and not m.group("info").strip()):
+            for j in range(open_at, i + 1):
+                if not _CITATION_LIKE_RE.search(_nfkc(lines[j])):
+                    blank[j] = True
+            open_at = None
+    for i, line in enumerate(lines):
+        if blank[i]:
+            continue
+        if _TABLE_SEPARATOR_RE.match(line) and "|" in line:
+            blank[i] = True
+            prev = i - 1
+            if prev >= 0 and "|" in lines[prev] and not blank[prev]:
+                cells = [c for c in lines[prev].strip().strip("|").split("|")]
+                blank[prev] = all(_label_only(c) for c in cells)
+    return "\n".join("" if b else line for b, line in zip(blank, lines))
+
+
 def _iter_raw_sentences(text: str) -> Iterator[str]:
     """Yield NFKC-normalized sentence strings from *text* using syntok.
 
@@ -880,8 +958,8 @@ def _iter_raw_sentences(text: str) -> Iterator[str]:
     """
     import syntok.segmenter as segmenter  # lazy import — keeps top-level pure
 
-    normalized = _nfkc(_break_after_headers(_strip_html_comments_outside_code(
-        _scrub_citations_in_comments(text))))
+    normalized = _nfkc(_break_after_headers(_blank_structural_lines(
+        _strip_html_comments_outside_code(_scrub_citations_in_comments(text)))))
     for paragraph in segmenter.process(normalized):
         for sentence_tokens in paragraph:
             yield _reconstruct_sentence(sentence_tokens)
@@ -1156,10 +1234,15 @@ def _is_non_claim(text: str) -> bool:
     header_match = _NO_FINITE_VERB_RE.match(text)
     if header_match:
         header_body = text[header_match.end():]
-        has_citation = bool(_CITATION_RE.search(header_body))
+        has_citation = bool(_CITATION_RE.search(header_body)
+                            or _CITATION_LIKE_RE.search(header_body))
         # Numeric content on the citation-stripped body so bracket digits (e.g.
         # [S9] → '9') do not count as numeric content.
-        has_numeric = bool(_NUMERIC_RE.search(_CITATION_RE.sub("", header_body)))
+        # D-102 row 1 (2026-11-01): a bare section number ("Part 1", "Step 2",
+        # "2. Setup") is a label, not a figure; anything else (%, $, a unit, a
+        # decimal, a thousands separator, 4+ digits such as a year) still
+        # makes the heading a scored claim.
+        has_numeric = not _figures_are_section_numbers(_CITATION_RE.sub("", header_body))
         if has_citation or has_numeric:
             return False
         # RT3-02 (2026-08-30): this branch used to return True here, so ANY
