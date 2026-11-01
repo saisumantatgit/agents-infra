@@ -183,6 +183,7 @@ def test_r9p2_06_original_reproduction(tmp_path):
 # --- the KNOWN Error-A this fix buys, pinned so it is never a surprise ------
 
 @pytest.mark.parametrize("wrapper", [
+    "~~~\n<!-- TODO: fix this later -->\n~~~",
     "    <!-- TODO: fix this later -->",
 ])
 def test_authoring_note_inside_a_code_block_is_now_scored(tmp_path, wrapper):
@@ -203,15 +204,6 @@ def test_authoring_note_inside_a_code_block_is_now_scored(tmp_path, wrapper):
     """
     rep = _report(tmp_path, f"{GOOD}\n\n{wrapper}\n")
     assert rep["gate"] == "FAIL"
-
-
-def test_d102_note_inside_a_closed_fence_is_not_scored(tmp_path):
-    """D-102 row 1 (Sai, 2026-11-01): lines of a CLOSED fenced block are not
-    scored, so the tilde-fence case of the Error-A above no longer applies.
-    The comment is still NOT stripped (J-27 unchanged); the fence lines are
-    simply outside the denominator. The indented-block case stays scored."""
-    rep = _report(tmp_path, f"{GOOD}\n\n~~~\n<!-- TODO: fix this later -->\n~~~\n")
-    assert rep["gate"] == "PASS"
 
 
 def test_a_note_outside_any_code_block_is_still_stripped(tmp_path):

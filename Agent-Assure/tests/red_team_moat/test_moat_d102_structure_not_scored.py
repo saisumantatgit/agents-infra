@@ -22,7 +22,6 @@ EXEMPT = {
     "heading_section_number": "# Part 1\n\n" + DRAFT,
     "heading_plain_and_fence": "# Results\n\n" + _CODE + DRAFT,
     "fence_with_info_string": _CODE + DRAFT,
-    "table_header_separator_only": "| Bank | Month |\n|---|---|\n\n" + DRAFT,
     "subheading_step": "## Step 2\n\n" + DRAFT,
 }
 
@@ -53,6 +52,8 @@ SMUGGLE = {
     "table_header_figure": "| 40% of loans failed | Year |\n|---|---|\n\n" + DRAFT,
     "table_header_asserts": "| Redis loses acknowledged writes | Yes |\n|---|---|\n\n" + DRAFT,
     "table_header_cited": "| The bank was rescued [S1] | Yes |\n|---|---|\n\n" + DRAFT,
+    # R32-02: header + separator with no body row is not a real table
+    "table_header_without_body": "| Bank | Month |\n|---|---|\n\n" + DRAFT,
     "fake_separator_with_prose": "|---| The minister resigned after the audit |\n\n" + DRAFT,
     # a body row of a table is still scored
     "table_body_row_uncited": "| Bank | Month |\n|---|---|\n| Northbank | collapsed in May |\n\n" + DRAFT,
@@ -67,12 +68,12 @@ def test_d102_structure_cannot_smuggle_a_claim(tmp_path: Path, name: str) -> Non
 
 def test_d102_exempt_lines_leave_no_segment() -> None:
     claims = [g.classify(c) for c in g.decompose(
-        "# Part 1\n\n" + _CODE + "| A | B |\n|---|---|\n\n" + DRAFT)]
+        "# Part 1\n\n" + _CODE + "| A | B |\n|---|---|\n| x | y |\n\n" + DRAFT)]
     scored = [c.text for c in claims if c.kind is not g.ClaimKind.NON_CLAIM]
-    assert scored == [CLAIM + " [S1]."], [(c.kind, c.text) for c in claims]
-    # fence and table furniture leave no segment at all; the heading stays a
-    # visible NON_CLAIM row
-    assert [c.text for c in claims] == ["# Part 1", CLAIM + " [S1]."]
+    assert scored == ["| x | y |", CLAIM + " [S1]."], [(c.kind, c.text) for c in claims]
+    # fence and table header/separator leave no segment at all; the table body
+    # row is still scored; the heading stays a visible NON_CLAIM row
+    assert [c.text for c in claims] == ["# Part 1", "| x | y |", CLAIM + " [S1]."]
 
 
 def test_d102_residue_plural_heading_still_scored(tmp_path: Path) -> None:
@@ -84,12 +85,20 @@ def test_d102_residue_plural_heading_still_scored(tmp_path: Path) -> None:
     assert report["gate"] != "PASS", report["per_claim"]
 
 
-def test_d102_ceiling_uncited_prose_inside_closed_fence_is_not_scored(tmp_path: Path) -> None:
+def test_d102_unlabelled_fence_prose_is_scored(tmp_path: Path) -> None:
+    """R32-03: a fence with no code-language label is not code; the prose in
+    it is scored (here UNCITED), so it blocks PASS."""
+    draft = "```\nThe minister resigned after the audit.\n```\n\n" + DRAFT
+    report = gate(tmp_path, SOURCE, draft)
+    assert report["gate"] != "PASS", report["per_claim"]
+
+
+def test_d102_ceiling_uncited_prose_inside_code_labelled_fence_is_not_scored(tmp_path: Path) -> None:
     """Recorded CEILING (see `_blank_structural_lines`): uncited prose typed
-    inside a CLOSED fence is not scored, so it no longer blocks PASS. It can
+    inside a CLOSED fence labelled with a code language is not scored. It can
     never be GROUNDED (it carries no citation), and any line with a
     citation-shaped bracket inside a fence IS scored (fence_cited_fabrication)."""
-    draft = "```\nThe minister resigned after the audit.\n```\n\n" + DRAFT
+    draft = "```python\nThe minister resigned after the audit.\n```\n\n" + DRAFT
     report = gate(tmp_path, SOURCE, draft)
     assert report["gate"] == "PASS", report["per_claim"]
     assert all("minister" not in c["text"] for c in report["per_claim"])

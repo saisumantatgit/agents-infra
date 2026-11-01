@@ -23,7 +23,7 @@ import re as _re
 import unicodedata
 from pathlib import Path
 from collections import Counter
-from dataclasses import dataclass
+from dataclasses import dataclass, replace as _dc_replace
 from enum import Enum
 from typing import Iterator
 
@@ -853,42 +853,73 @@ def _break_after_headers(text: str) -> str:
     return _HEADER_LINE_RE.sub(lambda m: m.group(1) + "\n", text)
 
 
-# D-102 row 1 (Sai, 2026-11-01): document STRUCTURE is not scored as a claim.
+# D-102 row 1 (Sai, 2026-11-01): lines that MAKE NO CLAIM are not scored.
 # Headings are handled in `_is_non_claim` (they stay visible as NON_CLAIM rows);
-# fenced code and table header/separator rows are blanked here.
-# Headings, fenced-code lines and table header/separator rows were each scored
-# UNCITED and alone blocked PASS (31 segments in 17 of 40 honest usage drafts,
-# tests/usage_genres/FINDINGS.md). This is PASS-WIDENING: a blanked line leaves
-# the scored denominator. So a line is blanked only when it CANNOT carry a
-# claim the reader would read as one:
-#   - any citation-shaped bracket (checked under NFKC, generously) keeps it;
-#   - a heading (NON_CLAIM) or table-header row (blanked) is exempt only if
-#     `_header_asserts` is false (no auxiliary, no verb-like token before its last content word)
-#     and every figure in it is a bare section number (<= 3 digits, no %, $,
-#     unit, decimal or thousands separator): "Part 1", "Step 2" are labels;
-#     "40% fraud", "$4 million", "Fraud in 2019" stay scored;
-#   - a table separator row is blanked (it has no words);
-#   - a fence delimiter line is blanked only when its info string is one word;
-#     lines inside a CLOSED fence are blanked. An unclosed fence is not code
-#     here (everything after it stays scored).
+# code-fence lines and table header/separator rows are blanked here.
+# PASS-WIDENING (a blanked line leaves the scored denominator), so each rule
+# names the exact shape it exempts and everything else stays scored. Rebuilt
+# after RED-TEAM-R32, which found the first attempt also exempted lines that
+# DO make a claim:
+#   - any citation-shaped bracket (checked under NFKC, generously) keeps a line;
+#   - a heading / table-header cell is a label only if `_header_asserts` is
+#     false AND every number in it is a LABEL NUMBER (`_figures_are_section_numbers`):
+#     it follows a label word (Part/Step/Section/Chapter/Phase/Appendix/Stage)
+#     or is a leading ordinal marker "1." / "1)" / "1.2", or is glued to an
+#     identifier ("ADR-006"). A bare leading count ("# 300 people died") is a
+#     figure (R32-01); "percent", "per cent" and number words are figures;
+#   - a table header + separator are blanked only in a REAL table: header,
+#     separator and >= 1 body row with the same cell count, the header not a
+#     list item, every header cell a label (R32-02). Body rows stay scored;
+#   - lines of a CLOSED fence are blanked only when the opener's info string
+#     names a code language in `_CODE_FENCE_LANGUAGES` (R32-03). No label,
+#     "text", "prose", "markdown" -> still scored. An unclosed fence is not code.
 # A blanked line becomes an empty line, i.e. a paragraph break: it can split
 # text, never weld it.
-# CEILING: uncited prose typed INSIDE a closed fence is not scored (the reader
-# sees it as code); a verb-final or verbless uncited heading with no figure
-# ("# Redis Fails", OI-MOAT-19) is not scored, as before. Indented code blocks
-# and `>`-quoted fences are not recognised and stay scored (Error-A only).
-# Upgrade path: a CommonMark block parse feeding the same three predicates.
+# CEILING: uncited prose typed inside a fence LABELLED with a code language
+# ("```python" then an English sentence) is not scored; such a line can never
+# be GROUNDED (no citation), and a cited line inside a fence is always scored.
+# A verbless uncited heading with no figure ("# Record profits", OI-MOAT-19) is
+# not scored, as before. Indented code blocks and `>`-quoted fences are not
+# recognised and stay scored (Error-A only). Breaks when an author labels a
+# prose block as code; upgrade path: a CommonMark block parse plus a prose
+# detector on code-labelled blocks.
 _CITATION_LIKE_RE = _re.compile(r"\[\s*(?:S\s*\d|source\s*:)", _re.IGNORECASE)
 _TABLE_SEPARATOR_RE = _re.compile(r"^\s*\|?\s*:?-{3,}:?\s*(?:\|\s*:?-{3,}:?\s*)*\|?\s*$")
-_SECTION_NUMBER_RE = _re.compile(r"^\d{1,3}[.)]?$")
+_LIST_MARKER_RE = _re.compile(r"^\s*(?:[-*+]|\d{1,9}[.)])\s")
+_LABEL_NUMBER_RE = _re.compile(
+    r"\b(?:part|step|section|chapter|phase|appendix|stage)\s+"
+    r"(?:\d{1,3}(?![\w.,%$])|(?:one|two|three|four|five|six|seven|eight|nine|ten"
+    r"|eleven|twelve)\b(?!\s+(?:hundred|thousand|million|billion|trillion|dozen)))"
+    r"|\b[A-Z][A-Z0-9]*-\d{1,4}(?![\w.,%$])", _re.IGNORECASE)
+_ORDINAL_MARKER_RE = _re.compile(r"^\s*(?:\d{1,3}[.)]|\d{1,3}(?:\.\d{1,3})+[.)]?)(?=\s|$)")
+_FIGURE_WORD_RE = _re.compile(r"\b(?:percent|pct|per\s+cent|one)\b", _re.IGNORECASE)
+# The ONLY use of this list is to PERMIT not scoring a fenced block, so a
+# missing language means a code block stays scored (Error-A), never a pass.
+_CODE_FENCE_LANGUAGES: frozenset[str] = frozenset({
+    "python", "py", "python3", "pycon", "bash", "sh", "shell", "zsh", "console",
+    "shell-session", "powershell", "ps1", "bat", "cmd", "sql", "js", "javascript",
+    "jsx", "ts", "typescript", "tsx", "json", "jsonl", "yaml", "yml", "toml",
+    "ini", "xml", "html", "css", "scss", "c", "h", "cpp", "c++", "cs", "csharp",
+    "java", "kotlin", "kt", "scala", "go", "golang", "rust", "rs", "ruby", "rb",
+    "php", "perl", "pl", "lua", "r", "swift", "dart", "haskell", "hs", "elixir",
+    "erlang", "clojure", "julia", "matlab", "diff", "patch", "dockerfile",
+    "makefile", "make", "cmake", "graphql", "proto", "protobuf", "hcl",
+    "terraform", "nginx", "regex", "awk", "sed", "vim", "groovy", "gradle",
+})
+# A sentence boundary inside a would-be inline code span: sentence punctuation
+# followed by whitespace. Such a "span" is two stray backticks around prose
+# (R32-04), not code.
+_SPAN_SENTENCE_BOUNDARY_RE = _re.compile(r"[.!?][\"'”’)\]]*\s")
 
 
 def _figures_are_section_numbers(text: str) -> bool:
-    """True iff every numeric token in *text* is a bare section number. Pure."""
-    for m in _NUMERIC_RE.finditer(text):
-        if not _SECTION_NUMBER_RE.match(m.group(0).strip().rstrip(",")):
-            return False
-    return True
+    """True iff every number in *text* is a LABEL NUMBER (see the D-102 comment)
+    and *text* carries no figure word. Pure."""
+    rest = _LABEL_NUMBER_RE.sub(" ", _ORDINAL_MARKER_RE.sub(" ", text, count=1))
+    if _FIGURE_WORD_RE.search(rest) or any(
+            w in _SPELLED_NUMBER_WORDS for w in _re.findall(r"[a-z]+", rest.casefold())):
+        return False
+    return not _NUMERIC_RE.search(rest)
 
 
 def _label_only(text: str) -> bool:
@@ -898,21 +929,35 @@ def _label_only(text: str) -> bool:
             and _figures_are_section_numbers(text))
 
 
+def _table_cells(line: str) -> list[str]:
+    """Cells of a pipe-table row (outer pipes optional). Pure."""
+    body = line.strip()
+    if body.startswith("|"):
+        body = body[1:]
+    if body.endswith("|"):
+        body = body[:-1]
+    return body.split("|")
+
+
 def _closed_fence_lines(lines: list[str]) -> list[bool]:
     """Per line: True iff it belongs to a CLOSED fenced block (delimiters
-    included) whose opener has at most a one-word info string. Pure.
+    included) whose opener's info string names a code language. Pure.
 
     Deliberately STRICT, unlike `_code_line_spans`: both callers (D-102 rows 1
     and 2) WIDEN passes for code, so over-detecting code is the fail-open
-    direction here. No indented blocks, no unclosed fences."""
+    direction here. No indented blocks, no unclosed fences, no unlabelled or
+    prose-labelled fences. Callers pass RAW (pre-NFKC) lines, so a full-width
+    look-alike of a fence is not a fence (R32-04)."""
     out = [False] * len(lines)
     open_at: int | None = None
     fence_char, fence_len = "", 0
     for i, line in enumerate(lines):
         m = _FENCE_RE.match(line.rstrip("\r"))
         if open_at is None:
-            if m is not None and len(m.group("info").split()) <= 1 \
-                    and "`" not in m.group("info"):
+            if m is None or "`" in m.group("info"):
+                continue
+            words = m.group("info").split()
+            if len(words) == 1 and words[0].casefold() in _CODE_FENCE_LANGUAGES:
                 open_at, fence_char, fence_len = i, m.group("fence")[0], len(m.group("fence"))
         elif (m is not None and m.group("fence")[0] == fence_char
               and len(m.group("fence")) >= fence_len and not m.group("info").strip()):
@@ -923,15 +968,19 @@ def _closed_fence_lines(lines: list[str]) -> list[bool]:
 
 
 # D-102 row 2 (Sai, 2026-11-01): H1 denial words count in PROSE only. A
-# single-line `inline code` span and a closed fenced block are masked for the
-# denial checks: every word in them becomes the neutral token "q", after the
-# same NFKC + "n't"/"cannot" expansion `_tokenize` applies, so the masked text
-# tokenizes to exactly as many tokens, in the same places, as the original.
-# Only the denial view uses it; claim matching reads the original text.
+# single-line `inline code` span and a closed code-language fence are masked:
+# every word in them becomes the neutral token "q", after the same NFKC +
+# "n't"/"cannot" expansion `_tokenize` applies, so the masked text tokenizes to
+# exactly as many tokens, in the same places, as the original.
+# Code is found on the RAW text, before NFKC (R32-04: full-width backticks are
+# not code), and a backtick "span" holding a sentence boundary is not code.
+# R32-05 (fail-closed): the denial checks read the masked view, AND `ground()`
+# matches claims against the masked view, so code can neither deny a claim nor
+# ground one.
 # CEILING: a denial the source wraps in backticks ("`That is false.`") no
 # longer denies (fail-open, accepted by Sai and pinned by
 # test_d102_ceiling_denial_hidden_in_backticks_grounds); a stray pair of
-# backticks around prose on one line masks that prose too. Upgrade path: mask
+# backticks around a one-sentence clause still masks it. Upgrade path: mask
 # only spans whose content parses as code.
 _INLINE_CODE_SPAN_RE = _re.compile(r"`[^`\n]+`")
 
@@ -939,13 +988,16 @@ _INLINE_CODE_SPAN_RE = _re.compile(r"`[^`\n]+`")
 def _mask_code_for_denial(text: str) -> str:
     """*text* NFKC-normalised, with code words replaced by "q". Pure."""
     def _mask(chunk: str) -> str:
-        return _re.sub(r"\w+", "q", _expand_negation_contractions(chunk))
+        return _re.sub(r"\w+", "q", _expand_negation_contractions(_nfkc(chunk)))
 
-    lines = _nfkc(text).split("\n")
+    def _span(m: _re.Match[str]) -> str:
+        return m.group(0) if _SPAN_SENTENCE_BOUNDARY_RE.search(m.group(0)) else _mask(m.group(0))
+
+    lines = text.split("\n")
     in_fence = _closed_fence_lines(lines)
-    out = [_mask(line) if fenced else _INLINE_CODE_SPAN_RE.sub(lambda m: _mask(m.group(0)), line)
+    out = [_mask(line) if fenced else _INLINE_CODE_SPAN_RE.sub(_span, line)
            for fenced, line in zip(in_fence, lines)]
-    return "\n".join(out)
+    return _nfkc("\n".join(out))
 
 
 def _blank_structural_lines(text: str) -> str:
@@ -957,14 +1009,19 @@ def _blank_structural_lines(text: str) -> str:
     blank = [f and not _CITATION_LIKE_RE.search(_nfkc(line))
              for f, line in zip(in_fence, lines)]
     for i, line in enumerate(lines):
-        if blank[i]:
+        if blank[i] or not (_TABLE_SEPARATOR_RE.match(line) and "|" in line):
             continue
-        if _TABLE_SEPARATOR_RE.match(line) and "|" in line:
-            blank[i] = True
-            prev = i - 1
-            if prev >= 0 and "|" in lines[prev] and not blank[prev]:
-                cells = [c for c in lines[prev].strip().strip("|").split("|")]
-                blank[prev] = all(_label_only(c) for c in cells)
+        if i == 0 or i + 1 >= len(lines):
+            continue
+        header, body = lines[i - 1], lines[i + 1]
+        if (blank[i - 1] or "|" not in header or "|" not in body
+                or _LIST_MARKER_RE.match(header) or _TABLE_SEPARATOR_RE.match(body)):
+            continue
+        cells = _table_cells(header)
+        if not (len(cells) == len(_table_cells(line)) == len(_table_cells(body))):
+            continue
+        if all(_label_only(c) for c in cells):
+            blank[i - 1] = blank[i] = True
     return "\n".join("" if b else line for b, line in zip(blank, lines))
 
 
@@ -1275,10 +1332,10 @@ def _is_non_claim(text: str) -> bool:
                             or _CITATION_LIKE_RE.search(header_body))
         # Numeric content on the citation-stripped body so bracket digits (e.g.
         # [S9] → '9') do not count as numeric content.
-        # D-102 row 1 (2026-11-01): a bare section number ("Part 1", "Step 2",
-        # "2. Setup") is a label, not a figure; anything else (%, $, a unit, a
-        # decimal, a thousands separator, 4+ digits such as a year) still
-        # makes the heading a scored claim.
+        # D-102 row 1 (2026-11-01, rebuilt after R32-01): a LABEL number
+        # ("Part 1", "Step 2", "2. Setup", "1.2 Setup", "ADR-006") is not a
+        # figure; a bare leading count ("300 people died"), "percent", a
+        # number word, %, $, a unit, a year still make the heading a claim.
         has_numeric = not _figures_are_section_numbers(_CITATION_RE.sub("", header_body))
         if has_citation or has_numeric:
             return False
@@ -4761,6 +4818,11 @@ def ground(
     ]
     if not verbatim:
         return Verdict.UNGROUNDABLE
+    # R32-05 (2026-11-01, fail-closed): text inside source CODE (a closed
+    # code-language fence or an inline span, D-102 row 2) cannot deny a claim,
+    # so it cannot ground one or supply its figure either. Every tier below
+    # reads the code-masked view; code words are "q".
+    verbatim = [_dc_replace(s, text=_mask_code_for_denial(s.text)) for s in verbatim]
 
     # R13-01 / R13-02 (round 13) — A CHECK GATED ON A CLASSIFIER BRANCH IS A
     # CHECK AN AUTHOR CAN ROUTE AROUND BY ADDING ONE WORD.
