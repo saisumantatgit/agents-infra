@@ -1854,3 +1854,12 @@ mine** — named for Sai, not touched.
 | **Decided** | Claude, under Sai's pre-given AGREED ("Consider you have my agreed and proceed"), 5M budget. |
 | **Scope** | R31 adversary on hardening-2026-10-25; fail-closed fixes for its blockers; merge under D-100. Instrument: docs/planning/OVERNIGHT-2026-10-31.md. |
 | **UNDO** | CronDelete the tick; any merge reverted with `git revert -m 1 <sha>`; branch deletable. |
+
+## D-102 — Sai's Escalation #1 rulings, 2026-11-01 (after overnight 2026-10-31)
+| Item | Ruling | Rationale (as presented and accepted) | Bar | UNDO |
+|---|---|---|---|---|
+| U1: headings / code-fence lines / table headers scored UNCITED | **YES** — exclude them from claim scoring | They make no claim, so no fabrication can pass through them; single largest cause of honest refusals (17 of 40 usage drafts blocked by them alone). | A real sentence under a heading must still need a citation; adversary round; Error-B 0/27 | `git revert -m 1 <merge>` |
+| H1 denial tokens matched inside code (`delete=False` → "false") | **YES** — denial tokens counted in prose only, not code spans/fences | A denial inside code is not a denial in the text; prose denials keep working. Cost named: a denial hidden in backticks — tested as an attack. | proven red; adversary round; Error-B 0/27 | revert |
+| S1 hedge look-back crossing the sentence boundary ("per line." → refuses next sentence) | **NO** (for now) | Guards "per the vendor"-style attribution; prior adversary rounds rely on it; revisit after the 5-user test shows real frequency. | — | Sai re-rules |
+| Run GO | Fail-closed denial gaps (R31-04) + the two YES items, merge under D-100 | — | D-100 bar | revert |
+Decided by Sai: "2 yes, 3 yes, 4 no, GO".
