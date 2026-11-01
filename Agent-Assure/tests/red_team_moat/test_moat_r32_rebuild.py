@@ -107,3 +107,23 @@ def test_r32_prose_claim_beside_python_fence_still_grounds(tmp_path: Path) -> No
     a denial word, neither denies nor blocks it."""
     src = CLAIM + ".\n\n```python\nx = None if not ok else 1\n```\n" + TAIL
     assert gate(tmp_path, src)["per_claim"][0]["verdict"] == "GROUNDED"
+
+
+def test_r32_05_code_quoted_claim_cannot_dodge_a_code_denial(tmp_path: Path) -> None:
+    """Code grounds only code (tagged on both sides), and a unit that grounds
+    through code reads its code words as words for denial too."""
+    src = "```python\n" + CLAIM + ". That is false.\n```\n"
+    draft = "`" + CLAIM + "` [S1].\n"
+    report = gate(tmp_path, src, draft)
+    assert report["gate"] != "PASS", report["per_claim"]
+
+
+def test_r32_05_honest_code_span_claim_still_grounds(tmp_path: Path) -> None:
+    """The relief kept: a claim quoting a code span verbatim from prose that
+    quotes the same span grounds (tests/usage_genres c01 shape)."""
+    src = ("`NamedTemporaryFile` returns a file object that is deleted as soon as "
+           "it is closed. Other text follows here.")
+    draft = ("`NamedTemporaryFile` returns a file object that is deleted as soon as "
+             "it is closed [S1].\n")
+    report = gate(tmp_path, src, draft)
+    assert report["per_claim"][0]["verdict"] == "GROUNDED", report["per_claim"]

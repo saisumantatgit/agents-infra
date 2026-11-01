@@ -974,9 +974,8 @@ def _closed_fence_lines(lines: list[str]) -> list[bool]:
 # exactly as many tokens, in the same places, as the original.
 # Code is found on the RAW text, before NFKC (R32-04: full-width backticks are
 # not code), and a backtick "span" holding a sentence boundary is not code.
-# R32-05 (fail-closed): the denial checks read the masked view, AND `ground()`
-# matches claims against the masked view, so code can neither deny a claim nor
-# ground one.
+# R32-05 (fail-closed): see `_CODE_TAG` - code can ground only code, and code
+# that grounds also denies.
 # CEILING: a denial the source wraps in backticks ("`That is false.`") no
 # longer denies (fail-open, accepted by Sai and pinned by
 # test_d102_ceiling_denial_hidden_in_backticks_grounds); a stray pair of
@@ -985,10 +984,11 @@ def _closed_fence_lines(lines: list[str]) -> list[bool]:
 _INLINE_CODE_SPAN_RE = _re.compile(r"`[^`\n]+`")
 
 
-def _mask_code_for_denial(text: str) -> str:
-    """*text* NFKC-normalised, with code words replaced by "q". Pure."""
+def _rewrite_code_words(text: str, replacement: str) -> str:
+    """*text* NFKC-normalised, with every word inside code (see above) replaced
+    by the `re.sub` template *replacement*. Pure."""
     def _mask(chunk: str) -> str:
-        return _re.sub(r"\w+", "q", _expand_negation_contractions(_nfkc(chunk)))
+        return _re.sub(r"\w+", replacement, _expand_negation_contractions(_nfkc(chunk)))
 
     def _span(m: _re.Match[str]) -> str:
         return m.group(0) if _SPAN_SENTENCE_BOUNDARY_RE.search(m.group(0)) else _mask(m.group(0))
@@ -998,6 +998,30 @@ def _mask_code_for_denial(text: str) -> str:
     out = [_mask(line) if fenced else _INLINE_CODE_SPAN_RE.sub(_span, line)
            for fenced, line in zip(in_fence, lines)]
     return _nfkc("\n".join(out))
+
+
+def _mask_code_for_denial(text: str) -> str:
+    """*text* NFKC-normalised, with code words replaced by "q". Pure."""
+    return _rewrite_code_words(text, "q")
+
+
+# R32-05 (fail-closed): a code word is tagged "q_<word>" on BOTH sides of a T1
+# match (`t1_verbatim`), so text inside source code can ground only the same
+# words written as code in the draft, never prose: a source fence holding
+# "{claim}. That is false." no longer grounds the prose claim. When a match
+# does use code words, `_unit_denied` reads that unit's code words as plain
+# words, so code that grounds can also deny (the R32-05 asymmetry).
+_CODE_TAG = "q_"
+
+
+def _tag_code_for_grounding(text: str) -> str:
+    """*text* NFKC-normalised, with code words prefixed by `_CODE_TAG`. Pure."""
+    return _rewrite_code_words(text, _CODE_TAG + r"\g<0>")
+
+
+def _untag(tokens: tuple[str, ...]) -> tuple[str, ...]:
+    """*tokens* with the `_CODE_TAG` prefix removed. Pure."""
+    return tuple(t[len(_CODE_TAG):] if t.startswith(_CODE_TAG) else t for t in tokens)
 
 
 def _blank_structural_lines(text: str) -> str:
@@ -1828,7 +1852,9 @@ def t1_verbatim(
 
     # Strip citations before tokenizing so bracket tokens (e.g. 's1' from '[S1]')
     # do not inflate the claim token list and prevent contiguous-span matching.
-    claim_tokens = _tokenize(_strip_citations(claim.text))
+    # R32-05: code words are tagged on both sides (see `_tag_code_for_grounding`).
+    sources = [_dc_replace(s, text=_tag_code_for_grounding(s.text)) for s in sources]
+    claim_tokens = _tokenize(_tag_code_for_grounding(_strip_citations(claim.text)))
     n = len(claim_tokens)
 
     # Exact containment: the claim IS the span (OI-T2-01, ADR-006). Checked
@@ -2306,6 +2332,11 @@ def _unit_denied(ctx: _UnitContext, match_start: int) -> bool:
     """
     if ctx.disowned or ctx.scope_denied:
         return True
+    if any(t.startswith(_CODE_TAG) for t in ctx.tokens):
+        # R32-05: this unit grounds through code words, so its code words
+        # (and its neighbours') count as plain words for denial too.
+        ctx = _dc_replace(ctx, d_prefix=_untag(ctx.prefix), d_tokens=_untag(ctx.tokens),
+                          d_previous=_untag(ctx.previous), d_following=_untag(ctx.following))
     # D-102 row 2: read the code-masked view (positions are identical).
     before = ctx.d_prefix + ctx.d_tokens[:match_start]
     if _has_denial(before):
@@ -4818,11 +4849,6 @@ def ground(
     ]
     if not verbatim:
         return Verdict.UNGROUNDABLE
-    # R32-05 (2026-11-01, fail-closed): text inside source CODE (a closed
-    # code-language fence or an inline span, D-102 row 2) cannot deny a claim,
-    # so it cannot ground one or supply its figure either. Every tier below
-    # reads the code-masked view; code words are "q".
-    verbatim = [_dc_replace(s, text=_mask_code_for_denial(s.text)) for s in verbatim]
 
     # R13-01 / R13-02 (round 13) — A CHECK GATED ON A CLASSIFIER BRANCH IS A
     # CHECK AN AUTHOR CAN ROUTE AROUND BY ADDING ONE WORD.
