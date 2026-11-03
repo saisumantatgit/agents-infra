@@ -1908,6 +1908,7 @@ class _UnitContext:
     following: tuple[str, ...]  # the next sentence
     disowned: bool              # H4: sits under a "Myths:"-style list label
     scope_denied: bool = False  # R31-04: an earlier "None of the following ..."
+    previous2: tuple[str, ...] = ()  # RUN-2026-11-04: the sentence before `previous`
 
 
 # H4 (2026-10-25): label words that DISOWN the list under them ("Myths:",
@@ -2021,7 +2022,8 @@ def _source_unit_contexts(source_text: str) -> list[_UnitContext]:
                 disowned=bool(toks) and any(_within(toks, d) for d in disowned),
                 previous=sentence_tokens[s - 1] if s > 0 else (),
                 following=sentence_tokens[s + 1] if s + 1 < len(sentences) else (),
-                scope_denied=s > scope_start))
+                scope_denied=s > scope_start,
+                previous2=sentence_tokens[s - 2] if s > 1 else ()))
             prefix.extend(toks)
     return out
 
@@ -2142,6 +2144,18 @@ def _unit_denied(ctx: _UnitContext, match_start: int) -> bool:
     previous = set(ctx.previous)
     if _has_denial(previous) and (
             previous & _FORWARD_REFERENCES or _is_bare_denial(ctx.previous)):
+        return True
+    # RUN-2026-11-04 (prev_denial_stray): one short sentence between the denial
+    # and the claim ("None of this is true. Use `z`. <claim>.") hid it. The same
+    # previous-sentence rule now also reads the sentence before that.
+    # CEILING: two sentences back only; a denial three or more sentences above
+    # that is not a scope sentence (`_denial_scope_start`) still grounds
+    # (fail-open). Error-A: a forward-pointing denial two sentences above an
+    # honest claim it does not target is refused. Upgrade path: a discourse
+    # model of what a denial targets.
+    previous2 = set(ctx.previous2)
+    if _has_denial(previous2) and (
+            previous2 & _FORWARD_REFERENCES or _is_bare_denial(ctx.previous2)):
         return True
     following = set(ctx.following)
     if not _has_denial(following):
