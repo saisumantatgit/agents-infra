@@ -1091,7 +1091,36 @@ def _header_asserts(header_body: str) -> bool:
         w = tok.strip(".,;:!?\"'()[]{}").lower()
         if len(w) >= _VERB_SUFFIX_MIN_LEN and any(w.endswith(s) for s in _VERB_SUFFIXES):
             return True
+    # OI-MOAT-19 (RUN-2026-11-04): a verbless or verb-final heading that
+    # PREDICATES ("# Record profits", "# Fraud widespread", "# Acme fraud
+    # confirmed") was a label above, so a fabricated headline over one cited
+    # true sentence certified PASS. Refusal only (D-69): both tests below can
+    # only move a heading from NON_CLAIM to scored.
+    #   (a) a final "-ed" participle after a subject ("Fraud confirmed",
+    #       "Bank Collapsed"); a one-word heading ("## Related") stays a label.
+    #   (b) a claim-bearing evaluative word anywhere ("record", "widespread").
+    # CEILING: lexical. Error-A: label headings ending in a participle
+    # ("# Lessons learned", "# Rainfall, reworded") are scored UNCITED.
+    # Fail-open: a predicating heading with neither signal ("# Profits
+    # doubling" is caught by the -ing rule, but "# Huge-ish margins" or a
+    # verb-final "-s" such as "### PostgreSQL Fails" is not — plural nouns
+    # end the same way). Upgrade path: a POS tagger on headings.
+    words = [tok.strip(".,;:!?\"'()[]{}").lower() for tok in content]
+    if len(words) > 1 and len(words[-1]) >= _VERB_SUFFIX_MIN_LEN + 1 and words[-1].endswith("ed"):
+        return True
+    if any(w in _CLAIM_BEARING_HEADING_WORDS for w in words):
+        return True
     return False
+
+
+# OI-MOAT-19: evaluative words that make a verbless heading a claim. Drives
+# refusals only (D-69): a missing word leaves today's NON_CLAIM, never a pass.
+_CLAIM_BEARING_HEADING_WORDS: frozenset[str] = frozenset({
+    "record", "widespread", "rampant", "rife", "endemic", "unprecedented",
+    "massive", "huge", "soaring", "skyrocketing", "plummeting", "plunging",
+    "catastrophic", "devastating", "historic", "staggering", "dramatic",
+    "collapse", "scandal", "bankrupt", "insolvent", "fraudulent", "illegal",
+})
 
 
 def _is_non_claim(text: str) -> bool:
