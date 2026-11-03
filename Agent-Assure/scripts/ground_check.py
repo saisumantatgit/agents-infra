@@ -2204,9 +2204,12 @@ def _unit_denied(ctx: _UnitContext, match_start: int) -> bool:
     # one sentence, so "```\nls\nThat is a lie." is the 6-token sentence
     # "``` ls That is a lie", no longer a bare denial. Its LAST LINE is read
     # with the same bare-denial rule. Refusal only (D-69).
-    # CEILING: last line only; a denial line followed by a code line in the
-    # same welded sentence ("That is a lie.\nls <claim>") stays open.
-    # Upgrade path: split sentences at fence / line boundaries.
+    # CEILING: last line only. (R34 corrected this note: "That is a lie.\nls
+    # <claim>" is NOT open -- the denial ends its own sentence, so previous2
+    # reads it; probes with and without the period are refused.) What stays
+    # open is a denial line with two or more further lines/sentences welded
+    # or placed before the claim (R34-06, three back). Upgrade path: split
+    # sentences at fence / line boundaries.
     if _is_bare_denial(ctx.previous_line):
         return True
     previous2 = set(ctx.previous2)
