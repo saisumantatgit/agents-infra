@@ -1873,3 +1873,11 @@ Decided by Sai: "2 yes, 3 yes, 4 no, GO".
 | **Where** | Branch `run-2026-11-01-bc` (pushed, unmerged); reports RED-TEAM-R32.md, RED-TEAM-R33.md. |
 | **Next if revived** | Mark structure by an explicit author signal (e.g. `<!-- assure: structure -->`) or require the line to share no content word with any claim — not by shape. |
 | **UNDO** | Sai can order a merge of the branch; nothing on main changed. |
+
+## D-104 — Narrow the R34 heading claim-word list (2026-11-04)
+| Field | Value |
+|---|---|
+| **Decided by Sai** | "merge after DD when done", given in reply to Claude's stated next step: narrow the claim-word list that refuses honest headings (R34-02: 8 of 38). |
+| **Bound** | May only remove refusals ADDED by PR #29. Never looser than main 41a7e2e (pre-#29) on any input — a differential against 41a7e2e is the gate. R34-04/05 closures stay. |
+| **Bar** | D-100 + adversary round + zero inputs that pass here and fail on 41a7e2e. |
+| **UNDO** | `git revert -m 1 <merge>`. |

@@ -1123,11 +1123,45 @@ def _header_asserts(header_body: str) -> bool:
     # rewritten; the fold only feeds these refusal-only tests (D-69).
     words = [_heading_fold(tok.strip(".,;:!?\"'()[]{}")) for tok in content]
     words = [w for w in words if w]
+    if _heading_allowlisted(header_body):
+        return False
     if len(words) > 1 and len(words[-1]) >= _VERB_SUFFIX_MIN_LEN + 1 and words[-1].endswith("ed"):
         return True
     if any(w in _CLAIM_BEARING_HEADING_WORDS for w in words):
         return True
     return False
+
+
+# D-104 / R35-01 (RUN-2026-11-04b): honest label headings exempt from the two
+# OI-MOAT-19 tests, matched as the WHOLE heading after the fold (NFKC, Cf
+# characters removed, look-alikes mapped, casefolded, spaces collapsed,
+# trailing punctuation stripped). The exemption only skips tests that main
+# 41a7e2e did not have, so no input passes here that 41a7e2e refuses.
+# CEILING: exact whole-heading allow list. Breaks when an honest label heading
+# not listed here is refused (Error-A, scored UNCITED), or when a fabricated
+# report reuses a listed heading verbatim ("## Work completed"). The list grows
+# only by explicit review; a heading must match whole, never by pattern
+# (R35-01: pattern rules re-opened "# Record of fraud", "# Scandal notes").
+# Upgrade path: a POS tagger / parser reading of headings.
+_HEADING_ALLOWLIST: frozenset[str] = frozenset({
+    "record of decisions",
+    "track record",
+    "widespread adoption notes",
+    "historic overview",
+    "dramatic irony",
+    "huge pages",
+    "collapse sections",
+    "work completed",
+    "what this record cannot tell you",
+    "what changed",
+    "the moat: mechanical, not model-judged",
+})
+
+
+def _heading_allowlisted(header_body: str) -> bool:
+    """True when the folded whole *header_body* is in _HEADING_ALLOWLIST. Pure."""
+    folded = " ".join(_heading_fold(header_body).split()).rstrip(".,;:!?\"'()[]{} ")
+    return folded in _HEADING_ALLOWLIST
 
 
 # OI-MOAT-19: evaluative words that make a verbless heading a claim. Drives
