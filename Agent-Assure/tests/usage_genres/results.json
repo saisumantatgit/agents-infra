@@ -16,9 +16,9 @@
   "b14_bullets_paraphrased": "FAIL",
   "c01_code_copied": "FAIL",
   "c02_code_copied": "FAIL",
-  "c03_code_copied": "NEEDS_WORK",
+  "c03_code_copied": "FAIL",
   "c04_code_copied": "NEEDS_WORK",
-  "c05_code_copied": "NEEDS_WORK",
+  "c05_code_copied": "FAIL",
   "c06_code_copied": "FAIL",
   "c07_code_copied": "NEEDS_WORK",
   "c08_code_paraphrased": "FAIL",
@@ -144,18 +144,18 @@
    true,
    false,
    true,
-   true
+   false
   ],
   "c02_code_copied": [
+   false,
    true,
-   true,
-   true,
+   false,
    true
   ],
   "c03_code_copied": [
    true,
    true,
-   true
+   false
   ],
   "c04_code_copied": [
    true,
@@ -163,7 +163,7 @@
    true
   ],
   "c05_code_copied": [
-   true,
+   false,
    true,
    false,
    true
@@ -177,7 +177,7 @@
   "c07_code_copied": [
    true,
    true,
-   true,
+   false,
    false
   ],
   "c08_code_paraphrased": [
@@ -250,7 +250,7 @@
   "t06_tables_copied": [
    false,
    false,
-   true
+   false
   ],
   "t07_tables_copied": [
    false,
@@ -1166,7 +1166,7 @@
    "variant": "copied",
    "text": "By default the files are created in the directory returned by `gettempdir`, which honors the `TMPDIR` environment variable [S1].",
    "kind": "FACTUAL",
-   "verdict": "GROUNDED",
+   "verdict": "UNGROUNDED",
    "diagnostic": "no_hedge_in_cited_sentence"
   },
   {
@@ -1211,7 +1211,7 @@
    "variant": "copied",
    "text": "Passing `delete=False` to `NamedTemporaryFile` keeps the file after it is closed, so that another process can open it by name [S1].",
    "kind": "FACTUAL",
-   "verdict": "GROUNDED",
+   "verdict": "UNGROUNDED",
    "diagnostic": "no_hedge_in_cited_sentence"
   },
   {
@@ -1229,7 +1229,7 @@
    "variant": "copied",
    "text": "The `SpooledTemporaryFile` class keeps data in memory until it grows beyond `max_size` bytes [S1]",
    "kind": "FACTUAL",
-   "verdict": "GROUNDED",
+   "verdict": "UNGROUNDED",
    "diagnostic": "no_hedge_in_cited_sentence"
   },
   {
@@ -1238,7 +1238,7 @@
    "variant": "copied",
    "text": "then rolls it over to disk [S1].",
    "kind": "FACTUAL",
-   "verdict": "GROUNDED",
+   "verdict": "UNGROUNDED",
    "diagnostic": "no_hedge_in_cited_sentence"
   },
   {
@@ -1310,7 +1310,7 @@
    "variant": "copied",
    "text": "The interactive form, `git rebase -i`, lets the author reorder, squash, edit or drop commits [S1].",
    "kind": "FACTUAL",
-   "verdict": "GROUNDED",
+   "verdict": "UNGROUNDED",
    "diagnostic": "no_hedge_in_cited_sentence"
   },
   {
@@ -1400,7 +1400,7 @@
    "variant": "copied",
    "text": "The default index type is B-tree [S1]",
    "kind": "FACTUAL",
-   "verdict": "GROUNDED",
+   "verdict": "UNGROUNDED",
    "diagnostic": "cited_sentence_may_not_assert_claim"
   },
   {
@@ -1409,7 +1409,7 @@
    "variant": "copied",
    "text": "`CREATE INDEX` builds one unless another method is named with `USING` [S1].",
    "kind": "FACTUAL",
-   "verdict": "GROUNDED",
+   "verdict": "UNGROUNDED",
    "diagnostic": "cited_sentence_may_not_assert_claim"
   },
   {
@@ -1472,7 +1472,7 @@
    "variant": "copied",
    "text": "the server answers with status 304 when the resource has not changed [S1].",
    "kind": "NUMERIC",
-   "verdict": "GROUNDED",
+   "verdict": "UNGROUNDED",
    "diagnostic": "cited_sentence_may_not_assert_claim"
   },
   {
@@ -1535,7 +1535,7 @@
    "variant": "copied",
    "text": "The store is written to `.assure/evidence-store.jsonl` in the project you work in [S1].",
    "kind": "FACTUAL",
-   "verdict": "GROUNDED",
+   "verdict": "UNGROUNDED",
    "diagnostic": "no_hedge_in_cited_sentence"
   },
   {
@@ -2111,7 +2111,7 @@
    "variant": "copied",
    "text": "|\n| `FAIL` | score < 60 \u2014 **checked first**, so a sub-60 score is `FAIL` even when other overrides apply [S1] |",
    "kind": "NUMERIC",
-   "verdict": "GROUNDED",
+   "verdict": "UNGROUNDED",
    "diagnostic": "cited_sentence_may_not_assert_claim"
   },
   {
@@ -2245,8 +2245,8 @@
    "genre": "tables",
    "variant": "paraphrased",
    "text": "# Rainfall, reworded",
-   "kind": "NON_CLAIM",
-   "verdict": "GROUNDED",
+   "kind": "FACTUAL",
+   "verdict": "UNCITED",
    "diagnostic": "no_cited_verbatim_source"
   },
   {

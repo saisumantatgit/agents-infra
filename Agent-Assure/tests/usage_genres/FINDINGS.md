@@ -70,3 +70,12 @@ Not diagnosed: `Blank lines are skipped [S1].` (copied; short) is UNGROUNDED aga
 - **Load-bearing assumption:** my sources and drafts are AI-written, and "honest" is my own judgement that each claim restates its source; no human gold labels.
 - Seven of nine sources are short single-topic texts I wrote; real retrieved pages are longer and may behave differently (the look-back effect in example 1 depends on neighbour sentences).
 - Counts are of one run on `385190f`; `results.json` holds every per-claim verdict and diagnostic.
+
+## Re-baseline on main 295438a (2026-11-04)
+results.json now records main 295438a (it previously recorded 385190f, and matched it exactly).
+Gates PASS 4 / NEEDS_WORK 3 / FAIL 33 (was 4 / 5 / 31); authored claims grounded 50 (was 57); no PASS lost.
+All 11 moved segments are Error-A, traced in Agent-Assure/reports/USAGE-GENRES-DRIFT.md:
+9 from H1 (82821cf, PR #25: lexical denial words such as `delete=False` → "false", or "not"/"unless"/"without"
+in a neighbouring sentence), 2 disclosed in RUN-2026-11-04 (t06 two-back denial; t10 heading now scored).
+Open cost: H1's code-token misread is the D-102 row-2 item awaiting Sai's re-ruling (D-103).
+Harness caveat: README and ALPHA-TESTER-GUIDE sources are read from --base, so they are not frozen.
