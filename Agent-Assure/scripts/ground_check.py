@@ -1909,6 +1909,7 @@ class _UnitContext:
     disowned: bool              # H4: sits under a "Myths:"-style list label
     scope_denied: bool = False  # R31-04: an earlier "None of the following ..."
     previous2: tuple[str, ...] = ()  # RUN-2026-11-04: the sentence before `previous`
+    previous_line: tuple[str, ...] = ()  # RUN-2026-11-04: last line of `previous`
 
 
 # H4 (2026-10-25): label words that DISOWN the list under them ("Myths:",
@@ -2023,7 +2024,9 @@ def _source_unit_contexts(source_text: str) -> list[_UnitContext]:
                 previous=sentence_tokens[s - 1] if s > 0 else (),
                 following=sentence_tokens[s + 1] if s + 1 < len(sentences) else (),
                 scope_denied=s > scope_start,
-                previous2=sentence_tokens[s - 2] if s > 1 else ()))
+                previous2=sentence_tokens[s - 2] if s > 1 else (),
+                previous_line=(tuple(_tokenize(sentences[s - 1].strip().split("\n")[-1]))
+                               if s > 0 else ())))
             prefix.extend(toks)
     return out
 
@@ -2080,7 +2083,17 @@ def _is_bare_denial(tokens: tuple[str, ...]) -> bool:
         return False
     if len(tokens) <= 3:
         return True
-    hits = sum(1 for t in tokens if _confusable_fold(t) in _DENIAL_TOKENS or t in _DENIAL_TOKENS)
+    # RUN-2026-11-04 (fence_unclosed_then_fence): "That is a lie." (4 tokens,
+    # 1 denial word) slipped under both cuts while "That is false." (3) did
+    # not. A sentence whose CONTENT words are all denial words is bare,
+    # whatever its stop-word padding. Refusal only (D-69).
+    # CEILING: an honest correction ("He said it survived. That is a lie.
+    # <claim>.") refuses the claim after it (Error-A), as "That is false."
+    # already did. Upgrade path: a discourse model of what a denial targets.
+    content = _content_words(list(tokens))
+    if content and all(_confusable_fold(t) in _DENIAL_TOKENS for t in content):
+        return True
+    hits =sum(1 for t in tokens if _confusable_fold(t) in _DENIAL_TOKENS or t in _DENIAL_TOKENS)
     return len(tokens) <= 8 and 2 * hits >= len(tokens)
 
 
@@ -2153,6 +2166,15 @@ def _unit_denied(ctx: _UnitContext, match_start: int) -> bool:
     # (fail-open). Error-A: a forward-pointing denial two sentences above an
     # honest claim it does not target is refused. Upgrade path: a discourse
     # model of what a denial targets.
+    # RUN-2026-11-04 (fence_unclosed_then_fence): the splitter welds lines into
+    # one sentence, so "```\nls\nThat is a lie." is the 6-token sentence
+    # "``` ls That is a lie", no longer a bare denial. Its LAST LINE is read
+    # with the same bare-denial rule. Refusal only (D-69).
+    # CEILING: last line only; a denial line followed by a code line in the
+    # same welded sentence ("That is a lie.\nls <claim>") stays open.
+    # Upgrade path: split sentences at fence / line boundaries.
+    if _is_bare_denial(ctx.previous_line):
+        return True
     previous2 = set(ctx.previous2)
     if _has_denial(previous2) and (
             previous2 & _FORWARD_REFERENCES or _is_bare_denial(ctx.previous2)):
