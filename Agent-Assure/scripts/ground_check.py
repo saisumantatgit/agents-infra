@@ -1067,6 +1067,18 @@ def _has_finite_verb(text: str) -> bool:
     return False
 
 
+def _heading_fold(tok: str) -> str:
+    """*tok* NFKC-normalised, format (Cf) characters removed, look-alike
+    letters mapped to Latin and casefolded -- for the refusal-only heading
+    tests. Pure; never used to rewrite text.
+
+    CEILING: same fixed look-alike map as _confusable_fold (not full TR39);
+    an unmapped look-alike still reads as a label (fail-open). Upgrade path:
+    a TR39 skeleton pass."""
+    s = "".join(ch for ch in _nfkc(tok) if unicodedata.category(ch) != "Cf")
+    return _confusable_fold(s)
+
+
 def _header_asserts(header_body: str) -> bool:
     """Return True if *header_body* reads as an assertion rather than a label.
 
@@ -1105,7 +1117,12 @@ def _header_asserts(header_body: str) -> bool:
     # doubling" is caught by the -ing rule, but "# Huge-ish margins" or a
     # verb-final "-s" such as "### PostgreSQL Fails" is not — plural nouns
     # end the same way). Upgrade path: a POS tagger on headings.
-    words = [tok.strip(".,;:!?\"'()[]{}").lower() for tok in content]
+    # R34-04: both tests run on a FOLDED copy (NFKC, format characters such as
+    # U+200B removed, look-alike letters mapped) so "# Bank collaps\u0435d" or
+    # "# Record profits\u200b" cannot dodge them. The heading text is never
+    # rewritten; the fold only feeds these refusal-only tests (D-69).
+    words = [_heading_fold(tok.strip(".,;:!?\"'()[]{}")) for tok in content]
+    words = [w for w in words if w]
     if len(words) > 1 and len(words[-1]) >= _VERB_SUFFIX_MIN_LEN + 1 and words[-1].endswith("ed"):
         return True
     if any(w in _CLAIM_BEARING_HEADING_WORDS for w in words):
