@@ -1123,66 +1123,45 @@ def _header_asserts(header_body: str) -> bool:
     # rewritten; the fold only feeds these refusal-only tests (D-69).
     words = [_heading_fold(tok.strip(".,;:!?\"'()[]{}")) for tok in content]
     words = [w for w in words if w]
-    folded_raw = [_heading_fold(tok.strip(".,;:!?\"'()[]{}")) for tok in raw]
-    if (len(words) > 1 and len(words[-1]) >= _VERB_SUFFIX_MIN_LEN + 1 and words[-1].endswith("ed")
-            and not _is_label_participle(words, folded_raw, raw)):
+    if _heading_allowlisted(header_body):
+        return False
+    if len(words) > 1 and len(words[-1]) >= _VERB_SUFFIX_MIN_LEN + 1 and words[-1].endswith("ed"):
         return True
-    if any(w in _CLAIM_BEARING_HEADING_WORDS and not _claim_word_is_label(i, words, folded_raw)
-           for i, w in enumerate(words)):
+    if any(w in _CLAIM_BEARING_HEADING_WORDS for w in words):
         return True
     return False
 
 
-# D-104 (R34-02, RUN-2026-11-04b): narrow exemptions from the two OI-MOAT-19
-# heading tests for honest label headings. Each exemption can only return a
-# heading to its main-41a7e2e reading (those tests did not exist there), so no
-# input can pass here that 41a7e2e refuses. Exact idioms, not word classes.
-# CEILING: lexical allowlist. Breaks when an attacker writes a predicating
-# heading that is byte-identical to a listed idiom ("## Work completed" over a
-# fabricated report) or ends in a listed label noun ("# Widespread fraud
-# notes"); both read as labels, as they did on 41a7e2e. Upgrade path: a POS
-# tagger / parser reading of headings.
-_LABEL_PARTICIPLE_PAIRS: frozenset[tuple[str, str]] = frozenset({
-    ("work", "completed"), ("what", "changed"),
+# D-104 / R35-01 (RUN-2026-11-04b): honest label headings exempt from the two
+# OI-MOAT-19 tests, matched as the WHOLE heading after the fold (NFKC, Cf
+# characters removed, look-alikes mapped, casefolded, spaces collapsed,
+# trailing punctuation stripped). The exemption only skips tests that main
+# 41a7e2e did not have, so no input passes here that 41a7e2e refuses.
+# CEILING: exact whole-heading allow list. Breaks when an honest label heading
+# not listed here is refused (Error-A, scored UNCITED), or when a fabricated
+# report reuses a listed heading verbatim ("## Work completed"). The list grows
+# only by explicit review; a heading must match whole, never by pattern
+# (R35-01: pattern rules re-opened "# Record of fraud", "# Scandal notes").
+# Upgrade path: a POS tagger / parser reading of headings.
+_HEADING_ALLOWLIST: frozenset[str] = frozenset({
+    "record of decisions",
+    "track record",
+    "widespread adoption notes",
+    "historic overview",
+    "dramatic irony",
+    "huge pages",
+    "collapse sections",
+    "work completed",
+    "what this record cannot tell you",
+    "what changed",
+    "the moat: mechanical, not model-judged",
 })
-_CLAIM_WORD_IDIOMS: frozenset[tuple[str, str]] = frozenset({
-    ("track", "record"), ("dramatic", "irony"), ("huge", "pages"),
-})
-_LABEL_FINAL_NOUNS: frozenset[str] = frozenset({"notes", "overview", "sections"})
-_RECORD_DETERMINERS: frozenset[str] = frozenset({"this", "the", "our", "each", "that"})
 
 
-def _is_label_participle(words: list[str], folded_raw: list[str], raw: list[str]) -> bool:
-    """True when the final "-ed" of a heading is a label idiom ("Work completed",
-    "What changed": the whole heading is the pair) or a hyphenated compound
-    adjective in a contrast "X, not Y-ed" ("mechanical, not model-judged"). Pure."""
-    if len(words) == 2 and (words[0], words[1]) in _LABEL_PARTICIPLE_PAIRS:
-        return True
-    return ("-" in words[-1] and len(raw) > 2 and folded_raw[-1] == words[-1]
-            and folded_raw[-2] == "not" and raw[-3].endswith(","))
-
-
-def _claim_word_is_label(i: int, words: list[str], folded_raw: list[str]) -> bool:
-    """True when claim word words[i] is used as a label: part of a two-word
-    idiom that is the whole heading ("Track record", "Dramatic irony", "Huge
-    pages"); a two-word heading ending in a label noun ("Historic overview",
-    "Collapse sections") or a three-word one ("Widespread adoption notes");
-    "record of" as the heading's opening ("Record of decisions"); or "record"
-    as a determiner-led subject of "cannot tell" ("What this record cannot
-    tell you"). Pure."""
-    w = words[i]
-    if len(words) == 2 and (words[0], words[1]) in _CLAIM_WORD_IDIOMS:
-        return True
-    if 2 <= len(words) <= 3 and i == 0 and words[-1] in _LABEL_FINAL_NOUNS:
-        return True
-    if w == "record":
-        if i == 0 and folded_raw[:2] == ["record", "of"]:
-            return len(words) == 2
-        j = folded_raw.index("record") if "record" in folded_raw else -1
-        if (0 < j < len(folded_raw) - 2 and folded_raw[j - 1] in _RECORD_DETERMINERS
-                and folded_raw[j + 1:j + 3] == ["cannot", "tell"]):
-            return True
-    return False
+def _heading_allowlisted(header_body: str) -> bool:
+    """True when the folded whole *header_body* is in _HEADING_ALLOWLIST. Pure."""
+    folded = " ".join(_heading_fold(header_body).split()).rstrip(".,;:!?\"'()[]{} ")
+    return folded in _HEADING_ALLOWLIST
 
 
 # OI-MOAT-19: evaluative words that make a verbless heading a claim. Drives
