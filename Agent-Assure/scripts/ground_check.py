@@ -2083,6 +2083,20 @@ _SCOPE_SELF_DETERMINERS: frozenset[str] = frozenset({
 })
 
 
+# R34-05: intensifiers that pad a bare denial. Drives refusals only (D-69):
+# used solely by the content-only test in _is_bare_denial, which needs a
+# denial word present, so a missing word leaves today's behaviour.
+# CEILING: a fixed list; an unlisted padding word ("a monstrous lie") still
+# grounds (fail-open). Upgrade path: dialogue-act tagging, as _is_bare_denial.
+_DENIAL_INTENSIFIERS: frozenset[str] = frozenset({
+    "total", "totally", "utter", "utterly", "complete", "completely", "pure",
+    "purely", "absolute", "absolutely", "outright", "downright", "blatant",
+    "blatantly", "big", "fat", "huge", "flat", "flatly", "plain", "plainly",
+    "simply", "entirely", "wholly", "obviously", "clearly", "just", "very",
+    "another", "such", "damn", "bald", "barefaced", "shameless",
+})
+
+
 def _has_denial(tokens) -> bool:
     """True iff *tokens* hold a denial word, look-alike letters folded. Pure."""
     return bool(_folded(tokens) & _DENIAL_TOKENS)
@@ -2107,7 +2121,10 @@ def _is_bare_denial(tokens: tuple[str, ...]) -> bool:
     # CEILING: an honest correction ("He said it survived. That is a lie.
     # <claim>.") refuses the claim after it (Error-A), as "That is false."
     # already did. Upgrade path: a discourse model of what a denial targets.
-    content = _content_words(list(tokens))
+    # R34-05: intensifiers ("a total lie", "an utter lie", "a big fat lie")
+    # are dropped first so one adjective cannot buy a denial back its claim.
+    content = [t for t in _content_words(list(tokens))
+               if _confusable_fold(t) not in _DENIAL_INTENSIFIERS]
     if content and all(_confusable_fold(t) in _DENIAL_TOKENS for t in content):
         return True
     hits =sum(1 for t in tokens if _confusable_fold(t) in _DENIAL_TOKENS or t in _DENIAL_TOKENS)
