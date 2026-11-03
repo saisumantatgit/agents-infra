@@ -1067,6 +1067,18 @@ def _has_finite_verb(text: str) -> bool:
     return False
 
 
+def _heading_fold(tok: str) -> str:
+    """*tok* NFKC-normalised, format (Cf) characters removed, look-alike
+    letters mapped to Latin and casefolded -- for the refusal-only heading
+    tests. Pure; never used to rewrite text.
+
+    CEILING: same fixed look-alike map as _confusable_fold (not full TR39);
+    an unmapped look-alike still reads as a label (fail-open). Upgrade path:
+    a TR39 skeleton pass."""
+    s = "".join(ch for ch in _nfkc(tok) if unicodedata.category(ch) != "Cf")
+    return _confusable_fold(s)
+
+
 def _header_asserts(header_body: str) -> bool:
     """Return True if *header_body* reads as an assertion rather than a label.
 
@@ -1091,7 +1103,41 @@ def _header_asserts(header_body: str) -> bool:
         w = tok.strip(".,;:!?\"'()[]{}").lower()
         if len(w) >= _VERB_SUFFIX_MIN_LEN and any(w.endswith(s) for s in _VERB_SUFFIXES):
             return True
+    # OI-MOAT-19 (RUN-2026-11-04): a verbless or verb-final heading that
+    # PREDICATES ("# Record profits", "# Fraud widespread", "# Acme fraud
+    # confirmed") was a label above, so a fabricated headline over one cited
+    # true sentence certified PASS. Refusal only (D-69): both tests below can
+    # only move a heading from NON_CLAIM to scored.
+    #   (a) a final "-ed" participle after a subject ("Fraud confirmed",
+    #       "Bank Collapsed"); a one-word heading ("## Related") stays a label.
+    #   (b) a claim-bearing evaluative word anywhere ("record", "widespread").
+    # CEILING: lexical. Error-A: label headings ending in a participle
+    # ("# Lessons learned", "# Rainfall, reworded") are scored UNCITED.
+    # Fail-open: a predicating heading with neither signal ("# Profits
+    # doubling" is caught by the -ing rule, but "# Huge-ish margins" or a
+    # verb-final "-s" such as "### PostgreSQL Fails" is not — plural nouns
+    # end the same way). Upgrade path: a POS tagger on headings.
+    # R34-04: both tests run on a FOLDED copy (NFKC, format characters such as
+    # U+200B removed, look-alike letters mapped) so "# Bank collaps\u0435d" or
+    # "# Record profits\u200b" cannot dodge them. The heading text is never
+    # rewritten; the fold only feeds these refusal-only tests (D-69).
+    words = [_heading_fold(tok.strip(".,;:!?\"'()[]{}")) for tok in content]
+    words = [w for w in words if w]
+    if len(words) > 1 and len(words[-1]) >= _VERB_SUFFIX_MIN_LEN + 1 and words[-1].endswith("ed"):
+        return True
+    if any(w in _CLAIM_BEARING_HEADING_WORDS for w in words):
+        return True
     return False
+
+
+# OI-MOAT-19: evaluative words that make a verbless heading a claim. Drives
+# refusals only (D-69): a missing word leaves today's NON_CLAIM, never a pass.
+_CLAIM_BEARING_HEADING_WORDS: frozenset[str] = frozenset({
+    "record", "widespread", "rampant", "rife", "endemic", "unprecedented",
+    "massive", "huge", "soaring", "skyrocketing", "plummeting", "plunging",
+    "catastrophic", "devastating", "historic", "staggering", "dramatic",
+    "collapse", "scandal", "bankrupt", "insolvent", "fraudulent", "illegal",
+})
 
 
 def _is_non_claim(text: str) -> bool:
@@ -1879,6 +1925,8 @@ class _UnitContext:
     following: tuple[str, ...]  # the next sentence
     disowned: bool              # H4: sits under a "Myths:"-style list label
     scope_denied: bool = False  # R31-04: an earlier "None of the following ..."
+    previous2: tuple[str, ...] = ()  # RUN-2026-11-04: the sentence before `previous`
+    previous_line: tuple[str, ...] = ()  # RUN-2026-11-04: last line of `previous`
 
 
 # H4 (2026-10-25): label words that DISOWN the list under them ("Myths:",
@@ -1992,7 +2040,10 @@ def _source_unit_contexts(source_text: str) -> list[_UnitContext]:
                 disowned=bool(toks) and any(_within(toks, d) for d in disowned),
                 previous=sentence_tokens[s - 1] if s > 0 else (),
                 following=sentence_tokens[s + 1] if s + 1 < len(sentences) else (),
-                scope_denied=s > scope_start))
+                scope_denied=s > scope_start,
+                previous2=sentence_tokens[s - 2] if s > 1 else (),
+                previous_line=(tuple(_tokenize(sentences[s - 1].strip().split("\n")[-1]))
+                               if s > 0 else ())))
             prefix.extend(toks)
     return out
 
@@ -2032,6 +2083,20 @@ _SCOPE_SELF_DETERMINERS: frozenset[str] = frozenset({
 })
 
 
+# R34-05: intensifiers that pad a bare denial. Drives refusals only (D-69):
+# used solely by the content-only test in _is_bare_denial, which needs a
+# denial word present, so a missing word leaves today's behaviour.
+# CEILING: a fixed list; an unlisted padding word ("a monstrous lie") still
+# grounds (fail-open). Upgrade path: dialogue-act tagging, as _is_bare_denial.
+_DENIAL_INTENSIFIERS: frozenset[str] = frozenset({
+    "total", "totally", "utter", "utterly", "complete", "completely", "pure",
+    "purely", "absolute", "absolutely", "outright", "downright", "blatant",
+    "blatantly", "big", "fat", "huge", "flat", "flatly", "plain", "plainly",
+    "simply", "entirely", "wholly", "obviously", "clearly", "just", "very",
+    "another", "such", "damn", "bald", "barefaced", "shameless",
+})
+
+
 def _has_denial(tokens) -> bool:
     """True iff *tokens* hold a denial word, look-alike letters folded. Pure."""
     return bool(_folded(tokens) & _DENIAL_TOKENS)
@@ -2049,7 +2114,20 @@ def _is_bare_denial(tokens: tuple[str, ...]) -> bool:
         return False
     if len(tokens) <= 3:
         return True
-    hits = sum(1 for t in tokens if _confusable_fold(t) in _DENIAL_TOKENS or t in _DENIAL_TOKENS)
+    # RUN-2026-11-04 (fence_unclosed_then_fence): "That is a lie." (4 tokens,
+    # 1 denial word) slipped under both cuts while "That is false." (3) did
+    # not. A sentence whose CONTENT words are all denial words is bare,
+    # whatever its stop-word padding. Refusal only (D-69).
+    # CEILING: an honest correction ("He said it survived. That is a lie.
+    # <claim>.") refuses the claim after it (Error-A), as "That is false."
+    # already did. Upgrade path: a discourse model of what a denial targets.
+    # R34-05: intensifiers ("a total lie", "an utter lie", "a big fat lie")
+    # are dropped first so one adjective cannot buy a denial back its claim.
+    content = [t for t in _content_words(list(tokens))
+               if _confusable_fold(t) not in _DENIAL_INTENSIFIERS]
+    if content and all(_confusable_fold(t) in _DENIAL_TOKENS for t in content):
+        return True
+    hits =sum(1 for t in tokens if _confusable_fold(t) in _DENIAL_TOKENS or t in _DENIAL_TOKENS)
     return len(tokens) <= 8 and 2 * hits >= len(tokens)
 
 
@@ -2113,6 +2191,30 @@ def _unit_denied(ctx: _UnitContext, match_start: int) -> bool:
     previous = set(ctx.previous)
     if _has_denial(previous) and (
             previous & _FORWARD_REFERENCES or _is_bare_denial(ctx.previous)):
+        return True
+    # RUN-2026-11-04 (prev_denial_stray): one short sentence between the denial
+    # and the claim ("None of this is true. Use `z`. <claim>.") hid it. The same
+    # previous-sentence rule now also reads the sentence before that.
+    # CEILING: two sentences back only; a denial three or more sentences above
+    # that is not a scope sentence (`_denial_scope_start`) still grounds
+    # (fail-open). Error-A: a forward-pointing denial two sentences above an
+    # honest claim it does not target is refused. Upgrade path: a discourse
+    # model of what a denial targets.
+    # RUN-2026-11-04 (fence_unclosed_then_fence): the splitter welds lines into
+    # one sentence, so "```\nls\nThat is a lie." is the 6-token sentence
+    # "``` ls That is a lie", no longer a bare denial. Its LAST LINE is read
+    # with the same bare-denial rule. Refusal only (D-69).
+    # CEILING: last line only. (R34 corrected this note: "That is a lie.\nls
+    # <claim>" is NOT open -- the denial ends its own sentence, so previous2
+    # reads it; probes with and without the period are refused.) What stays
+    # open is a denial line with two or more further lines/sentences welded
+    # or placed before the claim (R34-06, three back). Upgrade path: split
+    # sentences at fence / line boundaries.
+    if _is_bare_denial(ctx.previous_line):
+        return True
+    previous2 = set(ctx.previous2)
+    if _has_denial(previous2) and (
+            previous2 & _FORWARD_REFERENCES or _is_bare_denial(ctx.previous2)):
         return True
     following = set(ctx.following)
     if not _has_denial(following):
