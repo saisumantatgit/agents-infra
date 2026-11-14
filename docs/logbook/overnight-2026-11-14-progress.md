@@ -10,3 +10,4 @@
 | 18:31 | C3 found Error-A; C3b narrowing open; C4 open | R37: 0 blockers, 14 hole classes (all also on main), 29 Error-A; D-107 | ~1.0M | error-cost asymmetry, Goodhart |
 | 18:54 | C3b,C4 open (in flight: R38 narrowing) | tick; waiting on named event: R38 agent completion | ~0.01M | option value of waiting |
 | 18:57 | C3b done; final adversary + C4 open | R38 verified first-hand; D-108 | ~1.6M | error-cost asymmetry |
+| 19:09 | C4 open | R39: 0 blockers (900k sources/33.8M positions + 160k drafts); main loop checked changed hunks match R39 list; main unmoved at 83a5cb9 | ~2.0M | Swiss cheese (3 adversary rounds), reversibility |
