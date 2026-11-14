@@ -13,7 +13,7 @@
 | 19:09 | C4 open | R39: 0 blockers (900k sources/33.8M positions + 160k drafts); main loop checked changed hunks match R39 list; main unmoved at 83a5cb9 | ~2.0M | Swiss cheese (3 adversary rounds), reversibility |
 | 19:10 | C1–C4 DONE; S1 open | PR #32 merged 81cee97, tree verified; D-109; S1 diagnosis dispatched (Sonnet) | ~2.1M | critical path |
 
-## MORNING REPORT — OVN-1114 (written 2026-11-15 ~01:45 IST, disarmed early: diff zero)
+## MORNING REPORT — OVN-1114 (committed 00:48 IST 2026-11-15; disarmed early at diff zero — wrong stop rule, see D-111/D-112)
 
 1. DONE
    - C1 R36 probe: 25/34 attacks certified PASS on 83a5cb9. `uv run python Agent-Assure/reports/r36_probe.py` → "attacks reproducing: 25 / 34; broken controls: 0" (main loop re-run).
