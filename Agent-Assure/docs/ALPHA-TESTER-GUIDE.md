@@ -2,6 +2,12 @@
 
 You are trying Agent-Assure for the first time, on your own. This guide tells you what to expect, what it can and cannot tell you, and what to send back to us.
 
+This file is at `Agent-Assure/docs/ALPHA-TESTER-GUIDE.md` in the `agents-infra` repository (there is no copy at `Agent-Assure/ALPHA-TESTER-GUIDE.md`).
+
+**Two ways in.** To see the checker work, you need only `uv`: run `uv sync` in `Agent-Assure`, then section 3 step 1 and "Check your own source". No plugin registration, no `~/.claude` changes, no `install.sh`. To use it on live research inside Claude Code, you need the plugin: section 2 and section 3 step 2.
+
+**Command style.** Examples below use `.venv/bin/python`. That path exists after either `uv sync` or `bash install.sh`. `uv run python ...` (run from `Agent-Assure`) does the same thing; use whichever you prefer.
+
 Every statement here comes from the repo (README, install.sh, the skill, the command, the failure-types reference, the register, and the ALPHA-5 report). Where we could not confirm something, the guide says "not verified".
 
 ---
@@ -65,7 +71,13 @@ bash install.sh
 
 `install.sh` creates a `.venv` folder, installs the dependencies, and checks that the engine and hook import. On success it prints `engine + hook + deps: OK`.
 
-Then register the directory as a Claude Code plugin. The installer's own text offers three ways: `claude --plugin-dir <path to Agent-Assure>`, add it to your plugin marketplace, or copy it into your Claude Code plugins path. We have only seen the `--plugin-dir` route described in the repo. The other two are not verified by us.
+Then start Claude Code with the directory loaded as a plugin:
+
+```bash
+claude --plugin-dir <path to Agent-Assure>
+```
+
+The installer's own text offers two other ways: add it to your plugin marketplace, or copy it into your Claude Code plugins path. We have only seen the `--plugin-dir` route described in the repo. The other two are not verified by us.
 
 Once active, the plugin gives you:
 - a capture hook that records every retrieval automatically (Exa fetch, `Read`, native `WebFetch`, DuckDuckGo fetch);
@@ -116,6 +128,8 @@ If the fabricated draft does not FAIL on your machine, that is the most importan
 
 Expected outputs are saved in `demo/expected/` so you can compare. A test (`tests/test_demo_golden.py`) pins them. Whether it passes on your machine: not verified.
 
+The demo renderer `demo/show_report.py` prints only the verdict and the first 70 characters of each claim. The reasons are in the JSON; see "Getting the reason for each claim" in section 4.
+
 Do not pass `--session-id` against the demo store. The demo records carry no session id, and the engine refuses an empty `--session-id` by design.
 
 ### Step 2: try it on a real session (about 4 minutes)
@@ -138,6 +152,58 @@ Without `--json`, the engine writes `grounding-report.yaml` into your current fo
 
 Optional flag: `--threshold N` sets the score bar (default 90).
 
+### Check your own source (no Claude Code session needed)
+
+You can test your own text without the plugin. The checker needs two files: a draft, and an evidence store. The evidence store is a JSONL file (one JSON object per line); each line is one retrieved source. The capture hook normally writes it. You can write it yourself.
+
+Put your source text in `my-source.txt` and a draft in `my-draft.md`. The draft must cite the source as `[S1]`, inside the sentence, before the full stop. Then, from `Agent-Assure`, build a store with this script (standard library only):
+
+```bash
+.venv/bin/python - <<'PYEOF'
+import hashlib, json, unicodedata
+from datetime import datetime, timezone
+
+text = unicodedata.normalize("NFKC", open("my-source.txt", encoding="utf-8").read())
+record = {
+    "source_id": "S1",
+    "url": None,
+    "file_path": "my-source.txt",
+    "fetched_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    "tool": "Read",
+    "content_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
+    "text": text,
+    "full_text_source": "verbatim",
+    "captured_via": "inline",
+    "query_provenance": "my own source file",
+    "session_id": "my-test-session",
+}
+with open("my-store.jsonl", "w", encoding="utf-8") as fh:
+    fh.write(json.dumps(record, ensure_ascii=False) + "\n")
+print("wrote my-store.jsonl")
+PYEOF
+```
+
+Check the draft against it:
+
+```bash
+.venv/bin/python scripts/ground_check.py --draft my-draft.md --store my-store.jsonl --session-id my-test-session
+```
+
+We ran this with a draft whose single claim is a sentence copied from the source plus `[S1]`. Result: `gate=PASS grounding_score=100.0`, exit 0, and a `grounding-report.yaml` in your current folder.
+
+Fields, one line each (the full table is in `README.md`, "EvidenceStore JSONL Format"):
+- `source_id`: the key your draft cites, `S1` for `[S1]`. It must be unique in the file. For a second source, add a second line with `S2`.
+- `tool`: use `Read` for a source you want treated as verbatim. The loader accepts only the tool names the capture hook writes: `Read`, `mcp__exa__web_fetch_exa`, `web_fetch_exa`, `mcp__ddg-search__fetch_content` (verbatim) and `WebFetch` (always `haiku_summary`). Any other name, or a `tool` that disagrees with `full_text_source`, makes it refuse the file.
+- `text`: the source body, word for word. Only this is matched.
+- `session_id`: the capture hook writes one on every live record. It matters only if you pass `--session-id`: the engine then refuses a store that contains any record with a different or blank `session_id`. Pass the same string you wrote, or leave `--session-id` out (the scope line then says session scope is not asserted).
+- `retrieval_status` and `read_extent` are optional fields the hook writes; leave them out.
+
+Mistakes are refused with a message, never scored, and exit 1. We ran each of these: a missing file prints `REFUSED: no evidence store at ...`; a duplicate `source_id` and an unknown `tool` name the offending line; a `--session-id` that does not match prints `REFUSED: evidence store holds records from outside this session ...`.
+
+Two things to expect, because the checker is built to refuse rather than guess:
+- A paraphrase of your source comes back UNGROUNDED. Copy the source sentence instead (see "Before you start").
+- Do not edit the store of a live session to turn a failure into a pass (see section 6).
+
 ---
 
 ## 4. Reading a report
@@ -148,14 +214,14 @@ Optional flag: `--threshold N` sets the score bar (default 90).
 - NEEDS_WORK: the score is 60 or more, but at least one claim has a problem (or the score is under the threshold, or nothing could be scored). Fix the listed claims and run again.
 - FAIL: the score is below 60. This is checked first, so a low score is FAIL even if other problems exist.
 
-The score is the share of scored claims that are GROUNDED or ABSENCE_SUPPORTED. Headers, questions, instructions and pure opinion (NON_CLAIM) are left out of the count.
+The score is the share of scored claims that are GROUNDED or ABSENCE_SUPPORTED. Lines the engine classes as NON_CLAIM (questions, instructions, pure opinion, and headings that read as plain labels) are left out of the count. Not every heading is a label: see "What counts as a claim" below.
 
 If the store is empty, you get NEEDS_WORK with `vacuous: true`. That means "nothing to check against", not "all clear".
 
 ### Per-claim verdicts
 
 Passing:
-- GROUNDED: the claim's words appear in a source retrieved word for word (a run of 8 or more matching words, or equivalent). Headers and similar lines also show GROUNDED but are not scored.
+- GROUNDED: the claim's words appear in a source retrieved word for word (a run of 8 or more matching words, or equivalent). Lines classed NON_CLAIM also show GROUNDED but are not scored; in the JSON their `kind` is `NON_CLAIM`.
 - ABSENCE_SUPPORTED: a "there is no X" claim backed by at least 2 recorded searches that each name the full subject. See the limit in section 5.
 
 Failing (each one stops the gate from reaching PASS):
@@ -165,11 +231,48 @@ Failing (each one stops the gate from reaching PASS):
 - UNVERIFIED_NUMBER: a number in the claim matches no source. Value, unit and, if the claim states one, the rate must all match. "25%" is not "25". "per minute" is not "per second".
 - UNVERIFIED_ABSENCE: a "no X exists" claim with fewer than 2 recorded searches that name the full subject.
 - UNVERIFIED_RELATION: a "A causes B" style claim without two separate sources, one per side. See ADR-007 in section 5.
-- UNGROUNDABLE: every cited source is non-verbatim (for example a `haiku_summary` from native `WebFetch`), or empty. The engine refuses to check against a summary. Re-fetch with Exa or a raw `Read`.
+- UNGROUNDABLE: every cited source is non-verbatim (for example a `haiku_summary` from native `WebFetch`), or empty. The engine refuses to check against a summary. Re-fetch with Exa or a raw `Read`. It is also the verdict when the only cited source looks like a copy of your own draft (`support_diagnostic` `cited_source_is_the_draft`): the source is excluded and `evidence_basis` names it. See "Known issues".
 
 Other per-claim fields you will see in the JSON: `evidence_basis`, `support_diagnostic`, and, for causal claims, `relation_diagnostic`.
 - `support_diagnostic` of `cited_sentence_may_not_assert_claim` means: go read that source sentence yourself. It is advice, not a verdict. It misses about half of the denials we built (7 of 14).
 - `relation_diagnostic` of `corroborated_by_two_sources` next to UNGROUNDED is the normal result for an honest causal claim.
+
+### Getting the reason for each claim
+
+The one-line summary (`gate=... grounding_score=...`) gives no per-claim detail. For the reasons, run with `--json`. Each entry in `per_claim` carries:
+- `verdict`: one of the verdicts above.
+- `kind`: how the engine read the line. `NON_CLAIM` means not scored; `NUMERIC` and `FACTUAL` are scored.
+- `text`: the claim exactly as the engine split it out of your draft. Compare it with your sentence: this is where you see a sentence cut into pieces, or a heading or table counted as a claim.
+- `evidence_basis`: the reason, in words (for example "S9 is cited but is NOT IN THE EVIDENCE STORE", or "No source is cited ...").
+- `support_diagnostic`: a short code. `no_cited_verbatim_source` appears on every claim that has no usable cited source (UNCITED, UNVERIFIED_CITATION, UNGROUNDABLE); it is not a separate problem. `cited_source_is_the_draft` means every cited verbatim source was excluded because it reads as a copy of your draft (see "Known issues"). Read `evidence_basis` for the reason.
+
+This prints them in readable form (run from `Agent-Assure`; swap in your own draft and store):
+
+```bash
+.venv/bin/python scripts/ground_check.py --draft demo/draft-fabricated.md --store demo/evidence-store.jsonl --json | .venv/bin/python -c 'import json,sys; r=json.load(sys.stdin); print(r["gate"], r["grounding_score"]); [print(c["verdict"], "|", c["kind"], "|", c["text"][:60], "\n    why:", c["evidence_basis"]) for c in r["per_claim"]]'
+```
+
+On the fabricated demo draft the last two entries read `UNVERIFIED_CITATION ... why: S3 is cited but is NOT IN THE EVIDENCE STORE` and `UNVERIFIED_NUMBER ... The claim asserts 1 figure: "100" ...`. The exit code of this pipe is the last command's, so it is 0 whatever the gate. Use the section 3 step 1 command with `show_report.py` when you need the gate's exit code.
+
+### What to do about each verdict
+
+| Verdict | What it means for you | What to do |
+|---|---|---|
+| UNCITED | No `[Sn]` in the claim. Includes a marker placed after the full stop, and a heading or table counted as a claim (below). | Add `[Sn]` inside the sentence, before the full stop. For a heading or table, see below. |
+| UNVERIFIED_CITATION | `[Sn]` is not in the store. | Retrieve the source in-session, or fix the id. In a hand-built store, add the line (see "Check your own source"). |
+| UNGROUNDED | `[Sn]` exists, but no 8-word run of your claim is in it. Usually a paraphrase, or your own framing words. | Replace the claim with the source's own sentence and cite it. This is not evidence the claim is false. |
+| UNVERIFIED_NUMBER | A figure in the claim is not in the cited source with the same value, unit and rate. A version number such as "2.4" counts as a figure. | Copy the figure as the source writes it, or cite the source that has it. |
+| UNGROUNDABLE | The cited source is a summary (`haiku_summary`) or empty, or (`support_diagnostic` `cited_source_is_the_draft`) it is a short source that looks like a copy of your draft. | Re-fetch with Exa or `Read`. If the source is verbatim and non-empty, cite the full source document, not an excerpt; see "Known issues". |
+| UNVERIFIED_ABSENCE, UNVERIFIED_RELATION | An "X does not exist" or "A causes B" claim without enough support. | Quote a source that says it, or soften the claim. |
+
+### What counts as a claim
+
+Observed by running the commands on this build. This describes today's behaviour, not a promise about later versions.
+
+- Headings. A heading that reads as a plain label ("## Results", "# Release note", "# Kestrel release note") is NON_CLAIM: GROUNDED, not scored. A heading that reads like a statement ("### Why it matters to operators") or contains a figure such as a version number ("# Kestrel 2.4 note", "## Kestrel 2.4") is scored like a sentence. Uncited, it comes back UNCITED and lowers the score. Cited, it must still share 8 words in a row with the source, so a short title with `[S1]` came back UNGROUNDED. Fix: use a label-style heading without a figure, or a heading that is itself a span of the source. An earlier version of this guide said headers are never scored; that was wrong.
+- Tables. A markdown table is read as one claim, starting at its header row. It is scored, and uncited it is UNCITED. Putting `[S1]` in a cell, or a verbatim source sentence in a row, still came back UNGROUNDED in our runs, because the check anchors on the start of the claim, which is the header row. We have no documented way to make a table pass. Write the facts as cited sentences instead.
+- Bullet lists. Each `- item` is its own claim. A bullet that was a source sentence plus `[S1]` before its full stop came back GROUNDED.
+- Sentence splitting. One sentence can be split into more than one claim, for example at "and", and a piece can lose its subject. Check the `text` field in `--json`. If a piece fails, rewrite the sentence in the source's own wording so it is not split.
 
 ### The scope line
 
@@ -181,7 +284,15 @@ PASS means every claim in this draft is traceable to text in a source present in
 
 With `--session-id <id>` it says "retrieved this session" instead. Read this line. If it says "Session scope is NOT asserted", the store may hold sources from earlier sessions (see J-38 below). The word "verified" is deliberately never used in the output.
 
-Whether the plain-text summary (non `--json`) and the demo renderer print the scope line: not verified. The JSON field is confirmed.
+The plain-text summary (non `--json`) also prints the scope line, under the one-line gate summary; we confirmed this by running it. The demo renderer (`demo/show_report.py`) does not print it.
+
+---
+
+## Known issues (bugs under investigation)
+
+These are defects, not intended behaviour. Do not build a workflow on them.
+
+- UNGROUNDABLE on a short verbatim source (cause known; grounding short excerpts is pending a design decision). The engine has a deliberate guard: a cited source counts as a possible copy of your own draft when at least 80% of its adjacent word pairs also appear in the draft, and a draft cannot certify itself. A source of one or two sentences that your draft quotes almost whole meets that bar, so the claim reads UNGROUNDABLE with `support_diagnostic` `cited_source_is_the_draft`, even though the store line says `full_text_source: verbatim`. `evidence_basis` names the excluded source and says why. If the claim also has a figure that the short source does not contain, it reads UNVERIFIED_NUMBER instead (the wrong figure is no longer hidden). The guard stays on purpose; relaxing it would let a draft pass by citing a copy of itself, so whether and how to ground short excerpts is a decision not yet made. Workaround: store and cite the full source document, not a one- or two-sentence excerpt. We checked this on build 5b6898f: a one-sentence source quoted by the draft came back UNGROUNDABLE `cited_source_is_the_draft`; the same sentence inside a five-sentence source document came back GROUNDED, gate PASS. If you hit UNGROUNDABLE on a verbatim source that is not short, report it with the five items in section 6.
 
 ---
 
