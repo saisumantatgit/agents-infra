@@ -54,13 +54,10 @@ def test_label_heading_stays_non_claim(tmp_path: Path, heading: str) -> None:
     assert report["gate"] == "PASS", (heading, report["gate"])
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="R36 residue (OPEN): `_HEADLINE_VERBS_S` is a list, so a verb-final "
-    "heading with an UNLISTED headline verb ('# Acme Stumbles') still reads as a "
-    "label and rides inside a PASS. Upgrade path: a POS tagger on headings. "
-    "When this XPASSes, a fix has landed: remove the marker.",
-)
+# R40: "stumbles" is now a listed headline verb (`_R40_HEADLINE_VERBS_S`), so
+# the strict xfail XPASSed and its marker was removed (assertion unchanged).
+# The class stays open for other unlisted verbs: see
+# test_moat_r40_ceiling_tripwires.py ("# Bank Folds", "# Stock Drops", ...).
 def test_unlisted_headline_verb_is_scored(tmp_path: Path) -> None:
     report = gate(tmp_path, SOURCE, "# Acme Stumbles\n\n" + BODY)
     assert report["gate"] != "PASS", report["per_claim"][0]

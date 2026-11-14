@@ -1080,6 +1080,73 @@ def _heading_fold(tok: str) -> str:
 
 
 def _header_asserts(header_body: str) -> bool:
+    """Return True if *header_body* reads as an assertion rather than a label:
+    `_header_asserts_main`, or the R40 headline tests (`_header_asserts_r40`),
+    each on the heading AND on its comparison copy (`_comparison_view`:
+    look-alike letters such as Latin alpha or dotless i mapped, combining
+    marks and in-word format characters removed). Every added test can only
+    move a heading from NON_CLAIM to scored (D-69). Pure."""
+    view = _comparison_view(header_body)
+    return (_header_asserts_main(header_body) or _header_asserts_r40(header_body)
+            or (view != _nfkc(header_body).casefold()
+                and (_header_asserts_main(view) or _header_asserts_r40(view))))
+
+
+# R40 (RED-TEAM-R37 H14): further headline verbs. Each has no common honest
+# plural-noun sense in a label heading. Refusal only (D-69).
+# CEILING: "folds", "drops", "defaults", "out", "lies" and a final "-ing"
+# ("# Bank Folds", "# Stock Drops", "# Bank Defaults", "# CEO Out", "# CEO
+# Lies", "## Revenue Doubling") stay labels (fail-open): "## Training folds",
+# "## Packet drops", "## Configuration defaults", "## Sign out", "## Where the
+# problem lies" and "## Frequency doubling" are routine honest headings, and
+# no structural signal separates them. Upgrade path: a POS tagger on headings.
+_R40_HEADLINE_VERBS_S: frozenset[str] = frozenset({
+    "stumbles", "falters", "flounders", "crumbles", "nosedives", "capitulates",
+    "concedes", "topples", "unravels",
+})
+# Heading-final predicates after a subject ("## CEO arrest looming", "# Acme
+# Under Investigation").
+_FINAL_PREDICATE_WORDS: frozenset[str] = frozenset({"looming"})
+_UNDER_PREDICATE_NOUNS: frozenset[str] = frozenset({
+    "investigation", "probe", "indictment", "arrest", "siege", "fire", "scrutiny",
+})
+_HEADING_HYPHENS_RE = _re.compile(r"[-\u2010\u2011\u2012\u2013\u2014]")
+
+
+def _header_asserts_r40(header_body: str) -> bool:
+    """R40 (RED-TEAM-R37 H14): True iff *header_body* is a headline in a shape
+    `_header_asserts_main` misses: hyphen-joined words split ("# Acme-guilty",
+    "# Bank-collapses"), then a listed headline verb or a final predicate
+    after a subject, or a final "under <investigation|probe|...>" phrase. The
+    whole-heading allow list still exempts (`_heading_allowlisted`). Pure.
+
+    CEILING: lexical. Error-A: hyphen-split "## Guilty-plea process" is scored
+    like "## Guilty pleas" (R38 Error-A), and "## Company concedes" like any
+    listed-verb label; an unlisted verb or predicate still reads as a label
+    (fail-open, see `_R40_HEADLINE_VERBS_S`). Upgrade path: a POS tagger on
+    headings."""
+    if _heading_allowlisted(header_body):
+        return False
+    pieces = [_heading_fold(piece)
+              for tok in header_body.split()
+              for piece in _HEADING_HYPHENS_RE.split(tok.strip(".,;:!?\"'()[]{}"))]
+    pieces = [w for w in pieces if w]
+    words = [w for w in pieces if w not in _STOP_WORDS]
+    if _predicate_heading_word(" ".join(pieces)):
+        return True
+    if len(words) < 2:
+        return False
+    if ((words[-1] in _R40_HEADLINE_VERBS_S or words[-1] in _HEADLINE_VERBS_S)
+            and not all(_is_heading_premodifier(w) for w in words[:-1])):
+        return True
+    if words[-1] in _FINAL_PREDICATE_WORDS:
+        return True
+    if len(words) > 2 and words[-2] == "under" and words[-1] in _UNDER_PREDICATE_NOUNS:
+        return True
+    return False
+
+
+def _header_asserts_main(header_body: str) -> bool:
     """Return True if *header_body* reads as an assertion rather than a label.
 
     An auxiliary anywhere, or a verb-like token that is not the final content
@@ -1214,8 +1281,9 @@ def _predicate_heading_word(header_body: str) -> bool:
 # label headings are deliberately left out ("misses" as in "Cache misses",
 # "leaks", "spikes", "wins", "defaults", "breaks", "falls", "drops", "files",
 # "charges", "fires", "lies", "folds", "points", "notes", "changes").
-# CEILING: lexical. Fail-open: an unlisted headline verb ("# Acme Stumbles")
-# stays a label. Error-A: a listed word used as a plural noun ("## Bank
+# CEILING: lexical. Fail-open: an unlisted headline verb ("# Bank Folds";
+# R40 lists "stumbles" and a few more in `_R40_HEADLINE_VERBS_S`) stays a
+# label. Error-A: a listed word used as a plural noun ("## Bank
 # collapses" as a list of collapses) is scored UNCITED. Upgrade path: a POS
 # tagger on headings (as the OI-MOAT-19 CEILING above).
 _HEADLINE_VERBS_S: frozenset[str] = frozenset({
@@ -1787,14 +1855,18 @@ def _contained_with_matching_polarity(
     """True iff one sentence unit of *source_text* contains *claim_tokens*
     contiguously and passes _negation_polarity_matches. Pure."""
     width = len(claim_tokens)
-    for ctx in _source_unit_contexts(source_text):
+    contexts = _source_unit_contexts(source_text)
+    views = _view_unit_contexts(source_text, contexts)
+    for ctx, view in zip(contexts, views):
         toks = list(ctx.tokens)
         starts = [i for i in range(len(toks) - width + 1)
                   if toks[i:i + width] == claim_tokens]
         if not starts:
             continue
         # H1: a denial before the span or a back-referring denial after it.
-        if all(_unit_denied(ctx, i) for i in starts):
+        # R40: or a falsity statement after it in the same sentence, or a
+        # denial the comparison copy reveals (`_match_denied`).
+        if all(_match_denied(ctx, view, i, i + width, frozenset()) for i in starts):
             continue
         if (_negation_polarity_matches(claim_tokens, toks)
                 and not _negated_claim_is_limited(claim_tokens, toks)):
@@ -2066,6 +2138,10 @@ class _UnitContext:
     # `_unit_denied` refuses to read (fail loud, never a silent pass).
     previous_strong: bool | None = None
     following_strong: bool | None = None
+    # R40 (RED-TEAM-R37 H1): later units of the same sentence ON THE SAME LINE
+    # ("<claim> (fabricated).", "<claim>; none of it is true."), read by
+    # `_trailing_denied` with the tokens after the match.
+    suffix: tuple[str, ...] = ()
 
 
 # H4 (2026-10-25): label words that DISOWN the list under them ("Myths:",
@@ -2092,7 +2168,9 @@ _LONG_LABEL_LINE_RE = _re.compile(r"^[\s#>*_]*(?P<label>[^:\n]{1,400}):(?P<rest>
 # untouched: this map can only turn a non-denial token into a denial token.
 # CEILING: a fixed map of common Cyrillic/Greek look-alikes, not the full
 # Unicode TR39 confusables table; an unmapped look-alike still grounds
-# (fail-open). Upgrade path: a TR39 skeleton pass over the same two checks.
+# (fail-open). R40 adds a second fixed map and the invisible-character fold in
+# the OR'd comparison copy (`_comparison_view`), not here: this map also feeds
+# exemptions. Upgrade path: a TR39 skeleton pass over the same two checks.
 _DENIAL_CONFUSABLES: dict[int, str] = str.maketrans({
     "а": "a", "е": "e", "о": "o", "р": "p", "с": "c", "х": "x", "у": "y",
     "і": "i", "ј": "j", "һ": "h", "ѕ": "s", "ԁ": "d", "ԛ": "q", "ԝ": "w",
@@ -2236,6 +2314,19 @@ def _paragraph_denied(
     referent word ("The claim that the regulator acted late is not true.",
     "Critics asked whether the rumours were untrue."; Error-A, disclosed).
     Upgrade path: the same discourse/coreference model.
+
+    CEILING (R40, RED-TEAM-R37 H9, left open on purpose): a denial in an
+    EARLIER paragraph ("None of this is true. Use z.\\n\\nOk then.
+    Fine.\\n\\n<claim>.", a blockquoted "> None of this is true.", or a
+    one-sentence label paragraph "Rumours we investigated and found to be
+    false.") still grounds the claim (fail-open). No cross-paragraph rule was
+    found that honest text survives: a distance bound (one paragraph, two)
+    is padded past by the author, and an unbounded one lets every "None of
+    this is true." in an FAQ answer, or every "Prosecutors said the invoices
+    were fabricated." paragraph, disown the rest of the document; a
+    one-sentence paragraph is the commonest shape of an honest short
+    paragraph. Pinned as strict xfails in test_moat_r40_ceiling_tripwires.py.
+    Upgrade path: a document-structure parse plus the coreference model above.
     """
     # `strong[t]`: `_has_strong_denial` of sentence t (R38: with its cleared
     # heading lines cut out, `_strong_tokens`).
@@ -2276,6 +2367,7 @@ def _paragraph_denied(
                     and ((_points_forward(t) and (strong[i] or bool(_folded(t) & _VERACITY_TOKENS)))
                          or _is_bare_denial(t))
                     for t in (full, cut_tokens[i]))
+                or _long_line_points(full, line_tokens[i], strong[i])
                 for i, full in enumerate(sentence_tokens)]
     deictic_count: Counter[int] = Counter()
     stem_count: Counter[tuple[int, str]] = Counter()
@@ -2293,6 +2385,37 @@ def _paragraph_denied(
                 or any(stem_count[(k, stem)] > (1 if strong[s] else 0) for stem in stems[s])
                 or first_pointing.get(k, len(paragraphs)) < s for k in para)
             for s, para in enumerate(paragraphs)]
+
+
+_SCOPE_MAX_PROSE_TOKENS: int = 24
+# R40: the truth words for the long-line pointing rule -- narrower than
+# `_VERACITY_TOKENS` ("support", "exist", "believe", "trust" are routine in
+# release notes and docs: "This release does not support ...").
+_R40_TRUTH_TOKENS: frozenset[str] = frozenset({
+    "true", "accurate", "correct", "real", "genuine", "factual", "happened",
+    "happen", "occurred", "occur", "holds", "verified", "confirmed",
+    "substantiated", "corroborated", "evidence", "proof",
+})
+
+
+def _long_line_points(tokens: tuple[str, ...], lines: tuple[tuple[str, ...], ...], strong: bool) -> bool:
+    """R40 (RED-TEAM-R37 H8): True iff a ONE-LINE sentence of 13 to
+    `_SCOPE_MAX_PROSE_TOKENS` tokens denies, points forward, and asserts
+    falsity or denies truth ("We checked each of the items below and not one
+    of them holds up.", "None of the reports this page collected from the
+    forums last winter is accurate."). The 12-token cut exists because the
+    splitter welds tables, code and lists into long sentences; those span
+    several lines, so a sentence on one line is prose and its length is not
+    an accident of welding. OR'd onto the paragraph pointing rule. Pure.
+
+    CEILING: one line, 24 tokens. A longer forward denial, or one wrapped over
+    two lines, still reaches only its neighbours (fail-open); an honest
+    one-line pointing negative with a truth word ("This page does not list
+    every case, and the figures below are not final or verified.") refuses
+    the rest of its paragraph (Error-A). Upgrade path: clause-level scope."""
+    return (len(lines) == 1 and _SCOPE_MAX_TOKENS < len(tokens) <= _SCOPE_MAX_PROSE_TOKENS
+            and _has_denial(tokens) and _points_forward(tokens)
+            and (strong or bool(_folded(tokens) & _R40_TRUTH_TOKENS)))
 
 
 # R38: words by which a falsity statement points at OTHER text rather than at
@@ -2392,7 +2515,9 @@ def _heading_line_spans(text: str) -> list[tuple[int, int, bool]]:
     end after it). Pure.
 
     CEILING: a shape test. A denial label that runs on into prose on the same
-    line, or is longer than `_HEADING_MAX_TOKENS`, disowns nothing (fail-open);
+    line, or is longer than `_HEADING_MAX_TOKENS` (R40: up to
+    `_HEADING_LONG_MAX_TOKENS` when it asserts falsity, `_heading_lines_r40`),
+    disowns nothing (fail-open);
     a short standalone honest line ("Rumours and facts") with a label word
     disowns its section (Error-A). Upgrade path: a document-structure parse.
     """
@@ -2506,8 +2631,11 @@ def _heading_denied(text: str, spans: list[tuple[int, int]]) -> list[bool]:
 
     CEILING: the scope ends at the NEXT heading-shaped line of any level, so a
     sub-heading under "## Myths" ends the disowned scope (fail-open), and an
-    honest section under a denying heading is refused whole (Error-A). Upgrade
-    path: a document-structure parse with heading levels.
+    honest section under a denying heading is refused whole (Error-A). Since
+    R40, `_heading_denied_r40` (OR'd in) carries a MARKDOWN denying heading
+    past plain lines and deeper sub-headings; the fail-open remains for
+    non-markdown denying lines. Upgrade path: a document-structure parse with
+    heading levels.
     """
     headings = _heading_line_spans(text)
     scopes: list[tuple[int, int]] = []
@@ -2515,6 +2643,152 @@ def _heading_denied(text: str, spans: list[tuple[int, int]]) -> list[bool]:
         if denies:
             scope_end = headings[k + 1][0] if k + 1 < len(headings) else len(_nfkc(text).strip())
             scopes.append((end, scope_end))
+    return [any(b > lo and a < hi for lo, hi in scopes) for a, b in spans]
+
+
+# R40 (RED-TEAM-R37 H11): label words `_HEADING_DISOWNING_TOKENS` leaves out
+# because they are routine in honest headings ("## What went wrong", "## False
+# positives", "## Lie groups", "## Where the problem lies"). They disown only
+# in a label SHAPE: a falsity adjective directly before a discourse noun
+# ("## Wrong claims about the bank", "## False claims"), or "Lies"/"Lie"
+# opening the heading and followed by a determiner, preposition or pronoun
+# ("## Lies the tabloids told", "**Lies about the bank**"), or standing alone.
+# A heading holding a truth word ("## Lies and facts") is left to the R38 FAQ
+# reading. Refusal only (D-69): a missing word leaves main's reading.
+_HEADING_FALSITY_ADJECTIVES: frozenset[str] = frozenset({
+    "wrong", "false", "incorrect", "inaccurate", "untrue", "invented",
+    "fabricated", "bogus", "fake", "misleading", "made",
+})
+# Nouns that name CONTENT (what a report, a page or a rumour mill is made
+# of). Refusal-driving for the R40 label and falsity-construction rules only.
+_DISCOURSE_NOUNS: frozenset[str] = frozenset({
+    "story", "stories", "account", "accounts", "claim", "claims", "report",
+    "reports", "rumour", "rumours", "rumor", "rumors", "tale", "tales",
+    "allegation", "allegations", "narrative", "narratives", "statement",
+    "statements", "version", "versions", "figures", "numbers", "data",
+    "details", "quote", "quotes", "quotation", "quotations", "headline",
+    "headlines", "news", "testimony", "coverage", "interview", "interviews",
+    "information", "article", "articles", "post", "posts", "page", "text",
+    "document", "documents", "piece", "line", "lines", "word", "words",
+    "facts", "evidence", "results", "statistics", "event", "events",
+    "anecdote", "anecdotes", "legend", "legends",
+})
+_LIES_HEADING_NEXT: frozenset[str] = frozenset({
+    "the", "a", "an", "about", "of", "told", "from", "by", "that", "we",
+    "they", "you", "i", "he", "she", "it", "spread", "in", "and", "our",
+    "his", "her", "their", "your", "my", "people", "on", "to", "behind",
+})
+
+
+def _r40_heading_label_denies(toks: tuple[str, ...]) -> bool:
+    """True iff the heading-shaped line *toks* is a falsity LABEL in the R40
+    shapes above. Look-alikes folded. Pure.
+
+    CEILING: lexical shapes. "## Inventions of the press" and "## Tall
+    tales" (no adjective, no "Lies" opener) still disown nothing (fail-open:
+    "Inventions" heads honest history sections); "## False claims" over an
+    honest section of corrected claims is refused (Error-A). Upgrade path: a
+    document-structure parse that reads the section."""
+    folded = [_confusable_fold(t) for t in toks]
+    if set(folded) & _HEADING_TRUTH_TOKENS:
+        return False
+    for i, word in enumerate(folded):
+        if word not in _HEADING_FALSITY_ADJECTIVES:
+            continue
+        # "made" counts only as "made up" ("## Made-up stories").
+        noun_at = i + 2 if word == "made" else i + 1
+        if word == "made" and folded[i + 1:i + 2] != ["up"]:
+            continue
+        if noun_at < len(folded) and folded[noun_at] in _DISCOURSE_NOUNS:
+            return True
+    return bool(folded) and folded[0] in {"lies", "lie"} and (
+        len(folded) == 1 or folded[1] in _LIES_HEADING_NEXT)
+
+
+_HEADING_LONG_MAX_TOKENS: int = 24
+
+
+def _heading_lines_r40(text: str) -> list[tuple[int, int, bool, int]]:
+    """(start, end, denies, level) for every R40 heading-shaped line of
+    `_nfkc(text).strip()`: the `_heading_line_spans` lines, plus (H12) a
+    standalone line of 13 to `_HEADING_LONG_MAX_TOKENS` tokens with no final
+    ".", "!", "?" or ":" that asserts falsity (`_has_strong_denial`). `level`
+    is the number of leading "#" of a markdown heading, 0 for any other line.
+    `denies` adds the R40 label shapes (`_r40_heading_label_denies`). Pure.
+
+    CEILING: a denial label that runs on into prose on the same line ("Rumours
+    we found to be false and the people who spread them. People talked.")
+    is a sentence, not a heading, and disowns nothing (fail-open; R37 H12).
+    A standalone 13-24 token line asserting falsity about something else
+    disowns its section (Error-A). Upgrade path: a document-structure parse."""
+    base = _nfkc(text).strip()
+    lines = base.split("\n")
+    out: list[tuple[int, int, bool, int]] = []
+    offset = 0
+    for i, line in enumerate(lines):
+        start, end = offset, offset + len(line)
+        offset = end + 1
+        stripped = line.strip()
+        if not stripped:
+            continue
+        toks = tuple(_tokenize(stripped))
+        markdown = bool(_MARKDOWN_HEADING_RE.match(line))
+        if markdown:
+            shaped, long_line = True, False
+        else:
+            before_ok = i == 0 or not lines[i - 1].strip()
+            after_ok = (i + 1 == len(lines) or not lines[i + 1].strip()
+                        or bool(_LIST_ITEM_RE.match(lines[i + 1])))
+            standalone = (bool(toks) and stripped[-1] not in ".!?:" and before_ok
+                          and after_ok and not _LIST_ITEM_RE.match(line))
+            shaped = standalone and len(toks) <= _HEADING_MAX_TOKENS
+            long_line = (standalone and not shaped and len(toks) <= _HEADING_LONG_MAX_TOKENS
+                         and _has_strong_denial(toks))
+        if not (shaped or long_line):
+            continue
+        denies = long_line or _heading_line_denies(toks) or _r40_heading_label_denies(toks)
+        level = len(stripped) - len(stripped.lstrip("#")) if markdown else 0
+        out.append((start, end, denies, level))
+    return out
+
+
+def _heading_denied_r40(text: str, spans: list[tuple[int, int]]) -> list[bool]:
+    """R40 (RED-TEAM-R37 H10/H11/H12): for each sentence span, True iff it sits
+    in the scope of a denying R40 heading line. A MARKDOWN denying heading of
+    level L reaches to the next markdown heading of level <= L, or to a
+    deeper markdown heading that names the truth ("### The facts") and does
+    not deny; a bare word line ("More"), a connective line ("And so") or a
+    deeper sub-heading ("### The collapse") no longer ends it. Any other
+    denying line keeps `_heading_denied`'s scope (to the next heading-shaped
+    line). OR'd onto `_heading_denied` in `_source_unit_contexts`, so it can
+    only add refusals (D-69). Pure.
+
+    CEILING: a NON-markdown denying line ("Myths about the bank", "**Myths**")
+    still ends at the next heading-shaped line of any kind, so "More" under it
+    ends the scope (fail-open, R37 H10 plain-line form): a plain line has no
+    level, and a plain-line section break is indistinguishable from it. An
+    honest section under a markdown denying heading, introduced by a plain
+    line or a deeper sub-heading without a truth word ("## Common myths ...
+    ### Installation"), is refused (Error-A). Upgrade path: a
+    document-structure parse with section levels."""
+    lines = _heading_lines_r40(text)
+    total = len(_nfkc(text).strip())
+    scopes: list[tuple[int, int]] = []
+    for k, (start, end, denies, level) in enumerate(lines):
+        if not denies:
+            continue
+        scope_end = total
+        for j in range(k + 1, len(lines)):
+            j_start, _j_end, j_denies, j_level = lines[j]
+            if level == 0:
+                scope_end = j_start
+                break
+            if j_level and (j_level <= level or (
+                    not j_denies and _folded(tuple(_tokenize(_nfkc(text).strip()[j_start:_j_end])))
+                    & _HEADING_TRUTH_TOKENS)):
+                scope_end = j_start
+                break
+        scopes.append((end, scope_end))
     return [any(b > lo and a < hi for lo, hi in scopes) for a, b in spans]
 
 
@@ -2533,13 +2807,18 @@ def _source_unit_contexts(source_text: str) -> list[_UnitContext]:
     para_denied = _paragraph_denied(sentence_tokens, _paragraph_ids(source_text, spans), strong, cut,
                                     line_tokens)
     head_denied = _heading_denied(source_text, spans)
+    head_denied_r40 = _heading_denied_r40(source_text, spans)
     out: list[_UnitContext] = []
     for s, sentence in enumerate(sentences):
         prefix: list[str] = []
-        for unit in _re.split(r"\n+|;|[()]", sentence):
-            if not unit.strip():
-                continue
-            toks = tuple(_tokenize(unit))
+        # Same units, in the same order, as `_re.split(r"\n+|;|[()]", ...)`:
+        # split at line breaks first, then at ";" / "(" / ")", so each unit
+        # knows which later units share its line (R40 `suffix`).
+        lined = [(li, tuple(_tokenize(unit)))
+                 for li, line in enumerate(_re.split(r"\n+", sentence))
+                 for unit in _re.split(r";|[()]", line) if unit.strip()]
+        for k, (li, toks) in enumerate(lined):
+            suffix = tuple(t for lj, later in lined[k + 1:] if lj == li for t in later)
             out.append(_UnitContext(
                 tokens=toks, prefix=tuple(prefix),
                 disowned=bool(toks) and any(_within(toks, d) for d in disowned),
@@ -2549,9 +2828,10 @@ def _source_unit_contexts(source_text: str) -> list[_UnitContext]:
                 previous2=sentence_tokens[s - 2] if s > 1 else (),
                 previous_line=(tuple(_tokenize(sentences[s - 1].strip().split("\n")[-1]))
                                if s > 0 else ()),
-                context_denied=para_denied[s] or head_denied[s],
+                context_denied=para_denied[s] or head_denied[s] or head_denied_r40[s],
                 previous_strong=strong[s - 1] if s > 0 else False,
-                following_strong=strong[s + 1] if s + 1 < len(sentences) else False))
+                following_strong=strong[s + 1] if s + 1 < len(sentences) else False,
+                suffix=suffix))
             prefix.extend(toks)
     return out
 
@@ -2761,6 +3041,160 @@ def _has_strong_denial(tokens: tuple[str, ...]) -> bool:
             return True
         if tok in _EVENT_DENIAL_TARGETS and set(folded[max(0, i - 4):i]) & _EVENT_NEGATORS:
             return True
+    return _falsity_construction(folded)
+
+
+# R40 (RED-TEAM-R37 H2-H6, H13): falsity statements in words or shapes the
+# R36 strong list leaves out. Each is refusal-only (D-69): a missing word or
+# shape leaves main's reading. All are read by `_has_strong_denial`, so they
+# reach the paragraph rule (R38 referent test two or more sentences away),
+# the adjacent-sentence rule (R36 NEW-1), heading lines and the R40
+# same-sentence trailing rule.
+#
+# Unconditional: words with no common honest sense other than "false".
+_R40_STRONG_TOKENS: frozenset[str] = frozenset({
+    "apocryphal", "falsified", "falsify", "falsifies", "falsifying",
+})
+# "fabricate(s)/fabricating" also means "manufacture" ("The plant fabricates
+# steel beams"), so it is a falsity only with no object, or with a content
+# object within three words ("fabricates such stories", "is fabricating
+# again"). Pronoun objects are left out: "fabricating it in-house" is
+# manufacturing.
+_FABRICATE_VERBS: frozenset[str] = frozenset({"fabricate", "fabricates", "fabricating"})
+_FABRICATE_OBJECTS: frozenset[str] = _DISCOURSE_NOUNS | frozenset({
+    "everything", "anything", "things", "stuff", "lies", "again", "such",
+})
+# Active "make up" with a CONTENT object ("The tabloid makes up stories");
+# the constituting sense keeps its R36/R38 exemptions ("make up two thirds",
+# "make up the numbers", "make up the bulk").
+_MAKE_UP_VERBS: frozenset[str] = frozenset({"make", "makes", "making"})
+# Predicate nouns that state falsity after a copula, with any subject
+# ("It was all lies.", "<claim>, which is a lie.", "It is disinformation.").
+_FALSITY_PREDICATE_NOUNS: frozenset[str] = frozenset({
+    "lie", "lies", "misinformation", "disinformation", "untruths",
+})
+# Words that may sit between the copula and its predicate ("is a total lie",
+# "was all lies", "is nothing but lies", "is pure invention").
+_PREDICATE_PADDING: frozenset[str] = _DENIAL_INTENSIFIERS | frozenset({
+    "a", "an", "all", "nothing", "but", "mostly", "largely", "partly", "also",
+    "just", "only", "so", "itself", "themselves", "likely", "probably",
+})
+# Participles/adjectives that state falsity only of CONTENT ("The account was
+# invented.", "The figures were doctored.", "What comes after is invented.");
+# "The telephone was invented in 1876." has no content subject and is honest.
+_CONTENT_FALSITY_PREDICATES: frozenset[str] = frozenset({
+    "invented", "imagined", "imaginary", "inaccurate", "doctored", "faked",
+    "manufactured", "embellished", "concocted", "fabricated",
+})
+_UP_FALSITY_VERBS: frozenset[str] = frozenset({
+    "cooked", "dreamed", "dreamt", "thought", "conjured", "whipped",
+})
+# Verdict verbs that predicate "false"/"fake" with no copula ("Reporters
+# called it false.", "proven false", "rated it false").
+_VERDICT_VERBS: frozenset[str] = frozenset({
+    "called", "call", "calls", "deemed", "deem", "deems", "ruled", "rated",
+    "rates", "labelled", "labeled", "branded", "declared", "judged", "proved",
+    "proven", "shown", "found", "considered", "dismissed", "exposed",
+    "revealed", "pronounced",
+})
+# After "<verdict verb> ... false", the next token must end the clause; "found
+# false positives" is honest.
+_CLAUSE_END_NEXT: frozenset[str] = frozenset({
+    "and", "or", "but", "by", "after", "because", "since", "as", "when",
+    "while", "in", "at", "on", "for", "that", "which", "citing", "too",
+    "also", "again", "outright", "entirely",
+})
+# "falsely" + a reporting verb ("falsely reported this"); "falsely accused"
+# reports a wrongful accusation and is left alone.
+_REPORTING_VERBS: frozenset[str] = frozenset({
+    "reported", "reports", "report", "reporting", "claimed", "claims",
+    "claim", "claiming", "stated", "states", "said", "says", "wrote",
+    "written", "alleged", "alleges", "described", "presented", "portrayed",
+    "published", "attributed", "quoted", "asserted", "asserts", "suggested",
+})
+# "did not occur", "never took place", "None of it is real."
+_R40_EVENT_TARGETS: frozenset[str] = frozenset({"occur", "occurs"})
+_TAKE_FORMS: frozenset[str] = frozenset({"take", "takes", "took", "taken", "taking"})
+_COMES_FORMS: frozenset[str] = frozenset({"comes", "come", "coming"})
+_COMES_FORWARD_NEXT: frozenset[str] = frozenset({"after", "next", "below", "later", "afterwards"})
+
+
+def _forward_free_relative(words: list[str]) -> bool:
+    """True iff folded *words* hold a forward-pointing free relative: "what
+    follows", "all that follows", "what comes after/next/below". Pure."""
+    for i, w in enumerate(words):
+        heads = set(words[max(0, i - 2):i]) & _FOLLOWS_RELATIVE_HEADS
+        if w == "follows" and heads:
+            return True
+        if (w in _COMES_FORMS and heads and i + 1 < len(words)
+                and words[i + 1] in _COMES_FORWARD_NEXT):
+            return True
+    return False
+
+
+def _falsity_construction(folded: list[str]) -> bool:
+    """True iff the ordered, look-alike-folded *folded* words state falsity in
+    one of the R40 shapes above. Pure.
+
+    CEILING: lexical shapes, not a parse. Fail-open: a falsity statement in
+    other words ("Every claim here is a figment.", "None of it checks out.")
+    or a content subject outside `_DISCOURSE_NOUNS` ("The memo was
+    invented.") still grounds unless another rule fires. Error-A: an honest
+    sentence in these shapes sharing a paragraph with a claim it refers to
+    (R38 referent test), or adjacent to any claim, refuses that claim -- e.g.
+    "The figures were doctored by the old board." next to a claim, "It is a
+    lie that banks never fail.", "The tabloid makes up stories for children.",
+    "The hypothesis was falsified." Upgrade path: a discourse/coreference
+    model of what a denial targets."""
+    if set(folded) & _R40_STRONG_TOKENS:
+        return True
+    n = len(folded)
+    for i, w in enumerate(folded):
+        nxt = folded[i + 1] if i + 1 < n else None
+        if w == "trumped" and nxt == "up":
+            return True
+        if w in _FABRICATE_VERBS and (nxt is None or set(folded[i + 1:i + 4]) & _FABRICATE_OBJECTS):
+            return True
+        if (w in _MAKE_UP_VERBS and nxt == "up" and i + 2 < n
+                and folded[i + 2] not in _MADE_UP_NON_DENIAL_NEXT
+                and set(folded[i + 2:i + 4]) & _DISCOURSE_NOUNS):
+            return True
+        if w == "falsely" and set(folded[i + 1:i + 3]) & _REPORTING_VERBS:
+            return True
+        if w in _R40_EVENT_TARGETS and set(folded[max(0, i - 4):i]) & _EVENT_NEGATORS:
+            return True
+        if (w == "place" and i > 0 and folded[i - 1] in _TAKE_FORMS
+                and set(folded[max(0, i - 6):i - 1]) & _EVENT_NEGATORS):
+            return True
+        if (w == "real" and set(folded[max(0, i - 4):i]) & _EVENT_NEGATORS
+                and (folded[i - 1] in _COPULAS
+                     or (i > 1 and folded[i - 1] in {"not", "never"} and folded[i - 2] in _COPULAS))
+                and (nxt is None or nxt in _CLAUSE_END_NEXT)):
+            return True
+        if (w in _PREDICATIVE_DENIAL_TOKENS and set(folded[max(0, i - 3):i]) & _VERDICT_VERBS
+                and (nxt is None or nxt in _CLAUSE_END_NEXT)):
+            return True
+        if w in _COPULAS:
+            j = i + 1
+            while j < n and folded[j] in _PREDICATE_PADDING:
+                j += 1
+            if j >= n:
+                continue
+            head = folded[j]
+            padding = folded[i + 1:j]
+            if head in _FALSITY_PREDICATE_NOUNS:
+                return True
+            # "is invention" / "is pure invention", not "is an invention of".
+            if head in {"invention", "inventions"} and not set(padding) & {"a", "an"}:
+                return True
+            subject = folded[max(0, i - 6):i]
+            content_subject = bool(set(subject) & _DISCOURSE_NOUNS) or _forward_free_relative(subject)
+            if not content_subject:
+                continue
+            if head in _CONTENT_FALSITY_PREDICATES:
+                return True
+            if head in _UP_FALSITY_VERBS and j + 1 < n and folded[j + 1] == "up":
+                return True
     return False
 
 
@@ -2850,8 +3284,11 @@ def _points_forward(tokens: tuple[str, ...]) -> bool:
     folded = [_confusable_fold(t) for t in tokens]
     if set(folded) & (_FORWARD_REFERENCES - {"follows"}):
         return True
-    return any(w == "follows" and set(folded[max(0, i - 2):i]) & _FOLLOWS_RELATIVE_HEADS
-               for i, w in enumerate(folded))
+    # R40 (RED-TEAM-R37 H13): "what comes after/next/below" points as "what
+    # follows" does (`_forward_free_relative`). Refusal only (D-69).
+    return (any(w == "follows" and set(folded[max(0, i - 2):i]) & _FOLLOWS_RELATIVE_HEADS
+                for i, w in enumerate(folded))
+            or _forward_free_relative(folded))
 
 
 def _unit_denied(ctx: _UnitContext, match_start: int) -> bool:
@@ -2923,6 +3360,168 @@ def _unit_denied(ctx: _UnitContext, match_start: int) -> bool:
     return len(ctx.following) <= 3 or bool(following & _BACK_REFERENCES)
 
 
+def _trailing_denied(ctx: _UnitContext, match_end: int, own: frozenset[str]) -> bool:
+    """R40 (RED-TEAM-R37 H1): True iff the words AFTER a match ending at
+    *match_end* -- the rest of its unit plus the later units of its sentence
+    on the same line (`ctx.suffix`) -- assert falsity (`_has_strong_denial`):
+    "<claim>, which is a myth.", "<claim> (fabricated).", "<claim> - a
+    complete fabrication.", "| <claim> | debunked |". Words in *own* (the
+    claim's own tokens, on the anchor path where the window is shorter than
+    the claim) are skipped, so a claim that itself states a falsity is not
+    refused by its own words. Pure. Refusal only (D-69).
+
+    Same strength as the R36 NEW-1 next-sentence rule, one boundary closer: a
+    falsity word in the next sentence already refuses with no referent test,
+    so the same word after a comma does too.
+
+    CEILING: falsity statements only. A plain trailing negator ("<claim>, not
+    in April") is left to the polarity rule, which already refuses it; a
+    trailing denial in a non-strong word ("<claim>, which is wrong.", "|
+    <claim> | false |") still grounds (fail-open). Error-A: an honest sentence
+    that names a falsity after the claim ("<claim>, ending the myth that
+    banks never fail.") is refused. Upgrade path: a clause parse binding the
+    falsity predicate to its subject."""
+    after = tuple(t for t in tuple(ctx.tokens[match_end:]) + ctx.suffix if t not in own)
+    return bool(after) and _has_strong_denial(after)
+
+
+# R40 (RED-TEAM-R37 H7): the comparison copy that the denial tests ALSO read.
+# Content is never rewritten: this copy only feeds a second, OR'd run of the
+# refusal tests (D-69), so it can add refusals and never remove one. It maps
+# look-alike letters outside `_DENIAL_CONFUSABLES` (Latin alpha, dotless i,
+# small capitals, Greek lunate sigma, Armenian o ...), strips combining marks
+# from the letter they sit on ("fábricated"), and removes format / filler
+# characters (zero-width space, soft hyphen, word joiner, combining grapheme
+# joiner, Hangul fillers) that sit INSIDE a word, so "fabri​cated" reads
+# as one word. Removal only between word characters keeps every sentence and
+# unit boundary where it was, which the token alignment below relies on.
+# Why a second run instead of widening `_confusable_fold`: the fold also feeds
+# the R38 carve-outs (code nouns, "made up of", FAQ headings, premodifiers,
+# the heading allow list), where a wider fold would EXEMPT text main refuses.
+# CEILING: a fixed look-alike map (Latin/Greek/Armenian/Cyrillic letters that
+# render as ASCII letters), not the full TR39 confusables skeleton; an
+# unmapped look-alike still grounds (fail-open). Removing combining marks
+# folds accents for the DENIAL tests only (English denial words), never for
+# matching. Upgrade path: a TR39 skeleton pass over this copy.
+_VIEW_CONFUSABLES: dict[int, str] = str.maketrans({
+    "ɑ": "a", "Ɑ": "a", "ı": "i", "ɩ": "i", "Ɩ": "i",
+    "ɪ": "i", "ʟ": "l", "ᴏ": "o", "ᴄ": "c", "ꜱ": "s",
+    "ᴜ": "u", "ᴠ": "v", "ᴡ": "w", "ᴢ": "z", "ᴀ": "a",
+    "ʙ": "b", "ᴅ": "d", "ᴇ": "e", "ꜰ": "f", "ɢ": "g",
+    "ʜ": "h", "ᴊ": "j", "ᴋ": "k", "ᴍ": "m", "ɴ": "n",
+    "ᴘ": "p", "ʀ": "r", "ᴛ": "t", "ʏ": "y", "ɛ": "e",
+    "Ɛ": "e", "ɔ": "o", "Ɔ": "o", "ϲ": "c", "Ϲ": "c",
+    "ϳ": "j", "օ": "o", "ս": "u", "հ": "h", "ѵ": "v",
+    "һ": "h", "ԁ": "d", "ԛ": "q", "ɡ": "g", "ӏ": "l",
+})
+_VIEW_FILLERS: frozenset[str] = frozenset({"ᅟ", "ᅠ", "ㅤ", "ﾠ"})
+
+
+def _view_drops_mark(ch: str) -> bool:
+    """True iff *ch* is a combining mark (Mn/Me). Pure."""
+    return unicodedata.category(ch) in {"Mn", "Me"}
+
+
+def _view_drops_joiner(ch: str) -> bool:
+    """True iff *ch* is a format character or a Hangul filler. Pure."""
+    return unicodedata.category(ch) == "Cf" or ch in _VIEW_FILLERS
+
+
+def _is_word_char(ch: str) -> bool:
+    """True iff *ch* is matched by `\\w` (as the tokenizer reads it). Pure."""
+    return ch.isalnum() or ch == "_"
+
+
+def _comparison_view(text: str) -> str:
+    """The R40 comparison copy of *text* (see `_VIEW_CONFUSABLES`). Pure; the
+    caller's text is never replaced by it."""
+    chars = list(unicodedata.normalize("NFD", _nfkc(text)).casefold())
+    keep: list[str] = []
+    for k, ch in enumerate(chars):
+        if _view_drops_mark(ch) or _view_drops_joiner(ch):
+            left = keep[-1] if keep else ""
+            right = next((c for c in chars[k + 1:] if not (_view_drops_mark(c) or _view_drops_joiner(c))), "")
+            if _view_drops_mark(ch) and _is_word_char(left):
+                continue
+            if _view_drops_joiner(ch) and _is_word_char(left) and _is_word_char(right):
+                continue
+        keep.append(ch)
+    return "".join(keep).translate(_VIEW_CONFUSABLES)
+
+
+def _view_token(tok: str) -> str:
+    """*tok* (a `_tokenize` token) as the comparison copy spells it. Pure."""
+    s = "".join(ch for ch in unicodedata.normalize("NFD", tok).casefold()
+                if not (_view_drops_mark(ch) or _view_drops_joiner(ch)))
+    return _nfkc(s.translate(_VIEW_CONFUSABLES)).casefold()
+
+
+@dataclass(frozen=True)
+class _ViewUnit:
+    """The comparison-copy unit aligned with one original unit. `ctx` None
+    means the alignment failed, which `_match_denied` reads as DENIED
+    (fail closed). `index[i]` is the copy token holding original token i."""
+    ctx: _UnitContext | None
+    index: tuple[int, ...] = ()
+
+
+def _align_tokens(original: tuple[str, ...], view: tuple[str, ...]) -> tuple[int, ...] | None:
+    """Map each original token to the view token holding it: every view token
+    must be the concatenation of consecutive original tokens as the view
+    spells them. None when they do not line up. Pure."""
+    index: list[int] = []
+    j, acc = 0, ""
+    for tok in original:
+        if j >= len(view):
+            return None
+        index.append(j)
+        acc += _view_token(tok)
+        if acc == view[j]:
+            j, acc = j + 1, ""
+        elif not view[j].startswith(acc):
+            return None
+    return tuple(index) if j == len(view) and not acc else None
+
+
+def _view_unit_contexts(source_text: str, contexts: list[_UnitContext]) -> list[_ViewUnit | None]:
+    """For each of *contexts* (`_source_unit_contexts(source_text)`), its
+    comparison-copy unit, or None for every unit when the copy is the text
+    itself (nothing to fold). Pure.
+
+    CEILING: when the copy's units or tokens do not line up with the
+    original's (a contraction split by an invisible character, "ca​nnot"),
+    the unit is read as DENIED (fail closed, Error-A on such text). Upgrade
+    path: character-offset alignment."""
+    view = _comparison_view(source_text)
+    if view == _nfkc(source_text).casefold():
+        return [None] * len(contexts)
+    view_contexts = _source_unit_contexts(view)
+    if len(view_contexts) != len(contexts):
+        return [_ViewUnit(None)] * len(contexts)
+    out: list[_ViewUnit | None] = []
+    for ctx, vctx in zip(contexts, view_contexts):
+        index = _align_tokens(ctx.tokens, vctx.tokens)
+        out.append(_ViewUnit(vctx, index) if index is not None else _ViewUnit(None))
+    return out
+
+
+def _match_denied(ctx: _UnitContext, view: _ViewUnit | None, start: int, end: int,
+                  own: frozenset[str]) -> bool:
+    """True iff a match of tokens [start, end) in *ctx* is denied: by
+    `_unit_denied` or `_trailing_denied` on the text, or (R40 H7) by the same
+    two tests on the comparison copy *view*. Pure. Refusal only (D-69)."""
+    if _unit_denied(ctx, start) or _trailing_denied(ctx, end, own):
+        return True
+    if view is None:
+        return False
+    if view.ctx is None:
+        return True
+    view_own = frozenset(_view_token(t) for t in own)
+    view_end = view.index[end - 1] + 1 if end > 0 else 0
+    return (_unit_denied(view.ctx, view.index[start])
+            or _trailing_denied(view.ctx, view_end, view_own))
+
+
 def _anchor_sentence_covers(
     claim_tokens: list[str],
     subject_positions: list[int],
@@ -2942,7 +3541,10 @@ def _anchor_sentence_covers(
     # counted as "the same sentence". Cut those too, HERE only — the shared
     # splitter also feeds diagnostics whose numbers tests pin. Smaller units
     # can only make coverage harder: fail-closed.
-    for ctx in _source_unit_contexts(source_text):
+    contexts = _source_unit_contexts(source_text)
+    views = _view_unit_contexts(source_text, contexts)
+    own = frozenset(claim_tokens)
+    for ctx, view in zip(contexts, views):
         toks = list(ctx.tokens)
         vocab = set(toks)
         if not all(tok in vocab for tok in claim_content):
@@ -2954,8 +3556,10 @@ def _anchor_sentence_covers(
         if _negated_claim_is_limited(claim_tokens, toks):
             continue
         # H1: only a window occurrence the context does not deny may ground.
+        # R40: `_match_denied` adds the same-sentence trailing falsity rule
+        # (the claim's own words skipped) and the comparison-copy run.
         if any(tuple(toks[i : i + min_quote_len]) in windows
-               and not _unit_denied(ctx, i)
+               and not _match_denied(ctx, view, i, i + min_quote_len, own)
                for i in range(len(toks) - min_quote_len + 1)):
             return True
     return False
