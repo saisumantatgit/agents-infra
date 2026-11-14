@@ -5,6 +5,8 @@
 
 Each plugin owns exactly one capability gap in the AI agent workflow. Together, they form a complete governance layer that sits between the agent and the codebase.
 
+**Trying Agent-Assure (alpha)?** It lives in [`Agent-Assure/`](Agent-Assure/) and is not part of the three-product table below. Start with [`Agent-Assure/docs/ALPHA-TESTER-GUIDE.md`](Agent-Assure/docs/ALPHA-TESTER-GUIDE.md); the demo needs only `uv`, not a Claude Code plugin session.
+
 ---
 
 ## The Suite
@@ -20,6 +22,8 @@ After execution:     Agent-Scribe  →  "Nothing is lost."        (governance do
 | **[Agent-PROVE](Agent-PROVE/)** | v1.2.1 | 14 thinking frameworks, evidence protocol, agentic audit suite. Forces agents to validate approaches before execution. | [saisumantatgit/Agent-PROVE](https://github.com/saisumantatgit/Agent-PROVE) |
 | **[Agent-Scribe](Agent-Scribe/)** | v1.0.0 | 4 governance commands (logbook, AAR, PIR, ADR) + session-start hook. Compounds learning across sessions. | [saisumantatgit/Agent-Scribe](https://github.com/saisumantatgit/Agent-Scribe) |
 | **[Agent-Shield](Agent-Shield/)** | v1.0.0 | Dependency-aware remediation. Maps blast radius before edits, ties verification to impact surface. | [saisumantatgit/Agent-Shield](https://github.com/saisumantatgit/Agent-Shield) |
+
+**Also in this repository: [Agent-Assure](Agent-Assure/) (alpha, v0.1.0).** A grounding gate for AI-written drafts: it checks that every factual claim traces, word for word, to a source your Claude Code session actually retrieved. It uses no AI model in the check. Read [`Agent-Assure/README.md`](Agent-Assure/README.md) for the overview and [`Agent-Assure/docs/ALPHA-TESTER-GUIDE.md`](Agent-Assure/docs/ALPHA-TESTER-GUIDE.md) for a first run. It is installed from this repository's `Agent-Assure/` folder; the per-product clone commands in the Installation section do not apply to it.
 
 ---
 
@@ -75,6 +79,16 @@ git clone https://github.com/saisumantatgit/Agent-Shield.git
 # Or install individually from any project directory
 # See each product's README for platform-specific setup
 ```
+
+Agent-Assure (alpha) is installed from this repository, not from a separate clone:
+
+```bash
+git clone https://github.com/saisumantatgit/agents-infra.git
+cd agents-infra/Agent-Assure
+uv sync    # enough for the demo and the command-line checker
+```
+
+The full plugin install (`bash install.sh`, then `claude --plugin-dir <path to Agent-Assure>`) is described in [`Agent-Assure/docs/ALPHA-TESTER-GUIDE.md`](Agent-Assure/docs/ALPHA-TESTER-GUIDE.md), section 2.
 
 ### Platform Support
 
@@ -200,6 +214,12 @@ agents-infra/
 │   ├── specs/            # Schema and contract specs
 │   ├── references/       # Design references
 │   └── LICENSE
+├── Agent-Assure/         # Grounding gate for AI-written drafts (alpha)
+│   ├── README.md         # Overview and reference
+│   ├── docs/ALPHA-TESTER-GUIDE.md  # Start here for a first run
+│   ├── scripts/          # Engine (ground_check.py) and capture hook
+│   ├── demo/             # Runnable demo, no plugin needed
+│   └── ...
 └── README.md             # This file
 ```
 

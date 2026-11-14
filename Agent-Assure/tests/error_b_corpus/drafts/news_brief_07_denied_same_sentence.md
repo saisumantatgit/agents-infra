@@ -1,0 +1,3 @@
+Local shops were told about the change by letter [S1]. Residents can read the full proposal at the front desk [S1].
+
+Engineers hid the failures of the market hall from customers [S1]. The cost will be shared between the town and the county [S1].

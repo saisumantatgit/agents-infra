@@ -15,10 +15,11 @@ hook recorded *this session*, in `.assure/evidence-store.jsonl`.
 ### GROUNDED
 
 **Gate effect:** counts toward the numerator (supported).
-**Meaning:** the claim is supported by a `verbatim` source — either a contiguous
-≥8-token span appears in the source (T1), or content-word F1 against the best
-±2-sentence window is ≥ `lex_tau` (0.71, CR-001) with all numerics present (T2). NON_CLAIM
-statements are also reported GROUNDED but are excluded from the denominator.
+**Meaning:** the claim is supported by a `verbatim` source: a contiguous
+≥8-token span of the claim appears in the source (T1) and any figures in the claim
+match. The lexical-F1 tier (T2) is computed as a diagnostic only and no longer
+decides a verdict (ADR-006; see the README). NON_CLAIM statements are also reported
+GROUNDED but are excluded from the denominator.
 **Why it matters:** this is the only state that certifies "an AI said it *and*
 we can point to where it came from, retrieved this session."
 
@@ -69,8 +70,9 @@ never a rubber stamp.
 ### UNGROUNDED
 
 **Gate effect:** violation (never counts toward the numerator).
-**Meaning:** verbatim sources exist and are cited, but neither T1 (verbatim span)
-nor T2 (lexical-F1 window) finds support for the claim in them.
+**Meaning:** verbatim sources exist and are cited, but no ≥8-word verbatim span
+of the claim (T1) is found in them. This includes honest paraphrases and a claim
+whose first words are your own framing around a quotation.
 **Fix:** tighten the claim to what the source actually says, cite the right
 source, or remove the claim. Often the claim over-reaches what the source
 supports.
@@ -146,12 +148,32 @@ Haiku summary).
 second model's paraphrase — which can itself hallucinate. The gate refuses to
 certify against non-verbatim text rather than pretend it can.
 
+**Near-copy exclusion (`cited_source_is_the_draft`):** a cited verbatim source is
+also excluded when it looks like the draft itself — when at least 80% of the
+source's adjacent word pairs also appear in the draft, or its path or content
+digest matches the draft. A draft cannot certify itself, so the excluded source
+is never used to ground a claim. If no other verbatim source remains, the claim
+reads UNGROUNDABLE with `support_diagnostic` `cited_source_is_the_draft`, and
+`evidence_basis` names the excluded source and the reason. When the source was
+excluded by the 80% test alone (not by path or digest) and a figure in the claim
+is missing from its text, the claim reads UNVERIFIED_NUMBER instead, so a wrong
+figure is not hidden. The excluded text can only refuse a claim, never ground it.
+The 80% test also matches a genuine short source (one or two sentences) that the
+draft quotes almost in full; that honest claim is refused too. This is deliberate
+and fail-closed. Grounding short excerpts is pending a design decision.
+**Fix:** cite the full source document rather than an excerpt, so that the draft
+repeats only a small share of the source's text.
+
 ---
 
 ## NON_CLAIM (excluded, not a failure)
 
-Headers, questions, imperatives, and pure opinion are classified NON_CLAIM and
-excluded from the scored denominator. They are neither grounded nor violations —
+Headers that read as plain labels ("## Results", "# Release note"), questions,
+imperatives, and pure opinion are classified NON_CLAIM and excluded from the scored
+denominator. A heading that reads like a statement, or that contains a figure such
+as a version number ("## Kestrel 2.4", "### Why it matters to operators"), is
+scored like any other sentence and needs a citation or a matching source span. The
+report's `kind` field says which happened for each line (`NON_CLAIM` = not scored). They are neither grounded nor violations —
 there is nothing factual to check. (A verbless line that nonetheless carries a
 number or a citation is treated as a real claim, not a NON_CLAIM — this closes
 the anti-gaming hole where a fabricated statistic could hide behind a

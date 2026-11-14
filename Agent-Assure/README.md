@@ -2,6 +2,18 @@
 
 Verification-first grounding gate for AI-generated drafts. Checks every factual claim against a captured evidence store before the draft reaches a human reader. No LLM calls during grounding — the engine is pure Python, deterministic, and audit-defensible.
 
+**Quick start (needs only [`uv`](https://docs.astral.sh/uv/); no plugin, no install script):**
+
+```bash
+cd Agent-Assure && uv sync && uv run python demo/build_store.py
+uv run python scripts/ground_check.py --draft demo/draft-fabricated.md --store demo/evidence-store.jsonl --json > report.json
+uv run python scripts/explain_report.py report.json
+```
+
+Expected: `gate: FAIL | score: 50.0`, then each claim with its reason and a fix line; the two fabricated claims show `UNVERIFIED_CITATION` and `UNVERIFIED_NUMBER`. To check your own text, add it with `uv run python scripts/add_source.py my-source.txt --id S1 --store my-store.jsonl`; the full walk-through is [`docs/ALPHA-TESTER-GUIDE.md`](docs/ALPHA-TESTER-GUIDE.md), section 3 ("Check your own source"). Every command here also works as `.venv/bin/python ...` after `uv sync` or `bash install.sh`.
+
+**Terms in this file.** Inline labels such as ADR-005, J-48, OI-MOAT-02, CR-007 and R15-03 are our own internal references: ADR = architecture decision record, J-nn = an entry in our issue register, OI = open issue, CR = calibration record (a measurement of the checker's error rates), R-nn = a red-team finding (an attack on the checker). You do not need them to use the tool; they are there so each claim in this file can be traced to its record.
+
 **Phase 1 scope (built):** a `PostToolUse` capture hook that records retrieved sources verbatim (1b), the deterministic grounding engine — decomposition, classification, two-tier lexical grounding (T1 verbatim + T2 lexical-F1), numeric verification, absence checking, relational two-source rule, score gate, and CLI (1a) — and Claude Code plugin packaging (1c). Phase 2 (research front-end, NLI paraphrase tier, calibration, cross-platform) is future work.
 
 ---
@@ -22,7 +34,13 @@ Verification-first grounding gate for AI-generated drafts. Checks every factual 
 bash install.sh
 ```
 
-Then register the directory as a Claude Code plugin. Once active:
+Then start Claude Code with the directory loaded as a plugin:
+
+```bash
+claude --plugin-dir <path to Agent-Assure>
+```
+
+(`install.sh` also mentions a plugin marketplace and a copy-into-plugins-folder route; the alpha guide notes those are not verified. Claude Code interactive mode only; see "What Agent-Assure does not prove" below for `claude -p`.) Once active:
 
 - the capture hook runs automatically during research;
 - after drafting, run `/assure-verify path/to/draft.md` (uses `.assure/evidence-store.jsonl` by default).
@@ -43,9 +61,11 @@ uv run python scripts/ground_check.py \
 
 Exit codes: `0` = gate PASS, `1` = NEEDS_WORK or FAIL.
 
-Without `--json`: writes `grounding-report.yaml` to CWD and prints a one-line summary.
+Without `--json`: writes `grounding-report.yaml` to CWD and prints a one-line summary (`gate=... grounding_score=...`). That file holds the per-claim verdicts and reasons.
 
-With `--json`: prints the full report as JSON to stdout (no file written).
+With `--json`: prints the full report as JSON to stdout (no file written). Each entry in `per_claim` has `verdict`, `kind`, `text`, and `evidence_basis` (the reason, in words). See the guide, section 4, for how to read them and a one-line command that prints them.
+
+`--session-id ID` refuses a store that holds any record from another session; omit it to score without session enforcement.
 
 ---
 
@@ -83,7 +103,8 @@ One JSON object per line. Blank lines are skipped.
   "text":             "Full retrieved text...",      // required — source body
   "full_text_source": "verbatim",                   // required — see note below
   "captured_via":     "inline",                     // required — "inline" | "overflow-file"
-  "query_provenance": "redis performance benchmarks" // required — search query that produced this source
+  "query_provenance": "redis performance benchmarks", // required — search query that produced this source
+  "session_id":       "my-session-1"                 // optional — the capture hook writes it; needed only for --session-id
 }
 ```
 
@@ -94,7 +115,11 @@ One JSON object per line. Blank lines are skipped.
 | `verbatim` | Full text captured directly from the source | Yes — T1 and T2 run on this text |
 | `haiku_summary` | Text is an LLM summary, not the original | No — tiers do NOT run; claim → UNGROUNDABLE |
 
+`tool` must be one of `Read`, `mcp__exa__web_fetch_exa`, `web_fetch_exa`, `mcp__ddg-search__fetch_content` (these are `verbatim`) or `WebFetch` (always `haiku_summary`); any other value, or a `tool` that disagrees with `full_text_source`, makes the loader refuse the whole file. `source_id` values must be unique. Two further optional fields, `retrieval_status` (`ok` or `failed`) and `read_extent` (`whole` or `partial`), are written by the hook; leave them out when hand-writing a store. `content_sha256` is only required to be a string, but fill it with the real SHA-256 of the NFKC-normalised text (the guide's example does).
+
 All text fields are NFKC-normalized before matching.
+
+For a copy-paste example that builds a valid store from your own text file, and the command to check a draft against it, see the guide, section 3 ("Check your own source").
 
 ---
 
