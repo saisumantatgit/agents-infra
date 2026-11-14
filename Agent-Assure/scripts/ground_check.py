@@ -3132,6 +3132,53 @@ def _forward_free_relative(words: list[str]) -> bool:
     return False
 
 
+# R40b: the `_DEICTIC_REFERENT_TOKENS` words that can be the subject of a
+# negated EVENT and point at other content ("It never took place.", "The tale
+# I tell did not occur."). The content-material nouns are left out: data,
+# figures or a document do not "take place", and "The security review of the
+# data migration never took place last quarter." is an honest non-event.
+_EVENT_POINTING_TOKENS: frozenset[str] = _DEICTIC_REFERENT_TOKENS - frozenset({
+    "figures", "numbers", "data", "details", "quote", "quotes", "quotation",
+    "headline", "headlines", "news", "testimony", "coverage", "interview",
+    "source", "sources", "information", "material", "item", "items", "page",
+    "post", "article", "text", "document", "piece",
+})
+
+
+def _event_negation_points(folded: list[str], verb_at: int, last: int, reach: int) -> bool:
+    """R40b: True iff an event negation ("did not occur", "never took place")
+    whose verb starts at *verb_at* and ends at *last* states FALSITY rather
+    than a non-event: a negator within *reach* words before the verb, and
+    either the clause ends at the verb ("It never took place.", "The launch
+    did not occur.") or the words from the subject to the verb point at other
+    content (`_EVENT_POINTING_TOKENS`, or a demonstrative "that": "It ...",
+    "None of it ...", "The tale I tell ...", "The event ...", "What follows
+    ..."). An event subject with an
+    adjunct after the verb ("The planned follow-up wave never took place
+    because funding ended.", "The security review never took place last
+    quarter.") reports a non-event and is honest: on the error_a corpus that
+    shape alone cost 54 grounded claims (reports/R40b-NARROWING.md). Main's
+    "never happened" rule is unchanged. Pure.
+
+    CEILING: lexical. Fail-open: a non-pointing subject plus any adjunct ("The
+    launch never took place in May.", "The audit did not occur last year.")
+    is not strong, so it reaches only the plain adjacency rules, as on main
+    (no R40 rule read it before R40). Error-A: a bare clause-final non-event
+    ("The follow-up wave never took place.") or a pointing word within six
+    words before the negator ("Funding ended this year, so the wave never took
+    place in May.") still refuses its neighbours. Upgrade path: a clause parse
+    binding the negated event to its subject."""
+    negs = [k for k in range(max(0, verb_at - reach), verb_at) if folded[k] in _EVENT_NEGATORS]
+    if not negs:
+        return False
+    if last + 1 >= len(folded):
+        return True
+    window = folded[max(0, negs[0] - 6):verb_at]
+    return bool(set(window) & _EVENT_POINTING_TOKENS) or any(
+        w == "that" and (k == 0 or (k + 1 < len(window) and window[k + 1] in _THAT_DEMONSTRATIVE_NEXT))
+        for k, w in enumerate(window))
+
+
 def _falsity_construction(folded: list[str]) -> bool:
     """True iff the ordered, look-alike-folded *folded* words state falsity in
     one of the R40 shapes above. Pure.
@@ -3161,10 +3208,10 @@ def _falsity_construction(folded: list[str]) -> bool:
             return True
         if w == "falsely" and set(folded[i + 1:i + 3]) & _REPORTING_VERBS:
             return True
-        if w in _R40_EVENT_TARGETS and set(folded[max(0, i - 4):i]) & _EVENT_NEGATORS:
+        if w in _R40_EVENT_TARGETS and _event_negation_points(folded, i, i, 4):
             return True
         if (w == "place" and i > 0 and folded[i - 1] in _TAKE_FORMS
-                and set(folded[max(0, i - 6):i - 1]) & _EVENT_NEGATORS):
+                and _event_negation_points(folded, i - 1, i, 5)):
             return True
         if (w == "real" and set(folded[max(0, i - 4):i]) & _EVENT_NEGATORS
                 and (folded[i - 1] in _COPULAS
