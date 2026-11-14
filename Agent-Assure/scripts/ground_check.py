@@ -5260,11 +5260,43 @@ def _absence_chain(
     return absence_verdict
 
 
+# ONE CERTIFYING PREDICATE, CALLED BY THE VERDICT AND BY THE DISPLAY
+# (UNGROUNDABLE-SHORT-SOURCE, 2026-11-15). `ground` removed self-sources
+# (J-83 / R26-04) from the certifying set while `evidence_basis` rebuilt its own
+# list without that step, so a refused row read "Checked verbatim against 1
+# cited source: S2" -- the source the verdict had just excluded (D-35). Both now
+# call these two functions; an AST guard in
+# tests/test_ungroundable_verbatim_short_source.py keeps it that way.
+def _certifying_verbatim(
+    sources: list[RetrievedSource], self_source_ids: frozenset[str]
+) -> list[RetrievedSource]:
+    """Cited sources that may certify: verbatim, not the draft itself, and not
+    a failed fetch (R23-01). Order preserved. Pure."""
+    return [
+        s for s in sources
+        if s.full_text_source == "verbatim" and s.source_id not in self_source_ids
+        and s.retrieval_status != "failed"
+    ]
+
+
+def _excluded_as_draft(
+    sources: list[RetrievedSource], self_source_ids: frozenset[str]
+) -> list[RetrievedSource]:
+    """Cited verbatim sources removed ONLY because they are (a near-copy of)
+    the draft. Their text may refuse a claim, never certify it. Pure."""
+    return [
+        s for s in sources
+        if s.full_text_source == "verbatim" and s.source_id in self_source_ids
+        and s.retrieval_status != "failed"
+    ]
+
+
 def ground(
     claim: Claim,
     store: dict[str, RetrievedSource],
     lex_tau: float = _LEX_TAU_DEFAULT,
     self_source_ids: frozenset[str] = frozenset(),
+    inferred_self_ids: frozenset[str] = frozenset(),
 ) -> Verdict:
     """Return the grounding Verdict for a single ALREADY-CLASSIFIED claim.
 
@@ -5407,12 +5439,25 @@ def ground(
     # ecb-for-serious-aml-failures.html" and letting it fail certified that
     # sentence at PASS 100.0. Only an explicit "failed" is excluded: a record
     # with NO status (any store before 2026-10-10) grounds exactly as before.
-    verbatim = [
-        s for s in sources
-        if s.full_text_source == "verbatim" and s.source_id not in self_source_ids
-        and s.retrieval_status != "failed"
-    ]
+    verbatim = _certifying_verbatim(sources, self_source_ids)
     if not verbatim:
+        # UNGROUNDABLE-SHORT-SOURCE (alpha walkthrough, 2026-11-15): when the
+        # only verbatim sources were removed as the draft by INFERENCE (R26-04
+        # near-copy, which also matches a short genuine source quoted almost
+        # whole), a figure that appears in none of their text is unverified,
+        # and returning UNGROUNDABLE first hid it (90000 vs the source's
+        # 25000). A source IDENTIFIED as the draft (path, inode, digest) keeps
+        # UNGROUNDABLE: its stored text is the draft's, so a figure check
+        # against it says nothing. The excluded text may only REFUSE here: a
+        # figure it does contain falls through to UNGROUNDABLE, never toward
+        # GROUNDED. Default `inferred_self_ids` is empty, so a caller that does
+        # not pass it gets the old verdict — also a refusal. Fail-closed.
+        as_draft = [s for s in _excluded_as_draft(sources, self_source_ids)
+                    if s.source_id in inferred_self_ids]
+        if as_draft and ((claim.numeric_tokens
+                          and not numeric_ok(claim, as_draft))
+                         or not spelled_quantity_ok(claim, as_draft)):
+            return Verdict.UNVERIFIED_NUMBER
         return Verdict.UNGROUNDABLE
 
     # R13-01 / R13-02 (round 13) — A CHECK GATED ON A CLASSIFIER BRANCH IS A
@@ -5537,6 +5582,58 @@ def _absence_figure_note(claim: Claim) -> str:
         f"claim on its own, whatever the search record shows — and a model, "
         f"standard or version number is read as a figure."
     )
+
+
+def _figures_note(claim: Claim) -> str:
+    """The figures a citation-branch claim asserts, for evidence_basis.
+    Display only; states what the claim ASSERTS, never which figure failed.
+    Pure."""
+    # J-72 (display half, 2026-10-03). A figure refusal used to read only
+    # "Checked verbatim against 1 cited source: S1 (70 chars)." — the user was
+    # told a number failed but never WHICH number, and the commonest cause is
+    # not a number at all: `X200` yields the token `200`, `ISO 27001` yields
+    # `27001`, and 20/20 tested identifiers do the same (round 16, R16-05). A
+    # reader who sees `200` listed beside their claim about the X200 drone
+    # diagnoses it instantly; a reader shown `UNVERIFIED_NUMBER` cannot.
+    #
+    # NARROWING THE REFUSAL ITSELF IS **NOT** MINE: dropping `200` from
+    # numeric_tokens turns a refusal into a pass, which is PASS-ENABLING and
+    # Escalation #1 (J-72, owner Sai). So the refusal stays and becomes legible.
+    #
+    # DELIBERATELY DOES NOT SAY WHICH FIGURE FAILED. That would re-derive
+    # numeric_ok's value+unit+rate-qualifier rule in the display layer, and two
+    # copies of a moat rule diverge — the reason J-45 was fixed by removing
+    # false precision rather than by recomputing a count. Listing what the claim
+    # ASSERTS is read-only and duplicates nothing.
+    figures = ""
+    if claim.numeric_tokens:
+        quoted = ", ".join(f'"{tok}"' for tok in claim.numeric_tokens)
+        figures = (
+            f" The claim asserts {len(claim.numeric_tokens)} "
+            f"{_plural(len(claim.numeric_tokens), 'figure', 'figures')}: "
+            f"{quoted} — each must appear in a cited source with the same "
+            f"value, unit and rate qualifier."
+        )
+        # THE IDENTIFIER NOTE IS UNCONDITIONAL, after a conditional version was
+        # written and withdrawn in the same sitting (2026-10-03).
+        #
+        # The gate was `[A-Za-z]\d|\d[A-Za-z]` — a digit against a letter. It
+        # fired on `100K`, an ordinary quantity, and MISSED `iPhone 15` and
+        # `ISO 27001`, which are space-separated. Over- and under-inclusive at
+        # once, which is precisely J-72's own difficulty and the reason J-72 is
+        # an open job owned by Sai rather than a tidy-up. **Distinguishing an
+        # identifier from a quantity is the hard problem; it does not get easier
+        # because the answer is only being displayed.**
+        #
+        # So the note states a FACT about the extractor rather than a judgement
+        # about this sentence. Always true, never a false positive, and it still
+        # gives a reader staring at `"200"` the insight they need.
+        figures += (
+            " Figures are extracted from the sentence as written, so a model, "
+            "standard or version number (X200, ISO 27001, 5G) is read as a "
+            "figure too and must then be found in a source."
+        )
+    return figures
 
 
 def evidence_basis(
@@ -5726,7 +5823,28 @@ def evidence_basis(
     sources = [s for s in sources if s.retrieval_status != "failed"]
     summaries = [s.source_id for s in sources
                  if s.full_text_source != "verbatim"]
-    verbatim = [s for s in sources if s.full_text_source == "verbatim"]
+    verbatim = _certifying_verbatim(sources, self_source_ids)
+    as_draft = [s.source_id
+                for s in _excluded_as_draft(sources, self_source_ids)]
+    draft_note = ""
+    if as_draft:
+        draft_note = (
+            f" {', '.join(as_draft)} "
+            f"{_plural(len(as_draft), 'was', 'were')} NOT used: "
+            f"{_plural(len(as_draft), 'its', 'their')} text is (nearly) a "
+            f"copy of this draft (at least 80% of "
+            f"{_plural(len(as_draft), 'its', 'their')} adjacent word pairs "
+            f"appear in the draft, or the path or digest matches it), and a "
+            f"draft cannot certify itself. A short source quoted almost in "
+            f"full looks the same as a copy of the draft, so this also "
+            f"refuses an honest full quotation of a short source.")
+    note = ""
+    if summaries:
+        note = (f" {', '.join(summaries)} "
+                f"{_plural(len(summaries), 'was', 'were')} also cited but is "
+                f"an AI summary and was excluded.")
+    if not verbatim and as_draft:
+        return draft_note.strip() + note + _figures_note(claim)
     if not verbatim:
         return (f"{', '.join(summaries)} "
                 f"{_plural(len(summaries), 'was', 'were')} captured as an "
@@ -5737,59 +5855,10 @@ def evidence_basis(
 
     checked = ", ".join(f"{s.source_id} ({len(s.text)} chars)"
                         for s in verbatim)
-    note = ""
-    if summaries:
-        note = (f" {', '.join(summaries)} "
-                f"{_plural(len(summaries), 'was', 'were')} also cited but is "
-                f"an AI summary and was excluded.")
-    # J-72 (display half, 2026-10-03). A figure refusal used to read only
-    # "Checked verbatim against 1 cited source: S1 (70 chars)." — the user was
-    # told a number failed but never WHICH number, and the commonest cause is
-    # not a number at all: `X200` yields the token `200`, `ISO 27001` yields
-    # `27001`, and 20/20 tested identifiers do the same (round 16, R16-05). A
-    # reader who sees `200` listed beside their claim about the X200 drone
-    # diagnoses it instantly; a reader shown `UNVERIFIED_NUMBER` cannot.
-    #
-    # NARROWING THE REFUSAL ITSELF IS **NOT** MINE: dropping `200` from
-    # numeric_tokens turns a refusal into a pass, which is PASS-ENABLING and
-    # Escalation #1 (J-72, owner Sai). So the refusal stays and becomes legible.
-    #
-    # DELIBERATELY DOES NOT SAY WHICH FIGURE FAILED. That would re-derive
-    # numeric_ok's value+unit+rate-qualifier rule in the display layer, and two
-    # copies of a moat rule diverge — the reason J-45 was fixed by removing
-    # false precision rather than by recomputing a count. Listing what the claim
-    # ASSERTS is read-only and duplicates nothing.
-    figures = ""
-    if claim.numeric_tokens:
-        quoted = ", ".join(f'"{tok}"' for tok in claim.numeric_tokens)
-        figures = (
-            f" The claim asserts {len(claim.numeric_tokens)} "
-            f"{_plural(len(claim.numeric_tokens), 'figure', 'figures')}: "
-            f"{quoted} — each must appear in a cited source with the same "
-            f"value, unit and rate qualifier."
-        )
-        # THE IDENTIFIER NOTE IS UNCONDITIONAL, after a conditional version was
-        # written and withdrawn in the same sitting (2026-10-03).
-        #
-        # The gate was `[A-Za-z]\d|\d[A-Za-z]` — a digit against a letter. It
-        # fired on `100K`, an ordinary quantity, and MISSED `iPhone 15` and
-        # `ISO 27001`, which are space-separated. Over- and under-inclusive at
-        # once, which is precisely J-72's own difficulty and the reason J-72 is
-        # an open job owned by Sai rather than a tidy-up. **Distinguishing an
-        # identifier from a quantity is the hard problem; it does not get easier
-        # because the answer is only being displayed.**
-        #
-        # So the note states a FACT about the extractor rather than a judgement
-        # about this sentence. Always true, never a false positive, and it still
-        # gives a reader staring at `"200"` the insight they need.
-        figures += (
-            " Figures are extracted from the sentence as written, so a model, "
-            "standard or version number (X200, ISO 27001, 5G) is read as a "
-            "figure too and must then be found in a source."
-        )
+    figures = _figures_note(claim)
     return (f"Checked verbatim against {len(verbatim)} cited "
             f"{_plural(len(verbatim), 'source', 'sources')}: {checked}."
-            f"{note}{figures}")
+            f"{note}{draft_note}{figures}")
 
 
 # ======================================================================
@@ -5888,6 +5957,15 @@ def _near_copy_of_draft(source_text: str, draft_flat: str) -> bool:
 def _self_source_ids(
     draft_path: str, draft_text: str, store: dict[str, RetrievedSource]
 ) -> frozenset[str]:
+    """Return ids of sources that ARE the draft: identified (path, inode,
+    digest, containment) or inferred (R26-04 near-copy). Pure."""
+    return (_self_source_ids_by_identity(draft_path, draft_text, store)
+            | _near_copy_source_ids(draft_text, store))
+
+
+def _self_source_ids_by_identity(
+    draft_path: str, draft_text: str, store: dict[str, RetrievedSource]
+) -> frozenset[str]:
     """Return ids of sources that ARE the draft, by resolved path or by digest.
 
     Pure. Two independent tests, because either can be defeated alone: a path
@@ -5943,13 +6021,9 @@ def _self_source_ids(
             if flat and flat in draft_flat:
                 matched.add(source_id)
                 continue
-        # R26-04: a Read whose text is a NEAR-COPY of the draft is the draft —
-        # whole or partial. See `_near_copy_of_draft`. Read only: the draft is a
-        # local file, a web fetch is not a draft. Can only match more records.
-        if source.tool == "Read" and source.text \
-                and _near_copy_of_draft(source.text, draft_flat):
-            matched.add(source_id)
-            continue
+        # R26-04's near-copy test lives in `_near_copy_source_ids` and is
+        # unioned in at the return: same set as before, but the CLI can now tell
+        # an INFERRED self-source from an identified one (see that function).
         if source.file_path:
             try:
                 # R19-02: `resolve()` follows symlinks but does NOT fold case on
@@ -5979,6 +6053,27 @@ def _self_source_ids(
         if source.text and _identity_digest(source.text) == draft_digest:
             matched.add(source_id)
     return frozenset(matched)
+
+
+def _near_copy_source_ids(
+    draft_text: str, store: dict[str, RetrievedSource]
+) -> frozenset[str]:
+    """R26-04: ids of Read sources whose text is a NEAR-COPY of the draft —
+    whole or partial. See `_near_copy_of_draft`. Read only: the draft is a local
+    file, a web fetch is not a draft. Can only match more records.
+
+    Separated (UNGROUNDABLE-SHORT-SOURCE, 2026-11-15) because this is the one
+    self-source test that is an INFERENCE from text similarity rather than an
+    identity (path, inode, digest): it also matches a genuine short source the
+    draft quotes almost whole. `ground` uses the distinction for one purpose
+    only — to let such a source's text REFUSE a figure it does not contain.
+    Pure.
+    """
+    draft_flat = _identity_flat(draft_text)
+    return frozenset(
+        source_id for source_id, source in store.items()
+        if source.tool == "Read" and source.text
+        and _near_copy_of_draft(source.text, draft_flat))
 
 
 # ======================================================================
@@ -6019,6 +6114,10 @@ def _self_source_ids(
 SUPPORT_NO_CITED_SOURCE = "no_cited_verbatim_source"
 SUPPORT_SENTENCE_MAY_NOT_ASSERT = "cited_sentence_may_not_assert_claim"
 SUPPORT_NO_HEDGE_FOUND = "no_hedge_in_cited_sentence"
+# UNGROUNDABLE-SHORT-SOURCE (2026-11-15): every cited verbatim source was
+# removed as the draft itself (J-83 / R26-04). Reporting "no cited verbatim
+# source" here named the wrong cause for a store line that says verbatim.
+SUPPORT_CITED_SOURCE_IS_DRAFT = "cited_source_is_the_draft"
 
 
 def _most_overlapping_sentence(claim_text: str, source_text: str) -> str:
@@ -6135,6 +6234,7 @@ def score_report(
     lex_tau: float = _LEX_TAU_DEFAULT,
     session_scoped: bool = False,
     self_source_ids: frozenset[str] = frozenset(),
+    inferred_self_ids: frozenset[str] = frozenset(),
 ) -> dict:
     """Compute the grounding SCORE, gate, and retained-violation appendix (spec §4.5).
 
@@ -6200,7 +6300,8 @@ def score_report(
     has_unverified_citation = False
 
     for claim in claims:
-        verdict = ground(claim, store, lex_tau, self_source_ids)
+        verdict = ground(claim, store, lex_tau, self_source_ids,
+                         inferred_self_ids)
         entry = {
             "index": claim.index,
             "text": claim.text,
@@ -6236,6 +6337,12 @@ def score_report(
             claim,
             {k: v for k, v in store.items() if k not in self_source_ids},
         )
+        if entry["support_diagnostic"] == SUPPORT_NO_CITED_SOURCE:
+            cited = [src for src in (resolve(c, store) for c in claim.citations)
+                     if src is not None and src.text]
+            if _excluded_as_draft(cited, self_source_ids) and \
+                    not _certifying_verbatim(cited, self_source_ids):
+                entry["support_diagnostic"] = SUPPORT_CITED_SOURCE_IS_DRAFT
         per_claim.append(entry)
 
         if verdict == Verdict.UNVERIFIED_CITATION:
@@ -6437,6 +6544,10 @@ def main() -> None:
         claims, store, threshold=args.threshold,
         session_scoped=args.session_id is not None,
         self_source_ids=_self_source_ids(args.draft, draft_text, store),
+        # Inferred-only: near-copy matches that no identity test also made.
+        inferred_self_ids=(_near_copy_source_ids(draft_text, store)
+                           - _self_source_ids_by_identity(
+                               args.draft, draft_text, store)),
     )
 
     gate: str = report["gate"]
