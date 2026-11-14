@@ -30,7 +30,43 @@ FIX_HINTS: dict[str, str] = {
     "UNVERIFIED_ABSENCE": "Quote a source that says it, or soften the claim.",
     "UNVERIFIED_RELATION": "Quote a source that says it, or soften the claim.",
 }
+# REASONS-FOR-REFUSAL (2026-11-15): when the claim WAS found verbatim and a
+# named rule disowned the match, the UNGROUNDED hint ("replace the claim with
+# the source's own sentence") is advice the author has already followed. These
+# support_diagnostic codes get this hint instead. Must equal
+# ground_check.VERBATIM_REFUSAL_CODES (pinned by tests/test_reason_names_denial.py).
+_VERBATIM_REFUSAL_HINT = (
+    "Your copy matched the source exactly; the 'why' line names the source words "
+    "that made it not count. Copying it again will not help. Cite a different "
+    "sentence that states the fact, or leave it out. If the named words plainly do "
+    "not deny or hedge this sentence, it is a known over-refusal: please report it.")
+VERBATIM_REFUSAL_CODES: frozenset[str] = frozenset({
+    "verbatim_but_hedge_word_before_it",
+    "verbatim_but_under_non_asserting_verb",
+    "verbatim_but_under_disowning_label",
+    "verbatim_but_after_denial_of_what_follows",
+    "verbatim_but_paragraph_has_falsity_statement",
+    "verbatim_but_under_denying_heading",
+    "verbatim_but_denial_earlier_in_sentence",
+    "verbatim_but_previous_sentence_denies",
+    "verbatim_but_previous_line_denies",
+    "verbatim_but_sentence_two_back_denies",
+    "verbatim_but_next_sentence_says_false",
+    "verbatim_but_previous_sentence_says_false",
+    "verbatim_but_next_sentence_denies",
+    "verbatim_but_source_sentence_negates_differently",
+    "verbatim_but_negation_limited_in_source",
+})
 _WIDTH = 88
+
+
+def fix_hint(claim: dict[str, object]) -> str | None:
+    """The fix line for one per-claim row: the verbatim-refusal hint when its
+    support_diagnostic is one of VERBATIM_REFUSAL_CODES, else the verdict's.
+    Pure; decides nothing."""
+    if claim.get("support_diagnostic") in VERBATIM_REFUSAL_CODES:
+        return _VERBATIM_REFUSAL_HINT
+    return FIX_HINTS.get(str(claim["verdict"]))
 
 
 def _wrap(prefix: str, text: str) -> str:
@@ -51,7 +87,7 @@ def render(report: dict[str, object]) -> str:
         out.append(f"[{c['index']}] {c['verdict']}")
         out.append(_wrap("    claim: ", c["text"]))
         out.append(_wrap("    why:   ", c["evidence_basis"]))
-        hint = FIX_HINTS.get(c["verdict"])
+        hint = fix_hint(c)
         if hint is not None:
             out.append(_wrap("    fix:   ", hint))
         out.append("")
