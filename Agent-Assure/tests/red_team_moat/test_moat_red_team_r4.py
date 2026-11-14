@@ -155,21 +155,11 @@ def test_rate_free_restatement_of_a_rate_must_not_ground(tmp_path: Path) -> None
     )
 
 
-# --- OI-MOAT-20: KNOWN OPEN residue, recorded not hidden ---------------------
-
-@pytest.mark.xfail(
-    strict=True,
-    reason="OI-MOAT-20 (OPEN, 2026-08-30): a verb-FINAL header "
-    "('### PostgreSQL Fails') still reads structural. The header rule scores a "
-    "header whose verb-like token is not its final content token — the "
-    "positional signal that separates an assertion ('Redis LOSES Data') from a "
-    "heading ('Key Findings') without keying on case or on a token count. A "
-    "verb-final header defeats it. Closing it means either scoring every "
-    "multi-word heading (Error-A on ordinary documents, which gets the tool "
-    "switched off — itself a moat failure) or a real POS tagger, which is a "
-    "dependency and a design decision. Recorded with this tripwire rather than "
-    "left silent. When this XPASSes, a fix has landed: remove the marker.",
-)
+# --- OI-MOAT-20: verb-final header -----------------------------------------
+# The strict-xfail tripwire XPASSed on R36 (2026-11-14): `_HEADLINE_VERBS_S`
+# (a refusal-only lexicon, D-69) scores "### PostgreSQL Fails". The CLASS is
+# only partly closed: an unlisted headline verb still reads structural, and
+# that residue is tripwired in test_moat_r36_c_verbless_headings.py.
 def test_verb_final_header_must_not_escape_denominator(tmp_path: Path) -> None:
     """The documented residue of the RT4-01 header rule."""
     report = _gate(tmp_path, _ANCHOR + "### PostgreSQL Fails\n")
