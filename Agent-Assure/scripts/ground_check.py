@@ -6426,13 +6426,23 @@ def _occurrence_refusal(claim_tokens: list[str], source: RetrievedSource
               if source_tokens[i:i + width] == claim_tokens]
     out: list[tuple[str, str]] = []
     unit_reasons_done = False
+    # Built once per source and only when a unit rule needs them: building them
+    # per hedged occurrence made a 100 KB source with 10 copies take 87 s instead
+    # of 2 s on main (RED-TEAM-R43 F1).
+    contexts: list[_UnitContext] | None = None
+    # CEILING: display-only wording hint. "Starts a sentence" is read from the raw
+    # text (claim's first words after start-of-text or . ! ? and whitespace), not
+    # from the unit split, because the split costs ~1.5 s per 100 KB source per
+    # claim. Breaks when the source starts sentences after ; : or a list marker
+    # (hint omitted, verdict unaffected). Upgrade: compute contexts once per
+    # report and pass them in.
+    lead_words = r"\W+".join(_re.escape(t) for t in claim_tokens[:4])
+    starts_sentence = _re.search(r"(?:\A|[.!?][\"')\]]*\s+)" + lead_words,
+                                 source.text, _re.IGNORECASE) is not None
     for start in starts:
         hits = _span_hedge_hits(source_tokens, start)
         if hits:
             window = source_tokens[max(0, start - _SPAN_HEDGE_LOOKBACK):start]
-            starts_sentence = any(
-                not ctx.prefix and list(ctx.tokens[:width]) == claim_tokens
-                for ctx in _source_unit_contexts(source.text))
             where = (" (they belong to the text before this sentence: the window "
                      "does not stop at a sentence boundary)") if starts_sentence else ""
             out.append((SUPPORT_VERBATIM_HEDGE_WORD,
@@ -6453,7 +6463,9 @@ def _occurrence_refusal(claim_tokens: list[str], source: RetrievedSource
         if unit_reasons_done:
             continue
         unit_reasons_done = True
-        for ctx in _source_unit_contexts(source.text):
+        if contexts is None:
+            contexts = _source_unit_contexts(source.text)
+        for ctx in contexts:
             toks = list(ctx.tokens)
             unit_starts = [i for i in range(len(toks) - width + 1)
                            if toks[i:i + width] == claim_tokens]
