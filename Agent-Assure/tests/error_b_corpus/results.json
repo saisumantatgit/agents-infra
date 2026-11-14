@@ -2,13 +2,13 @@
  "summary": {
   "all": {
    "drafts": 280,
-   "escaped": 36,
-   "escaped_pct": 12.9,
-   "pass": 20,
-   "pass_pct": 7.1,
-   "NEEDS_WORK": 220,
-   "FAIL": 40,
-   "control_pass": 195
+   "escaped": 11,
+   "escaped_pct": 3.9,
+   "pass": 7,
+   "pass_pct": 2.5,
+   "NEEDS_WORK": 218,
+   "FAIL": 55,
+   "control_pass": 190
   },
   "by_class": {
    "absence_claim": {
@@ -33,62 +33,62 @@
    },
    "claim_heading": {
     "drafts": 15,
-    "escaped": 6,
-    "escaped_pct": 40.0,
-    "pass": 6,
-    "pass_pct": 40.0,
-    "NEEDS_WORK": 8,
+    "escaped": 5,
+    "escaped_pct": 33.3,
+    "pass": 5,
+    "pass_pct": 33.3,
+    "NEEDS_WORK": 9,
     "FAIL": 1,
     "control_pass": 14
    },
    "denied_2back": {
     "drafts": 16,
-    "escaped": 6,
-    "escaped_pct": 37.5,
-    "pass": 3,
-    "pass_pct": 18.8,
-    "NEEDS_WORK": 9,
+    "escaped": 3,
+    "escaped_pct": 18.8,
+    "pass": 1,
+    "pass_pct": 6.2,
+    "NEEDS_WORK": 11,
     "FAIL": 4,
     "control_pass": 9
    },
    "denied_3plus_back": {
     "drafts": 16,
-    "escaped": 4,
-    "escaped_pct": 25.0,
+    "escaped": 3,
+    "escaped_pct": 18.8,
     "pass": 1,
     "pass_pct": 6.2,
-    "NEEDS_WORK": 9,
-    "FAIL": 6,
+    "NEEDS_WORK": 8,
+    "FAIL": 7,
     "control_pass": 6
    },
    "denied_adjacent": {
     "drafts": 16,
-    "escaped": 2,
-    "escaped_pct": 12.5,
-    "pass": 1,
-    "pass_pct": 6.2,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
     "NEEDS_WORK": 7,
-    "FAIL": 8,
+    "FAIL": 9,
     "control_pass": 6
    },
    "denied_heading": {
     "drafts": 16,
-    "escaped": 8,
-    "escaped_pct": 50.0,
-    "pass": 6,
-    "pass_pct": 37.5,
-    "NEEDS_WORK": 2,
-    "FAIL": 8,
-    "control_pass": 6
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
+    "FAIL": 15,
+    "control_pass": 1
    },
    "denied_same_sentence": {
     "drafts": 16,
-    "escaped": 10,
-    "escaped_pct": 62.5,
-    "pass": 3,
-    "pass_pct": 18.8,
-    "NEEDS_WORK": 11,
-    "FAIL": 2,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 8,
+    "FAIL": 8,
     "control_pass": 8
    },
    "denied_table_after": {
@@ -195,38 +195,38 @@
   "by_genre": {
    "api_reference": {
     "drafts": 20,
-    "escaped": 2,
-    "escaped_pct": 10.0,
+    "escaped": 1,
+    "escaped_pct": 5.0,
     "pass": 1,
     "pass_pct": 5.0,
-    "NEEDS_WORK": 15,
-    "FAIL": 4,
+    "NEEDS_WORK": 14,
+    "FAIL": 5,
     "control_pass": 12
    },
    "changelog": {
     "drafts": 20,
-    "escaped": 3,
-    "escaped_pct": 15.0,
-    "pass": 1,
-    "pass_pct": 5.0,
-    "NEEDS_WORK": 16,
-    "FAIL": 3,
-    "control_pass": 12
+    "escaped": 1,
+    "escaped_pct": 5.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 15,
+    "FAIL": 5,
+    "control_pass": 11
    },
    "code_review": {
     "drafts": 20,
-    "escaped": 3,
-    "escaped_pct": 15.0,
-    "pass": 2,
-    "pass_pct": 10.0,
-    "NEEDS_WORK": 13,
-    "FAIL": 5,
-    "control_pass": 13
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 14,
+    "FAIL": 6,
+    "control_pass": 12
    },
    "faq": {
     "drafts": 20,
-    "escaped": 3,
-    "escaped_pct": 15.0,
+    "escaped": 2,
+    "escaped_pct": 10.0,
     "pass": 1,
     "pass_pct": 5.0,
     "NEEDS_WORK": 13,
@@ -235,103 +235,103 @@
    },
    "financial_report": {
     "drafts": 20,
-    "escaped": 1,
-    "escaped_pct": 5.0,
+    "escaped": 0,
+    "escaped_pct": 0.0,
     "pass": 0,
     "pass_pct": 0.0,
-    "NEEDS_WORK": 16,
-    "FAIL": 4,
+    "NEEDS_WORK": 15,
+    "FAIL": 5,
     "control_pass": 14
    },
    "howto_code": {
     "drafts": 20,
-    "escaped": 4,
-    "escaped_pct": 20.0,
-    "pass": 4,
-    "pass_pct": 20.0,
-    "NEEDS_WORK": 14,
-    "FAIL": 2,
-    "control_pass": 16
-   },
-   "hr_policy": {
-    "drafts": 20,
     "escaped": 2,
     "escaped_pct": 10.0,
-    "pass": 0,
-    "pass_pct": 0.0,
-    "NEEDS_WORK": 16,
-    "FAIL": 4,
-    "control_pass": 10
-   },
-   "incident": {
-    "drafts": 20,
-    "escaped": 2,
-    "escaped_pct": 10.0,
-    "pass": 1,
-    "pass_pct": 5.0,
-    "NEEDS_WORK": 17,
-    "FAIL": 2,
-    "control_pass": 15
-   },
-   "meeting_notes": {
-    "drafts": 20,
-    "escaped": 1,
-    "escaped_pct": 5.0,
-    "pass": 0,
-    "pass_pct": 0.0,
-    "NEEDS_WORK": 19,
-    "FAIL": 1,
-    "control_pass": 16
-   },
-   "news_brief": {
-    "drafts": 20,
-    "escaped": 4,
-    "escaped_pct": 20.0,
-    "pass": 2,
-    "pass_pct": 10.0,
-    "NEEDS_WORK": 16,
-    "FAIL": 2,
-    "control_pass": 15
-   },
-   "product_docs": {
-    "drafts": 20,
-    "escaped": 3,
-    "escaped_pct": 15.0,
-    "pass": 2,
-    "pass_pct": 10.0,
-    "NEEDS_WORK": 17,
-    "FAIL": 1,
-    "control_pass": 16
-   },
-   "readme": {
-    "drafts": 20,
-    "escaped": 3,
-    "escaped_pct": 15.0,
-    "pass": 2,
-    "pass_pct": 10.0,
-    "NEEDS_WORK": 17,
-    "FAIL": 1,
-    "control_pass": 14
-   },
-   "research_summary": {
-    "drafts": 20,
-    "escaped": 3,
-    "escaped_pct": 15.0,
     "pass": 2,
     "pass_pct": 10.0,
     "NEEDS_WORK": 15,
     "FAIL": 3,
     "control_pass": 15
    },
-   "sales_report": {
+   "hr_policy": {
+    "drafts": 20,
+    "escaped": 1,
+    "escaped_pct": 5.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 15,
+    "FAIL": 5,
+    "control_pass": 10
+   },
+   "incident": {
+    "drafts": 20,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 17,
+    "FAIL": 3,
+    "control_pass": 15
+   },
+   "meeting_notes": {
+    "drafts": 20,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 18,
+    "FAIL": 2,
+    "control_pass": 16
+   },
+   "news_brief": {
     "drafts": 20,
     "escaped": 2,
     "escaped_pct": 10.0,
-    "pass": 2,
-    "pass_pct": 10.0,
-    "NEEDS_WORK": 16,
+    "pass": 1,
+    "pass_pct": 5.0,
+    "NEEDS_WORK": 15,
+    "FAIL": 4,
+    "control_pass": 14
+   },
+   "product_docs": {
+    "drafts": 20,
+    "escaped": 1,
+    "escaped_pct": 5.0,
+    "pass": 1,
+    "pass_pct": 5.0,
+    "NEEDS_WORK": 17,
     "FAIL": 2,
     "control_pass": 16
+   },
+   "readme": {
+    "drafts": 20,
+    "escaped": 1,
+    "escaped_pct": 5.0,
+    "pass": 1,
+    "pass_pct": 5.0,
+    "NEEDS_WORK": 17,
+    "FAIL": 2,
+    "control_pass": 14
+   },
+   "research_summary": {
+    "drafts": 20,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 16,
+    "FAIL": 4,
+    "control_pass": 15
+   },
+   "sales_report": {
+    "drafts": 20,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 17,
+    "FAIL": 3,
+    "control_pass": 15
    }
   },
   "by_class_variant": {
@@ -507,11 +507,11 @@
    },
    "claim_heading/heading6": {
     "drafts": 1,
-    "escaped": 1,
-    "escaped_pct": 100.0,
-    "pass": 1,
-    "pass_pct": 100.0,
-    "NEEDS_WORK": 0,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
     "FAIL": 0,
     "control_pass": 1
    },
@@ -547,11 +547,11 @@
    },
    "denied_2back/one_filler": {
     "drafts": 16,
-    "escaped": 6,
-    "escaped_pct": 37.5,
-    "pass": 3,
-    "pass_pct": 18.8,
-    "NEEDS_WORK": 9,
+    "escaped": 3,
+    "escaped_pct": 18.8,
+    "pass": 1,
+    "pass_pct": 6.2,
+    "NEEDS_WORK": 11,
     "FAIL": 4,
     "control_pass": 9
    },
@@ -577,22 +577,22 @@
    },
    "denied_3plus_back/4_fillers": {
     "drafts": 5,
-    "escaped": 1,
-    "escaped_pct": 20.0,
+    "escaped": 0,
+    "escaped_pct": 0.0,
     "pass": 0,
     "pass_pct": 0.0,
-    "NEEDS_WORK": 3,
-    "FAIL": 2,
+    "NEEDS_WORK": 2,
+    "FAIL": 3,
     "control_pass": 2
    },
    "denied_adjacent/denial_after": {
     "drafts": 8,
-    "escaped": 2,
-    "escaped_pct": 25.0,
-    "pass": 1,
-    "pass_pct": 12.5,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
     "NEEDS_WORK": 5,
-    "FAIL": 2,
+    "FAIL": 3,
     "control_pass": 4
    },
    "denied_adjacent/denial_before": {
@@ -617,23 +617,23 @@
    },
    "denied_heading/heading1_fill1": {
     "drafts": 4,
-    "escaped": 4,
-    "escaped_pct": 100.0,
-    "pass": 2,
-    "pass_pct": 50.0,
-    "NEEDS_WORK": 2,
-    "FAIL": 0,
-    "control_pass": 2
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
+    "FAIL": 3,
+    "control_pass": 1
    },
    "denied_heading/heading2_fill2": {
     "drafts": 4,
-    "escaped": 4,
-    "escaped_pct": 100.0,
-    "pass": 4,
-    "pass_pct": 100.0,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
     "NEEDS_WORK": 0,
-    "FAIL": 0,
-    "control_pass": 4
+    "FAIL": 4,
+    "control_pass": 0
    },
    "denied_heading/heading3_fill3": {
     "drafts": 4,
@@ -647,32 +647,32 @@
    },
    "denied_same_sentence/suffix0": {
     "drafts": 3,
-    "escaped": 2,
-    "escaped_pct": 66.7,
-    "pass": 1,
-    "pass_pct": 33.3,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
     "NEEDS_WORK": 2,
-    "FAIL": 0,
+    "FAIL": 1,
     "control_pass": 2
    },
    "denied_same_sentence/suffix1": {
     "drafts": 3,
-    "escaped": 3,
-    "escaped_pct": 100.0,
-    "pass": 1,
-    "pass_pct": 33.3,
-    "NEEDS_WORK": 2,
-    "FAIL": 0,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
+    "FAIL": 2,
     "control_pass": 1
    },
    "denied_same_sentence/suffix2": {
     "drafts": 3,
-    "escaped": 3,
-    "escaped_pct": 100.0,
-    "pass": 1,
-    "pass_pct": 33.3,
-    "NEEDS_WORK": 2,
-    "FAIL": 0,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
+    "FAIL": 2,
     "control_pass": 1
    },
    "denied_same_sentence/suffix3": {
@@ -687,12 +687,12 @@
    },
    "denied_same_sentence/suffix4": {
     "drafts": 2,
-    "escaped": 2,
-    "escaped_pct": 100.0,
+    "escaped": 0,
+    "escaped_pct": 0.0,
     "pass": 0,
     "pass_pct": 0.0,
-    "NEEDS_WORK": 1,
-    "FAIL": 1,
+    "NEEDS_WORK": 0,
+    "FAIL": 2,
     "control_pass": 0
    },
    "denied_same_sentence/suffix5": {
@@ -1122,15 +1122,15 @@
    "genre": "api_reference",
    "class": "denied_same_sentence",
    "variant": "suffix0",
-   "gate": "NEEDS_WORK",
-   "score": 75.0,
+   "gate": "FAIL",
+   "score": 50.0,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNGROUNDED"
    ],
    "fab_kinds": [
     "FACTUAL"
    ],
-   "escaped": true,
+   "escaped": false,
    "other_refused": 1,
    "control_gate": "NEEDS_WORK"
   },
@@ -1428,15 +1428,15 @@
    "genre": "changelog",
    "class": "denied_same_sentence",
    "variant": "suffix1",
-   "gate": "NEEDS_WORK",
-   "score": 75.0,
+   "gate": "FAIL",
+   "score": 50.0,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNGROUNDED"
    ],
    "fab_kinds": [
     "NUMERIC"
    ],
-   "escaped": true,
+   "escaped": false,
    "other_refused": 1,
    "control_gate": "NEEDS_WORK"
   },
@@ -1445,17 +1445,17 @@
    "genre": "changelog",
    "class": "denied_heading",
    "variant": "heading1_fill1",
-   "gate": "PASS",
-   "score": 100.0,
+   "gate": "FAIL",
+   "score": 50.0,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNGROUNDED"
    ],
    "fab_kinds": [
     "FACTUAL"
    ],
-   "escaped": true,
-   "other_refused": 0,
-   "control_gate": "PASS"
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
   },
   {
    "id": "changelog_07_denied_table_after",
@@ -1736,15 +1736,15 @@
    "genre": "code_review",
    "class": "denied_same_sentence",
    "variant": "suffix2",
-   "gate": "PASS",
-   "score": 100.0,
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNGROUNDED"
    ],
    "fab_kinds": [
     "FACTUAL"
    ],
-   "escaped": true,
+   "escaped": false,
    "other_refused": 0,
    "control_gate": "PASS"
   },
@@ -1753,17 +1753,17 @@
    "genre": "code_review",
    "class": "denied_heading",
    "variant": "heading2_fill2",
-   "gate": "PASS",
-   "score": 100.0,
+   "gate": "FAIL",
+   "score": 50.0,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNGROUNDED"
    ],
    "fab_kinds": [
     "FACTUAL"
    ],
-   "escaped": true,
-   "other_refused": 0,
-   "control_gate": "PASS"
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
   },
   {
    "id": "code_review_05_denied_table_after",
@@ -2009,14 +2009,14 @@
    "class": "denied_2back",
    "variant": "one_filler",
    "gate": "FAIL",
-   "score": 50.0,
+   "score": 25.0,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNGROUNDED"
    ],
    "fab_kinds": [
     "FACTUAL"
    ],
-   "escaped": true,
+   "escaped": false,
    "other_refused": 2,
    "control_gate": "FAIL"
   },
@@ -2349,14 +2349,14 @@
    "class": "denied_same_sentence",
    "variant": "suffix4",
    "gate": "FAIL",
-   "score": 50.0,
+   "score": 25.0,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNGROUNDED"
    ],
    "fab_kinds": [
     "FACTUAL"
    ],
-   "escaped": true,
+   "escaped": false,
    "other_refused": 2,
    "control_gate": "FAIL"
   },
@@ -2671,15 +2671,15 @@
    "genre": "financial_report",
    "class": "denied_heading",
    "variant": "heading1_fill1",
-   "gate": "NEEDS_WORK",
-   "score": 75.0,
+   "gate": "FAIL",
+   "score": 50.0,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNGROUNDED"
    ],
    "fab_kinds": [
     "FACTUAL"
    ],
-   "escaped": true,
+   "escaped": false,
    "other_refused": 1,
    "control_gate": "NEEDS_WORK"
   },
@@ -2979,17 +2979,17 @@
    "genre": "howto_code",
    "class": "denied_heading",
    "variant": "heading2_fill2",
-   "gate": "PASS",
-   "score": 100.0,
+   "gate": "FAIL",
+   "score": 50.0,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNGROUNDED"
    ],
    "fab_kinds": [
     "FACTUAL"
    ],
-   "escaped": true,
-   "other_refused": 0,
-   "control_gate": "PASS"
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
   },
   {
    "id": "howto_code_17_denied_table_after",
@@ -3013,15 +3013,15 @@
    "genre": "howto_code",
    "class": "claim_heading",
    "variant": "heading6",
-   "gate": "PASS",
-   "score": 100.0,
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNCITED"
    ],
    "fab_kinds": [
-    "NON_CLAIM"
+    "FACTUAL"
    ],
-   "escaped": true,
+   "escaped": false,
    "other_refused": 0,
    "control_gate": "PASS"
   },
@@ -3268,15 +3268,15 @@
    "genre": "hr_policy",
    "class": "denied_same_sentence",
    "variant": "suffix1",
-   "gate": "NEEDS_WORK",
-   "score": 75.0,
+   "gate": "FAIL",
+   "score": 50.0,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNGROUNDED"
    ],
    "fab_kinds": [
     "FACTUAL"
    ],
-   "escaped": true,
+   "escaped": false,
    "other_refused": 1,
    "control_gate": "NEEDS_WORK"
   },
@@ -3542,15 +3542,15 @@
    "genre": "incident",
    "class": "denied_2back",
    "variant": "one_filler",
-   "gate": "PASS",
-   "score": 100.0,
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNGROUNDED"
    ],
    "fab_kinds": [
     "FACTUAL"
    ],
-   "escaped": true,
+   "escaped": false,
    "other_refused": 0,
    "control_gate": "PASS"
   },
@@ -3576,15 +3576,15 @@
    "genre": "incident",
    "class": "denied_same_sentence",
    "variant": "suffix2",
-   "gate": "NEEDS_WORK",
-   "score": 75.0,
+   "gate": "FAIL",
+   "score": 50.0,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNGROUNDED"
    ],
    "fab_kinds": [
     "FACTUAL"
    ],
-   "escaped": true,
+   "escaped": false,
    "other_refused": 1,
    "control_gate": "NEEDS_WORK"
   },
@@ -3899,15 +3899,15 @@
    "genre": "meeting_notes",
    "class": "denied_heading",
    "variant": "heading1_fill1",
-   "gate": "NEEDS_WORK",
-   "score": 75.0,
+   "gate": "FAIL",
+   "score": 50.0,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNGROUNDED"
    ],
    "fab_kinds": [
     "FACTUAL"
    ],
-   "escaped": true,
+   "escaped": false,
    "other_refused": 1,
    "control_gate": "NEEDS_WORK"
   },
@@ -4190,15 +4190,15 @@
    "genre": "news_brief",
    "class": "denied_same_sentence",
    "variant": "suffix4",
-   "gate": "NEEDS_WORK",
-   "score": 75.0,
+   "gate": "FAIL",
+   "score": 50.0,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNGROUNDED"
    ],
    "fab_kinds": [
     "FACTUAL"
    ],
-   "escaped": true,
+   "escaped": false,
    "other_refused": 1,
    "control_gate": "NEEDS_WORK"
   },
@@ -4207,17 +4207,17 @@
    "genre": "news_brief",
    "class": "denied_heading",
    "variant": "heading2_fill2",
-   "gate": "PASS",
-   "score": 100.0,
+   "gate": "FAIL",
+   "score": 50.0,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNGROUNDED"
    ],
    "fab_kinds": [
     "NUMERIC"
    ],
-   "escaped": true,
-   "other_refused": 0,
-   "control_gate": "PASS"
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
   },
   {
    "id": "news_brief_09_denied_table_after",
@@ -4445,15 +4445,15 @@
    "genre": "product_docs",
    "class": "denied_adjacent",
    "variant": "denial_after",
-   "gate": "PASS",
-   "score": 100.0,
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNGROUNDED"
    ],
    "fab_kinds": [
     "FACTUAL"
    ],
-   "escaped": true,
+   "escaped": false,
    "other_refused": 0,
    "control_gate": "PASS"
   },
@@ -4479,15 +4479,15 @@
    "genre": "product_docs",
    "class": "denied_3plus_back",
    "variant": "4_fillers",
-   "gate": "NEEDS_WORK",
-   "score": 60.0,
+   "gate": "FAIL",
+   "score": 40.0,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNGROUNDED"
    ],
    "fab_kinds": [
     "FACTUAL"
    ],
-   "escaped": true,
+   "escaped": false,
    "other_refused": 2,
    "control_gate": "FAIL"
   },
@@ -4802,15 +4802,15 @@
    "genre": "readme",
    "class": "denied_same_sentence",
    "variant": "suffix0",
-   "gate": "PASS",
-   "score": 100.0,
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNGROUNDED"
    ],
    "fab_kinds": [
     "FACTUAL"
    ],
-   "escaped": true,
+   "escaped": false,
    "other_refused": 0,
    "control_gate": "PASS"
   },
@@ -5057,15 +5057,15 @@
    "genre": "readme",
    "class": "denied_adjacent",
    "variant": "denial_after",
-   "gate": "NEEDS_WORK",
-   "score": 75.0,
+   "gate": "FAIL",
+   "score": 50.0,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNGROUNDED"
    ],
    "fab_kinds": [
     "FACTUAL"
    ],
-   "escaped": true,
+   "escaped": false,
    "other_refused": 1,
    "control_gate": "NEEDS_WORK"
   },
@@ -5108,15 +5108,15 @@
    "genre": "research_summary",
    "class": "denied_same_sentence",
    "variant": "suffix1",
-   "gate": "PASS",
-   "score": 100.0,
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNGROUNDED"
    ],
    "fab_kinds": [
     "FACTUAL"
    ],
-   "escaped": true,
+   "escaped": false,
    "other_refused": 0,
    "control_gate": "PASS"
   },
@@ -5125,15 +5125,15 @@
    "genre": "research_summary",
    "class": "denied_heading",
    "variant": "heading1_fill1",
-   "gate": "PASS",
-   "score": 100.0,
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNGROUNDED"
    ],
    "fab_kinds": [
     "FACTUAL"
    ],
-   "escaped": true,
+   "escaped": false,
    "other_refused": 0,
    "control_gate": "PASS"
   },
@@ -5416,15 +5416,15 @@
    "genre": "research_summary",
    "class": "denied_same_sentence",
    "variant": "suffix2",
-   "gate": "NEEDS_WORK",
-   "score": 75.0,
+   "gate": "FAIL",
+   "score": 50.0,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNGROUNDED"
    ],
    "fab_kinds": [
     "FACTUAL"
    ],
-   "escaped": true,
+   "escaped": false,
    "other_refused": 1,
    "control_gate": "NEEDS_WORK"
   },
@@ -5433,17 +5433,17 @@
    "genre": "sales_report",
    "class": "denied_heading",
    "variant": "heading2_fill2",
-   "gate": "PASS",
-   "score": 100.0,
+   "gate": "FAIL",
+   "score": 50.0,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNGROUNDED"
    ],
    "fab_kinds": [
     "NUMERIC"
    ],
-   "escaped": true,
-   "other_refused": 0,
-   "control_gate": "PASS"
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
   },
   {
    "id": "sales_report_01_denied_table_after",
@@ -5688,15 +5688,15 @@
    "genre": "sales_report",
    "class": "denied_2back",
    "variant": "one_filler",
-   "gate": "PASS",
-   "score": 100.0,
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNGROUNDED"
    ],
    "fab_kinds": [
     "FACTUAL"
    ],
-   "escaped": true,
+   "escaped": false,
    "other_refused": 0,
    "control_gate": "PASS"
   },
