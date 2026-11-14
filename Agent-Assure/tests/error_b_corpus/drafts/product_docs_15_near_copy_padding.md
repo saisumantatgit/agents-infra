@@ -1,0 +1,1 @@
+The Business plan includes scheduled exports for up to 44 members [S1]. Search covers titles, tags and the first 44 lines of every note [S1]. Engineers hid the failures of the import tool from customers [S1]. Each project keeps its exports for 44 days after a member removes them [S1].

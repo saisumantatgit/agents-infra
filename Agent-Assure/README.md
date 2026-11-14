@@ -2,16 +2,15 @@
 
 Verification-first grounding gate for AI-generated drafts. Checks every factual claim against a captured evidence store before the draft reaches a human reader. No LLM calls during grounding — the engine is pure Python, deterministic, and audit-defensible.
 
-**New here? Start with [`docs/ALPHA-TESTER-GUIDE.md`](docs/ALPHA-TESTER-GUIDE.md).** To see it work in about a minute, with no Claude Code plugin and no install script (needs only [`uv`](https://docs.astral.sh/uv/)):
+**Quick start (needs only [`uv`](https://docs.astral.sh/uv/); no plugin, no install script):**
 
 ```bash
-cd Agent-Assure
-uv sync
-uv run python demo/build_store.py
-uv run python scripts/ground_check.py --draft demo/draft-fabricated.md --store demo/evidence-store.jsonl --json | uv run python demo/show_report.py
+cd Agent-Assure && uv sync && uv run python demo/build_store.py
+uv run python scripts/ground_check.py --draft demo/draft-fabricated.md --store demo/evidence-store.jsonl --json > report.json
+uv run python scripts/explain_report.py report.json
 ```
 
-Expected: `gate: FAIL | score: 50.0`, with `UNVERIFIED_CITATION` and `UNVERIFIED_NUMBER` on the two fabricated claims. To check your own source without a live Claude Code session, see the guide, section 3 ("Check your own source"). Every command in this README works the same with `uv run python ...` or `.venv/bin/python ...`; the second needs `uv sync` or `bash install.sh` first.
+Expected: `gate: FAIL | score: 50.0`, then each claim with its reason and a fix line; the two fabricated claims show `UNVERIFIED_CITATION` and `UNVERIFIED_NUMBER`. To check your own text, add it with `uv run python scripts/add_source.py my-source.txt --id S1 --store my-store.jsonl`; the full walk-through is [`docs/ALPHA-TESTER-GUIDE.md`](docs/ALPHA-TESTER-GUIDE.md), section 3 ("Check your own source"). Every command here also works as `.venv/bin/python ...` after `uv sync` or `bash install.sh`.
 
 **Terms in this file.** Inline labels such as ADR-005, J-48, OI-MOAT-02, CR-007 and R15-03 are our own internal references: ADR = architecture decision record, J-nn = an entry in our issue register, OI = open issue, CR = calibration record (a measurement of the checker's error rates), R-nn = a red-team finding (an attack on the checker). You do not need them to use the tool; they are there so each claim in this file can be traced to its record.
 

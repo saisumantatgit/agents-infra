@@ -1855,10 +1855,8 @@ def _contained_with_matching_polarity(
     """True iff one sentence unit of *source_text* contains *claim_tokens*
     contiguously and passes _negation_polarity_matches. Pure."""
     width = len(claim_tokens)
-    contexts = _source_unit_contexts(source_text)
-    views = _view_unit_contexts(source_text, contexts)
-    for ctx, view in zip(contexts, views):
-        toks = list(ctx.tokens)
+    for unit in _denial_units(source_text):
+        toks = list(unit.main.tokens)
         starts = [i for i in range(len(toks) - width + 1)
                   if toks[i:i + width] == claim_tokens]
         if not starts:
@@ -1866,7 +1864,7 @@ def _contained_with_matching_polarity(
         # H1: a denial before the span or a back-referring denial after it.
         # R40: or a falsity statement after it in the same sentence, or a
         # denial the comparison copy reveals (`_match_denied`).
-        if all(_match_denied(ctx, view, i, i + width, frozenset()) for i in starts):
+        if all(_match_denied(unit, i, i + width, frozenset()) for i in starts):
             continue
         if (_negation_polarity_matches(claim_tokens, toks)
                 and not _negated_claim_is_limited(claim_tokens, toks)):
@@ -2367,7 +2365,6 @@ def _paragraph_denied(
                     and ((_points_forward(t) and (strong[i] or bool(_folded(t) & _VERACITY_TOKENS)))
                          or _is_bare_denial(t))
                     for t in (full, cut_tokens[i]))
-                or _long_line_points(full, line_tokens[i], strong[i])
                 for i, full in enumerate(sentence_tokens)]
     deictic_count: Counter[int] = Counter()
     stem_count: Counter[tuple[int, str]] = Counter()
@@ -2385,6 +2382,39 @@ def _paragraph_denied(
                 or any(stem_count[(k, stem)] > (1 if strong[s] else 0) for stem in stems[s])
                 or first_pointing.get(k, len(paragraphs)) < s for k in para)
             for s, para in enumerate(paragraphs)]
+
+
+def _paragraph_denied_r40(
+    sentence_tokens: list[tuple[str, ...]], paragraphs: list[frozenset[int]],
+    strong: list[bool], cut_tokens: list[tuple[str, ...]],
+    line_tokens: list[tuple[tuple[str, ...], ...]],
+) -> list[bool]:
+    """The R40 reading of the paragraph rule: main's `_paragraph_denied` on
+    the R40 inputs (R40 strong flags and cut tokens), OR'd with a pointing
+    scope from the R40 pointing sentences (`_pointing_r40`: forward free
+    relatives, H13, and one-line long pointing sentences, H8). R40 reading
+    only. Pure."""
+    base = _paragraph_denied(sentence_tokens, paragraphs, strong, cut_tokens, line_tokens)
+    pointing = [_pointing_r40(full, cut_tokens[i], line_tokens[i], strong[i])
+                for i, full in enumerate(sentence_tokens)]
+    first: dict[int, int] = {}
+    for t, para in enumerate(paragraphs):
+        for k in para:
+            if pointing[t] and k not in first:
+                first[k] = t
+    return [b or any(first.get(k, len(paragraphs)) < s for k in para)
+            for s, (b, para) in enumerate(zip(base, paragraphs))]
+
+
+def _pointing_r40(full: tuple[str, ...], cut: tuple[str, ...], lines: tuple[tuple[str, ...], ...],
+                  strong: bool) -> bool:
+    """`_paragraph_denied`'s pointing test with `_points_forward_r40`, OR
+    `_long_line_points`. R40 reading only. Pure."""
+    return (any(len(t) <= _SCOPE_MAX_TOKENS and _has_denial(t)
+                and ((_points_forward_r40(t) and (strong or bool(_folded(t) & _VERACITY_TOKENS)))
+                     or _is_bare_denial(t))
+                for t in (full, cut))
+            or _long_line_points(full, lines, strong))
 
 
 _SCOPE_MAX_PROSE_TOKENS: int = 24
@@ -2414,7 +2444,7 @@ def _long_line_points(tokens: tuple[str, ...], lines: tuple[tuple[str, ...], ...
     every case, and the figures below are not final or verified.") refuses
     the rest of its paragraph (Error-A). Upgrade path: clause-level scope."""
     return (len(lines) == 1 and _SCOPE_MAX_TOKENS < len(tokens) <= _SCOPE_MAX_PROSE_TOKENS
-            and _has_denial(tokens) and _points_forward(tokens)
+            and _has_denial(tokens) and _points_forward_r40(tokens)
             and (strong or bool(_folded(tokens) & _R40_TRUTH_TOKENS)))
 
 
@@ -2601,6 +2631,72 @@ def _heading_line_denies(toks: tuple[str, ...]) -> bool:
     return _has_strong_denial(toks) or bool(_folded(toks) & _HEADING_DISOWNING_TOKENS)
 
 
+def _heading_line_denies_r40(toks: tuple[str, ...]) -> bool:
+    """`_heading_line_denies` with the R40 strong reading
+    (`_has_strong_denial_r40`). R40 reading only: main's clearing step
+    (`_strong_tokens`) keeps main's rule, because there a WIDER denial CUTS
+    LESS and weakens main's length cap and code-value window (RED-TEAM-R42
+    B1/B2). Pure."""
+    folded = [_confusable_fold(t) for t in toks]
+    vocab = set(folded)
+    if (len(folded) <= _FAQ_HEADING_MAX_TOKENS and vocab & _HEADING_TRUTH_TOKENS
+            and vocab & _HEADING_COORDINATORS and not vocab & _COPULAS
+            and not vocab & _EVENT_NEGATORS
+            and not _has_strong_denial_r40(tuple(t for t in folded if t not in _FAQ_LABEL_NOUNS))
+            and not (vocab - _FAQ_LABEL_NOUNS) & (
+                _DISOWNING_LABEL_TOKENS | _STRONG_DENIAL_TOKENS | _DENIAL_TOKENS)):
+        return False
+    if (folded and folded[0] in _TOPIC_HEADING_STARTS
+            and not _refers_deictically(tuple(folded[1:]))):
+        without_made_up = tuple(t for i, t in enumerate(toks)
+                                if not (folded[i] in {"made", "up"}))
+        return (_has_strong_denial_r40(without_made_up)
+                or bool(_folded(toks) & _HEADING_DISOWNING_TOKENS))
+    return _has_strong_denial_r40(toks) or bool(_folded(toks) & _HEADING_DISOWNING_TOKENS)
+
+
+def _heading_line_spans_r40(text: str) -> list[tuple[int, int, bool]]:
+    """`_heading_line_spans` (same lines) with each line's denial read by
+    `_heading_line_denies_r40`. R40 reading only. Pure."""
+    base = _nfkc(text).strip()
+    return [(a, b, _heading_line_denies_r40(tuple(_tokenize(base[a:b].strip()))))
+            for a, b, _denies in _heading_line_spans(text)]
+
+
+def _strong_tokens_r40(text: str, spans: list[tuple[int, int]]) -> list[tuple[str, ...]]:
+    """`_strong_tokens` with the R40 clearing (`_heading_line_spans_r40`).
+    R40 reading only: it may cut LESS than main's, which is harmless here
+    because main's reading is computed separately and OR'd
+    (`_match_denied`). Pure."""
+    base = _nfkc(text).strip()
+    cleared = [(a, b) for a, b, denies in _heading_line_spans_r40(text) if not denies]
+    out: list[tuple[str, ...]] = []
+    for a, b in spans:
+        pieces: list[str] = []
+        cursor = a
+        for ha, hb in cleared:
+            if hb <= cursor or ha >= b:
+                continue
+            pieces.append(base[cursor:max(cursor, ha)])
+            cursor = max(cursor, hb)
+        pieces.append(base[cursor:b])
+        out.append(tuple(_tokenize(" ".join(pieces))))
+    return out
+
+
+def _heading_denied_r40_flat(text: str, spans: list[tuple[int, int]]) -> list[bool]:
+    """`_heading_denied` over `_heading_line_spans_r40` (a heading the R40
+    reading makes denying disowns to the next heading-shaped line). R40
+    reading only. Pure."""
+    headings = _heading_line_spans_r40(text)
+    total = len(_nfkc(text).strip())
+    scopes: list[tuple[int, int]] = []
+    for k, (start, end, denies) in enumerate(headings):
+        if denies:
+            scopes.append((end, headings[k + 1][0] if k + 1 < len(headings) else total))
+    return [any(b > lo and a < hi for lo, hi in scopes) for a, b in spans]
+
+
 def _strong_tokens(text: str, spans: list[tuple[int, int]]) -> list[tuple[str, ...]]:
     """Tokens of each sentence span of `_nfkc(text).strip()` with every
     NON-denying heading-shaped line cut out, for the strong-denial tests. Pure.
@@ -2712,7 +2808,7 @@ def _heading_lines_r40(text: str) -> list[tuple[int, int, bool, int]]:
     """(start, end, denies, level) for every R40 heading-shaped line of
     `_nfkc(text).strip()`: the `_heading_line_spans` lines, plus (H12) a
     standalone line of 13 to `_HEADING_LONG_MAX_TOKENS` tokens with no final
-    ".", "!", "?" or ":" that asserts falsity (`_has_strong_denial`). `level`
+    ".", "!", "?" or ":" that asserts falsity (`_has_strong_denial_r40`). `level`
     is the number of leading "#" of a markdown heading, 0 for any other line.
     `denies` adds the R40 label shapes (`_r40_heading_label_denies`). Pure.
 
@@ -2743,10 +2839,10 @@ def _heading_lines_r40(text: str) -> list[tuple[int, int, bool, int]]:
                           and after_ok and not _LIST_ITEM_RE.match(line))
             shaped = standalone and len(toks) <= _HEADING_MAX_TOKENS
             long_line = (standalone and not shaped and len(toks) <= _HEADING_LONG_MAX_TOKENS
-                         and _has_strong_denial(toks))
+                         and _has_strong_denial_r40(toks))
         if not (shaped or long_line):
             continue
-        denies = long_line or _heading_line_denies(toks) or _r40_heading_label_denies(toks)
+        denies = long_line or _heading_line_denies_r40(toks) or _r40_heading_label_denies(toks)
         level = len(stripped) - len(stripped.lstrip("#")) if markdown else 0
         out.append((start, end, denies, level))
     return out
@@ -2794,7 +2890,10 @@ def _heading_denied_r40(text: str, spans: list[tuple[int, int]]) -> list[bool]:
 
 def _source_unit_contexts(source_text: str) -> list[_UnitContext]:
     """The units of `_source_units`, in the same order, each with its denial
-    context. Pure."""
+    context, read by origin/main's rules EXACTLY (RED-TEAM-R42). Every
+    function this reaches is pinned to origin/main by
+    tests/red_team_moat/test_moat_r42_additive_structure.py; the R40 reading
+    is `_source_unit_contexts_r40`, OR'd on top by `_match_denied`. Pure."""
     disowned = _disowned_lines(source_text)
     sentences = _split_sentences(source_text)
     sentence_tokens = [tuple(_tokenize(s)) for s in sentences]
@@ -2807,13 +2906,56 @@ def _source_unit_contexts(source_text: str) -> list[_UnitContext]:
     para_denied = _paragraph_denied(sentence_tokens, _paragraph_ids(source_text, spans), strong, cut,
                                     line_tokens)
     head_denied = _heading_denied(source_text, spans)
+    out: list[_UnitContext] = []
+    for s, sentence in enumerate(sentences):
+        prefix: list[str] = []
+        for unit in _re.split(r"\n+|;|[()]", sentence):
+            if not unit.strip():
+                continue
+            toks = tuple(_tokenize(unit))
+            out.append(_UnitContext(
+                tokens=toks, prefix=tuple(prefix),
+                disowned=bool(toks) and any(_within(toks, d) for d in disowned),
+                previous=sentence_tokens[s - 1] if s > 0 else (),
+                following=sentence_tokens[s + 1] if s + 1 < len(sentences) else (),
+                scope_denied=s > scope_start,
+                previous2=sentence_tokens[s - 2] if s > 1 else (),
+                previous_line=(tuple(_tokenize(sentences[s - 1].strip().split("\n")[-1]))
+                               if s > 0 else ()),
+                context_denied=para_denied[s] or head_denied[s],
+                previous_strong=strong[s - 1] if s > 0 else False,
+                following_strong=strong[s + 1] if s + 1 < len(sentences) else False))
+            prefix.extend(toks)
+    return out
+
+
+def _source_unit_contexts_r40(source_text: str) -> list[_UnitContext]:
+    """The same units as `_source_unit_contexts`, with the R40 reading of
+    their denial context: R40 strong flags (`_has_strong_denial_r40` on the
+    R40 cut, `_strong_tokens_r40`), the R40 paragraph rule, the R40 heading
+    scopes, and the same-line `suffix` the trailing rule reads. This reading
+    need not refuse whenever main does: `_match_denied` ORs it onto main's
+    reading, so it can only ADD refusals (D-69). Pure."""
+    disowned = _disowned_lines(source_text)
+    sentences = _split_sentences(source_text)
+    sentence_tokens = [tuple(_tokenize(s)) for s in sentences]
+    scope_start = _denial_scope_start(sentence_tokens)
+    spans = _sentence_spans(source_text, sentences)
+    cut = _strong_tokens_r40(source_text, spans)
+    strong = [_has_strong_denial_r40(t) for t in cut]
+    line_tokens = [tuple(tuple(_tokenize(line)) for line in sentence.split("\n") if line.strip())
+                   for sentence in sentences]
+    para_denied = _paragraph_denied_r40(sentence_tokens, _paragraph_ids(source_text, spans), strong, cut,
+                                        line_tokens)
+    head_denied = _heading_denied_r40_flat(source_text, spans)
     head_denied_r40 = _heading_denied_r40(source_text, spans)
     out: list[_UnitContext] = []
     for s, sentence in enumerate(sentences):
         prefix: list[str] = []
-        # Same units, in the same order, as `_re.split(r"\n+|;|[()]", ...)`:
-        # split at line breaks first, then at ";" / "(" / ")", so each unit
-        # knows which later units share its line (R40 `suffix`).
+        # Same units, in the same order, as `_re.split(r"\n+|;|[()]", ...)`
+        # (`_denial_units` checks it): split at line breaks first, then at
+        # ";" / "(" / ")", so each unit knows which later units share its
+        # line (R40 `suffix`).
         lined = [(li, tuple(_tokenize(unit)))
                  for li, line in enumerate(_re.split(r"\n+", sentence))
                  for unit in _re.split(r";|[()]", line) if unit.strip()]
@@ -3041,15 +3183,28 @@ def _has_strong_denial(tokens: tuple[str, ...]) -> bool:
             return True
         if tok in _EVENT_DENIAL_TARGETS and set(folded[max(0, i - 4):i]) & _EVENT_NEGATORS:
             return True
-    return _falsity_construction(folded)
+    return False
+
+
+def _has_strong_denial_r40(tokens: tuple[str, ...]) -> bool:
+    """The R40 reading of a strong denial: `_has_strong_denial` (main's
+    rules) or an R40 falsity construction (`_falsity_construction`). Read
+    ONLY by the R40 denial reading (`_source_unit_contexts_r40`, R40 heading
+    lines, `_trailing_denied`), never by main's (RED-TEAM-R42: widening
+    `_has_strong_denial` in place also changed which headings main's
+    `_strong_tokens` cuts out, a NEGATIVE use, and certified sources main
+    refuses). Pure."""
+    if _has_strong_denial(tokens):
+        return True
+    return _falsity_construction([_confusable_fold(t) for t in tokens])
 
 
 # R40 (RED-TEAM-R37 H2-H6, H13): falsity statements in words or shapes the
 # R36 strong list leaves out. Each is refusal-only (D-69): a missing word or
-# shape leaves main's reading. All are read by `_has_strong_denial`, so they
-# reach the paragraph rule (R38 referent test two or more sentences away),
-# the adjacent-sentence rule (R36 NEW-1), heading lines and the R40
-# same-sentence trailing rule.
+# shape leaves main's reading. All are read by `_has_strong_denial_r40` (the
+# R40 reading only, R42), so they reach the R40 paragraph rule (R38 referent
+# test two or more sentences away), the adjacent-sentence rule (R36 NEW-1),
+# heading lines and the R40 same-sentence trailing rule.
 #
 # Unconditional: words with no common honest sense other than "false".
 _R40_STRONG_TOKENS: frozenset[str] = frozenset({
@@ -3331,11 +3486,14 @@ def _points_forward(tokens: tuple[str, ...]) -> bool:
     folded = [_confusable_fold(t) for t in tokens]
     if set(folded) & (_FORWARD_REFERENCES - {"follows"}):
         return True
-    # R40 (RED-TEAM-R37 H13): "what comes after/next/below" points as "what
-    # follows" does (`_forward_free_relative`). Refusal only (D-69).
-    return (any(w == "follows" and set(folded[max(0, i - 2):i]) & _FOLLOWS_RELATIVE_HEADS
-                for i, w in enumerate(folded))
-            or _forward_free_relative(folded))
+    return any(w == "follows" and set(folded[max(0, i - 2):i]) & _FOLLOWS_RELATIVE_HEADS
+               for i, w in enumerate(folded))
+
+
+def _points_forward_r40(tokens: tuple[str, ...]) -> bool:
+    """The R40 reading (RED-TEAM-R37 H13): `_points_forward`, or "what comes
+    after/next/below" (`_forward_free_relative`). R40 reading only. Pure."""
+    return _points_forward(tokens) or _forward_free_relative([_confusable_fold(t) for t in tokens])
 
 
 def _unit_denied(ctx: _UnitContext, match_start: int) -> bool:
@@ -3407,6 +3565,18 @@ def _unit_denied(ctx: _UnitContext, match_start: int) -> bool:
     return len(ctx.following) <= 3 or bool(following & _BACK_REFERENCES)
 
 
+def _unit_denied_r40(ctx: _UnitContext, match_start: int) -> bool:
+    """The R40 reading of `_unit_denied`: main's rules on *ctx*, or a previous
+    sentence (one or two back) that denies and points forward by a free
+    relative ("What comes after is untrue.", `_forward_free_relative`, H13).
+    Equal to `_unit_denied` with `_points_forward_r40`, since main's rule
+    reads `_points_forward` only positively. R40 reading only. Pure."""
+    if _unit_denied(ctx, match_start):
+        return True
+    return any(_has_denial(p) and _forward_free_relative([_confusable_fold(t) for t in p])
+               for p in (ctx.previous, ctx.previous2))
+
+
 def _trailing_denied(ctx: _UnitContext, match_end: int, own: frozenset[str]) -> bool:
     """R40 (RED-TEAM-R37 H1): True iff the words AFTER a match ending at
     *match_end* -- the rest of its unit plus the later units of its sentence
@@ -3429,7 +3599,7 @@ def _trailing_denied(ctx: _UnitContext, match_end: int, own: frozenset[str]) -> 
     banks never fail.") is refused. Upgrade path: a clause parse binding the
     falsity predicate to its subject."""
     after = tuple(t for t in tuple(ctx.tokens[match_end:]) + ctx.suffix if t not in own)
-    return bool(after) and _has_strong_denial(after)
+    return bool(after) and _has_strong_denial_r40(after)
 
 
 # R40 (RED-TEAM-R37 H7): the comparison copy that the denial tests ALSO read.
@@ -3531,7 +3701,7 @@ def _align_tokens(original: tuple[str, ...], view: tuple[str, ...]) -> tuple[int
 
 
 def _view_unit_contexts(source_text: str, contexts: list[_UnitContext]) -> list[_ViewUnit | None]:
-    """For each of *contexts* (`_source_unit_contexts(source_text)`), its
+    """For each of *contexts* (`_source_unit_contexts_r40(source_text)`), its
     comparison-copy unit, or None for every unit when the copy is the text
     itself (nothing to fold). Pure.
 
@@ -3542,7 +3712,7 @@ def _view_unit_contexts(source_text: str, contexts: list[_UnitContext]) -> list[
     view = _comparison_view(source_text)
     if view == _nfkc(source_text).casefold():
         return [None] * len(contexts)
-    view_contexts = _source_unit_contexts(view)
+    view_contexts = _source_unit_contexts_r40(view)
     if len(view_contexts) != len(contexts):
         return [_ViewUnit(None)] * len(contexts)
     out: list[_ViewUnit | None] = []
@@ -3552,12 +3722,45 @@ def _view_unit_contexts(source_text: str, contexts: list[_UnitContext]) -> list[
     return out
 
 
-def _match_denied(ctx: _UnitContext, view: _ViewUnit | None, start: int, end: int,
-                  own: frozenset[str]) -> bool:
-    """True iff a match of tokens [start, end) in *ctx* is denied: by
-    `_unit_denied` or `_trailing_denied` on the text, or (R40 H7) by the same
-    two tests on the comparison copy *view*. Pure. Refusal only (D-69)."""
-    if _unit_denied(ctx, start) or _trailing_denied(ctx, end, own):
+@dataclass(frozen=True)
+class _DenialUnit:
+    """One source unit under both denial readings (RED-TEAM-R42): `main`,
+    origin/main's reading exactly (`_source_unit_contexts`); `r40`, the R40
+    reading (`_source_unit_contexts_r40`); `view`, its R40 comparison-copy
+    unit (`_view_unit_contexts`). Same tokens in both readings."""
+    main: _UnitContext
+    r40: _UnitContext
+    view: _ViewUnit | None
+
+
+def _denial_units(source_text: str) -> list[_DenialUnit]:
+    """Every unit of *source_text* under both denial readings. Raises if the
+    two readings do not split the text into the same units: the OR in
+    `_match_denied` is only sound unit by unit. Pure."""
+    main = _source_unit_contexts(source_text)
+    r40 = _source_unit_contexts_r40(source_text)
+    if len(main) != len(r40) or any(m.tokens != r.tokens for m, r in zip(main, r40)):
+        raise RuntimeError("main and R40 denial readings split the source into different units")
+    views = _view_unit_contexts(source_text, r40)
+    return [_DenialUnit(m, r, v) for m, r, v in zip(main, r40, views)]
+
+
+def _match_denied(unit: _DenialUnit, start: int, end: int, own: frozenset[str]) -> bool:
+    """True iff a match of tokens [start, end) in *unit* is denied. Main's
+    verdict FIRST, computed exactly as origin/main computes it
+    (`_unit_denied` on `unit.main`), then the R40 reading OR'd
+    (`_r40_match_denied`). So the branch refuses whenever main refuses, for
+    every input, by construction (RED-TEAM-R42; D-69). Pure."""
+    return _unit_denied(unit.main, start) or _r40_match_denied(unit.r40, unit.view, start, end, own)
+
+
+def _r40_match_denied(ctx: _UnitContext, view: _ViewUnit | None, start: int, end: int,
+                      own: frozenset[str]) -> bool:
+    """The R40 reading of a match denial: `_unit_denied_r40` or
+    `_trailing_denied` on the text, or (H7) the same two tests on the
+    comparison copy *view* (alignment failure = denied). Read only through
+    `_match_denied`, after main's verdict. Pure."""
+    if _unit_denied_r40(ctx, start) or _trailing_denied(ctx, end, own):
         return True
     if view is None:
         return False
@@ -3565,7 +3768,7 @@ def _match_denied(ctx: _UnitContext, view: _ViewUnit | None, start: int, end: in
         return True
     view_own = frozenset(_view_token(t) for t in own)
     view_end = view.index[end - 1] + 1 if end > 0 else 0
-    return (_unit_denied(view.ctx, view.index[start])
+    return (_unit_denied_r40(view.ctx, view.index[start])
             or _trailing_denied(view.ctx, view_end, view_own))
 
 
@@ -3588,11 +3791,9 @@ def _anchor_sentence_covers(
     # counted as "the same sentence". Cut those too, HERE only — the shared
     # splitter also feeds diagnostics whose numbers tests pin. Smaller units
     # can only make coverage harder: fail-closed.
-    contexts = _source_unit_contexts(source_text)
-    views = _view_unit_contexts(source_text, contexts)
     own = frozenset(claim_tokens)
-    for ctx, view in zip(contexts, views):
-        toks = list(ctx.tokens)
+    for unit in _denial_units(source_text):
+        toks = list(unit.main.tokens)
         vocab = set(toks)
         if not all(tok in vocab for tok in claim_content):
             continue
@@ -3606,7 +3807,7 @@ def _anchor_sentence_covers(
         # R40: `_match_denied` adds the same-sentence trailing falsity rule
         # (the claim's own words skipped) and the comparison-copy run.
         if any(tuple(toks[i : i + min_quote_len]) in windows
-               and not _match_denied(ctx, view, i, i + min_quote_len, own)
+               and not _match_denied(unit, i, i + min_quote_len, own)
                for i in range(len(toks) - min_quote_len + 1)):
             return True
     return False

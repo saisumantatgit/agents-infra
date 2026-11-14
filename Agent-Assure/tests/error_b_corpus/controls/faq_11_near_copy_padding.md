@@ -1,0 +1,1 @@
+Harvest Desk is available in 8 languages [S1]. Harvest Desk keeps recipes in the account that uploaded them [S1]. Deleted recipes stay in the trash for 6 days [S1].
