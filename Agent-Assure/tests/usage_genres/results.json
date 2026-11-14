@@ -57,8 +57,8 @@
    true
   ],
   "b03_bullets_copied": [
-   true,
-   true,
+   false,
+   false,
    false,
    false,
    true,
@@ -84,7 +84,7 @@
    false,
    false,
    false,
-   false
+   true
   ],
   "b07_bullets_copied": [
    true,
@@ -245,12 +245,12 @@
   "t05_tables_copied": [
    false,
    false,
-   false
+   true
   ],
   "t06_tables_copied": [
    false,
    false,
-   false
+   true
   ],
   "t07_tables_copied": [
    false,
@@ -428,8 +428,8 @@
    "variant": "copied",
    "text": "- UNCITED: a factual claim with no citation marker [S1].",
    "kind": "FACTUAL",
-   "verdict": "GROUNDED",
-   "diagnostic": "no_hedge_in_cited_sentence"
+   "verdict": "UNGROUNDED",
+   "diagnostic": "verbatim_but_paragraph_has_falsity_statement"
   },
   {
    "draft": "b03_bullets_copied",
@@ -437,8 +437,8 @@
    "variant": "copied",
    "text": "- UNVERIFIED_NUMBER: a number in the claim matches no source [S1].",
    "kind": "FACTUAL",
-   "verdict": "GROUNDED",
-   "diagnostic": "no_hedge_in_cited_sentence"
+   "verdict": "UNGROUNDED",
+   "diagnostic": "verbatim_but_paragraph_has_falsity_statement"
   },
   {
    "draft": "b03_bullets_copied",
@@ -474,7 +474,7 @@
    "text": "- FAIL: the score is below 60 [S1].",
    "kind": "NUMERIC",
    "verdict": "UNGROUNDED",
-   "diagnostic": "no_hedge_in_cited_sentence"
+   "diagnostic": "verbatim_but_hedge_word_before_it"
   },
   {
    "draft": "b04_bullets_copied",
@@ -564,7 +564,7 @@
    "text": "a writer does not block readers [S1].",
    "kind": "FACTUAL",
    "verdict": "UNGROUNDED",
-   "diagnostic": "no_hedge_in_cited_sentence"
+   "diagnostic": "verbatim_but_hedge_word_before_it"
   },
   {
    "draft": "b05_bullets_copied",
@@ -573,7 +573,7 @@
    "text": "- Only one writer can be active at a time [S1].",
    "kind": "FACTUAL",
    "verdict": "UNGROUNDED",
-   "diagnostic": "no_hedge_in_cited_sentence"
+   "diagnostic": "verbatim_but_hedge_word_before_it"
   },
   {
    "draft": "b05_bullets_copied",
@@ -636,7 +636,7 @@
    "text": "- One JSON object per line [S1].",
    "kind": "ATTRIBUTION",
    "verdict": "UNGROUNDED",
-   "diagnostic": "no_hedge_in_cited_sentence"
+   "diagnostic": "verbatim_but_hedge_word_before_it"
   },
   {
    "draft": "b06_bullets_copied",
@@ -645,7 +645,7 @@
    "text": "- Blank lines are skipped [S1].",
    "kind": "FACTUAL",
    "verdict": "UNGROUNDED",
-   "diagnostic": "no_hedge_in_cited_sentence"
+   "diagnostic": "verbatim_but_hedge_word_before_it"
   },
   {
    "draft": "b06_bullets_copied",
@@ -653,8 +653,8 @@
    "variant": "copied",
    "text": "- All text fields are NFKC-normalized before matching [S1].",
    "kind": "FACTUAL",
-   "verdict": "UNGROUNDED",
-   "diagnostic": "cited_sentence_may_not_assert_claim"
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
   },
   {
    "draft": "b07_bullets_copied",
@@ -977,7 +977,7 @@
    "variant": "paraphrased",
    "text": "- Headers, questions, instructions [S1]",
    "kind": "FACTUAL",
-   "verdict": "GROUNDED",
+   "verdict": "UNGROUNDED",
    "diagnostic": "no_hedge_in_cited_sentence"
   },
   {
@@ -1167,7 +1167,7 @@
    "text": "By default the files are created in the directory returned by `gettempdir`, which honors the `TMPDIR` environment variable [S1].",
    "kind": "FACTUAL",
    "verdict": "UNGROUNDED",
-   "diagnostic": "no_hedge_in_cited_sentence"
+   "diagnostic": "verbatim_but_next_sentence_denies"
   },
   {
    "draft": "c01_code_copied",
@@ -1212,7 +1212,7 @@
    "text": "Passing `delete=False` to `NamedTemporaryFile` keeps the file after it is closed, so that another process can open it by name [S1].",
    "kind": "FACTUAL",
    "verdict": "UNGROUNDED",
-   "diagnostic": "no_hedge_in_cited_sentence"
+   "diagnostic": "verbatim_but_next_sentence_denies"
   },
   {
    "draft": "c02_code_copied",
@@ -1230,7 +1230,7 @@
    "text": "The `SpooledTemporaryFile` class keeps data in memory until it grows beyond `max_size` bytes [S1]",
    "kind": "FACTUAL",
    "verdict": "UNGROUNDED",
-   "diagnostic": "no_hedge_in_cited_sentence"
+   "diagnostic": "verbatim_but_next_sentence_denies"
   },
   {
    "draft": "c02_code_copied",
@@ -1239,7 +1239,7 @@
    "text": "then rolls it over to disk [S1].",
    "kind": "FACTUAL",
    "verdict": "UNGROUNDED",
-   "diagnostic": "no_hedge_in_cited_sentence"
+   "diagnostic": "verbatim_but_next_sentence_denies"
   },
   {
    "draft": "c02_code_copied",
@@ -1311,7 +1311,7 @@
    "text": "The interactive form, `git rebase -i`, lets the author reorder, squash, edit or drop commits [S1].",
    "kind": "FACTUAL",
    "verdict": "UNGROUNDED",
-   "diagnostic": "no_hedge_in_cited_sentence"
+   "diagnostic": "verbatim_but_next_sentence_denies"
   },
   {
    "draft": "c03_code_copied",
@@ -1401,7 +1401,7 @@
    "text": "The default index type is B-tree [S1]",
    "kind": "FACTUAL",
    "verdict": "UNGROUNDED",
-   "diagnostic": "cited_sentence_may_not_assert_claim"
+   "diagnostic": "verbatim_but_denial_earlier_in_sentence"
   },
   {
    "draft": "c05_code_copied",
@@ -1410,7 +1410,7 @@
    "text": "`CREATE INDEX` builds one unless another method is named with `USING` [S1].",
    "kind": "FACTUAL",
    "verdict": "UNGROUNDED",
-   "diagnostic": "cited_sentence_may_not_assert_claim"
+   "diagnostic": "verbatim_but_denial_earlier_in_sentence"
   },
   {
    "draft": "c05_code_copied",
@@ -1464,7 +1464,7 @@
    "text": "A client sends the value back in an `If-None-Match` header [S1]",
    "kind": "FACTUAL",
    "verdict": "UNGROUNDED",
-   "diagnostic": "cited_sentence_may_not_assert_claim"
+   "diagnostic": "verbatim_but_source_sentence_negates_differently"
   },
   {
    "draft": "c06_code_copied",
@@ -1473,7 +1473,7 @@
    "text": "the server answers with status 304 when the resource has not changed [S1].",
    "kind": "NUMERIC",
    "verdict": "UNGROUNDED",
-   "diagnostic": "cited_sentence_may_not_assert_claim"
+   "diagnostic": "verbatim_but_hedge_word_before_it"
   },
   {
    "draft": "c06_code_copied",
@@ -1482,7 +1482,7 @@
    "text": "The `Vary` header lists the request headers that change the response, so that a cache keeps separate copies for each combination [S1].",
    "kind": "FACTUAL",
    "verdict": "UNGROUNDED",
-   "diagnostic": "no_hedge_in_cited_sentence"
+   "diagnostic": "verbatim_but_hedge_word_before_it"
   },
   {
    "draft": "c06_code_copied",
@@ -1536,7 +1536,7 @@
    "text": "The store is written to `.assure/evidence-store.jsonl` in the project you work in [S1].",
    "kind": "FACTUAL",
    "verdict": "UNGROUNDED",
-   "diagnostic": "no_hedge_in_cited_sentence"
+   "diagnostic": "verbatim_but_next_sentence_denies"
   },
   {
    "draft": "c07_code_copied",
@@ -1545,7 +1545,7 @@
    "text": "Optional flag: `--threshold N` sets the score bar (default 90) [S1].",
    "kind": "NUMERIC",
    "verdict": "UNGROUNDED",
-   "diagnostic": "no_hedge_in_cited_sentence"
+   "diagnostic": "verbatim_but_hedge_word_before_it"
   },
   {
    "draft": "c08_code_paraphrased",
@@ -2049,7 +2049,7 @@
    "text": "a writer does not block readers [S1].",
    "kind": "FACTUAL",
    "verdict": "UNGROUNDED",
-   "diagnostic": "no_hedge_in_cited_sentence"
+   "diagnostic": "verbatim_but_hedge_word_before_it"
   },
   {
    "draft": "t05_tables_copied",
@@ -2084,8 +2084,8 @@
    "variant": "copied",
    "text": "All text fields are NFKC-normalized before matching [S1].",
    "kind": "FACTUAL",
-   "verdict": "UNGROUNDED",
-   "diagnostic": "cited_sentence_may_not_assert_claim"
+   "verdict": "GROUNDED",
+   "diagnostic": "no_hedge_in_cited_sentence"
   },
   {
    "draft": "t06_tables_copied",
@@ -2111,7 +2111,7 @@
    "variant": "copied",
    "text": "|\n| `FAIL` | score < 60 \u2014 **checked first**, so a sub-60 score is `FAIL` even when other overrides apply [S1] |",
    "kind": "NUMERIC",
-   "verdict": "UNGROUNDED",
+   "verdict": "GROUNDED",
    "diagnostic": "cited_sentence_may_not_assert_claim"
   },
   {

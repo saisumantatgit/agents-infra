@@ -23,7 +23,7 @@ import re as _re
 import unicodedata
 from pathlib import Path
 from collections import Counter
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import Iterator
 
@@ -97,6 +97,12 @@ class Claim:
     kind: ClaimKind
     citations: tuple[str, ...]
     numeric_tokens: tuple[str, ...]
+    # REASONS-FOR-REFUSAL (2026-11-15): the draft sentence this claim was cut
+    # from by `_conjunction_split`, or "" when it was not cut. DISPLAY ONLY:
+    # no verdict function reads it (AST guard in
+    # tests/test_reason_names_denial.py), and it is excluded from equality and
+    # hashing so two claims that differ only here compare as before.
+    split_from: str = field(default="", compare=False)
 
 
 # ---------------------------------------------------------------------------
@@ -911,7 +917,9 @@ def decompose(draft: str) -> list[Claim]:
             raw_sentences[position + 1] if position + 1 < len(raw_sentences) else ""
         )
         raw_sentence = _propagate_across_semicolon(raw_sentence, following)
-        for text in _conjunction_split(raw_sentence):
+        pieces = _conjunction_split(raw_sentence)
+        split_from = raw_sentence.strip() if len(pieces) > 1 else ""
+        for text in pieces:
             text = text.strip()
             if not text:
                 continue
@@ -921,6 +929,7 @@ def decompose(draft: str) -> list[Claim]:
                 kind=ClaimKind.FACTUAL,
                 citations=(),
                 numeric_tokens=(),
+                split_from=split_from,
             ))
             index += 1
     return claims
@@ -1544,6 +1553,7 @@ def classify(claim: Claim) -> Claim:
         kind=kind,
         citations=citations,
         numeric_tokens=numeric_tokens,
+        split_from=claim.split_from,
     )
 
 
@@ -1655,6 +1665,15 @@ _SPAN_HEDGE_TOKENS: frozenset[str] = frozenset({
 _SPAN_HEDGE_LOOKBACK: int = 5
 
 
+def _span_hedge_hits(source_tokens: list[str], start: int) -> tuple[str, ...]:
+    """The `_SPAN_HEDGE_TOKENS` among the up-to-`_SPAN_HEDGE_LOOKBACK` tokens
+    before the span at *start*, in source order. `_span_is_hedged` is True
+    exactly when this is non-empty; the report quotes these words
+    (REASONS-FOR-REFUSAL). Pure."""
+    window = source_tokens[max(0, start - _SPAN_HEDGE_LOOKBACK):start]
+    return tuple(tok for tok in window if tok in _SPAN_HEDGE_TOKENS)
+
+
 def _span_is_hedged(source_tokens: list[str], start: int) -> bool:
     """Return True iff the span at *start* sits under an attribution or denial.
 
@@ -1666,8 +1685,7 @@ def _span_is_hedged(source_tokens: list[str], start: int) -> bool:
     where a hedge token happens to be nearby, and that returns True (refuse),
     never False. Pure function.
     """
-    window = source_tokens[max(0, start - _SPAN_HEDGE_LOOKBACK):start]
-    return any(tok in _SPAN_HEDGE_TOKENS for tok in window)
+    return bool(_span_hedge_hits(source_tokens, start))
 
 
 # --- OI-MOAT-27 / J-19: factivity, not a longer blacklist -------------------
@@ -2140,6 +2158,12 @@ class _UnitContext:
     # ("<claim> (fabricated).", "<claim>; none of it is true."), read by
     # `_trailing_denied` with the tokens after the match.
     suffix: tuple[str, ...] = ()
+    # REASONS-FOR-REFUSAL (2026-11-15), DISPLAY ONLY: which half of
+    # `context_denied` fired, and the sentence index, so the report can quote
+    # the denying text. No verdict rule reads these three fields.
+    paragraph_denied: bool = False
+    heading_denied: bool = False
+    sentence_index: int = -1
 
 
 # H4 (2026-10-25): label words that DISOWN the list under them ("Myths:",
@@ -2924,7 +2948,9 @@ def _source_unit_contexts(source_text: str) -> list[_UnitContext]:
                                if s > 0 else ()),
                 context_denied=para_denied[s] or head_denied[s],
                 previous_strong=strong[s - 1] if s > 0 else False,
-                following_strong=strong[s + 1] if s + 1 < len(sentences) else False))
+                following_strong=strong[s + 1] if s + 1 < len(sentences) else False,
+                paragraph_denied=para_denied[s], heading_denied=head_denied[s],
+                sentence_index=s))
             prefix.extend(toks)
     return out
 
@@ -3498,6 +3524,30 @@ def _points_forward_r40(tokens: tuple[str, ...]) -> bool:
 
 def _unit_denied(ctx: _UnitContext, match_start: int) -> bool:
     """True iff the text around a match at *match_start* in *ctx* denies it.
+    The rules, their order and their CEILINGs live in `_unit_denial_reason`;
+    this is exactly `reason is not None`. Pure."""
+    return _unit_denial_reason(ctx, match_start) is not None
+
+
+# Rule codes returned by `_unit_denial_reason` (REASONS-FOR-REFUSAL). The
+# report names the rule; the verdict reads only "is there one".
+DENIAL_DISOWNED_LIST = "disowned_list"
+DENIAL_SCOPE_SENTENCE = "scope_sentence"
+DENIAL_CONTEXT = "paragraph_or_heading"
+# The two halves of DENIAL_CONTEXT, told apart by the DISPLAY only.
+DENIAL_PARAGRAPH = "paragraph"
+DENIAL_HEADING = "heading"
+DENIAL_SAME_SENTENCE = "same_sentence"
+DENIAL_PREVIOUS = "previous_sentence"
+DENIAL_PREVIOUS_LINE = "previous_line"
+DENIAL_PREVIOUS2 = "two_sentences_back"
+DENIAL_FOLLOWING_STRONG = "next_sentence_falsity"
+DENIAL_PREVIOUS_STRONG = "previous_sentence_falsity"
+DENIAL_FOLLOWING = "next_sentence_points_back"
+
+
+def _unit_denial_reason(ctx: _UnitContext, match_start: int) -> str | None:
+    """The rule that denies a match at *match_start* in *ctx*, or None.
 
     H1: a denial word anywhere before the match in the same sentence (across
     the unit splits, and beyond `_SPAN_HEDGE_LOOKBACK`); a previous sentence
@@ -3514,14 +3564,18 @@ def _unit_denied(ctx: _UnitContext, match_start: int) -> bool:
     sentence that denies without a forward reference word. Upgrade path: a
     discourse/coreference model of what a denial targets.
     """
-    if ctx.disowned or ctx.scope_denied or ctx.context_denied:
-        return True
+    if ctx.disowned:
+        return DENIAL_DISOWNED_LIST
+    if ctx.scope_denied:
+        return DENIAL_SCOPE_SENTENCE
+    if ctx.context_denied:
+        return DENIAL_CONTEXT
     before = tuple(ctx.prefix) + tuple(ctx.tokens[:match_start])
     if _has_denial(before):
-        return True
+        return DENIAL_SAME_SENTENCE
     if _has_denial(ctx.previous) and (
             _points_forward(ctx.previous) or _is_bare_denial(ctx.previous)):
-        return True
+        return DENIAL_PREVIOUS
     # RUN-2026-11-04 (prev_denial_stray): one short sentence between the denial
     # and the claim ("None of this is true. Use `z`. <claim>.") hid it. The same
     # previous-sentence rule now also reads the sentence before that.
@@ -3541,28 +3595,32 @@ def _unit_denied(ctx: _UnitContext, match_start: int) -> bool:
     # or placed before the claim (R34-06, three back). Upgrade path: split
     # sentences at fence / line boundaries.
     if _is_bare_denial(ctx.previous_line):
-        return True
+        return DENIAL_PREVIOUS_LINE
     if _has_denial(ctx.previous2) and (
             _points_forward(ctx.previous2) or _is_bare_denial(ctx.previous2)):
-        return True
+        return DENIAL_PREVIOUS2
     # R36 NEW-1: a falsity statement in the NEXT sentence denies the claim
     # with or without a back-reference word ("<claim>. The story was
     # fabricated."); the paragraph rule misses it across a blank line.
     if ctx.following_strong is None or ctx.previous_strong is None:
         raise ValueError("_UnitContext strong-denial flags were not computed")
-    if ctx.following_strong or ctx.previous_strong:
-        return True
+    if ctx.following_strong:
+        return DENIAL_FOLLOWING_STRONG
+    if ctx.previous_strong:
+        return DENIAL_PREVIOUS_STRONG
     following = set(ctx.following)
     if not _has_denial(ctx.following):
-        return False
+        return None
     if _is_bare_denial(ctx.following):
-        return True
+        return DENIAL_FOLLOWING
     # H2: a bare short reply right after ("No.", "Not so.", "Untrue.") denies
     # the sentence before it, back-reference or not.
     # CEILING: a 3-token cut. A longer bare reply ("No, not at all, sir.")
     # stays open (fail-open); an honest short negative after the claim
     # ("Not always.") is refused (Error-A). Upgrade path: dialogue-act tagging.
-    return len(ctx.following) <= 3 or bool(following & _BACK_REFERENCES)
+    if len(ctx.following) <= 3 or bool(following & _BACK_REFERENCES):
+        return DENIAL_FOLLOWING
+    return None
 
 
 def _unit_denied_r40(ctx: _UnitContext, match_start: int) -> bool:
@@ -7037,6 +7095,341 @@ def support_diagnostic(claim: Claim, store: dict[str, RetrievedSource]) -> str:
 
 
 # ======================================================================
+# REASONS FOR REFUSAL (alpha walkthrough 2, 2026-11-15). DISPLAY ONLY.
+#
+# A tester copied 14 of ~40 source sentences exactly and got UNGROUNDED with
+# an evidence_basis of "Checked verbatim against 1 cited source" and a fix line
+# telling him to do what he had just done. The verdicts were the rules working
+# as written (hedge window, denial context, negation polarity, a split piece);
+# the defect was that the report never said WHICH rule disowned the copy.
+#
+# `verbatim_refusal` replays T1's EXACT-containment path over the same helpers
+# the verdict uses (`_span_hedge_hits`, `_span_under_nonfactive_complement`,
+# `_unit_denial_reason`, `_negation_bigrams`, `_negated_claim_is_limited`) and
+# reports the first rule that refused each verbatim occurrence. It is called by
+# `score_report` only for a claim whose verdict is already UNGROUNDED; nothing
+# in `ground`'s call tree reads it (AST guard: tests/test_reason_names_denial.py)
+# and the verdict, score and gate are unchanged for every input (differential
+# fuzz against main, reports/REASONS-FOR-REFUSAL.md).
+#
+# CEILING: it explains the EXACT-containment path only. A claim of 8+ tokens
+# that is refused on the 8-gram span path while having NO exact occurrence gets
+# no reason (the old text stands); and when several occurrences are refused for
+# different reasons, the first two are named. Upgrade path: return the reason
+# from t1_verbatim itself once that path is restructured as reason-returning.
+# ======================================================================
+SUPPORT_VERBATIM_HEDGE_WORD = "verbatim_but_hedge_word_before_it"
+SUPPORT_VERBATIM_NONFACTIVE = "verbatim_but_under_non_asserting_verb"
+SUPPORT_VERBATIM_DENIED = {
+    DENIAL_DISOWNED_LIST: "verbatim_but_under_disowning_label",
+    DENIAL_SCOPE_SENTENCE: "verbatim_but_after_denial_of_what_follows",
+    DENIAL_PARAGRAPH: "verbatim_but_paragraph_has_falsity_statement",
+    DENIAL_HEADING: "verbatim_but_under_denying_heading",
+    DENIAL_SAME_SENTENCE: "verbatim_but_denial_earlier_in_sentence",
+    DENIAL_PREVIOUS: "verbatim_but_previous_sentence_denies",
+    DENIAL_PREVIOUS_LINE: "verbatim_but_previous_line_denies",
+    DENIAL_PREVIOUS2: "verbatim_but_sentence_two_back_denies",
+    DENIAL_FOLLOWING_STRONG: "verbatim_but_next_sentence_says_false",
+    DENIAL_PREVIOUS_STRONG: "verbatim_but_previous_sentence_says_false",
+    DENIAL_FOLLOWING: "verbatim_but_next_sentence_denies",
+}
+SUPPORT_VERBATIM_POLARITY = "verbatim_but_source_sentence_negates_differently"
+SUPPORT_VERBATIM_LIMITED = "verbatim_but_negation_limited_in_source"
+VERBATIM_REFUSAL_CODES: frozenset[str] = frozenset(
+    {SUPPORT_VERBATIM_HEDGE_WORD, SUPPORT_VERBATIM_NONFACTIVE,
+     SUPPORT_VERBATIM_POLARITY, SUPPORT_VERBATIM_LIMITED}
+    | set(SUPPORT_VERBATIM_DENIED.values()))
+
+_DENIAL_RULE_TEXT: dict[str, str] = {
+    DENIAL_DISOWNED_LIST: "it sits in a list under a label that disowns the list",
+    DENIAL_SCOPE_SENTENCE: ("an earlier sentence denies everything after it, and "
+                            "this sentence comes after it"),
+    DENIAL_PARAGRAPH: ("another sentence in the same paragraph says something is "
+                       "false and the gate reads it as referring to this sentence"),
+    DENIAL_HEADING: "the heading above this part of the source disowns its section",
+    DENIAL_SAME_SENTENCE: ("a denial word comes earlier in the same source sentence, "
+                           "so the gate reads the sentence as denying it"),
+    DENIAL_PREVIOUS: ("the sentence before it holds a denial word and a word that "
+                      "points forward, so the gate reads it as denying this one"),
+    DENIAL_PREVIOUS_LINE: "the line just before it is a bare denial",
+    DENIAL_PREVIOUS2: ("the sentence two before it holds a denial word and a word "
+                       "that points forward, so the gate reads it as denying this one"),
+    DENIAL_FOLLOWING_STRONG: "the sentence after it says something is false",
+    DENIAL_PREVIOUS_STRONG: "the sentence before it says something is false",
+    DENIAL_FOLLOWING: ("the sentence after it holds a denial word and points back "
+                       "or is a short reply, so the gate reads it as denying this one"),
+}
+
+
+@dataclass(frozen=True)
+class VerbatimRefusal:
+    """Why a verbatim occurrence of a claim in a cited source did not count.
+    `code` is the support_diagnostic value; `text` is the sentence appended to
+    evidence_basis. Display only."""
+    code: str
+    text: str
+
+
+def _quote(text: str, limit: int = 160) -> str:
+    """*text* on one line, cut to *limit* characters with an ellipsis. Pure."""
+    flat = " ".join(text.split())
+    return flat if len(flat) <= limit else flat[:limit - 1].rstrip() + "…"
+
+
+def _word_list(words) -> str:
+    """'word "x"' or 'words "x", "y"' for the distinct *words*. Pure."""
+    distinct = list(dict.fromkeys(words))
+    return f"{_plural(len(distinct), 'word', 'words')} {_quoted_words(distinct)}"
+
+
+def _quoted_words(words) -> str:
+    """'"a", "b"' for the distinct *words* in order. Pure."""
+    seen: list[str] = []
+    for w in words:
+        if w not in seen:
+            seen.append(w)
+    return ", ".join(f'"{w}"' for w in seen)
+
+
+def _denial_words(tokens: tuple[str, ...]) -> list[str]:
+    """The words of *tokens* that `_has_denial` / `_has_strong_denial` react
+    to, in order (look-alikes folded), plus a two-word denial. Pure."""
+    out = [t for t in tokens if _confusable_fold(t) in _DENIAL_TOKENS
+           or _confusable_fold(t) in _STRONG_DENIAL_TOKENS
+           or _confusable_fold(t) in _PREDICATIVE_DENIAL_TOKENS]
+    folded = [_confusable_fold(t) for t in tokens]
+    for i in range(len(folded) - 1):
+        pair = (folded[i], folded[i + 1])
+        if pair in _PHRASAL_DENIAL_PAIRS or pair == ("made", "up"):
+            out.append(f"{tokens[i]} {tokens[i + 1]}")
+    for i, tok in enumerate(folded):
+        if tok in _EVENT_DENIAL_TARGETS and set(folded[max(0, i - 4):i]) & _EVENT_NEGATORS:
+            out.append(tokens[i])
+    return out
+
+
+def _denial_trigger(rule: str, ctx: _UnitContext, match_start: int,
+                    source_text: str) -> str:
+    """The source text that made *rule* fire for *ctx*, quoted. Pure."""
+    sentences = _split_sentences(source_text)
+    s = ctx.sentence_index
+
+    def sentence(k: int) -> str:
+        return _quote(sentences[k]) if 0 <= k < len(sentences) else ""
+
+    if rule == DENIAL_SAME_SENTENCE:
+        before = tuple(ctx.prefix) + tuple(ctx.tokens[:match_start])
+        return (f'denial {_quoted_words(_denial_words(before))} in '
+                f'"{" ".join(before)} …"')
+    if rule in (DENIAL_PREVIOUS, DENIAL_PREVIOUS_STRONG):
+        toks = tuple(_tokenize(sentences[s - 1])) if s >= 1 else ()
+        return f'"{sentence(s - 1)}" ({_word_list(_denial_words(toks))})'
+    if rule == DENIAL_PREVIOUS2:
+        toks = tuple(_tokenize(sentences[s - 2])) if s >= 2 else ()
+        return f'"{sentence(s - 2)}" ({_word_list(_denial_words(toks))})'
+    if rule == DENIAL_PREVIOUS_LINE:
+        return f'"{" ".join(ctx.previous_line)}"'
+    if rule in (DENIAL_FOLLOWING, DENIAL_FOLLOWING_STRONG):
+        toks = tuple(_tokenize(sentences[s + 1])) if s + 1 < len(sentences) else ()
+        return f'"{sentence(s + 1)}" ({_word_list(_denial_words(toks))})'
+    if rule == DENIAL_SCOPE_SENTENCE:
+        start = _denial_scope_start([tuple(_tokenize(x)) for x in sentences])
+        return f'"{sentence(start)}"'
+    if rule == DENIAL_HEADING:
+        spans = _sentence_spans(source_text, sentences)
+        base = _nfkc(source_text).strip()
+        lines = [base[a:b] for a, b, denies in _heading_line_spans(source_text)
+                 if denies and b <= spans[s][1]]
+        return f'heading "{_quote(lines[-1])}"' if lines else "a heading above it"
+    if rule == DENIAL_PARAGRAPH:
+        spans = _sentence_spans(source_text, sentences)
+        paras = _paragraph_ids(source_text, spans)
+        cut = _strong_tokens(source_text, spans)
+        mates = [t for t in range(len(sentences))
+                 if t != s and paras[t] & paras[s] and _has_strong_denial(cut[t])]
+        if not mates:
+            mates = [t for t in range(s) if paras[t] & paras[s]
+                     and _has_denial(tuple(_tokenize(sentences[t])))]
+        if mates:
+            toks = tuple(_tokenize(sentences[mates[0]]))
+            return f'"{sentence(mates[0])}" ({_word_list(_denial_words(toks))})'
+        return "a sentence in the same paragraph"
+    if rule == DENIAL_DISOWNED_LIST:
+        label = ""
+        for line in _nfkc(source_text).split("\n"):
+            m = _LABEL_LINE_RE.match(line) or _LONG_LABEL_LINE_RE.match(line)
+            if m and _folded(_tokenize(m.group("label"))) & _DISOWNING_LABEL_TOKENS:
+                label = m.group("label").strip()
+            if label and _within(ctx.tokens, tuple(_tokenize(line))):
+                break
+        return f'label "{_quote(label)}:"' if label else "a disowning list label"
+    return ""
+
+
+def _occurrence_refusal(claim_tokens: list[str], source: RetrievedSource
+                        ) -> list[tuple[str, str]]:
+    """(code, reason text) for every refused exact occurrence of *claim_tokens*
+    in *source*, in T1's own order: hedge window, non-factive complement, then
+    the sentence-unit rules of `_contained_with_matching_polarity`. Empty when
+    there is no exact occurrence or one counts. Pure."""
+    width = len(claim_tokens)
+    source_tokens = _tokenize(source.text)
+    starts = [i for i in range(len(source_tokens) - width + 1)
+              if source_tokens[i:i + width] == claim_tokens]
+    out: list[tuple[str, str]] = []
+    unit_reasons_done = False
+    # Built once per source and only when a unit rule needs them: building them
+    # per hedged occurrence made a 100 KB source with 10 copies take 87 s instead
+    # of 2 s on main (RED-TEAM-R43 F1).
+    contexts: list[_UnitContext] | None = None
+    # CEILING: display-only wording hint. "Starts a sentence" is read from the raw
+    # text (claim's first words after start-of-text or . ! ? and whitespace), not
+    # from the unit split, because the split costs ~1.5 s per 100 KB source per
+    # claim. Breaks when the source starts sentences after ; : or a list marker
+    # (hint omitted, verdict unaffected). Upgrade: compute contexts once per
+    # report and pass them in.
+    lead_words = r"\W+".join(_re.escape(t) for t in claim_tokens[:4])
+    starts_sentence = _re.search(r"(?:\A|[.!?][\"')\]]*\s+)" + lead_words,
+                                 source.text, _re.IGNORECASE) is not None
+    for start in starts:
+        hits = _span_hedge_hits(source_tokens, start)
+        if hits:
+            window = source_tokens[max(0, start - _SPAN_HEDGE_LOOKBACK):start]
+            where = (" (they belong to the text before this sentence: the window "
+                     "does not stop at a sentence boundary)") if starts_sentence else ""
+            out.append((SUPPORT_VERBATIM_HEDGE_WORD,
+                        f'the {len(window)} words just before it in the source '
+                        f'("… {" ".join(window)}") include {_quoted_words(hits)}, which '
+                        f'the gate reads as a denial, hedge or attribution word{where}'))
+            continue
+        if _span_under_nonfactive_complement(source_tokens, start):
+            cursor = start
+            while cursor > 0 and source_tokens[cursor - 1] in _SPAN_LEADING_DETERMINERS:
+                cursor -= 1
+            lead = source_tokens[max(0, cursor - 6):cursor]
+            out.append((SUPPORT_VERBATIM_NONFACTIVE,
+                        f'it follows "{" ".join(lead)}", a "that" clause whose verb '
+                        f'does not assert it (only verbs like shown, found or '
+                        f'confirmed do, and none may be negated)'))
+            continue
+        if unit_reasons_done:
+            continue
+        unit_reasons_done = True
+        if contexts is None:
+            contexts = _source_unit_contexts(source.text)
+        for ctx in contexts:
+            toks = list(ctx.tokens)
+            unit_starts = [i for i in range(len(toks) - width + 1)
+                           if toks[i:i + width] == claim_tokens]
+            if not unit_starts:
+                continue
+            rules = [_unit_denial_reason(ctx, i) for i in unit_starts]
+            if all(r is not None for r in rules):
+                rule = rules[0]
+                if rule == DENIAL_CONTEXT:
+                    rule = (DENIAL_HEADING if ctx.heading_denied and not ctx.paragraph_denied
+                            else DENIAL_PARAGRAPH)
+                out.append((SUPPORT_VERBATIM_DENIED[rule],
+                            f'{_DENIAL_RULE_TEXT[rule]}: '
+                            f'{_denial_trigger(rule, ctx, unit_starts[0], source.text)}'))
+                continue
+            if not _negation_polarity_matches(claim_tokens, toks):
+                claim_neg = _negation_bigrams(claim_tokens)
+                unit_neg = _negation_bigrams(toks)
+                extra = [" ".join(p).strip() for p in sorted(unit_neg - claim_neg)]
+                missing = [" ".join(p).strip() for p in sorted(claim_neg - unit_neg)]
+                parts = []
+                if extra:
+                    parts.append(f"the source sentence also says {_quoted_words(extra)}, "
+                                 f"a negation this claim does not carry")
+                if missing:
+                    parts.append(f"this claim says {_quoted_words(missing)}, a "
+                                 f"negation the source sentence does not carry")
+                out.append((SUPPORT_VERBATIM_POLARITY,
+                            "; ".join(parts) + f' (source sentence: "{_quote(" ".join(toks))}"),'
+                            " and the gate requires the claim and its source sentence"
+                            " to negate exactly the same words"))
+                continue
+            if _negated_claim_is_limited(claim_tokens, toks):
+                out.append((SUPPORT_VERBATIM_LIMITED,
+                            f'in the source the negation continues with a limiting word '
+                            f'("{_quote(" ".join(toks))}") and the claim stops before it, '
+                            f'stating the negative without its limit'))
+    return out
+
+
+def verbatim_refusal(claim: Claim, sources: list[RetrievedSource]) -> VerbatimRefusal | None:
+    """Why the claim's verbatim occurrences in *sources* (the CERTIFYING cited
+    sources) did not ground it, or None when there is none to explain.
+
+    DISPLAY ONLY. Call it for a claim whose verdict is already UNGROUNDED; it
+    decides nothing (see the block comment above). Pure.
+    """
+    claim_tokens = _tokenize(_strip_citations(claim.text))
+    if not claim_tokens:
+        return None
+    found: list[tuple[str, str, str]] = []
+    for source in sources:
+        for code, reason in _occurrence_refusal(claim_tokens, source):
+            found.append((source.source_id, code, reason))
+    split_note = ""
+    if claim.split_from and claim.split_from.strip() != claim.text.strip():
+        split_note = (f' This claim is one piece of your sentence '
+                      f'"{_quote(claim.split_from, 200)}", split at "and" or ";"; '
+                      f'the piece was checked on its own.')
+    if not found:
+        if not split_note:
+            return None
+        return VerbatimRefusal(code="", text=split_note.strip())
+    shown = found[:2]
+    reasons = " Also: ".join(
+        f"Found verbatim in {sid}, but {reason}, so the match does not count."
+        for sid, _, reason in shown)
+    more = (f" {len(found) - 2} further verbatim "
+            f"{_plural(len(found) - 2, 'occurrence was', 'occurrences were')} "
+            f"refused too.") if len(found) > 2 else ""
+    return VerbatimRefusal(
+        code=shown[0][1],
+        text=(f"{reasons}{more}{split_note} Copying the sentence again will not "
+              f"change this: the refusal comes from the source's own wording."))
+
+
+# REASONS-FOR-REFUSAL: the claim-side figure reader (`_NUMERIC_RE`) has no
+# "percent" alternative while the source-side reader (`_SOURCE_NUMERIC_RE`)
+# does, so "3.1 percent" copied exactly reads (3.1, absolute) in the claim and
+# (3.1, percent) in the source and never matches. The CAUSE is a ruling (it is
+# PASS-enabling; see the R38 ruling pack, candidate C2); this only SAYS it.
+_UNREAD_PERCENT_RE = _re.compile(r"\s*(?:percent|per\s+cent)\b", _re.IGNORECASE)
+
+
+def unread_unit_note(claim: Claim) -> str:
+    """A sentence naming every claim figure followed by the word "percent"
+    that the claim-side reader takes as a plain number, or "". Display only;
+    call it for a claim already refused UNVERIFIED_NUMBER. Pure."""
+    text = _CITATION_RE.sub("", _nfkc(claim.text))
+    hits: list[str] = []
+    cursor = 0
+    for token in claim.numeric_tokens:
+        pos = text.find(token, cursor)
+        if pos == -1:
+            continue
+        cursor = pos + len(token)
+        parsed = _parse_numeric_token(token)
+        if parsed is not None and parsed[1] == "absolute" and \
+                _UNREAD_PERCENT_RE.match(text, cursor):
+            hits.append(token)
+    if not hits:
+        return ""
+    figs = _quoted_words(hits)
+    return (f" In this claim {figs} {_plural(len(hits), 'is', 'are')} followed by "
+            f"the word \"percent\", which the claim's figure reader does not take as "
+            f"a unit (it reads only \"%\"), while the source's reader does; so the "
+            f"claim's figure is compared as a plain number and cannot match the "
+            f"source's percentage, even when copied exactly. This is a known "
+            f"defect awaiting a ruling (reports/REASONS-FOR-REFUSAL.md).")
+
+
+# ======================================================================
 # THE SCOPE STATEMENT (J-73, 2026-10-03). Every report carries it.
 #
 # WHY IT IS IN THE PRODUCT AND NOT IN THE README. Ding et al. (AAAI 2025)
@@ -7154,12 +7547,25 @@ def score_report(
     for claim in claims:
         verdict = ground(claim, store, lex_tau, self_source_ids,
                          inferred_self_ids)
+        # REASONS-FOR-REFUSAL: the reason is computed only AFTER the verdict,
+        # from the verdict, and is never fed back (display only).
+        basis = evidence_basis(claim, store, self_source_ids)
+        refusal: VerbatimRefusal | None = None
+        if verdict == Verdict.UNGROUNDED:
+            refusal = verbatim_refusal(claim, _certifying_verbatim(
+                [src for src in (resolve(c, store) for c in claim.citations)
+                 if src is not None and src.retrieval_status != "failed"],
+                self_source_ids))
+            if refusal is not None:
+                basis = f"{basis} {refusal.text}"
+        elif verdict == Verdict.UNVERIFIED_NUMBER:
+            basis = basis + unread_unit_note(claim)
         entry = {
             "index": claim.index,
             "text": claim.text,
             "kind": claim.kind.value,
             "verdict": verdict.value,
-            "evidence_basis": evidence_basis(claim, store, self_source_ids),
+            "evidence_basis": basis,
         }
         # ADR-007: the relational corroboration result is INFORMATION, not a
         # verdict. It is reported so a human can see what the two-source rule
@@ -7195,6 +7601,8 @@ def score_report(
             if _excluded_as_draft(cited, self_source_ids) and \
                     not _certifying_verbatim(cited, self_source_ids):
                 entry["support_diagnostic"] = SUPPORT_CITED_SOURCE_IS_DRAFT
+        if refusal is not None and refusal.code:
+            entry["support_diagnostic"] = refusal.code
         per_claim.append(entry)
 
         if verdict == Verdict.UNVERIFIED_CITATION:
@@ -7213,7 +7621,7 @@ def score_report(
                 "index": claim.index,
                 "text": claim.text,
                 "verdict": verdict.value,
-                "evidence_basis": evidence_basis(claim, store, self_source_ids),
+                "evidence_basis": basis,
             })
 
     vacuous = scored_count == 0

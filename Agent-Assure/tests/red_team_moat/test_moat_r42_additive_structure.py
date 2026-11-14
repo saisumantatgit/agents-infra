@@ -32,7 +32,9 @@ GATE = Path(__file__).resolve().parents[2] / "scripts" / "ground_check.py"
 
 MAIN_PATH_ROOTS = ("_source_unit_contexts", "_unit_denied")
 # Digest of origin/main 746f337 scripts/ground_check.py under `main_path_digest`.
-MAIN_PATH_DIGEST = "36d4617bf2f10eaaa9230b8b76a17a5a6e98ab7de10d5f2061a943befa1f328b"
+# Re-pinned 2026-11-15 to origin/main fefb9c5 (PR #40 added display-only
+# fields): branch and origin/main produce this same digest.
+MAIN_PATH_DIGEST = "64373d157ed6f6d979f46c0bf94f180335093570f8f1096533352d35517d5fad"
 # Names that exist only for the R40 reading. Any name containing "r40" counts too.
 R40_ONLY_NAMES = frozenset({
     "_falsity_construction", "_forward_free_relative", "_event_negation_points",
