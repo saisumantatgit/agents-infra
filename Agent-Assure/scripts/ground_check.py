@@ -1129,7 +1129,34 @@ def _header_asserts(header_body: str) -> bool:
         return True
     if any(w in _CLAIM_BEARING_HEADING_WORDS for w in words):
         return True
+    # R36 hole c: a verb-final "-s" headline ("# Bank Collapses", "## Revenue
+    # doubles", "### PostgreSQL Fails"). The suffix alone cannot separate it
+    # from a plural-noun label ("# Index types", "# Rainfall points"), so only
+    # listed headline verbs count, and only after a subject.
+    if len(words) > 1 and words[-1] in _HEADLINE_VERBS_S:
+        return True
     return False
+
+
+# R36 hole c (2026-11-14): third-person "-s" verbs that make a verb-final
+# heading a claim. Drives refusals only (D-69): a missing verb leaves today's
+# NON_CLAIM, never a pass. Words whose plural-noun sense is common in honest
+# label headings are deliberately left out ("misses" as in "Cache misses",
+# "leaks", "spikes", "wins", "defaults", "breaks", "falls", "drops", "files",
+# "charges", "fires", "lies", "folds", "points", "notes", "changes").
+# CEILING: lexical. Fail-open: an unlisted headline verb ("# Acme Stumbles")
+# stays a label. Error-A: a listed word used as a plural noun ("## Bank
+# collapses" as a list of collapses) is scored UNCITED. Upgrade path: a POS
+# tagger on headings (as the OI-MOAT-19 CEILING above).
+_HEADLINE_VERBS_S: frozenset[str] = frozenset({
+    "collapses", "fails", "doubles", "triples", "quadruples", "halves",
+    "crashes", "surges", "soars", "plunges", "plummets", "slumps", "tumbles",
+    "sinks", "skyrockets", "rockets", "jumps", "rises", "climbs", "shrinks",
+    "loses", "beats", "quits", "resigns", "dies", "sues", "admits", "confirms",
+    "denies", "warns", "slashes", "halts", "bans", "kills", "explodes",
+    "implodes", "acquires", "buys", "shuts", "vanishes", "cheats", "steals",
+    "arrests", "convicts", "indicts", "raids", "seizes", "goes",
+})
 
 
 # D-104 / R35-01 (RUN-2026-11-04b): honest label headings exempt from the two
@@ -1171,6 +1198,10 @@ _CLAIM_BEARING_HEADING_WORDS: frozenset[str] = frozenset({
     "massive", "huge", "soaring", "skyrocketing", "plummeting", "plunging",
     "catastrophic", "devastating", "historic", "staggering", "dramatic",
     "collapse", "scandal", "bankrupt", "insolvent", "fraudulent", "illegal",
+    # R36 hole c: predicate words of a verbless claim heading ("# Acme
+    # guilty", "# Fraud everywhere", "## CEO arrest imminent").
+    "guilty", "culpable", "complicit", "everywhere", "imminent", "inevitable",
+    "doomed", "rigged", "bust",
 })
 
 
@@ -1961,6 +1992,7 @@ class _UnitContext:
     scope_denied: bool = False  # R31-04: an earlier "None of the following ..."
     previous2: tuple[str, ...] = ()  # RUN-2026-11-04: the sentence before `previous`
     previous_line: tuple[str, ...] = ()  # RUN-2026-11-04: last line of `previous`
+    context_denied: bool = False  # R36: paragraph-scope / denial-heading-scope denial
 
 
 # H4 (2026-10-25): label words that DISOWN the list under them ("Myths:",
@@ -2055,6 +2087,160 @@ def _within(inner: tuple[str, ...], outer: tuple[str, ...]) -> bool:
     return any(outer[i:i + width] == inner for i in range(len(outer) - width + 1))
 
 
+def _sentence_spans(text: str, sentences: list[str]) -> list[tuple[int, int]]:
+    """Character span of each of *sentences* (from `_split_sentences(text)`)
+    inside `_nfkc(text).strip()`, in order. Pure. Raises if a sentence cannot
+    be located, so a splitter change fails loud instead of mis-scoping."""
+    base = _nfkc(text).strip()
+    spans: list[tuple[int, int]] = []
+    cursor = 0
+    for sentence in sentences:
+        start = base.find(sentence, cursor)
+        if start < 0:
+            raise RuntimeError(f"sentence not locatable in source text: {sentence[:60]!r}")
+        spans.append((start, start + len(sentence)))
+        cursor = start + len(sentence)
+    return spans
+
+
+_PARAGRAPH_BREAK_RE = _re.compile(r"\n[ \t]*\n")
+
+
+def _paragraph_ids(text: str, spans: list[tuple[int, int]]) -> list[frozenset[int]]:
+    """For each span in `_nfkc(text).strip()`, the indices of the blank-line
+    paragraphs it touches (a sentence welded across a blank line touches
+    two). Pure."""
+    base = _nfkc(text).strip()
+    breaks = [m.start() for m in _PARAGRAPH_BREAK_RE.finditer(base)]
+    out: list[frozenset[int]] = []
+    first = 0  # paragraph of the current span's start; spans are in text order
+    for a, b in spans:
+        while first < len(breaks) and breaks[first] < a:
+            first += 1
+        last = first
+        while last < len(breaks) and breaks[last] < max(a, b - 1):
+            last += 1
+        out.append(frozenset(range(first, last + 1)))
+    return out
+
+
+def _paragraph_denied(
+    sentence_tokens: list[tuple[str, ...]], paragraphs: list[frozenset[int]]
+) -> list[bool]:
+    """R36 hole a / NEW-1: for each sentence, True iff ANOTHER sentence of the
+    same paragraph asserts falsity (`_has_strong_denial`, before or after it),
+    or an EARLIER sentence of the same paragraph of at most `_SCOPE_MAX_TOKENS`
+    tokens denies and points forward or is a bare denial (the `_unit_denied`
+    previous-sentence rule, at any distance). Pure. Refusal only (D-69).
+
+    Replaces a distance count (two sentences back, RUN-2026-11-04) with a
+    structural scope the author cannot pad: inserting sentences between the
+    denial and the claim no longer reaches past it.
+
+    CEILING: blank-line paragraphs, and the forward-pointing rule reads
+    sentences of at most `_SCOPE_MAX_TOKENS` tokens. A long forward-pointing
+    denial with no falsity word three or more sentences back ("We checked
+    every claim listed below and none of them holds up at all.") still grounds
+    (fail-open). A denial in an EARLIER paragraph with no
+    denial heading and no scope sentence still grounds (fail-open), and every
+    honest claim sharing a paragraph with a falsity statement about something
+    else, or after "This does not apply ..." in the same paragraph, is refused
+    (Error-A). Upgrade path: a discourse/coreference model of what a denial
+    targets.
+    """
+    strong = [_has_strong_denial(t) for t in sentence_tokens]
+    # The far forward-pointing rule reads SHORT sentences only, for the reason
+    # `_denial_scope_start` does: the splitter welds tables, code and lists
+    # into long "sentences" where a "not" and a "below"/"this" co-occur by
+    # accident (R31-04 control `long_sentence_not_below_is_no_scope`). A long
+    # sentence still denies its neighbours through `_unit_denied`, and a long
+    # FALSITY statement still denies the paragraph through `strong`.
+    pointing = [len(t) <= _SCOPE_MAX_TOKENS and _has_denial(t)
+                and (bool(set(t) & _FORWARD_REFERENCES) or _is_bare_denial(t))
+                for t in sentence_tokens]
+    strong_count: Counter[int] = Counter()
+    first_pointing: dict[int, int] = {}
+    for t, para in enumerate(paragraphs):
+        for k in para:
+            if strong[t]:
+                strong_count[k] += 1
+            if pointing[t] and k not in first_pointing:
+                first_pointing[k] = t
+    return [any(strong_count[k] - (1 if strong[s] else 0) > 0
+                or first_pointing.get(k, len(paragraphs)) < s for k in para)
+            for s, para in enumerate(paragraphs)]
+
+
+# R36 NEW-2: a heading-shaped line that disowns what is under it, with no
+# colon ("Rumours we investigated and found to be false", "## Myths about the
+# bank", "Made up stories from the forum"). The label words exclude "wrong",
+# "incorrect", "lie", "lies" and "false" ("## What went wrong", "## False
+# positives" are honest headings); predicative "false" is caught by
+# `_has_strong_denial`. Refusal only (D-69).
+_HEADING_DISOWNING_TOKENS: frozenset[str] = _DISOWNING_LABEL_TOKENS - frozenset({
+    "wrong", "incorrect", "lie", "lies", "false",
+})
+_MARKDOWN_HEADING_RE = _re.compile(r"^\s{0,3}#{1,6}\s")
+_HEADING_MAX_TOKENS: int = 12
+
+
+def _heading_line_spans(text: str) -> list[tuple[int, int, bool]]:
+    """(start, end, denies) for every heading-shaped line of
+    `_nfkc(text).strip()`: a markdown heading, or a line of at most
+    `_HEADING_MAX_TOKENS` tokens with no final ".", "!", "?" or ":" that stands
+    alone (blank line or text start before it; blank line, list item or text
+    end after it). Pure.
+
+    CEILING: a shape test. A denial label that runs on into prose on the same
+    line, or is longer than `_HEADING_MAX_TOKENS`, disowns nothing (fail-open);
+    a short standalone honest line ("Rumours and facts") with a label word
+    disowns its section (Error-A). Upgrade path: a document-structure parse.
+    """
+    base = _nfkc(text).strip()
+    lines = base.split("\n")
+    out: list[tuple[int, int, bool]] = []
+    offset = 0
+    for i, line in enumerate(lines):
+        start, end = offset, offset + len(line)
+        offset = end + 1
+        stripped = line.strip()
+        if not stripped:
+            continue
+        toks = tuple(_tokenize(stripped))
+        if _MARKDOWN_HEADING_RE.match(line):
+            shaped = True
+        else:
+            before_ok = i == 0 or not lines[i - 1].strip()
+            after_ok = (i + 1 == len(lines) or not lines[i + 1].strip()
+                        or bool(_LIST_ITEM_RE.match(lines[i + 1])))
+            shaped = (bool(toks) and len(toks) <= _HEADING_MAX_TOKENS
+                      and stripped[-1] not in ".!?:" and before_ok and after_ok
+                      and not _LIST_ITEM_RE.match(line))
+        if not shaped:
+            continue
+        denies = _has_strong_denial(toks) or bool(_folded(toks) & _HEADING_DISOWNING_TOKENS)
+        out.append((start, end, denies))
+    return out
+
+
+def _heading_denied(text: str, spans: list[tuple[int, int]]) -> list[bool]:
+    """For each sentence span, True iff it reaches past a denying heading-shaped
+    line and starts before the next heading-shaped line after that one. Pure.
+
+    CEILING: the scope ends at the NEXT heading-shaped line of any level, so a
+    sub-heading under "## Myths" ends the disowned scope (fail-open), and an
+    honest section under a denying heading is refused whole (Error-A). Upgrade
+    path: a document-structure parse with heading levels.
+    """
+    headings = _heading_line_spans(text)
+    scopes: list[tuple[int, int]] = []
+    for k, (start, end, denies) in enumerate(headings):
+        if denies:
+            scope_end = headings[k + 1][0] if k + 1 < len(headings) else len(_nfkc(text).strip())
+            scopes.append((end, scope_end))
+    return [any(b > lo and a < hi for lo, hi in scopes) for a, b in spans]
+
+
 def _source_unit_contexts(source_text: str) -> list[_UnitContext]:
     """The units of `_source_units`, in the same order, each with its denial
     context. Pure."""
@@ -2062,6 +2248,9 @@ def _source_unit_contexts(source_text: str) -> list[_UnitContext]:
     sentences = _split_sentences(source_text)
     sentence_tokens = [tuple(_tokenize(s)) for s in sentences]
     scope_start = _denial_scope_start(sentence_tokens)
+    spans = _sentence_spans(source_text, sentences)
+    para_denied = _paragraph_denied(sentence_tokens, _paragraph_ids(source_text, spans))
+    head_denied = _heading_denied(source_text, spans)
     out: list[_UnitContext] = []
     for s, sentence in enumerate(sentences):
         prefix: list[str] = []
@@ -2077,7 +2266,8 @@ def _source_unit_contexts(source_text: str) -> list[_UnitContext]:
                 scope_denied=s > scope_start,
                 previous2=sentence_tokens[s - 2] if s > 1 else (),
                 previous_line=(tuple(_tokenize(sentences[s - 1].strip().split("\n")[-1]))
-                               if s > 0 else ())))
+                               if s > 0 else ()),
+                context_denied=para_denied[s] or head_denied[s]))
             prefix.extend(toks)
     return out
 
@@ -2096,6 +2286,11 @@ _DENIAL_TOKENS: frozenset[str] = _NEGATION_TOKENS | frozenset({
     # sentence next to a match is refused (Error-A), never passed.
     "lie", "lies", "bogus", "fake", "fakes", "invented", "fabrication",
     "fabrications", "hoax", "untruth", "untruths", "falsehood", "falsehoods",
+    # R36 hole d (2026-11-14): "Pure fantasy.", "... was concocted.", "That is
+    # a fairytale." Refusal only (D-69). Two-word forms ("made up", "fairy
+    # tale") are matched in order by `_phrasal_denial`.
+    "fantasy", "fantasies", "concocted", "concoction", "fairytale",
+    "fairytales", "fictional", "fictitious", "unfounded", "hoaxes",
 })
 
 # R31-04: forward words that reach to the END of the text ("None of the
@@ -2131,9 +2326,101 @@ _DENIAL_INTENSIFIERS: frozenset[str] = frozenset({
 })
 
 
-def _has_denial(tokens) -> bool:
-    """True iff *tokens* hold a denial word, look-alike letters folded. Pure."""
-    return bool(_folded(tokens) & _DENIAL_TOKENS)
+# R36 hole d: two-word denials, matched IN ORDER on folded tokens. "made up"
+# is a denial unless the next word starts an object or complement of the
+# constituting / reconciling / deciding senses ("made up of five members",
+# "made up for lost time", "made up her mind", "made up the difference").
+# Drives refusals only (D-69).
+# CEILING: a fixed exclusion list. An honest "made up" followed by an unlisted
+# object word ("made up lost ground") is refused (Error-A); a denial phrased
+# with a listed word ("made up for the press") still grounds (fail-open).
+# Upgrade path: a parser reading of the verb's complement.
+_MADE_UP_NON_DENIAL_NEXT: frozenset[str] = frozenset({
+    "of", "for", "to", "with", "the", "a", "an", "her", "his", "my", "their",
+    "our", "your", "its", "mind", "minds", "some", "most", "much", "part",
+    "half", "about", "around", "roughly", "nearly", "almost", "less", "more",
+    "over", "ground", "time", "difference", "deficit", "shortfall", "loss",
+    "losses", "gap",
+})
+_PHRASAL_DENIAL_PAIRS: frozenset[tuple[str, str]] = frozenset({
+    ("fairy", "tale"), ("fairy", "tales"), ("make", "believe"),
+})
+
+
+def _phrasal_denial(tokens: tuple[str, ...]) -> bool:
+    """True iff the ORDERED *tokens* hold a two-word denial ("made up",
+    "fairy tale", "make believe"), look-alike letters folded. Pure."""
+    folded = [_confusable_fold(t) for t in tokens]
+    for i in range(len(folded) - 1):
+        pair = (folded[i], folded[i + 1])
+        if pair in _PHRASAL_DENIAL_PAIRS:
+            return True
+        if pair == ("made", "up") and (
+                i + 2 >= len(folded) or folded[i + 2] not in _MADE_UP_NON_DENIAL_NEXT):
+            return True
+    return False
+
+
+def _has_denial(tokens: tuple[str, ...]) -> bool:
+    """True iff the ORDERED *tokens* hold a denial word or a two-word denial,
+    look-alike letters folded. Pure."""
+    if not isinstance(tokens, tuple):
+        raise TypeError(f"_has_denial needs an ordered tuple of tokens, got {type(tokens).__name__}")
+    return bool(_folded(tokens) & _DENIAL_TOKENS) or _phrasal_denial(tokens)
+
+
+# R36 (2026-11-14): a STRONG denial asserts that something is FALSE, not merely
+# that something is not so. A plain negator ("The bank did not pay a dividend.")
+# is the most common word in honest prose, so it denies only when it points at
+# the claim (`_unit_denied`'s adjacency rules). A falsity word is rare outside
+# a denial, so it is read across the whole paragraph (`_paragraph_denied`) and
+# in the next sentence with or without a back-reference word (R36 NEW-1).
+# Drives refusals only (D-69): a missing word leaves the adjacency rules.
+# "lie"/"lies" (also verbs: "the station lies on the windward side"), "wrong",
+# "incorrect", "invented", "denied", "disputed" and "rumours" are deliberately
+# NOT strong: each is routine in honest reporting or docs, and each still
+# drives the adjacency rules through `_DENIAL_TOKENS` / the label list.
+_STRONG_DENIAL_TOKENS: frozenset[str] = frozenset({
+    "untrue", "untruth", "untruths", "falsehood", "falsehoods", "myth",
+    "myths", "fabricated", "fabrication", "fabrications", "fictional",
+    "fictitious", "fiction", "hoax", "hoaxes", "bogus", "baseless", "nonsense",
+    "debunked", "fantasy", "fantasies", "concocted", "concoction", "fairytale",
+    "fairytales", "unfounded",
+})
+# "false" / "fake" are strong only as a PREDICATE ("It is false that", "found
+# to be false", "is a fake"): "returns False", "delete=False", "false
+# positives" and "a fake object for tests" are honest and common.
+_PREDICATIVE_DENIAL_TOKENS: frozenset[str] = frozenset({"false", "fake"})
+_COPULAS: frozenset[str] = frozenset({"is", "are", "was", "were", "be", "been", "being"})
+# "did not happen", "never happened", "is not true", "never occurred",
+# "none of this is true", "nothing here is true".
+_EVENT_NEGATORS: frozenset[str] = frozenset({"not", "never", "none", "nothing"})
+_EVENT_DENIAL_TARGETS: frozenset[str] = frozenset({"happen", "happened", "true", "occurred"})
+
+
+def _has_strong_denial(tokens: tuple[str, ...]) -> bool:
+    """True iff the ORDERED *tokens* assert falsity: a strong denial word, a
+    two-word denial, a predicative "false"/"fake" (a copula within the two
+    words before it), or "not"/"never"/"none"/"nothing" within the four
+    words before happen/happened/true/occurred ("None of this is true."). Look-alikes folded. Pure.
+
+    CEILING: lexical. A falsity statement about something ELSE in the same
+    paragraph ("Prosecutors said the invoices were fabricated. <claim>.")
+    refuses an honest claim (Error-A); a falsity statement in unlisted words
+    ("Every line of it is invention.") still grounds unless an adjacency rule
+    fires (fail-open). Upgrade path: a discourse model of what a denial targets.
+    """
+    if not isinstance(tokens, tuple):
+        raise TypeError(f"_has_strong_denial needs an ordered tuple of tokens, got {type(tokens).__name__}")
+    folded = [_confusable_fold(t) for t in tokens]
+    if set(folded) & _STRONG_DENIAL_TOKENS or _phrasal_denial(tokens):
+        return True
+    for i, tok in enumerate(folded):
+        if tok in _PREDICATIVE_DENIAL_TOKENS and set(folded[max(0, i - 2):i]) & _COPULAS:
+            return True
+        if tok in _EVENT_DENIAL_TARGETS and set(folded[max(0, i - 4):i]) & _EVENT_NEGATORS:
+            return True
+    return False
 
 
 def _is_bare_denial(tokens: tuple[str, ...]) -> bool:
@@ -2196,6 +2483,10 @@ _BACK_REFERENCES: frozenset[str] = frozenset({
 # A previous sentence that points FORWARD ("the following", "below") and denies.
 _FORWARD_REFERENCES: frozenset[str] = frozenset({
     "following", "below", "next", "this", "these", "here", "hereafter",
+    # R36 NEW-3: "What follows never happened ..." Refusal only (D-69). Not
+    # added to _SCOPE_FORWARD_REFERENCES: an honest "The procedure follows the
+    # RFC, not the draft." would then disown the rest of the source.
+    "follows",
 })
 
 
@@ -2217,13 +2508,13 @@ def _unit_denied(ctx: _UnitContext, match_start: int) -> bool:
     sentence that denies without a forward reference word. Upgrade path: a
     discourse/coreference model of what a denial targets.
     """
-    if ctx.disowned or ctx.scope_denied:
+    if ctx.disowned or ctx.scope_denied or ctx.context_denied:
         return True
-    before = ctx.prefix + ctx.tokens[:match_start]
+    before = tuple(ctx.prefix) + tuple(ctx.tokens[:match_start])
     if _has_denial(before):
         return True
     previous = set(ctx.previous)
-    if _has_denial(previous) and (
+    if _has_denial(ctx.previous) and (
             previous & _FORWARD_REFERENCES or _is_bare_denial(ctx.previous)):
         return True
     # RUN-2026-11-04 (prev_denial_stray): one short sentence between the denial
@@ -2247,11 +2538,16 @@ def _unit_denied(ctx: _UnitContext, match_start: int) -> bool:
     if _is_bare_denial(ctx.previous_line):
         return True
     previous2 = set(ctx.previous2)
-    if _has_denial(previous2) and (
+    if _has_denial(ctx.previous2) and (
             previous2 & _FORWARD_REFERENCES or _is_bare_denial(ctx.previous2)):
         return True
+    # R36 NEW-1: a falsity statement in the NEXT sentence denies the claim
+    # with or without a back-reference word ("<claim>. The story was
+    # fabricated."); the paragraph rule misses it across a blank line.
+    if _has_strong_denial(ctx.following) or _has_strong_denial(ctx.previous):
+        return True
     following = set(ctx.following)
-    if not _has_denial(following):
+    if not _has_denial(ctx.following):
         return False
     if _is_bare_denial(ctx.following):
         return True
