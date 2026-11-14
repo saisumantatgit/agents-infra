@@ -1881,3 +1881,4 @@ Decided by Sai: "2 yes, 3 yes, 4 no, GO".
 | **Bound** | May only remove refusals ADDED by PR #29. Never looser than main 41a7e2e (pre-#29) on any input — a differential against 41a7e2e is the gate. R34-04/05 closures stay. |
 | **Bar** | D-100 + adversary round + zero inputs that pass here and fail on 41a7e2e. |
 | **UNDO** | `git revert -m 1 <merge>`. |
+| D-105 | 2026-11-14 23:30 IST | Overnight autonomous run OVN-1114 armed on Sai's "AGREED": cron c453c47b (13,43 * * * *), hard stop 07:30 IST 2026-11-15, 5M new tokens (ceiling 6M), fail-closed holes C1–C4 per docs/planning/OVERNIGHT-2026-11-14.md; merges under D-100 bar only. Frameworks: reversibility, error-cost asymmetry. | UNDO: CronDelete c453c47b; `gh pr close` any open OVN-1114 PR; any merge undone by `git revert -m 1 <merge>` on a branch + PR. |
