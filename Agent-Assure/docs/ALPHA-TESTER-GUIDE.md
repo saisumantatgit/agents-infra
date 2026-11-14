@@ -231,7 +231,7 @@ Failing (each one stops the gate from reaching PASS):
 - UNVERIFIED_NUMBER: a number in the claim matches no source. Value, unit and, if the claim states one, the rate must all match. "25%" is not "25". "per minute" is not "per second".
 - UNVERIFIED_ABSENCE: a "no X exists" claim with fewer than 2 recorded searches that name the full subject.
 - UNVERIFIED_RELATION: a "A causes B" style claim without two separate sources, one per side. See ADR-007 in section 5.
-- UNGROUNDABLE: every cited source is non-verbatim (for example a `haiku_summary` from native `WebFetch`), or empty. The engine refuses to check against a summary. Re-fetch with Exa or a raw `Read`.
+- UNGROUNDABLE: every cited source is non-verbatim (for example a `haiku_summary` from native `WebFetch`), or empty. The engine refuses to check against a summary. Re-fetch with Exa or a raw `Read`. It is also the verdict when the only cited source looks like a copy of your own draft (`support_diagnostic` `cited_source_is_the_draft`): the source is excluded and `evidence_basis` names it. See "Known issues".
 
 Other per-claim fields you will see in the JSON: `evidence_basis`, `support_diagnostic`, and, for causal claims, `relation_diagnostic`.
 - `support_diagnostic` of `cited_sentence_may_not_assert_claim` means: go read that source sentence yourself. It is advice, not a verdict. It misses about half of the denials we built (7 of 14).
@@ -244,7 +244,7 @@ The one-line summary (`gate=... grounding_score=...`) gives no per-claim detail.
 - `kind`: how the engine read the line. `NON_CLAIM` means not scored; `NUMERIC` and `FACTUAL` are scored.
 - `text`: the claim exactly as the engine split it out of your draft. Compare it with your sentence: this is where you see a sentence cut into pieces, or a heading or table counted as a claim.
 - `evidence_basis`: the reason, in words (for example "S9 is cited but is NOT IN THE EVIDENCE STORE", or "No source is cited ...").
-- `support_diagnostic`: a short code. `no_cited_verbatim_source` appears on every claim that has no usable cited source (UNCITED, UNVERIFIED_CITATION, UNGROUNDABLE); it is not a separate problem. Read `evidence_basis` for the reason.
+- `support_diagnostic`: a short code. `no_cited_verbatim_source` appears on every claim that has no usable cited source (UNCITED, UNVERIFIED_CITATION, UNGROUNDABLE); it is not a separate problem. `cited_source_is_the_draft` means every cited verbatim source was excluded because it reads as a copy of your draft (see "Known issues"). Read `evidence_basis` for the reason.
 
 This prints them in readable form (run from `Agent-Assure`; swap in your own draft and store):
 
@@ -262,7 +262,7 @@ On the fabricated demo draft the last two entries read `UNVERIFIED_CITATION ... 
 | UNVERIFIED_CITATION | `[Sn]` is not in the store. | Retrieve the source in-session, or fix the id. In a hand-built store, add the line (see "Check your own source"). |
 | UNGROUNDED | `[Sn]` exists, but no 8-word run of your claim is in it. Usually a paraphrase, or your own framing words. | Replace the claim with the source's own sentence and cite it. This is not evidence the claim is false. |
 | UNVERIFIED_NUMBER | A figure in the claim is not in the cited source with the same value, unit and rate. A version number such as "2.4" counts as a figure. | Copy the figure as the source writes it, or cite the source that has it. |
-| UNGROUNDABLE | The cited source is a summary (`haiku_summary`) or empty. | Re-fetch with Exa or `Read`. If the source is verbatim and non-empty, see "Known issues". |
+| UNGROUNDABLE | The cited source is a summary (`haiku_summary`) or empty, or (`support_diagnostic` `cited_source_is_the_draft`) it is a short source that looks like a copy of your draft. | Re-fetch with Exa or `Read`. If the source is verbatim and non-empty, cite the full source document, not an excerpt; see "Known issues". |
 | UNVERIFIED_ABSENCE, UNVERIFIED_RELATION | An "X does not exist" or "A causes B" claim without enough support. | Quote a source that says it, or soften the claim. |
 
 ### What counts as a claim
@@ -292,7 +292,7 @@ The plain-text summary (non `--json`) also prints the scope line, under the one-
 
 These are defects, not intended behaviour. Do not build a workflow on them.
 
-- UNGROUNDABLE on a verbatim source. In the 2026-11-15 alpha walkthrough, honest verbatim claims against a short whole-sentence source came back UNGROUNDABLE with `support_diagnostic` `no_cited_verbatim_source`, although the store line says `full_text_source: verbatim`. In the same walkthrough a draft's wrong number was hidden behind a draft-wide UNGROUNDABLE instead of being reported as UNVERIFIED_NUMBER. We also saw a claim that is GROUNDED alone turn UNGROUNDABLE when the same draft cited a source id that is not in the store. Cause not found. If you hit it, report it with the five items in section 6.
+- UNGROUNDABLE on a short verbatim source (cause known; grounding short excerpts is pending a design decision). The engine has a deliberate guard: a cited source counts as a possible copy of your own draft when at least 80% of its adjacent word pairs also appear in the draft, and a draft cannot certify itself. A source of one or two sentences that your draft quotes almost whole meets that bar, so the claim reads UNGROUNDABLE with `support_diagnostic` `cited_source_is_the_draft`, even though the store line says `full_text_source: verbatim`. `evidence_basis` names the excluded source and says why. If the claim also has a figure that the short source does not contain, it reads UNVERIFIED_NUMBER instead (the wrong figure is no longer hidden). The guard stays on purpose; relaxing it would let a draft pass by citing a copy of itself, so whether and how to ground short excerpts is a decision not yet made. Workaround: store and cite the full source document, not a one- or two-sentence excerpt. We checked this on build 5b6898f: a one-sentence source quoted by the draft came back UNGROUNDABLE `cited_source_is_the_draft`; the same sentence inside a five-sentence source document came back GROUNDED, gate PASS. If you hit UNGROUNDABLE on a verbatim source that is not short, report it with the five items in section 6.
 
 ---
 

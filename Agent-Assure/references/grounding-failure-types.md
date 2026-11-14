@@ -148,6 +148,22 @@ Haiku summary).
 second model's paraphrase — which can itself hallucinate. The gate refuses to
 certify against non-verbatim text rather than pretend it can.
 
+**Near-copy exclusion (`cited_source_is_the_draft`):** a cited verbatim source is
+also excluded when it looks like the draft itself — when at least 80% of the
+source's adjacent word pairs also appear in the draft, or its path or content
+digest matches the draft. A draft cannot certify itself, so the excluded source
+is never used to ground a claim. If no other verbatim source remains, the claim
+reads UNGROUNDABLE with `support_diagnostic` `cited_source_is_the_draft`, and
+`evidence_basis` names the excluded source and the reason. When the source was
+excluded by the 80% test alone (not by path or digest) and a figure in the claim
+is missing from its text, the claim reads UNVERIFIED_NUMBER instead, so a wrong
+figure is not hidden. The excluded text can only refuse a claim, never ground it.
+The 80% test also matches a genuine short source (one or two sentences) that the
+draft quotes almost in full; that honest claim is refused too. This is deliberate
+and fail-closed. Grounding short excerpts is pending a design decision.
+**Fix:** cite the full source document rather than an excerpt, so that the draft
+repeats only a small share of the source's text.
+
 ---
 
 ## NON_CLAIM (excluded, not a failure)
