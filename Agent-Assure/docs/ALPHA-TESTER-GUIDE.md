@@ -128,7 +128,7 @@ If the fabricated draft does not FAIL on your machine, that is the most importan
 
 Expected outputs are saved in `demo/expected/` so you can compare. A test (`tests/test_demo_golden.py`) pins them. Whether it passes on your machine: not verified.
 
-The demo renderer `demo/show_report.py` prints only the verdict and the first 70 characters of each claim. The reasons are in the JSON; see "Getting the reason for each claim" in section 4.
+The demo renderer `demo/show_report.py` prints only the verdict and the first 70 characters of each claim. For the reasons, pipe the same JSON into `scripts/explain_report.py` instead; see "Getting the reason for each claim" in section 4.
 
 Do not pass `--session-id` against the demo store. The demo records carry no session id, and the engine refuses an empty `--session-id` by design.
 
@@ -154,46 +154,27 @@ Optional flag: `--threshold N` sets the score bar (default 90).
 
 ### Check your own source (no Claude Code session needed)
 
-You can test your own text without the plugin. The checker needs two files: a draft, and an evidence store. The evidence store is a JSONL file (one JSON object per line); each line is one retrieved source. The capture hook normally writes it. You can write it yourself.
+You can test your own text without the plugin. The checker needs two files: a draft, and an evidence store. The evidence store is a JSONL file (one JSON object per line); each line is one retrieved source. The capture hook normally writes it; `scripts/add_source.py` writes it for you.
 
-Put your source text in `my-source.txt` and a draft in `my-draft.md`. The draft must cite the source as `[S1]`, inside the sentence, before the full stop. Then, from `Agent-Assure`, build a store with this script (standard library only):
+Put your source text in `my-source.txt` and a draft in `my-draft.md`. The draft must cite the source as `[S1]`, inside the sentence, before the full stop. Then, from `Agent-Assure`, add the source to a store:
 
 ```bash
-.venv/bin/python - <<'PYEOF'
-import hashlib, json, unicodedata
-from datetime import datetime, timezone
-
-text = unicodedata.normalize("NFKC", open("my-source.txt", encoding="utf-8").read())
-record = {
-    "source_id": "S1",
-    "url": None,
-    "file_path": "my-source.txt",
-    "fetched_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-    "tool": "Read",
-    "content_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
-    "text": text,
-    "full_text_source": "verbatim",
-    "captured_via": "inline",
-    "query_provenance": "my own source file",
-    "session_id": "my-test-session",
-}
-with open("my-store.jsonl", "w", encoding="utf-8") as fh:
-    fh.write(json.dumps(record, ensure_ascii=False) + "\n")
-print("wrote my-store.jsonl")
-PYEOF
+uv run python scripts/add_source.py my-source.txt --id S1 --store my-store.jsonl --session-id my-test-session
 ```
+
+It writes one valid line (the same fields the capture hook writes, text normalised with NFKC, sha256 recorded), then re-loads the whole store with the checker's own loader. It refuses with exit 1 and leaves the store untouched if the id is already in the store, the file is missing, or the file is empty. For a second source, run it again with `--id S2`. `--session-id` is optional; if you pass it here, pass the same value to `ground_check.py`.
 
 Check the draft against it:
 
 ```bash
-.venv/bin/python scripts/ground_check.py --draft my-draft.md --store my-store.jsonl --session-id my-test-session
+uv run python scripts/ground_check.py --draft my-draft.md --store my-store.jsonl --session-id my-test-session
 ```
 
 We ran this with a draft whose single claim is a sentence copied from the source plus `[S1]`. Result: `gate=PASS grounding_score=100.0`, exit 0, and a `grounding-report.yaml` in your current folder.
 
 Fields, one line each (the full table is in `README.md`, "EvidenceStore JSONL Format"):
-- `source_id`: the key your draft cites, `S1` for `[S1]`. It must be unique in the file. For a second source, add a second line with `S2`.
-- `tool`: use `Read` for a source you want treated as verbatim. The loader accepts only the tool names the capture hook writes: `Read`, `mcp__exa__web_fetch_exa`, `web_fetch_exa`, `mcp__ddg-search__fetch_content` (verbatim) and `WebFetch` (always `haiku_summary`). Any other name, or a `tool` that disagrees with `full_text_source`, makes it refuse the file.
+- `source_id`: the key your draft cites, `S1` for `[S1]` (the `--id` you gave). It must be unique in the file.
+- `tool`: `add_source.py` writes `Read`, which is treated as verbatim. The loader accepts only the tool names the capture hook writes: `Read`, `mcp__exa__web_fetch_exa`, `web_fetch_exa`, `mcp__ddg-search__fetch_content` (verbatim) and `WebFetch` (always `haiku_summary`). Any other name, or a `tool` that disagrees with `full_text_source`, makes it refuse the file.
 - `text`: the source body, word for word. Only this is matched.
 - `session_id`: the capture hook writes one on every live record. It matters only if you pass `--session-id`: the engine then refuses a store that contains any record with a different or blank `session_id`. Pass the same string you wrote, or leave `--session-id` out (the scope line then says session scope is not asserted).
 - `retrieval_status` and `read_extent` are optional fields the hook writes; leave them out.
@@ -246,20 +227,20 @@ The one-line summary (`gate=... grounding_score=...`) gives no per-claim detail.
 - `evidence_basis`: the reason, in words (for example "S9 is cited but is NOT IN THE EVIDENCE STORE", or "No source is cited ...").
 - `support_diagnostic`: a short code. `no_cited_verbatim_source` appears on every claim that has no usable cited source (UNCITED, UNVERIFIED_CITATION, UNGROUNDABLE); it is not a separate problem. `cited_source_is_the_draft` means every cited verbatim source was excluded because it reads as a copy of your draft (see "Known issues"). Read `evidence_basis` for the reason.
 
-This prints them in readable form (run from `Agent-Assure`; swap in your own draft and store):
+`scripts/explain_report.py` prints them in readable form: per claim the verdict, the full claim text, the reason, and a one-line fix hint; non-claims (headings) are listed apart as "not scored". It only renders the report; it never recomputes a verdict. Run from `Agent-Assure`, swapping in your own draft and store:
 
 ```bash
-.venv/bin/python scripts/ground_check.py --draft demo/draft-fabricated.md --store demo/evidence-store.jsonl --json | .venv/bin/python -c 'import json,sys; r=json.load(sys.stdin); print(r["gate"], r["grounding_score"]); [print(c["verdict"], "|", c["kind"], "|", c["text"][:60], "\n    why:", c["evidence_basis"]) for c in r["per_claim"]]'
+uv run python scripts/ground_check.py --draft demo/draft-fabricated.md --store demo/evidence-store.jsonl --json | uv run python scripts/explain_report.py
 ```
 
-On the fabricated demo draft the last two entries read `UNVERIFIED_CITATION ... why: S3 is cited but is NOT IN THE EVIDENCE STORE` and `UNVERIFIED_NUMBER ... The claim asserts 1 figure: "100" ...`. The exit code of this pipe is the last command's, so it is 0 whatever the gate. Use the section 3 step 1 command with `show_report.py` when you need the gate's exit code.
+On the fabricated demo draft, claim 3 reads `UNVERIFIED_CITATION ... why: S3 is cited but is NOT IN THE EVIDENCE STORE` and claim 4 reads `UNVERIFIED_NUMBER ... The claim asserts 1 figure: "100" ...`, each with a `fix:` line. The exit code is 0 when the gate is PASS and 1 otherwise, so `ground_check.py --json | explain_report.py` can be used in a script. You can also save the JSON and pass the file: `explain_report.py report.json`.
 
 ### What to do about each verdict
 
 | Verdict | What it means for you | What to do |
 |---|---|---|
 | UNCITED | No `[Sn]` in the claim. Includes a marker placed after the full stop, and a heading or table counted as a claim (below). | Add `[Sn]` inside the sentence, before the full stop. For a heading or table, see below. |
-| UNVERIFIED_CITATION | `[Sn]` is not in the store. | Retrieve the source in-session, or fix the id. In a hand-built store, add the line (see "Check your own source"). |
+| UNVERIFIED_CITATION | `[Sn]` is not in the store. | Retrieve the source in-session, or fix the id. In a hand-built store, add the source with `scripts/add_source.py` (see "Check your own source"). |
 | UNGROUNDED | `[Sn]` exists, but no 8-word run of your claim is in it. Usually a paraphrase, or your own framing words. | Replace the claim with the source's own sentence and cite it. This is not evidence the claim is false. |
 | UNVERIFIED_NUMBER | A figure in the claim is not in the cited source with the same value, unit and rate. A version number such as "2.4" counts as a figure. | Copy the figure as the source writes it, or cite the source that has it. |
 | UNGROUNDABLE | The cited source is a summary (`haiku_summary`) or empty, or (`support_diagnostic` `cited_source_is_the_draft`) it is a short source that looks like a copy of your draft. | Re-fetch with Exa or `Read`. If the source is verbatim and non-empty, cite the full source document, not an excerpt; see "Known issues". |
