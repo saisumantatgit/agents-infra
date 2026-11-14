@@ -8,3 +8,5 @@
 | 18:21 | C2 done; C3,C4 open | fixes a,c,d,NEW1-3; main loop re-verified: suite 1236p, md5 ok, probe 4/34 (b only), red 29 failed pre-fix; Error-A −2 claims in already-FAIL draft | ~0.6M | FMEA (sibling: unlisted verbs tripwired), Goodhart |
 | 18:24 | C3,C4 open (in flight: C3 adversary R37) | tick; no change, waiting on named event: R37 agent completion | ~0.01M | option value of waiting (named event) |
 | 18:31 | C3 found Error-A; C3b narrowing open; C4 open | R37: 0 blockers, 14 hole classes (all also on main), 29 Error-A; D-107 | ~1.0M | error-cost asymmetry, Goodhart |
+| 18:54 | C3b,C4 open (in flight: R38 narrowing) | tick; waiting on named event: R38 agent completion | ~0.01M | option value of waiting |
+| 18:57 | C3b done; final adversary + C4 open | R38 verified first-hand; D-108 | ~1.6M | error-cost asymmetry |
