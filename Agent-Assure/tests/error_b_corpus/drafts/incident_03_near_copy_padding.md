@@ -1,0 +1,1 @@
+The on-call engineer was paged within 6 minutes of the first alert [S1]. Engineers restored normal service after 30 minutes [S1]. Investigators linked the status page to a data leak at Kestrel Mail [S1]. The primary database was restarted twice during the response [S1].
