@@ -1,0 +1,1 @@
+Every public function is documented in the docs folder [S1]. The cache layer was shut down for 7 days after a security breach [S1]. Contributions are welcome through pull requests [S1]. The test suite runs in under 11 seconds on a laptop [S1].

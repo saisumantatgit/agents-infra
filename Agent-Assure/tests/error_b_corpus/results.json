@@ -1,0 +1,5772 @@
+{
+ "summary": {
+  "all": {
+   "drafts": 280,
+   "escaped": 36,
+   "escaped_pct": 12.9,
+   "pass": 20,
+   "pass_pct": 7.1,
+   "NEEDS_WORK": 220,
+   "FAIL": 40,
+   "control_pass": 195
+  },
+  "by_class": {
+   "absence_claim": {
+    "drafts": 15,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 14,
+    "FAIL": 1,
+    "control_pass": 14
+   },
+   "causal_claim": {
+    "drafts": 15,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 15,
+    "FAIL": 0,
+    "control_pass": 14
+   },
+   "claim_heading": {
+    "drafts": 15,
+    "escaped": 6,
+    "escaped_pct": 40.0,
+    "pass": 6,
+    "pass_pct": 40.0,
+    "NEEDS_WORK": 8,
+    "FAIL": 1,
+    "control_pass": 14
+   },
+   "denied_2back": {
+    "drafts": 16,
+    "escaped": 6,
+    "escaped_pct": 37.5,
+    "pass": 3,
+    "pass_pct": 18.8,
+    "NEEDS_WORK": 9,
+    "FAIL": 4,
+    "control_pass": 9
+   },
+   "denied_3plus_back": {
+    "drafts": 16,
+    "escaped": 4,
+    "escaped_pct": 25.0,
+    "pass": 1,
+    "pass_pct": 6.2,
+    "NEEDS_WORK": 9,
+    "FAIL": 6,
+    "control_pass": 6
+   },
+   "denied_adjacent": {
+    "drafts": 16,
+    "escaped": 2,
+    "escaped_pct": 12.5,
+    "pass": 1,
+    "pass_pct": 6.2,
+    "NEEDS_WORK": 7,
+    "FAIL": 8,
+    "control_pass": 6
+   },
+   "denied_heading": {
+    "drafts": 16,
+    "escaped": 8,
+    "escaped_pct": 50.0,
+    "pass": 6,
+    "pass_pct": 37.5,
+    "NEEDS_WORK": 2,
+    "FAIL": 8,
+    "control_pass": 6
+   },
+   "denied_same_sentence": {
+    "drafts": 16,
+    "escaped": 10,
+    "escaped_pct": 62.5,
+    "pass": 3,
+    "pass_pct": 18.8,
+    "NEEDS_WORK": 11,
+    "FAIL": 2,
+    "control_pass": 8
+   },
+   "denied_table_after": {
+    "drafts": 16,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 10,
+    "FAIL": 6,
+    "control_pass": 14
+   },
+   "list_item_number": {
+    "drafts": 15,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 15,
+    "FAIL": 0,
+    "control_pass": 0
+   },
+   "misattributed_quote": {
+    "drafts": 15,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 15,
+    "FAIL": 0,
+    "control_pass": 15
+   },
+   "near_copy_padding": {
+    "drafts": 15,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 15,
+    "FAIL": 0,
+    "control_pass": 15
+   },
+   "number_moved_subject": {
+    "drafts": 16,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 16,
+    "FAIL": 0,
+    "control_pass": 16
+   },
+   "swapped_entities": {
+    "drafts": 15,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 14,
+    "FAIL": 1,
+    "control_pass": 14
+   },
+   "table_cell": {
+    "drafts": 15,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 14,
+    "FAIL": 1,
+    "control_pass": 0
+   },
+   "unsupported_claim": {
+    "drafts": 16,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 15,
+    "FAIL": 1,
+    "control_pass": 15
+   },
+   "wrong_number": {
+    "drafts": 16,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 16,
+    "FAIL": 0,
+    "control_pass": 15
+   },
+   "wrong_unit_rate": {
+    "drafts": 16,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 15,
+    "FAIL": 1,
+    "control_pass": 14
+   }
+  },
+  "by_genre": {
+   "api_reference": {
+    "drafts": 20,
+    "escaped": 2,
+    "escaped_pct": 10.0,
+    "pass": 1,
+    "pass_pct": 5.0,
+    "NEEDS_WORK": 15,
+    "FAIL": 4,
+    "control_pass": 12
+   },
+   "changelog": {
+    "drafts": 20,
+    "escaped": 3,
+    "escaped_pct": 15.0,
+    "pass": 1,
+    "pass_pct": 5.0,
+    "NEEDS_WORK": 16,
+    "FAIL": 3,
+    "control_pass": 12
+   },
+   "code_review": {
+    "drafts": 20,
+    "escaped": 3,
+    "escaped_pct": 15.0,
+    "pass": 2,
+    "pass_pct": 10.0,
+    "NEEDS_WORK": 13,
+    "FAIL": 5,
+    "control_pass": 13
+   },
+   "faq": {
+    "drafts": 20,
+    "escaped": 3,
+    "escaped_pct": 15.0,
+    "pass": 1,
+    "pass_pct": 5.0,
+    "NEEDS_WORK": 13,
+    "FAIL": 6,
+    "control_pass": 11
+   },
+   "financial_report": {
+    "drafts": 20,
+    "escaped": 1,
+    "escaped_pct": 5.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 16,
+    "FAIL": 4,
+    "control_pass": 14
+   },
+   "howto_code": {
+    "drafts": 20,
+    "escaped": 4,
+    "escaped_pct": 20.0,
+    "pass": 4,
+    "pass_pct": 20.0,
+    "NEEDS_WORK": 14,
+    "FAIL": 2,
+    "control_pass": 16
+   },
+   "hr_policy": {
+    "drafts": 20,
+    "escaped": 2,
+    "escaped_pct": 10.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 16,
+    "FAIL": 4,
+    "control_pass": 10
+   },
+   "incident": {
+    "drafts": 20,
+    "escaped": 2,
+    "escaped_pct": 10.0,
+    "pass": 1,
+    "pass_pct": 5.0,
+    "NEEDS_WORK": 17,
+    "FAIL": 2,
+    "control_pass": 15
+   },
+   "meeting_notes": {
+    "drafts": 20,
+    "escaped": 1,
+    "escaped_pct": 5.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 19,
+    "FAIL": 1,
+    "control_pass": 16
+   },
+   "news_brief": {
+    "drafts": 20,
+    "escaped": 4,
+    "escaped_pct": 20.0,
+    "pass": 2,
+    "pass_pct": 10.0,
+    "NEEDS_WORK": 16,
+    "FAIL": 2,
+    "control_pass": 15
+   },
+   "product_docs": {
+    "drafts": 20,
+    "escaped": 3,
+    "escaped_pct": 15.0,
+    "pass": 2,
+    "pass_pct": 10.0,
+    "NEEDS_WORK": 17,
+    "FAIL": 1,
+    "control_pass": 16
+   },
+   "readme": {
+    "drafts": 20,
+    "escaped": 3,
+    "escaped_pct": 15.0,
+    "pass": 2,
+    "pass_pct": 10.0,
+    "NEEDS_WORK": 17,
+    "FAIL": 1,
+    "control_pass": 14
+   },
+   "research_summary": {
+    "drafts": 20,
+    "escaped": 3,
+    "escaped_pct": 15.0,
+    "pass": 2,
+    "pass_pct": 10.0,
+    "NEEDS_WORK": 15,
+    "FAIL": 3,
+    "control_pass": 15
+   },
+   "sales_report": {
+    "drafts": 20,
+    "escaped": 2,
+    "escaped_pct": 10.0,
+    "pass": 2,
+    "pass_pct": 10.0,
+    "NEEDS_WORK": 16,
+    "FAIL": 2,
+    "control_pass": 16
+   }
+  },
+  "by_class_variant": {
+   "absence_claim/form0": {
+    "drafts": 4,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 4,
+    "FAIL": 0,
+    "control_pass": 4
+   },
+   "absence_claim/form1": {
+    "drafts": 4,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 4,
+    "FAIL": 0,
+    "control_pass": 4
+   },
+   "absence_claim/form2": {
+    "drafts": 4,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 4,
+    "FAIL": 0,
+    "control_pass": 4
+   },
+   "absence_claim/form3": {
+    "drafts": 3,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 2,
+    "FAIL": 1,
+    "control_pass": 2
+   },
+   "causal_claim/after": {
+    "drafts": 3,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 3,
+    "FAIL": 0,
+    "control_pass": 3
+   },
+   "causal_claim/as a result of": {
+    "drafts": 3,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 3,
+    "FAIL": 0,
+    "control_pass": 2
+   },
+   "causal_claim/because": {
+    "drafts": 3,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 3,
+    "FAIL": 0,
+    "control_pass": 3
+   },
+   "causal_claim/caused by": {
+    "drafts": 3,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 3,
+    "FAIL": 0,
+    "control_pass": 3
+   },
+   "causal_claim/driven by": {
+    "drafts": 3,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 3,
+    "FAIL": 0,
+    "control_pass": 3
+   },
+   "claim_heading/heading0": {
+    "drafts": 2,
+    "escaped": 2,
+    "escaped_pct": 100.0,
+    "pass": 2,
+    "pass_pct": 100.0,
+    "NEEDS_WORK": 0,
+    "FAIL": 0,
+    "control_pass": 2
+   },
+   "claim_heading/heading1": {
+    "drafts": 2,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 2,
+    "FAIL": 0,
+    "control_pass": 2
+   },
+   "claim_heading/heading10": {
+    "drafts": 1,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "claim_heading/heading11": {
+    "drafts": 1,
+    "escaped": 1,
+    "escaped_pct": 100.0,
+    "pass": 1,
+    "pass_pct": 100.0,
+    "NEEDS_WORK": 0,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "claim_heading/heading2": {
+    "drafts": 2,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 2,
+    "FAIL": 0,
+    "control_pass": 2
+   },
+   "claim_heading/heading3": {
+    "drafts": 1,
+    "escaped": 1,
+    "escaped_pct": 100.0,
+    "pass": 1,
+    "pass_pct": 100.0,
+    "NEEDS_WORK": 0,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "claim_heading/heading4": {
+    "drafts": 1,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "claim_heading/heading5": {
+    "drafts": 1,
+    "escaped": 1,
+    "escaped_pct": 100.0,
+    "pass": 1,
+    "pass_pct": 100.0,
+    "NEEDS_WORK": 0,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "claim_heading/heading6": {
+    "drafts": 1,
+    "escaped": 1,
+    "escaped_pct": 100.0,
+    "pass": 1,
+    "pass_pct": 100.0,
+    "NEEDS_WORK": 0,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "claim_heading/heading7": {
+    "drafts": 1,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 0,
+    "FAIL": 1,
+    "control_pass": 0
+   },
+   "claim_heading/heading8": {
+    "drafts": 1,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "claim_heading/heading9": {
+    "drafts": 1,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "denied_2back/one_filler": {
+    "drafts": 16,
+    "escaped": 6,
+    "escaped_pct": 37.5,
+    "pass": 3,
+    "pass_pct": 18.8,
+    "NEEDS_WORK": 9,
+    "FAIL": 4,
+    "control_pass": 9
+   },
+   "denied_3plus_back/2_fillers": {
+    "drafts": 6,
+    "escaped": 1,
+    "escaped_pct": 16.7,
+    "pass": 1,
+    "pass_pct": 16.7,
+    "NEEDS_WORK": 2,
+    "FAIL": 3,
+    "control_pass": 2
+   },
+   "denied_3plus_back/3_fillers": {
+    "drafts": 5,
+    "escaped": 2,
+    "escaped_pct": 40.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 4,
+    "FAIL": 1,
+    "control_pass": 2
+   },
+   "denied_3plus_back/4_fillers": {
+    "drafts": 5,
+    "escaped": 1,
+    "escaped_pct": 20.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 3,
+    "FAIL": 2,
+    "control_pass": 2
+   },
+   "denied_adjacent/denial_after": {
+    "drafts": 8,
+    "escaped": 2,
+    "escaped_pct": 25.0,
+    "pass": 1,
+    "pass_pct": 12.5,
+    "NEEDS_WORK": 5,
+    "FAIL": 2,
+    "control_pass": 4
+   },
+   "denied_adjacent/denial_before": {
+    "drafts": 8,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 2,
+    "FAIL": 6,
+    "control_pass": 2
+   },
+   "denied_heading/heading0_fill0": {
+    "drafts": 4,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 0,
+    "FAIL": 4,
+    "control_pass": 0
+   },
+   "denied_heading/heading1_fill1": {
+    "drafts": 4,
+    "escaped": 4,
+    "escaped_pct": 100.0,
+    "pass": 2,
+    "pass_pct": 50.0,
+    "NEEDS_WORK": 2,
+    "FAIL": 0,
+    "control_pass": 2
+   },
+   "denied_heading/heading2_fill2": {
+    "drafts": 4,
+    "escaped": 4,
+    "escaped_pct": 100.0,
+    "pass": 4,
+    "pass_pct": 100.0,
+    "NEEDS_WORK": 0,
+    "FAIL": 0,
+    "control_pass": 4
+   },
+   "denied_heading/heading3_fill3": {
+    "drafts": 4,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 0,
+    "FAIL": 4,
+    "control_pass": 0
+   },
+   "denied_same_sentence/suffix0": {
+    "drafts": 3,
+    "escaped": 2,
+    "escaped_pct": 66.7,
+    "pass": 1,
+    "pass_pct": 33.3,
+    "NEEDS_WORK": 2,
+    "FAIL": 0,
+    "control_pass": 2
+   },
+   "denied_same_sentence/suffix1": {
+    "drafts": 3,
+    "escaped": 3,
+    "escaped_pct": 100.0,
+    "pass": 1,
+    "pass_pct": 33.3,
+    "NEEDS_WORK": 2,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "denied_same_sentence/suffix2": {
+    "drafts": 3,
+    "escaped": 3,
+    "escaped_pct": 100.0,
+    "pass": 1,
+    "pass_pct": 33.3,
+    "NEEDS_WORK": 2,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "denied_same_sentence/suffix3": {
+    "drafts": 3,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 2,
+    "FAIL": 1,
+    "control_pass": 2
+   },
+   "denied_same_sentence/suffix4": {
+    "drafts": 2,
+    "escaped": 2,
+    "escaped_pct": 100.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
+    "FAIL": 1,
+    "control_pass": 0
+   },
+   "denied_same_sentence/suffix5": {
+    "drafts": 2,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 2,
+    "FAIL": 0,
+    "control_pass": 2
+   },
+   "denied_table_after/kv_row_below": {
+    "drafts": 6,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 5,
+    "FAIL": 1,
+    "control_pass": 5
+   },
+   "denied_table_after/same_row_cell": {
+    "drafts": 5,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 0,
+    "FAIL": 5,
+    "control_pass": 4
+   },
+   "denied_table_after/summary_row": {
+    "drafts": 5,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 5,
+    "FAIL": 0,
+    "control_pass": 5
+   },
+   "list_item_number/count": {
+    "drafts": 7,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 7,
+    "FAIL": 0,
+    "control_pass": 0
+   },
+   "list_item_number/rank": {
+    "drafts": 8,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 8,
+    "FAIL": 0,
+    "control_pass": 0
+   },
+   "misattributed_quote/wrong_speaker": {
+    "drafts": 15,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 15,
+    "FAIL": 0,
+    "control_pass": 15
+   },
+   "near_copy_padding/pos1": {
+    "drafts": 8,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 8,
+    "FAIL": 0,
+    "control_pass": 8
+   },
+   "near_copy_padding/pos2": {
+    "drafts": 7,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 7,
+    "FAIL": 0,
+    "control_pass": 7
+   },
+   "number_moved_subject/count": {
+    "drafts": 4,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 4,
+    "FAIL": 0,
+    "control_pass": 4
+   },
+   "number_moved_subject/duration": {
+    "drafts": 4,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 4,
+    "FAIL": 0,
+    "control_pass": 4
+   },
+   "number_moved_subject/money": {
+    "drafts": 4,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 4,
+    "FAIL": 0,
+    "control_pass": 4
+   },
+   "number_moved_subject/rate": {
+    "drafts": 4,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 4,
+    "FAIL": 0,
+    "control_pass": 4
+   },
+   "swapped_entities/rel0": {
+    "drafts": 4,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 4,
+    "FAIL": 0,
+    "control_pass": 4
+   },
+   "swapped_entities/rel1": {
+    "drafts": 4,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 4,
+    "FAIL": 0,
+    "control_pass": 4
+   },
+   "swapped_entities/rel2": {
+    "drafts": 4,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 3,
+    "FAIL": 1,
+    "control_pass": 3
+   },
+   "swapped_entities/rel3": {
+    "drafts": 3,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 3,
+    "FAIL": 0,
+    "control_pass": 3
+   },
+   "table_cell/moved_from_other_row": {
+    "drafts": 7,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 6,
+    "FAIL": 1,
+    "control_pass": 0
+   },
+   "table_cell/value_not_in_source": {
+    "drafts": 8,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 8,
+    "FAIL": 0,
+    "control_pass": 0
+   },
+   "unsupported_claim/bullets": {
+    "drafts": 8,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 8,
+    "FAIL": 0,
+    "control_pass": 8
+   },
+   "unsupported_claim/para": {
+    "drafts": 8,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 7,
+    "FAIL": 1,
+    "control_pass": 7
+   },
+   "wrong_number/count": {
+    "drafts": 4,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 4,
+    "FAIL": 0,
+    "control_pass": 4
+   },
+   "wrong_number/duration": {
+    "drafts": 4,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 4,
+    "FAIL": 0,
+    "control_pass": 4
+   },
+   "wrong_number/money": {
+    "drafts": 4,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 4,
+    "FAIL": 0,
+    "control_pass": 4
+   },
+   "wrong_number/rate": {
+    "drafts": 4,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 4,
+    "FAIL": 0,
+    "control_pass": 3
+   },
+   "wrong_unit_rate/percent_transposed": {
+    "drafts": 4,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 4,
+    "FAIL": 0,
+    "control_pass": 3
+   },
+   "wrong_unit_rate/unit_count": {
+    "drafts": 3,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 3,
+    "FAIL": 0,
+    "control_pass": 3
+   },
+   "wrong_unit_rate/unit_duration": {
+    "drafts": 3,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 3,
+    "FAIL": 0,
+    "control_pass": 3
+   },
+   "wrong_unit_rate/unit_money": {
+    "drafts": 3,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 2,
+    "FAIL": 1,
+    "control_pass": 2
+   },
+   "wrong_unit_rate/unit_rate": {
+    "drafts": 3,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 3,
+    "FAIL": 0,
+    "control_pass": 3
+   }
+  }
+ },
+ "drafts": [
+  {
+   "id": "api_reference_00_wrong_number",
+   "genre": "api_reference",
+   "class": "wrong_number",
+   "variant": "count",
+   "gate": "NEEDS_WORK",
+   "score": 80.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "api_reference_01_wrong_unit_rate",
+   "genre": "api_reference",
+   "class": "wrong_unit_rate",
+   "variant": "percent_transposed",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "api_reference_02_number_moved_subject",
+   "genre": "api_reference",
+   "class": "number_moved_subject",
+   "variant": "count",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "api_reference_03_unsupported_claim",
+   "genre": "api_reference",
+   "class": "unsupported_claim",
+   "variant": "para",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "api_reference_04_denied_adjacent",
+   "genre": "api_reference",
+   "class": "denied_adjacent",
+   "variant": "denial_before",
+   "gate": "FAIL",
+   "score": 50.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "api_reference_05_denied_2back",
+   "genre": "api_reference",
+   "class": "denied_2back",
+   "variant": "one_filler",
+   "gate": "FAIL",
+   "score": 50.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "api_reference_06_denied_3plus_back",
+   "genre": "api_reference",
+   "class": "denied_3plus_back",
+   "variant": "2_fillers",
+   "gate": "FAIL",
+   "score": 50.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "api_reference_07_denied_same_sentence",
+   "genre": "api_reference",
+   "class": "denied_same_sentence",
+   "variant": "suffix0",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "GROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": true,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "api_reference_08_denied_heading",
+   "genre": "api_reference",
+   "class": "denied_heading",
+   "variant": "heading0_fill0",
+   "gate": "FAIL",
+   "score": 50.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "api_reference_09_denied_table_after",
+   "genre": "api_reference",
+   "class": "denied_table_after",
+   "variant": "kv_row_below",
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "api_reference_10_claim_heading",
+   "genre": "api_reference",
+   "class": "claim_heading",
+   "variant": "heading0",
+   "gate": "PASS",
+   "score": 100.0,
+   "fab_verdicts": [
+    "GROUNDED"
+   ],
+   "fab_kinds": [
+    "NON_CLAIM"
+   ],
+   "escaped": true,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "api_reference_11_list_item_number",
+   "genre": "api_reference",
+   "class": "list_item_number",
+   "variant": "rank",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "api_reference_12_table_cell",
+   "genre": "api_reference",
+   "class": "table_cell",
+   "variant": "value_not_in_source",
+   "gate": "NEEDS_WORK",
+   "score": 60.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "api_reference_13_swapped_entities",
+   "genre": "api_reference",
+   "class": "swapped_entities",
+   "variant": "rel0",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "api_reference_14_misattributed_quote",
+   "genre": "api_reference",
+   "class": "misattributed_quote",
+   "variant": "wrong_speaker",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "api_reference_15_absence_claim",
+   "genre": "api_reference",
+   "class": "absence_claim",
+   "variant": "form0",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "api_reference_16_causal_claim",
+   "genre": "api_reference",
+   "class": "causal_claim",
+   "variant": "because",
+   "gate": "NEEDS_WORK",
+   "score": 80.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "api_reference_17_near_copy_padding",
+   "genre": "api_reference",
+   "class": "near_copy_padding",
+   "variant": "pos1",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "api_reference_18_wrong_number",
+   "genre": "api_reference",
+   "class": "wrong_number",
+   "variant": "money",
+   "gate": "NEEDS_WORK",
+   "score": 80.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "api_reference_19_wrong_unit_rate",
+   "genre": "api_reference",
+   "class": "wrong_unit_rate",
+   "variant": "unit_count",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "changelog_00_number_moved_subject",
+   "genre": "changelog",
+   "class": "number_moved_subject",
+   "variant": "money",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "changelog_01_unsupported_claim",
+   "genre": "changelog",
+   "class": "unsupported_claim",
+   "variant": "bullets",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "changelog_02_denied_adjacent",
+   "genre": "changelog",
+   "class": "denied_adjacent",
+   "variant": "denial_after",
+   "gate": "FAIL",
+   "score": 50.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "changelog_03_denied_2back",
+   "genre": "changelog",
+   "class": "denied_2back",
+   "variant": "one_filler",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "changelog_04_denied_3plus_back",
+   "genre": "changelog",
+   "class": "denied_3plus_back",
+   "variant": "3_fillers",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "GROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": true,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "changelog_05_denied_same_sentence",
+   "genre": "changelog",
+   "class": "denied_same_sentence",
+   "variant": "suffix1",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "GROUNDED"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": true,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "changelog_06_denied_heading",
+   "genre": "changelog",
+   "class": "denied_heading",
+   "variant": "heading1_fill1",
+   "gate": "PASS",
+   "score": 100.0,
+   "fab_verdicts": [
+    "GROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": true,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "changelog_07_denied_table_after",
+   "genre": "changelog",
+   "class": "denied_table_after",
+   "variant": "same_row_cell",
+   "gate": "FAIL",
+   "score": 25.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 2,
+   "control_gate": "FAIL"
+  },
+  {
+   "id": "changelog_08_claim_heading",
+   "genre": "changelog",
+   "class": "claim_heading",
+   "variant": "heading1",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNCITED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "changelog_09_list_item_number",
+   "genre": "changelog",
+   "class": "list_item_number",
+   "variant": "count",
+   "gate": "NEEDS_WORK",
+   "score": 80.0,
+   "fab_verdicts": [
+    "GROUNDED",
+    "UNCITED"
+   ],
+   "fab_kinds": [
+    "FACTUAL",
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "changelog_10_table_cell",
+   "genre": "changelog",
+   "class": "table_cell",
+   "variant": "moved_from_other_row",
+   "gate": "NEEDS_WORK",
+   "score": 60.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "changelog_11_swapped_entities",
+   "genre": "changelog",
+   "class": "swapped_entities",
+   "variant": "rel1",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "changelog_12_misattributed_quote",
+   "genre": "changelog",
+   "class": "misattributed_quote",
+   "variant": "wrong_speaker",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "changelog_13_absence_claim",
+   "genre": "changelog",
+   "class": "absence_claim",
+   "variant": "form1",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNVERIFIED_ABSENCE"
+   ],
+   "fab_kinds": [
+    "ABSENCE"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "changelog_14_causal_claim",
+   "genre": "changelog",
+   "class": "causal_claim",
+   "variant": "as a result of",
+   "gate": "NEEDS_WORK",
+   "score": 60.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "changelog_15_near_copy_padding",
+   "genre": "changelog",
+   "class": "near_copy_padding",
+   "variant": "pos2",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "changelog_16_wrong_number",
+   "genre": "changelog",
+   "class": "wrong_number",
+   "variant": "duration",
+   "gate": "NEEDS_WORK",
+   "score": 80.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "changelog_17_wrong_unit_rate",
+   "genre": "changelog",
+   "class": "wrong_unit_rate",
+   "variant": "unit_money",
+   "gate": "FAIL",
+   "score": 50.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "changelog_18_number_moved_subject",
+   "genre": "changelog",
+   "class": "number_moved_subject",
+   "variant": "duration",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "changelog_19_unsupported_claim",
+   "genre": "changelog",
+   "class": "unsupported_claim",
+   "variant": "para",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "code_review_00_denied_adjacent",
+   "genre": "code_review",
+   "class": "denied_adjacent",
+   "variant": "denial_before",
+   "gate": "FAIL",
+   "score": 50.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "code_review_01_denied_2back",
+   "genre": "code_review",
+   "class": "denied_2back",
+   "variant": "one_filler",
+   "gate": "FAIL",
+   "score": 25.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 2,
+   "control_gate": "FAIL"
+  },
+  {
+   "id": "code_review_02_denied_3plus_back",
+   "genre": "code_review",
+   "class": "denied_3plus_back",
+   "variant": "4_fillers",
+   "gate": "FAIL",
+   "score": 50.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "code_review_03_denied_same_sentence",
+   "genre": "code_review",
+   "class": "denied_same_sentence",
+   "variant": "suffix2",
+   "gate": "PASS",
+   "score": 100.0,
+   "fab_verdicts": [
+    "GROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": true,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "code_review_04_denied_heading",
+   "genre": "code_review",
+   "class": "denied_heading",
+   "variant": "heading2_fill2",
+   "gate": "PASS",
+   "score": 100.0,
+   "fab_verdicts": [
+    "GROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": true,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "code_review_05_denied_table_after",
+   "genre": "code_review",
+   "class": "denied_table_after",
+   "variant": "summary_row",
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "code_review_06_claim_heading",
+   "genre": "code_review",
+   "class": "claim_heading",
+   "variant": "heading2",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNCITED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "code_review_07_list_item_number",
+   "genre": "code_review",
+   "class": "list_item_number",
+   "variant": "rank",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "code_review_08_table_cell",
+   "genre": "code_review",
+   "class": "table_cell",
+   "variant": "value_not_in_source",
+   "gate": "NEEDS_WORK",
+   "score": 60.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "code_review_09_swapped_entities",
+   "genre": "code_review",
+   "class": "swapped_entities",
+   "variant": "rel2",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "code_review_10_misattributed_quote",
+   "genre": "code_review",
+   "class": "misattributed_quote",
+   "variant": "wrong_speaker",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "code_review_11_absence_claim",
+   "genre": "code_review",
+   "class": "absence_claim",
+   "variant": "form2",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "code_review_12_causal_claim",
+   "genre": "code_review",
+   "class": "causal_claim",
+   "variant": "after",
+   "gate": "NEEDS_WORK",
+   "score": 80.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "code_review_13_near_copy_padding",
+   "genre": "code_review",
+   "class": "near_copy_padding",
+   "variant": "pos1",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "code_review_14_wrong_number",
+   "genre": "code_review",
+   "class": "wrong_number",
+   "variant": "rate",
+   "gate": "NEEDS_WORK",
+   "score": 80.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "code_review_15_wrong_unit_rate",
+   "genre": "code_review",
+   "class": "wrong_unit_rate",
+   "variant": "unit_duration",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "code_review_16_number_moved_subject",
+   "genre": "code_review",
+   "class": "number_moved_subject",
+   "variant": "rate",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "code_review_17_unsupported_claim",
+   "genre": "code_review",
+   "class": "unsupported_claim",
+   "variant": "bullets",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "code_review_18_denied_adjacent",
+   "genre": "code_review",
+   "class": "denied_adjacent",
+   "variant": "denial_after",
+   "gate": "FAIL",
+   "score": 25.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 2,
+   "control_gate": "FAIL"
+  },
+  {
+   "id": "code_review_19_denied_2back",
+   "genre": "code_review",
+   "class": "denied_2back",
+   "variant": "one_filler",
+   "gate": "FAIL",
+   "score": 50.0,
+   "fab_verdicts": [
+    "GROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": true,
+   "other_refused": 2,
+   "control_gate": "FAIL"
+  },
+  {
+   "id": "faq_00_denied_3plus_back",
+   "genre": "faq",
+   "class": "denied_3plus_back",
+   "variant": "2_fillers",
+   "gate": "FAIL",
+   "score": 50.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "faq_01_denied_same_sentence",
+   "genre": "faq",
+   "class": "denied_same_sentence",
+   "variant": "suffix3",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "faq_02_denied_heading",
+   "genre": "faq",
+   "class": "denied_heading",
+   "variant": "heading3_fill3",
+   "gate": "FAIL",
+   "score": 50.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "faq_03_denied_table_after",
+   "genre": "faq",
+   "class": "denied_table_after",
+   "variant": "kv_row_below",
+   "gate": "FAIL",
+   "score": 33.3,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "FAIL"
+  },
+  {
+   "id": "faq_04_claim_heading",
+   "genre": "faq",
+   "class": "claim_heading",
+   "variant": "heading3",
+   "gate": "PASS",
+   "score": 100.0,
+   "fab_verdicts": [
+    "GROUNDED"
+   ],
+   "fab_kinds": [
+    "NON_CLAIM"
+   ],
+   "escaped": true,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "faq_05_list_item_number",
+   "genre": "faq",
+   "class": "list_item_number",
+   "variant": "count",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "faq_06_table_cell",
+   "genre": "faq",
+   "class": "table_cell",
+   "variant": "moved_from_other_row",
+   "gate": "NEEDS_WORK",
+   "score": 60.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "faq_07_swapped_entities",
+   "genre": "faq",
+   "class": "swapped_entities",
+   "variant": "rel3",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "faq_08_misattributed_quote",
+   "genre": "faq",
+   "class": "misattributed_quote",
+   "variant": "wrong_speaker",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "faq_09_absence_claim",
+   "genre": "faq",
+   "class": "absence_claim",
+   "variant": "form3",
+   "gate": "FAIL",
+   "score": 50.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "faq_10_causal_claim",
+   "genre": "faq",
+   "class": "causal_claim",
+   "variant": "driven by",
+   "gate": "NEEDS_WORK",
+   "score": 80.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "faq_11_near_copy_padding",
+   "genre": "faq",
+   "class": "near_copy_padding",
+   "variant": "pos2",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "faq_12_wrong_number",
+   "genre": "faq",
+   "class": "wrong_number",
+   "variant": "count",
+   "gate": "NEEDS_WORK",
+   "score": 80.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "faq_13_wrong_unit_rate",
+   "genre": "faq",
+   "class": "wrong_unit_rate",
+   "variant": "unit_rate",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "faq_14_number_moved_subject",
+   "genre": "faq",
+   "class": "number_moved_subject",
+   "variant": "count",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "faq_15_unsupported_claim",
+   "genre": "faq",
+   "class": "unsupported_claim",
+   "variant": "para",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "faq_16_denied_adjacent",
+   "genre": "faq",
+   "class": "denied_adjacent",
+   "variant": "denial_before",
+   "gate": "FAIL",
+   "score": 50.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "faq_17_denied_2back",
+   "genre": "faq",
+   "class": "denied_2back",
+   "variant": "one_filler",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "GROUNDED"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": true,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "faq_18_denied_3plus_back",
+   "genre": "faq",
+   "class": "denied_3plus_back",
+   "variant": "3_fillers",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "faq_19_denied_same_sentence",
+   "genre": "faq",
+   "class": "denied_same_sentence",
+   "variant": "suffix4",
+   "gate": "FAIL",
+   "score": 50.0,
+   "fab_verdicts": [
+    "GROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": true,
+   "other_refused": 2,
+   "control_gate": "FAIL"
+  },
+  {
+   "id": "financial_report_00_denied_heading",
+   "genre": "financial_report",
+   "class": "denied_heading",
+   "variant": "heading0_fill0",
+   "gate": "FAIL",
+   "score": 50.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "financial_report_01_denied_table_after",
+   "genre": "financial_report",
+   "class": "denied_table_after",
+   "variant": "same_row_cell",
+   "gate": "FAIL",
+   "score": 50.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "financial_report_02_claim_heading",
+   "genre": "financial_report",
+   "class": "claim_heading",
+   "variant": "heading4",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNCITED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "financial_report_03_list_item_number",
+   "genre": "financial_report",
+   "class": "list_item_number",
+   "variant": "rank",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "financial_report_04_table_cell",
+   "genre": "financial_report",
+   "class": "table_cell",
+   "variant": "value_not_in_source",
+   "gate": "NEEDS_WORK",
+   "score": 60.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "financial_report_05_swapped_entities",
+   "genre": "financial_report",
+   "class": "swapped_entities",
+   "variant": "rel0",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "financial_report_06_misattributed_quote",
+   "genre": "financial_report",
+   "class": "misattributed_quote",
+   "variant": "wrong_speaker",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "financial_report_07_absence_claim",
+   "genre": "financial_report",
+   "class": "absence_claim",
+   "variant": "form0",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "financial_report_08_causal_claim",
+   "genre": "financial_report",
+   "class": "causal_claim",
+   "variant": "caused by",
+   "gate": "NEEDS_WORK",
+   "score": 80.0,
+   "fab_verdicts": [
+    "UNVERIFIED_RELATION"
+   ],
+   "fab_kinds": [
+    "RELATIONAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "financial_report_09_near_copy_padding",
+   "genre": "financial_report",
+   "class": "near_copy_padding",
+   "variant": "pos1",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "financial_report_10_wrong_number",
+   "genre": "financial_report",
+   "class": "wrong_number",
+   "variant": "money",
+   "gate": "NEEDS_WORK",
+   "score": 80.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "financial_report_11_wrong_unit_rate",
+   "genre": "financial_report",
+   "class": "wrong_unit_rate",
+   "variant": "percent_transposed",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "financial_report_12_number_moved_subject",
+   "genre": "financial_report",
+   "class": "number_moved_subject",
+   "variant": "money",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "financial_report_13_unsupported_claim",
+   "genre": "financial_report",
+   "class": "unsupported_claim",
+   "variant": "bullets",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "financial_report_14_denied_adjacent",
+   "genre": "financial_report",
+   "class": "denied_adjacent",
+   "variant": "denial_after",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "financial_report_15_denied_2back",
+   "genre": "financial_report",
+   "class": "denied_2back",
+   "variant": "one_filler",
+   "gate": "FAIL",
+   "score": 50.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "financial_report_16_denied_3plus_back",
+   "genre": "financial_report",
+   "class": "denied_3plus_back",
+   "variant": "4_fillers",
+   "gate": "FAIL",
+   "score": 50.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "financial_report_17_denied_same_sentence",
+   "genre": "financial_report",
+   "class": "denied_same_sentence",
+   "variant": "suffix5",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "financial_report_18_denied_heading",
+   "genre": "financial_report",
+   "class": "denied_heading",
+   "variant": "heading1_fill1",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "GROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": true,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "financial_report_19_denied_table_after",
+   "genre": "financial_report",
+   "class": "denied_table_after",
+   "variant": "summary_row",
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "howto_code_00_claim_heading",
+   "genre": "howto_code",
+   "class": "claim_heading",
+   "variant": "heading5",
+   "gate": "PASS",
+   "score": 100.0,
+   "fab_verdicts": [
+    "GROUNDED"
+   ],
+   "fab_kinds": [
+    "NON_CLAIM"
+   ],
+   "escaped": true,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "howto_code_01_list_item_number",
+   "genre": "howto_code",
+   "class": "list_item_number",
+   "variant": "count",
+   "gate": "NEEDS_WORK",
+   "score": 80.0,
+   "fab_verdicts": [
+    "GROUNDED",
+    "UNCITED"
+   ],
+   "fab_kinds": [
+    "FACTUAL",
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "howto_code_02_table_cell",
+   "genre": "howto_code",
+   "class": "table_cell",
+   "variant": "moved_from_other_row",
+   "gate": "FAIL",
+   "score": 20.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 3,
+   "control_gate": "FAIL"
+  },
+  {
+   "id": "howto_code_03_swapped_entities",
+   "genre": "howto_code",
+   "class": "swapped_entities",
+   "variant": "rel1",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "howto_code_04_misattributed_quote",
+   "genre": "howto_code",
+   "class": "misattributed_quote",
+   "variant": "wrong_speaker",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "howto_code_05_absence_claim",
+   "genre": "howto_code",
+   "class": "absence_claim",
+   "variant": "form1",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNVERIFIED_ABSENCE"
+   ],
+   "fab_kinds": [
+    "ABSENCE"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "howto_code_06_causal_claim",
+   "genre": "howto_code",
+   "class": "causal_claim",
+   "variant": "because",
+   "gate": "NEEDS_WORK",
+   "score": 80.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "howto_code_07_near_copy_padding",
+   "genre": "howto_code",
+   "class": "near_copy_padding",
+   "variant": "pos2",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "howto_code_08_wrong_number",
+   "genre": "howto_code",
+   "class": "wrong_number",
+   "variant": "duration",
+   "gate": "NEEDS_WORK",
+   "score": 80.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "howto_code_09_wrong_unit_rate",
+   "genre": "howto_code",
+   "class": "wrong_unit_rate",
+   "variant": "unit_count",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "howto_code_10_number_moved_subject",
+   "genre": "howto_code",
+   "class": "number_moved_subject",
+   "variant": "duration",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "howto_code_11_unsupported_claim",
+   "genre": "howto_code",
+   "class": "unsupported_claim",
+   "variant": "para",
+   "gate": "FAIL",
+   "score": 50.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "howto_code_12_denied_adjacent",
+   "genre": "howto_code",
+   "class": "denied_adjacent",
+   "variant": "denial_before",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "howto_code_13_denied_2back",
+   "genre": "howto_code",
+   "class": "denied_2back",
+   "variant": "one_filler",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "howto_code_14_denied_3plus_back",
+   "genre": "howto_code",
+   "class": "denied_3plus_back",
+   "variant": "2_fillers",
+   "gate": "PASS",
+   "score": 100.0,
+   "fab_verdicts": [
+    "GROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": true,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "howto_code_15_denied_same_sentence",
+   "genre": "howto_code",
+   "class": "denied_same_sentence",
+   "variant": "suffix0",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "howto_code_16_denied_heading",
+   "genre": "howto_code",
+   "class": "denied_heading",
+   "variant": "heading2_fill2",
+   "gate": "PASS",
+   "score": 100.0,
+   "fab_verdicts": [
+    "GROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": true,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "howto_code_17_denied_table_after",
+   "genre": "howto_code",
+   "class": "denied_table_after",
+   "variant": "kv_row_below",
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "howto_code_18_claim_heading",
+   "genre": "howto_code",
+   "class": "claim_heading",
+   "variant": "heading6",
+   "gate": "PASS",
+   "score": 100.0,
+   "fab_verdicts": [
+    "GROUNDED"
+   ],
+   "fab_kinds": [
+    "NON_CLAIM"
+   ],
+   "escaped": true,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "howto_code_19_list_item_number",
+   "genre": "howto_code",
+   "class": "list_item_number",
+   "variant": "rank",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "hr_policy_00_table_cell",
+   "genre": "hr_policy",
+   "class": "table_cell",
+   "variant": "value_not_in_source",
+   "gate": "NEEDS_WORK",
+   "score": 60.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "hr_policy_01_swapped_entities",
+   "genre": "hr_policy",
+   "class": "swapped_entities",
+   "variant": "rel2",
+   "gate": "FAIL",
+   "score": 50.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "hr_policy_02_misattributed_quote",
+   "genre": "hr_policy",
+   "class": "misattributed_quote",
+   "variant": "wrong_speaker",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "hr_policy_03_absence_claim",
+   "genre": "hr_policy",
+   "class": "absence_claim",
+   "variant": "form2",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "hr_policy_04_causal_claim",
+   "genre": "hr_policy",
+   "class": "causal_claim",
+   "variant": "as a result of",
+   "gate": "NEEDS_WORK",
+   "score": 80.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "hr_policy_05_near_copy_padding",
+   "genre": "hr_policy",
+   "class": "near_copy_padding",
+   "variant": "pos1",
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "hr_policy_06_wrong_number",
+   "genre": "hr_policy",
+   "class": "wrong_number",
+   "variant": "rate",
+   "gate": "NEEDS_WORK",
+   "score": 60.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "hr_policy_07_wrong_unit_rate",
+   "genre": "hr_policy",
+   "class": "wrong_unit_rate",
+   "variant": "unit_money",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "hr_policy_08_number_moved_subject",
+   "genre": "hr_policy",
+   "class": "number_moved_subject",
+   "variant": "rate",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "hr_policy_09_unsupported_claim",
+   "genre": "hr_policy",
+   "class": "unsupported_claim",
+   "variant": "bullets",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "hr_policy_10_denied_adjacent",
+   "genre": "hr_policy",
+   "class": "denied_adjacent",
+   "variant": "denial_after",
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "hr_policy_11_denied_2back",
+   "genre": "hr_policy",
+   "class": "denied_2back",
+   "variant": "one_filler",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "GROUNDED"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": true,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "hr_policy_12_denied_3plus_back",
+   "genre": "hr_policy",
+   "class": "denied_3plus_back",
+   "variant": "3_fillers",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "hr_policy_13_denied_same_sentence",
+   "genre": "hr_policy",
+   "class": "denied_same_sentence",
+   "variant": "suffix1",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "GROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": true,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "hr_policy_14_denied_heading",
+   "genre": "hr_policy",
+   "class": "denied_heading",
+   "variant": "heading3_fill3",
+   "gate": "FAIL",
+   "score": 50.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "hr_policy_15_denied_table_after",
+   "genre": "hr_policy",
+   "class": "denied_table_after",
+   "variant": "same_row_cell",
+   "gate": "FAIL",
+   "score": 50.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "hr_policy_16_claim_heading",
+   "genre": "hr_policy",
+   "class": "claim_heading",
+   "variant": "heading7",
+   "gate": "FAIL",
+   "score": 50.0,
+   "fab_verdicts": [
+    "UNCITED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "hr_policy_17_list_item_number",
+   "genre": "hr_policy",
+   "class": "list_item_number",
+   "variant": "count",
+   "gate": "NEEDS_WORK",
+   "score": 80.0,
+   "fab_verdicts": [
+    "GROUNDED",
+    "UNCITED"
+   ],
+   "fab_kinds": [
+    "FACTUAL",
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "hr_policy_18_table_cell",
+   "genre": "hr_policy",
+   "class": "table_cell",
+   "variant": "moved_from_other_row",
+   "gate": "NEEDS_WORK",
+   "score": 60.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "hr_policy_19_swapped_entities",
+   "genre": "hr_policy",
+   "class": "swapped_entities",
+   "variant": "rel3",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "incident_00_misattributed_quote",
+   "genre": "incident",
+   "class": "misattributed_quote",
+   "variant": "wrong_speaker",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "incident_01_absence_claim",
+   "genre": "incident",
+   "class": "absence_claim",
+   "variant": "form3",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "incident_02_causal_claim",
+   "genre": "incident",
+   "class": "causal_claim",
+   "variant": "after",
+   "gate": "NEEDS_WORK",
+   "score": 80.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "incident_03_near_copy_padding",
+   "genre": "incident",
+   "class": "near_copy_padding",
+   "variant": "pos2",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "incident_04_wrong_number",
+   "genre": "incident",
+   "class": "wrong_number",
+   "variant": "count",
+   "gate": "NEEDS_WORK",
+   "score": 80.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "incident_05_wrong_unit_rate",
+   "genre": "incident",
+   "class": "wrong_unit_rate",
+   "variant": "unit_duration",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "incident_06_number_moved_subject",
+   "genre": "incident",
+   "class": "number_moved_subject",
+   "variant": "count",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "incident_07_unsupported_claim",
+   "genre": "incident",
+   "class": "unsupported_claim",
+   "variant": "para",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "incident_08_denied_adjacent",
+   "genre": "incident",
+   "class": "denied_adjacent",
+   "variant": "denial_before",
+   "gate": "FAIL",
+   "score": 50.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "incident_09_denied_2back",
+   "genre": "incident",
+   "class": "denied_2back",
+   "variant": "one_filler",
+   "gate": "PASS",
+   "score": 100.0,
+   "fab_verdicts": [
+    "GROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": true,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "incident_10_denied_3plus_back",
+   "genre": "incident",
+   "class": "denied_3plus_back",
+   "variant": "4_fillers",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "incident_11_denied_same_sentence",
+   "genre": "incident",
+   "class": "denied_same_sentence",
+   "variant": "suffix2",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "GROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": true,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "incident_12_denied_heading",
+   "genre": "incident",
+   "class": "denied_heading",
+   "variant": "heading0_fill0",
+   "gate": "FAIL",
+   "score": 50.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "incident_13_denied_table_after",
+   "genre": "incident",
+   "class": "denied_table_after",
+   "variant": "summary_row",
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "incident_14_claim_heading",
+   "genre": "incident",
+   "class": "claim_heading",
+   "variant": "heading8",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNCITED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "incident_15_list_item_number",
+   "genre": "incident",
+   "class": "list_item_number",
+   "variant": "rank",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "incident_16_table_cell",
+   "genre": "incident",
+   "class": "table_cell",
+   "variant": "value_not_in_source",
+   "gate": "NEEDS_WORK",
+   "score": 60.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "incident_17_swapped_entities",
+   "genre": "incident",
+   "class": "swapped_entities",
+   "variant": "rel0",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "incident_18_misattributed_quote",
+   "genre": "incident",
+   "class": "misattributed_quote",
+   "variant": "wrong_speaker",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "incident_19_absence_claim",
+   "genre": "incident",
+   "class": "absence_claim",
+   "variant": "form0",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "meeting_notes_00_causal_claim",
+   "genre": "meeting_notes",
+   "class": "causal_claim",
+   "variant": "driven by",
+   "gate": "NEEDS_WORK",
+   "score": 80.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "meeting_notes_01_near_copy_padding",
+   "genre": "meeting_notes",
+   "class": "near_copy_padding",
+   "variant": "pos1",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "meeting_notes_02_wrong_number",
+   "genre": "meeting_notes",
+   "class": "wrong_number",
+   "variant": "money",
+   "gate": "NEEDS_WORK",
+   "score": 80.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "meeting_notes_03_wrong_unit_rate",
+   "genre": "meeting_notes",
+   "class": "wrong_unit_rate",
+   "variant": "unit_rate",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "meeting_notes_04_number_moved_subject",
+   "genre": "meeting_notes",
+   "class": "number_moved_subject",
+   "variant": "money",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "meeting_notes_05_unsupported_claim",
+   "genre": "meeting_notes",
+   "class": "unsupported_claim",
+   "variant": "bullets",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "meeting_notes_06_denied_adjacent",
+   "genre": "meeting_notes",
+   "class": "denied_adjacent",
+   "variant": "denial_after",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "meeting_notes_07_denied_2back",
+   "genre": "meeting_notes",
+   "class": "denied_2back",
+   "variant": "one_filler",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "meeting_notes_08_denied_3plus_back",
+   "genre": "meeting_notes",
+   "class": "denied_3plus_back",
+   "variant": "2_fillers",
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "meeting_notes_09_denied_same_sentence",
+   "genre": "meeting_notes",
+   "class": "denied_same_sentence",
+   "variant": "suffix3",
+   "gate": "FAIL",
+   "score": 50.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "meeting_notes_10_denied_heading",
+   "genre": "meeting_notes",
+   "class": "denied_heading",
+   "variant": "heading1_fill1",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "GROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": true,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "meeting_notes_11_denied_table_after",
+   "genre": "meeting_notes",
+   "class": "denied_table_after",
+   "variant": "kv_row_below",
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "meeting_notes_12_claim_heading",
+   "genre": "meeting_notes",
+   "class": "claim_heading",
+   "variant": "heading9",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNCITED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "meeting_notes_13_list_item_number",
+   "genre": "meeting_notes",
+   "class": "list_item_number",
+   "variant": "count",
+   "gate": "NEEDS_WORK",
+   "score": 80.0,
+   "fab_verdicts": [
+    "GROUNDED",
+    "UNCITED"
+   ],
+   "fab_kinds": [
+    "FACTUAL",
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "meeting_notes_14_table_cell",
+   "genre": "meeting_notes",
+   "class": "table_cell",
+   "variant": "moved_from_other_row",
+   "gate": "NEEDS_WORK",
+   "score": 60.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "meeting_notes_15_swapped_entities",
+   "genre": "meeting_notes",
+   "class": "swapped_entities",
+   "variant": "rel1",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "meeting_notes_16_misattributed_quote",
+   "genre": "meeting_notes",
+   "class": "misattributed_quote",
+   "variant": "wrong_speaker",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "meeting_notes_17_absence_claim",
+   "genre": "meeting_notes",
+   "class": "absence_claim",
+   "variant": "form1",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNVERIFIED_ABSENCE"
+   ],
+   "fab_kinds": [
+    "ABSENCE"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "meeting_notes_18_causal_claim",
+   "genre": "meeting_notes",
+   "class": "causal_claim",
+   "variant": "caused by",
+   "gate": "NEEDS_WORK",
+   "score": 80.0,
+   "fab_verdicts": [
+    "UNVERIFIED_RELATION"
+   ],
+   "fab_kinds": [
+    "RELATIONAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "meeting_notes_19_near_copy_padding",
+   "genre": "meeting_notes",
+   "class": "near_copy_padding",
+   "variant": "pos2",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "news_brief_00_wrong_number",
+   "genre": "news_brief",
+   "class": "wrong_number",
+   "variant": "duration",
+   "gate": "NEEDS_WORK",
+   "score": 80.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "news_brief_01_wrong_unit_rate",
+   "genre": "news_brief",
+   "class": "wrong_unit_rate",
+   "variant": "percent_transposed",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "news_brief_02_number_moved_subject",
+   "genre": "news_brief",
+   "class": "number_moved_subject",
+   "variant": "duration",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "news_brief_03_unsupported_claim",
+   "genre": "news_brief",
+   "class": "unsupported_claim",
+   "variant": "para",
+   "gate": "NEEDS_WORK",
+   "score": 80.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "news_brief_04_denied_adjacent",
+   "genre": "news_brief",
+   "class": "denied_adjacent",
+   "variant": "denial_before",
+   "gate": "FAIL",
+   "score": 50.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "news_brief_05_denied_2back",
+   "genre": "news_brief",
+   "class": "denied_2back",
+   "variant": "one_filler",
+   "gate": "PASS",
+   "score": 100.0,
+   "fab_verdicts": [
+    "GROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": true,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "news_brief_06_denied_3plus_back",
+   "genre": "news_brief",
+   "class": "denied_3plus_back",
+   "variant": "3_fillers",
+   "gate": "NEEDS_WORK",
+   "score": 60.0,
+   "fab_verdicts": [
+    "GROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": true,
+   "other_refused": 2,
+   "control_gate": "FAIL"
+  },
+  {
+   "id": "news_brief_07_denied_same_sentence",
+   "genre": "news_brief",
+   "class": "denied_same_sentence",
+   "variant": "suffix4",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "GROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": true,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "news_brief_08_denied_heading",
+   "genre": "news_brief",
+   "class": "denied_heading",
+   "variant": "heading2_fill2",
+   "gate": "PASS",
+   "score": 100.0,
+   "fab_verdicts": [
+    "GROUNDED"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": true,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "news_brief_09_denied_table_after",
+   "genre": "news_brief",
+   "class": "denied_table_after",
+   "variant": "same_row_cell",
+   "gate": "FAIL",
+   "score": 50.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "news_brief_10_claim_heading",
+   "genre": "news_brief",
+   "class": "claim_heading",
+   "variant": "heading10",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNCITED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "news_brief_11_list_item_number",
+   "genre": "news_brief",
+   "class": "list_item_number",
+   "variant": "rank",
+   "gate": "NEEDS_WORK",
+   "score": 80.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "news_brief_12_table_cell",
+   "genre": "news_brief",
+   "class": "table_cell",
+   "variant": "value_not_in_source",
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "news_brief_13_swapped_entities",
+   "genre": "news_brief",
+   "class": "swapped_entities",
+   "variant": "rel2",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "news_brief_14_misattributed_quote",
+   "genre": "news_brief",
+   "class": "misattributed_quote",
+   "variant": "wrong_speaker",
+   "gate": "NEEDS_WORK",
+   "score": 80.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "news_brief_15_absence_claim",
+   "genre": "news_brief",
+   "class": "absence_claim",
+   "variant": "form2",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "news_brief_16_causal_claim",
+   "genre": "news_brief",
+   "class": "causal_claim",
+   "variant": "because",
+   "gate": "NEEDS_WORK",
+   "score": 83.3,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "news_brief_17_near_copy_padding",
+   "genre": "news_brief",
+   "class": "near_copy_padding",
+   "variant": "pos1",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "news_brief_18_wrong_number",
+   "genre": "news_brief",
+   "class": "wrong_number",
+   "variant": "rate",
+   "gate": "NEEDS_WORK",
+   "score": 80.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "news_brief_19_wrong_unit_rate",
+   "genre": "news_brief",
+   "class": "wrong_unit_rate",
+   "variant": "unit_count",
+   "gate": "NEEDS_WORK",
+   "score": 80.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "product_docs_00_number_moved_subject",
+   "genre": "product_docs",
+   "class": "number_moved_subject",
+   "variant": "rate",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "product_docs_01_unsupported_claim",
+   "genre": "product_docs",
+   "class": "unsupported_claim",
+   "variant": "bullets",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "product_docs_02_denied_adjacent",
+   "genre": "product_docs",
+   "class": "denied_adjacent",
+   "variant": "denial_after",
+   "gate": "PASS",
+   "score": 100.0,
+   "fab_verdicts": [
+    "GROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": true,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "product_docs_03_denied_2back",
+   "genre": "product_docs",
+   "class": "denied_2back",
+   "variant": "one_filler",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "product_docs_04_denied_3plus_back",
+   "genre": "product_docs",
+   "class": "denied_3plus_back",
+   "variant": "4_fillers",
+   "gate": "NEEDS_WORK",
+   "score": 60.0,
+   "fab_verdicts": [
+    "GROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": true,
+   "other_refused": 2,
+   "control_gate": "FAIL"
+  },
+  {
+   "id": "product_docs_05_denied_same_sentence",
+   "genre": "product_docs",
+   "class": "denied_same_sentence",
+   "variant": "suffix5",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "product_docs_06_denied_heading",
+   "genre": "product_docs",
+   "class": "denied_heading",
+   "variant": "heading3_fill3",
+   "gate": "FAIL",
+   "score": 50.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "product_docs_07_denied_table_after",
+   "genre": "product_docs",
+   "class": "denied_table_after",
+   "variant": "summary_row",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "product_docs_08_claim_heading",
+   "genre": "product_docs",
+   "class": "claim_heading",
+   "variant": "heading11",
+   "gate": "PASS",
+   "score": 100.0,
+   "fab_verdicts": [
+    "GROUNDED"
+   ],
+   "fab_kinds": [
+    "NON_CLAIM"
+   ],
+   "escaped": true,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "product_docs_09_list_item_number",
+   "genre": "product_docs",
+   "class": "list_item_number",
+   "variant": "count",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "product_docs_10_table_cell",
+   "genre": "product_docs",
+   "class": "table_cell",
+   "variant": "moved_from_other_row",
+   "gate": "NEEDS_WORK",
+   "score": 60.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "product_docs_11_swapped_entities",
+   "genre": "product_docs",
+   "class": "swapped_entities",
+   "variant": "rel3",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "product_docs_12_misattributed_quote",
+   "genre": "product_docs",
+   "class": "misattributed_quote",
+   "variant": "wrong_speaker",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "product_docs_13_absence_claim",
+   "genre": "product_docs",
+   "class": "absence_claim",
+   "variant": "form3",
+   "gate": "NEEDS_WORK",
+   "score": 80.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "product_docs_14_causal_claim",
+   "genre": "product_docs",
+   "class": "causal_claim",
+   "variant": "as a result of",
+   "gate": "NEEDS_WORK",
+   "score": 80.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "product_docs_15_near_copy_padding",
+   "genre": "product_docs",
+   "class": "near_copy_padding",
+   "variant": "pos2",
+   "gate": "NEEDS_WORK",
+   "score": 80.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "product_docs_16_wrong_number",
+   "genre": "product_docs",
+   "class": "wrong_number",
+   "variant": "count",
+   "gate": "NEEDS_WORK",
+   "score": 80.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "product_docs_17_wrong_unit_rate",
+   "genre": "product_docs",
+   "class": "wrong_unit_rate",
+   "variant": "unit_money",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "product_docs_18_number_moved_subject",
+   "genre": "product_docs",
+   "class": "number_moved_subject",
+   "variant": "count",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "product_docs_19_unsupported_claim",
+   "genre": "product_docs",
+   "class": "unsupported_claim",
+   "variant": "para",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "readme_00_denied_adjacent",
+   "genre": "readme",
+   "class": "denied_adjacent",
+   "variant": "denial_before",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "readme_01_denied_2back",
+   "genre": "readme",
+   "class": "denied_2back",
+   "variant": "one_filler",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "readme_02_denied_3plus_back",
+   "genre": "readme",
+   "class": "denied_3plus_back",
+   "variant": "2_fillers",
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "readme_03_denied_same_sentence",
+   "genre": "readme",
+   "class": "denied_same_sentence",
+   "variant": "suffix0",
+   "gate": "PASS",
+   "score": 100.0,
+   "fab_verdicts": [
+    "GROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": true,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "readme_04_denied_heading",
+   "genre": "readme",
+   "class": "denied_heading",
+   "variant": "heading0_fill0",
+   "gate": "FAIL",
+   "score": 50.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "readme_05_denied_table_after",
+   "genre": "readme",
+   "class": "denied_table_after",
+   "variant": "kv_row_below",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "readme_06_claim_heading",
+   "genre": "readme",
+   "class": "claim_heading",
+   "variant": "heading0",
+   "gate": "PASS",
+   "score": 100.0,
+   "fab_verdicts": [
+    "GROUNDED"
+   ],
+   "fab_kinds": [
+    "NON_CLAIM"
+   ],
+   "escaped": true,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "readme_07_list_item_number",
+   "genre": "readme",
+   "class": "list_item_number",
+   "variant": "rank",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "readme_08_table_cell",
+   "genre": "readme",
+   "class": "table_cell",
+   "variant": "value_not_in_source",
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "readme_09_swapped_entities",
+   "genre": "readme",
+   "class": "swapped_entities",
+   "variant": "rel0",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "readme_10_misattributed_quote",
+   "genre": "readme",
+   "class": "misattributed_quote",
+   "variant": "wrong_speaker",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "readme_11_absence_claim",
+   "genre": "readme",
+   "class": "absence_claim",
+   "variant": "form0",
+   "gate": "NEEDS_WORK",
+   "score": 80.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "readme_12_causal_claim",
+   "genre": "readme",
+   "class": "causal_claim",
+   "variant": "after",
+   "gate": "NEEDS_WORK",
+   "score": 80.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "readme_13_near_copy_padding",
+   "genre": "readme",
+   "class": "near_copy_padding",
+   "variant": "pos1",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "readme_14_wrong_number",
+   "genre": "readme",
+   "class": "wrong_number",
+   "variant": "money",
+   "gate": "NEEDS_WORK",
+   "score": 80.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "readme_15_wrong_unit_rate",
+   "genre": "readme",
+   "class": "wrong_unit_rate",
+   "variant": "unit_duration",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "readme_16_number_moved_subject",
+   "genre": "readme",
+   "class": "number_moved_subject",
+   "variant": "money",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "readme_17_unsupported_claim",
+   "genre": "readme",
+   "class": "unsupported_claim",
+   "variant": "bullets",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "readme_18_denied_adjacent",
+   "genre": "readme",
+   "class": "denied_adjacent",
+   "variant": "denial_after",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "GROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": true,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "readme_19_denied_2back",
+   "genre": "readme",
+   "class": "denied_2back",
+   "variant": "one_filler",
+   "gate": "NEEDS_WORK",
+   "score": 60.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "research_summary_00_denied_3plus_back",
+   "genre": "research_summary",
+   "class": "denied_3plus_back",
+   "variant": "3_fillers",
+   "gate": "FAIL",
+   "score": 50.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "research_summary_01_denied_same_sentence",
+   "genre": "research_summary",
+   "class": "denied_same_sentence",
+   "variant": "suffix1",
+   "gate": "PASS",
+   "score": 100.0,
+   "fab_verdicts": [
+    "GROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": true,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "research_summary_02_denied_heading",
+   "genre": "research_summary",
+   "class": "denied_heading",
+   "variant": "heading1_fill1",
+   "gate": "PASS",
+   "score": 100.0,
+   "fab_verdicts": [
+    "GROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": true,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "research_summary_03_denied_table_after",
+   "genre": "research_summary",
+   "class": "denied_table_after",
+   "variant": "same_row_cell",
+   "gate": "FAIL",
+   "score": 50.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "research_summary_04_claim_heading",
+   "genre": "research_summary",
+   "class": "claim_heading",
+   "variant": "heading1",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNCITED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "research_summary_05_list_item_number",
+   "genre": "research_summary",
+   "class": "list_item_number",
+   "variant": "count",
+   "gate": "NEEDS_WORK",
+   "score": 80.0,
+   "fab_verdicts": [
+    "GROUNDED",
+    "UNCITED"
+   ],
+   "fab_kinds": [
+    "FACTUAL",
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "research_summary_06_table_cell",
+   "genre": "research_summary",
+   "class": "table_cell",
+   "variant": "moved_from_other_row",
+   "gate": "NEEDS_WORK",
+   "score": 60.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "research_summary_07_swapped_entities",
+   "genre": "research_summary",
+   "class": "swapped_entities",
+   "variant": "rel1",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "research_summary_08_misattributed_quote",
+   "genre": "research_summary",
+   "class": "misattributed_quote",
+   "variant": "wrong_speaker",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "research_summary_09_absence_claim",
+   "genre": "research_summary",
+   "class": "absence_claim",
+   "variant": "form1",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNVERIFIED_ABSENCE"
+   ],
+   "fab_kinds": [
+    "ABSENCE"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "research_summary_10_causal_claim",
+   "genre": "research_summary",
+   "class": "causal_claim",
+   "variant": "driven by",
+   "gate": "NEEDS_WORK",
+   "score": 80.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "research_summary_11_near_copy_padding",
+   "genre": "research_summary",
+   "class": "near_copy_padding",
+   "variant": "pos2",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "research_summary_12_wrong_number",
+   "genre": "research_summary",
+   "class": "wrong_number",
+   "variant": "duration",
+   "gate": "NEEDS_WORK",
+   "score": 80.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "research_summary_13_wrong_unit_rate",
+   "genre": "research_summary",
+   "class": "wrong_unit_rate",
+   "variant": "unit_rate",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "research_summary_14_number_moved_subject",
+   "genre": "research_summary",
+   "class": "number_moved_subject",
+   "variant": "duration",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "research_summary_15_unsupported_claim",
+   "genre": "research_summary",
+   "class": "unsupported_claim",
+   "variant": "para",
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "research_summary_16_denied_adjacent",
+   "genre": "research_summary",
+   "class": "denied_adjacent",
+   "variant": "denial_before",
+   "gate": "FAIL",
+   "score": 50.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "research_summary_17_denied_2back",
+   "genre": "research_summary",
+   "class": "denied_2back",
+   "variant": "one_filler",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "research_summary_18_denied_3plus_back",
+   "genre": "research_summary",
+   "class": "denied_3plus_back",
+   "variant": "4_fillers",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "research_summary_19_denied_same_sentence",
+   "genre": "research_summary",
+   "class": "denied_same_sentence",
+   "variant": "suffix2",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "GROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": true,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "sales_report_00_denied_heading",
+   "genre": "sales_report",
+   "class": "denied_heading",
+   "variant": "heading2_fill2",
+   "gate": "PASS",
+   "score": 100.0,
+   "fab_verdicts": [
+    "GROUNDED"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": true,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "sales_report_01_denied_table_after",
+   "genre": "sales_report",
+   "class": "denied_table_after",
+   "variant": "summary_row",
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "sales_report_02_claim_heading",
+   "genre": "sales_report",
+   "class": "claim_heading",
+   "variant": "heading2",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNCITED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "sales_report_03_list_item_number",
+   "genre": "sales_report",
+   "class": "list_item_number",
+   "variant": "rank",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "sales_report_04_table_cell",
+   "genre": "sales_report",
+   "class": "table_cell",
+   "variant": "value_not_in_source",
+   "gate": "NEEDS_WORK",
+   "score": 60.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "sales_report_05_swapped_entities",
+   "genre": "sales_report",
+   "class": "swapped_entities",
+   "variant": "rel2",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "sales_report_06_misattributed_quote",
+   "genre": "sales_report",
+   "class": "misattributed_quote",
+   "variant": "wrong_speaker",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "sales_report_07_absence_claim",
+   "genre": "sales_report",
+   "class": "absence_claim",
+   "variant": "form2",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "sales_report_08_causal_claim",
+   "genre": "sales_report",
+   "class": "causal_claim",
+   "variant": "caused by",
+   "gate": "NEEDS_WORK",
+   "score": 80.0,
+   "fab_verdicts": [
+    "UNVERIFIED_RELATION"
+   ],
+   "fab_kinds": [
+    "RELATIONAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "sales_report_09_near_copy_padding",
+   "genre": "sales_report",
+   "class": "near_copy_padding",
+   "variant": "pos1",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "sales_report_10_wrong_number",
+   "genre": "sales_report",
+   "class": "wrong_number",
+   "variant": "rate",
+   "gate": "NEEDS_WORK",
+   "score": 80.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "sales_report_11_wrong_unit_rate",
+   "genre": "sales_report",
+   "class": "wrong_unit_rate",
+   "variant": "percent_transposed",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "sales_report_12_number_moved_subject",
+   "genre": "sales_report",
+   "class": "number_moved_subject",
+   "variant": "rate",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "sales_report_13_unsupported_claim",
+   "genre": "sales_report",
+   "class": "unsupported_claim",
+   "variant": "bullets",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNVERIFIED_NUMBER"
+   ],
+   "fab_kinds": [
+    "NUMERIC"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "sales_report_14_denied_adjacent",
+   "genre": "sales_report",
+   "class": "denied_adjacent",
+   "variant": "denial_after",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "sales_report_15_denied_2back",
+   "genre": "sales_report",
+   "class": "denied_2back",
+   "variant": "one_filler",
+   "gate": "PASS",
+   "score": 100.0,
+   "fab_verdicts": [
+    "GROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": true,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "sales_report_16_denied_3plus_back",
+   "genre": "sales_report",
+   "class": "denied_3plus_back",
+   "variant": "2_fillers",
+   "gate": "FAIL",
+   "score": 50.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "sales_report_17_denied_same_sentence",
+   "genre": "sales_report",
+   "class": "denied_same_sentence",
+   "variant": "suffix3",
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "sales_report_18_denied_heading",
+   "genre": "sales_report",
+   "class": "denied_heading",
+   "variant": "heading3_fill3",
+   "gate": "FAIL",
+   "score": 50.0,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
+  },
+  {
+   "id": "sales_report_19_denied_table_after",
+   "genre": "sales_report",
+   "class": "denied_table_after",
+   "variant": "kv_row_below",
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  }
+ ]
+}

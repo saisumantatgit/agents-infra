@@ -1,0 +1,1 @@
+The whole procedure takes about 27 minutes [S1]. Open a terminal in the folder that holds your notes [S1]. Driftq was fined 400 thousand dollars by the regulator in June [S1]. Run the command once to see what it would do [S1].
