@@ -1,0 +1,1 @@
+The team prefers a single owner for each open item [S1]. Ingrid reported that 4 tasks are now complete [S1]. An outside auditor approved every budget review record in October [S1]. The next sync is booked for the same time next week [S1].
