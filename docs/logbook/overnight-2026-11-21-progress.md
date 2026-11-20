@@ -27,6 +27,7 @@
 | 02:54 | E1 committed (00d01f9, adversary in flight); E2 run 2 in flight | E1 gates first-hand: suite 1467 green; 34/40 new tests fail on main (proven red); v1 certified 7→5, escapes 11→5; v2 0; Error-A corpus unchanged; usage 4/40 unchanged; gold md5 unchanged; 1 v1 honest control lost. feature_rows-v2 was already stale on main (clean main regenerates the same md5 9b2b4e60), a pre-existing finding. E2 run 1 stopped at investigation (FAILED class 1 of 2), run 2 dispatched to implement. | ~2.2M (measured at next checkpoint) | E1 done; E2 in flight | error-cost asymmetry, FMEA detectability |
 | 03:04 | E1 r2 + C2b in flight; E2 held (draft #45) | D-132. | measured next tick | 2 lanes | Chesterton (OI-MOAT-31), error-cost asymmetry, D-107 precedent |
 | 03:22 | E1 r3 + C2b part 2 in flight; #46 merged | D-133. | measured next tick | 2 lanes | competence boundary (no lexical separation), Goodhart |
+| 03:54 | E1 adversary r2 in flight; D8N review build in flight; #47 merged | D-134. | measured next tick | 2 lanes | competence boundary (authority scope), reversibility |
 ---
 
 # MORNING REPORT — OVN-1121 (written 02:14 IST; budget and teardown lines updated at disarm)
