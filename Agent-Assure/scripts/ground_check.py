@@ -3802,7 +3802,11 @@ def _e1_falsity(tokens: tuple[str, ...]) -> bool:
 
     CEILING: lexical, not coreference: an unrelated pronoun can refer to a
     physical object (Error-A); unlisted verbs and intervening modifiers can
-    evade it (fail-open). A parser and discourse model are the upgrade path.
+    evade it (fail-open). Zero-width and soft-hyphen verb breaks, long relative
+    clauses, acquisition/deal objects, whipped/conjured/thought up, "the
+    following", distant later paragraphs, unlisted reporting frames and purpose
+    verbs, comma-following clauses, and passive "made up to deceive" remain
+    open. A parser and discourse model are the upgrade path.
     """
     words = [_confusable_fold(t) for t in tokens]
     for i, word in enumerate(words):
@@ -3820,16 +3824,18 @@ def _e1_falsity(tokens: tuple[str, ...]) -> bool:
                     and ((object_words and object_words[0] in _DISCOURSE_NOUNS)
                          or rest[:3] == ["the", "whole", "thing"])):
                 return True
-            # A passive subject starts the clause, followed by an auxiliary.
-            for start in range(i) if not rest or rest[0] != "of" else ():
-                if start and words[start - 1] not in {"but", "and"}:
+            # Preserve constituting and "made up to ..." idioms.
+            for start in range(i) if not rest or (rest[0] != "of" and not (word == "made" and rest[0] == "to")) else ():
+                if start and words[start - 1] not in {"but", "and", "yet", "however", "frankly", "truth", "said", "say", "says", "reported"}:
                     continue
-                for subject in (("that",), ("this",), ("it",), ("these",), ("those",),
+                for subject in (("that", "one"), ("this", "one"), ("that",), ("this",), ("it",), ("these",), ("those",),
                                 ("all", "of", "it"), ("the", "whole", "thing")):
                     tail = words[start + len(subject):i]
+                    auxiliaries = {"is", "are", "was", "were", "be", "been", "being", "has", "have", "had", "will", "may", "might", "must", "could", "would", "should", "can", "got"}
+                    modifiers = {"all", "just", "then", "entirely", "completely", "simply", "really", "totally"}
                     if (tuple(words[start:start + len(subject)]) == subject and tail
-                            and tail[0] in {"is", "are", "was", "were", "be", "been", "being", "has", "have", "had", "will"}
-                            and all(w in {"is", "are", "was", "were", "be", "been", "being", "has", "have", "had", "will"} or w.endswith("ly") for w in tail)
+                            and any(w in auxiliaries for w in tail)
+                            and all(w in auxiliaries | modifiers or w.endswith("ly") for w in tail)
                             and word in _E1_PARTICIPLES):
                         return True
         # Active split object, with a terminal or bounded adjunct after 'up'.
@@ -3842,6 +3848,10 @@ def _e1_falsity(tokens: tuple[str, ...]) -> bool:
             after = words[j + 1:]
             weekdays = {"monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"}
             terminal = (not after or (after[0] == "by" and len(after) > 1)
+                        or (len(after) == 1 and (after[0].endswith("ly") or after[0] == "wholesale"))
+                        or after[:3] in (["out", "of", "thin"], ["out", "of", "whole"], ["out", "of", "nothing"])
+                        or after[:2] == ["as", "a"]
+                        or (len(after) >= 2 and after[0] == "to" and after[1] in {"sell", "deceive", "mislead", "trick", "fool"})
                         or (len(after) == 1 and after[0] in {"again", "yesterday", "today", "tomorrow"})
                         or (len(after) == 2 and (
                             (after[0] == "in" and len(after[1]) == 4 and after[1].isdigit())
