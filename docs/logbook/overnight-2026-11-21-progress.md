@@ -20,3 +20,4 @@
 | 01:29 | analysis | D-129: classification corrected by the adversary; T 20 / S 22; four withdrawals logged. | measured next tick | 0 | contradiction-as-locator, Chesterton (ADR-008), calibration |
 | 01:30 | analysis | Corpora re-read as T/S: v1 T 5/184 certified, S 2/96; v2 T 0/224. The corpora cover 1 of the 20 Class T families found by hand. | measured next tick | 0 | Goodhart |
 | 01:51 | parser research in flight (Sonnet) | Tick 01:51. Codex rechecked: still exhausted. | 1.76M (main 0.50M = out 0.15 + cc 0.35; 6 agents 1.26M) | 0 | — |
+| 01:54 | analysis | D-130: R1 parser note, verified first-hand. | measured at morning report | 0 | reuse ladder (installed dependency vs write), CEILING |
