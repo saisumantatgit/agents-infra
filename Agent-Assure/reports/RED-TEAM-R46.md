@@ -1,6 +1,6 @@
 # Red-team round R46 (OVN-1121, 2026-11-21)
 
-**Verdict: 20 more fabrication families certify PASS 100 on main `d8c2ec0`: 11 numeric (lane C) and 9 on absence, citation binding and capture (lane D). That brings R45 + R46 to 42. Two of lane D's are Error-B under any reading of what PASS means: the gate ignores contrary evidence it already holds (D8), and it misses self-citation through a web tool (D7).**
+**Verdict: 20 more fabrication families certify PASS 100 on main `d8c2ec0`: 11 numeric (lane C) and 9 on absence, citation binding and capture (lane D). That brings R45 + R46 to 42. WITHDRAWN (see R45-R46-CLASSIFICATION.md): an earlier version called D7 and D8 "Error-B under any reading". D7 is documented (README:200) and D8 is a disclosed limitation under ADR-008; both remain cheap fail-closed fixes.**
 
 Method: as R45. Two Opus lanes, read-only, probes in scratch, positive controls required. The main loop then checked each family.
 
