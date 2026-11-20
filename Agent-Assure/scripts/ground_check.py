@@ -3812,6 +3812,69 @@ def _match_denied(unit: _DenialUnit, start: int, end: int, own: frozenset[str]) 
     return _unit_denied(unit.main, start) or _r40_match_denied(unit.r40, unit.view, start, end, own)
 
 
+# CEILING: lexical; upgrade: POS tagger. Missing words leave main's heading
+# classification unchanged. Some forms also have noun senses (honest cost).
+_E2_HEADING_PREDICATES = frozenset({
+    "found", "find", "finds", "finding", "lied", "lie", "lies", "lying",
+    "hid", "hide", "hides", "hiding", "admit", "admits", "admitted", "admitting",
+    "collapse", "collapses", "collapsed", "collapsing", "fold", "folds", "folded", "folding",
+    "fail", "fails", "failed", "failing", "fine", "fines", "fined", "fining",
+    "charge", "charges", "charged", "charging", "arrest", "arrests", "arrested", "arresting",
+    "resign", "resigns", "resigned", "resigning", "quit", "quits", "quitting",
+    "sue", "sues", "sued", "suing", "guilty", "fraud", "ban", "bans", "banned", "banning",
+    "cheat", "cheats", "cheated", "cheating", "leak", "leaks", "leaked", "leaking",
+    "hack", "hacks", "hacked", "hacking", "stumble", "stumbles", "stumbled", "stumbling",
+    "double", "doubles", "doubled", "doubling", "halve", "halves", "halved", "halving",
+    "crash", "crashes", "crashed", "crashing",
+})
+
+
+def _e2_trim(text: str) -> str:
+    text = " ".join(_nfkc(text).casefold().split())
+    start, end = 0, len(text)
+    while start < end and (text[start].isspace() or unicodedata.category(text[start]).startswith("P")):
+        start += 1
+    while end > start and (text[end - 1].isspace() or unicodedata.category(text[end - 1]).startswith("P")):
+        end -= 1
+    return text[start:end]
+
+
+def _e2_heading_asserts(body: str, sources: Iterable[RetrievedSource]) -> bool:
+    """Additional refusal only: novel predicate or a disowned source span."""
+    sources = list(sources)
+    body = _e2_trim(body)
+    if not body:
+        return False
+    words = _tokenize(body)
+    source_words = {w for source in sources for w in _tokenize(_nfkc(source.text).casefold())}
+    if any(word not in source_words and word in _E2_HEADING_PREDICATES
+           and ((i == 0 and len(words) == 1) or
+                (i > 0 and not all(_is_heading_premodifier(w) for w in words[:i])))
+           and (i == len(words) - 1 or word in {"found", "lied", "hid"}
+                or word.endswith(("ed", "ing")))
+           for i, word in enumerate(words)):
+        return True
+    for source in sources:
+        units = _denial_units(source.text)
+        for sentence_index, sentence in enumerate(_split_sentences(source.text)):
+            normalized = " ".join(_nfkc(sentence).casefold().split())
+            pos = normalized.find(body)
+            while pos >= 0:
+                start = len(_tokenize(normalized[:pos]))
+                end = start + len(_tokenize(body))
+                offset = 0
+                for unit in (u for u in units if u.main.sentence_index == sentence_index):
+                    limit = offset + len(unit.main.tokens)
+                    if offset <= start < limit:
+                        if _match_denied(unit, start - offset, min(end, limit) - offset,
+                                         frozenset(_tokenize(body))):
+                            return True
+                        break
+                    offset = limit
+                pos = normalized.find(body, pos + 1)
+    return False
+
+
 def _r40_match_denied(ctx: _UnitContext, view: _ViewUnit | None, start: int, end: int,
                       own: frozenset[str]) -> bool:
     """The R40 reading of a match denial: `_unit_denied_r40` or
@@ -7800,6 +7863,16 @@ def main() -> None:
         except ValueError as exc:
             _refuse_input(str(exc), exc, debug=args.debug)
     claims = [classify(c) for c in decompose(draft_text)]
+    # Only promote existing NON_CLAIM headings; leave all other claims intact.
+    for i, claim in enumerate(claims):
+        match = _NO_FINITE_VERB_RE.match(claim.text)
+        setext = _re.fullmatch(r"([^\n]+)\n {0,3}(?:=+|-+)\s*", claim.text)
+        body = claim.text[match.end():] if match else (setext.group(1) if setext else None)
+        if (claim.kind == ClaimKind.NON_CLAIM and not claim.citations and body is not None
+                and _e2_heading_asserts(body, store.values())):
+            claims[i] = Claim(index=claim.index, text=claim.text, kind=ClaimKind.FACTUAL,
+                              citations=claim.citations, numeric_tokens=claim.numeric_tokens,
+                              split_from=claim.split_from)
     report = score_report(
         claims, store, threshold=args.threshold,
         session_scoped=args.session_id is not None,
