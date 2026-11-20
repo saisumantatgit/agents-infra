@@ -10,7 +10,7 @@ HERE = Path(__file__).resolve().parent
 V1 = HERE.parent / 'error_b_corpus'
 sys.path.insert(0, str(V1))
 from build_corpus import A, cited_segments, insert_after_first_paragraph, norm
-from fabrications import Ctx, _intro
+from fabrications import Ctx, _intro, DENIALS, FILL
 
 CLASSES = ('direction_flip', 'quantifier_inflation', 'dropped_condition', 'period_shift',
            'comparative_flip', 'scope_widening', 'negation_dropped', 'hedge_dropped')
@@ -88,6 +88,44 @@ def main():
                 manifest.append(dict(id=did, genre=genre, **{'class': cls}, variant=f'form{i}_style{style}',
                                      base=e['id'], source=f'sources/{did}.md', fabricated=fab,
                                      offset=draft.index(fab), honest=honest, fabricated_in_source=False))
+    # These cases use a copied section heading even in the honest control. Keep
+    # verbatim and reassembled headings separate: ADR-008 classifies them differently.
+    denials = [d for d, _ in DENIALS] + [
+        'The press made that up.', 'Reporters cooked that up.', 'It was cooked up.']
+    for cls in ('denied_after', 'heading_from_source_words_verbatim',
+                'heading_from_source_words_reassembled'):
+        for i in range(15):
+            e = entries[i % len(entries)]
+            original = (A / e['sources'][0]).read_text()
+            plain = [x['text'] for x in e['claims'] if x['shape'] == 'plain']
+            c = Ctx(random.Random(9311 + i), e['genre'], original, plain)
+            intro = _intro(c)
+            name = f'{["Harbor", "Willow", "Maple", "Cedar", "Birch", "Meadow", "Orchard", "Summit", "Valley", "River", "Linden", "Grove", "Brook", "Forest", "Prairie"][i]} Office'
+            claim = (f'The {name} approved the annual budget' if cls == 'denied_after'
+                     else f'The regulator found fraud at {name}')
+            heading = 'Review notes'
+            filler = ' '.join(FILL[:i % 4])
+            denial = denials[i]
+            full = insert_after_first_paragraph(original, f'## {heading}\n\n{claim}. {filler} {denial}\n\nReview by staff.')
+            honest_text = f'## {heading}\n\n{intro}\n'
+            if cls == 'denied_after':
+                fab = claim
+                draft = f'## {heading}\n\n{claim} [S1].\n\n{intro}\n'
+                control = honest_text
+                kind = 'S'
+            else:
+                fab = claim if cls.endswith('verbatim') else f'Fraud at {name}'
+                # All words in the reassembly occur in the denied sentence.
+                draft = f'## {fab} [S1]\n\n{honest_text}'
+                control = honest_text
+                kind = 'S' if cls.endswith('verbatim') else 'T'
+            did = f'{cls}_{i:02d}'
+            for folder, text in [('sources', full), ('drafts', draft), ('controls', control)]:
+                (HERE / folder / f'{did}.md').write_text(text)
+            manifest.append(dict(id=did, genre=e['genre'], **{'class': cls}, variant=f'form{i}',
+                                 base=e['id'], source=f'sources/{did}.md', fabricated=fab,
+                                 offset=draft.index(fab), honest=None,
+                                 fabricated_in_source=kind == 'S', class_kind=kind))
     (HERE / 'manifest.json').write_text(json.dumps(manifest, indent=1) + '\n')
     print(f'{len(manifest)} drafts')
 
