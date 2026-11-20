@@ -32,8 +32,8 @@ Verdict: the goal was not met. The heading and far-denial fabrications still cer
 
 - **PR #43 merged (C2):** fabrication corpus v2, tests only, 224 drafts in 8 classes. Baseline 0/224 certified, control PASS 93. Proof: `cd Agent-Assure && uv run python tests/error_b_corpus_v2/run.py --base $PWD` → "drafts: 224 | fabrication GROUNDED (escaped): 0 | draft PASS (certified): 0". Suite 1427 passed, 2 skipped, 74 xfailed. Merge d8c2ec0; `origin/main^{tree}` equals the tested tree (TREE_MATCH).
 - **Red-team rounds R45 and R46 (analysis):** 42 families certify PASS 100 on main d8c2ec0.
-  - 33 were reproduced by my own scripts, with my own claim text and both controls.
-  - 7 by re-running the agent's script with controls; 2 attack-only.
+  - 35 were reproduced by my own scripts, with my own claim text and both controls.
+  - 5 by re-running the agent's script with controls; 2 attack-only.
   - Reports: `Agent-Assure/reports/RED-TEAM-R45.md`, `RED-TEAM-R46.md`.
 - **Classification (D-129):** `R45-R46-CLASSIFICATION.md`. Class T has 20 families, where the reader's claim is not an unbroken run of cited source text; these are bugs. Class S has 22: traceable text the source disowns, disclosed under ADR-008.
 - **Measurements for your rulings:**
