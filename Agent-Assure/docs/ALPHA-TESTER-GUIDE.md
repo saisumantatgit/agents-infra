@@ -276,6 +276,13 @@ These are defects, not intended behaviour. Do not build a workflow on them.
 
 - UNGROUNDABLE on a short verbatim source (cause known; grounding short excerpts is pending a design decision). The engine has a deliberate guard: a cited source counts as a possible copy of your own draft when at least 80% of its adjacent word pairs also appear in the draft, and a draft cannot certify itself. A source of one or two sentences that your draft quotes almost whole meets that bar, so the claim reads UNGROUNDABLE with `support_diagnostic` `cited_source_is_the_draft`, even though the store line says `full_text_source: verbatim`. `evidence_basis` names the excluded source and says why. If the claim also has a figure that the short source does not contain, it reads UNVERIFIED_NUMBER instead (the wrong figure is no longer hidden). The guard stays on purpose; relaxing it would let a draft pass by citing a copy of itself, so whether and how to ground short excerpts is a decision not yet made. Workaround: store and cite the full source document, not a one- or two-sentence excerpt. We checked this on build 5b6898f: a one-sentence source quoted by the draft came back UNGROUNDABLE `cited_source_is_the_draft`; the same sentence inside a five-sentence source document came back GROUNDED, gate PASS. If you hit UNGROUNDABLE on a verbatim source that is not short, report it with the five items in section 6.
 
+- A PASS can be wrong about traceability itself (red-team rounds R45 and R46, 2026-11-21). In each case below, the claim you read is not text in the cited source, yet the gate reports PASS 100. Status: open; fixes are briefed and not yet built. Until then, read the draft as rendered and check these shapes yourself:
+  - Markup that hides or strikes words: `[](not)`, `<not>`, `~~not~~`, a ❌ or 🚫 before a claim, `<!--` inside a link. The gate reads the hidden word; you do not.
+  - A heading or list lead-in that supplies the meaning: `## Myths` or `## Criminals` over cited bullets, "The regulator fined the following firms:" over names from another source, a figure on its own line under a name.
+  - Superscripts read as digits: `10⁵` is checked as 105.
+  - A figure, qualifier, unit, rate, range or date that differs from the source but sits more than about eight words into the sentence: "at least 12" read as "12", "fell by" vs "fell to", "40 thousand" vs "40", "fiscal 2022" vs "2022", "two hundred" vs "two", "1 200" vs "200", "40-50" vs "50", 03/04 vs 04/03, version 2.10 vs 2.1.
+  - A condition dropped from the middle of a quoted sentence.
+
 ---
 
 ## 5. Known limits
