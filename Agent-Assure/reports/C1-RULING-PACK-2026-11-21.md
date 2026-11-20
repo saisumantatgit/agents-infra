@@ -2,6 +2,8 @@
 
 **Verdict: main certifies two families of fabrication as PASS 100 today, both reproduced first-hand. The fixes only ever refuse more, so they are inside tonight's C1 authority. They were not built because Codex is out of quota until 26 Nov 13:52 and D-119 bars a Claude build fallback.**
 
+**Later classification (D-129, `R45-R46-CLASSIFICATION.md`):** a family here called Error-B or live fabrication is either Class T (it breaks the written "traceable" promise; a bug) or Class S (traceable text the source disowns; disclosed under ADR-008). E1 and E3 are Class S. E2's reassembled headings are Class T and its verbatim-copy variant is Class S.
+
 - **E1, pronoun-subject "made up" after the claim.** A source sentence such as "Quay Trust was acquired by a larger rival last spring." followed by "That was cooked up by the press.", "It was cooked up." or "The press made that up." gets the claim GROUNDED and the draft certified PASS 100. "That never happened." in the same place is refused.
 - **E2, a heading built from source words.** A draft heading is never scored (`NON_CLAIM`) if it passes the existing headline tests. That includes a verbatim copy of a sentence the source denies (`## The regulator found fraud at Quay Trust`, source: "… That never happened.") and reassemblies (`## Fraud at Quay Trust`, `## The council never met`). Each certifies PASS 100.
 

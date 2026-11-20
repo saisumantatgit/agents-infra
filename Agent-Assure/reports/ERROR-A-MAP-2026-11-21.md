@@ -2,6 +2,8 @@
 
 **Verdict: measured gains from the three candidate rulings total 706 of the 1,946 honest claims the gate refuses (36%). Only one of them, C2 "N percent" (+69, 0 attacks pass), is ready to ship. The largest, a sentence-boundary stop on the hedge window (+351), fails its own Error-B test and stays parked.**
 
+**Later classification (D-129, `R45-R46-CLASSIFICATION.md`):** a family here called Error-B or live fabrication is either Class T (it breaks the written "traceable" promise; a bug) or Class S (traceable text the source disowns; disclosed under ADR-008). E1 and E3 are Class S. E2's reassembled headings are Class T and its verbatim-copy variant is Class S.
+
 Measured on main `d8c2ec0`, Error-A corpus: 336 honest drafts, 3,990 authored claims, 2,044 grounded, 1,946 refused. This map was challenged by an Opus adversary and **corrected**: the headline, the hedge numbers and the C1u record were wrong in the first version, which is in git history (`3110525`). The adversary's gains were measured on scratch-patched copies of the gate; no repo file was edited.
 
 ## Terms

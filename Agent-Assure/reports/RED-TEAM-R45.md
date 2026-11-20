@@ -2,6 +2,8 @@
 
 **Verdict: main `d8c2ec0` certifies PASS 100 on 22 distinct families of fabrication, every one reproduced first-hand by the main loop with an honest control that PASSes and a known-refused control that FAILs. Several are ordinary prose, not contrived attacks. Until at least the three root causes below are addressed, a PASS should not be presented to an alpha tester as "every claim is supported".**
 
+**Later classification (D-129, `R45-R46-CLASSIFICATION.md`):** a family here called Error-B or live fabrication is either Class T (it breaks the written "traceable" promise; a bug) or Class S (traceable text the source disowns; disclosed under ADR-008). E1 and E3 are Class S. E2's reassembled headings are Class T and its verbatim-copy variant is Class S.
+
 Method: three adversaries.
 
 - An Opus reviewer found E1–E3 while checking two reports.
