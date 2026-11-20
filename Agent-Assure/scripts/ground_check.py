@@ -3789,6 +3789,57 @@ class _DenialUnit:
     main: _UnitContext
     r40: _UnitContext
     view: _ViewUnit | None
+    e1_context: bool
+
+
+_E1_REFERENTS = frozenset({"that", "this", "it", "these", "those"})
+_E1_UP_VERBS = _UP_FALSITY_VERBS | frozenset({"make", "makes", "made", "making"})
+
+
+def _e1_falsity(tokens: tuple[str, ...]) -> bool:
+    """Pronoun-subject or object phrasal falsity, solely for additive refusal.
+
+    CEILING: lexical, not coreference: an unrelated pronoun can refer to a
+    physical object (Error-A); unlisted verbs and intervening modifiers can
+    evade it (fail-open). A parser and discourse model are the upgrade path.
+    """
+    words = [_confusable_fold(t) for t in tokens]
+    for i, word in enumerate(words):
+        if word not in _E1_UP_VERBS:
+            continue
+        # Active split object: "made that up", "cooked the whole thing up".
+        for obj in (("that",), ("this",), ("it",), ("these",), ("those",),
+                    ("all", "of", "it"), ("the", "whole", "thing")):
+            j = i + 1 + len(obj)
+            if tuple(words[i + 1:j]) == obj and j < len(words) and words[j] == "up":
+                return True
+        for j in range(i + 2, min(i + 4, len(words))):
+            if words[j] == "up" and set(words[i + 1:j]) & _DISCOURSE_NOUNS:
+                return True
+        if i + 1 >= len(words) or words[i + 1] != "up":
+            continue
+        if word in {"make", "makes", "made", "making"} and _made_up_takes_object(words[i + 2:]):
+            continue
+        # Passive subject or active post-particle object.
+        if (set(words[max(0, i - 6):i]) & _E1_REFERENTS
+                or any(words[j:j + 3] == ["the", "whole", "thing"]
+                       for j in range(max(0, i - 6), i - 2))
+                or (i + 2 < len(words) and words[i + 2] in _E1_REFERENTS)
+                or bool(set(words[i + 2:i + 4]) & _DISCOURSE_NOUNS)
+                or tuple(words[i + 2:i + 5]) in {("all", "of", "it"), ("the", "whole", "thing")}):
+            return True
+    return False
+
+
+def _e1_contexts(source_text: str) -> list[bool]:
+    """New paragraph and adjacent-sentence flags; never alter R40's flags."""
+    sentences = _split_sentences(source_text)
+    spans = _sentence_spans(source_text, sentences)
+    paragraphs = _paragraph_ids(source_text, spans)
+    flags = [_e1_falsity(tuple(_tokenize(s))) for s in sentences]
+    return [((i > 0 and flags[i - 1]) or (i + 1 < len(flags) and flags[i + 1])
+             or any(i != j and flags[j] and bool(paragraphs[i] & paragraphs[j])
+                    for j in range(len(flags)))) for i in range(len(flags))]
 
 
 def _denial_units(source_text: str) -> list[_DenialUnit]:
@@ -3800,7 +3851,8 @@ def _denial_units(source_text: str) -> list[_DenialUnit]:
     if len(main) != len(r40) or any(m.tokens != r.tokens for m, r in zip(main, r40)):
         raise RuntimeError("main and R40 denial readings split the source into different units")
     views = _view_unit_contexts(source_text, r40)
-    return [_DenialUnit(m, r, v) for m, r, v in zip(main, r40, views)]
+    e1 = _e1_contexts(source_text)
+    return [_DenialUnit(m, r, v, e1[m.sentence_index]) for m, r, v in zip(main, r40, views)]
 
 
 def _match_denied(unit: _DenialUnit, start: int, end: int, own: frozenset[str]) -> bool:
@@ -3809,7 +3861,11 @@ def _match_denied(unit: _DenialUnit, start: int, end: int, own: frozenset[str]) 
     (`_unit_denied` on `unit.main`), then the R40 reading OR'd
     (`_r40_match_denied`). So the branch refuses whenever main refuses, for
     every input, by construction (RED-TEAM-R42; D-69). Pure."""
-    return _unit_denied(unit.main, start) or _r40_match_denied(unit.r40, unit.view, start, end, own)
+    return (_unit_denied(unit.main, start)
+            or _r40_match_denied(unit.r40, unit.view, start, end, own)
+            or unit.e1_context
+            or _e1_falsity(unit.r40.prefix + unit.r40.tokens[:start])
+            or _e1_falsity(tuple(t for t in unit.r40.tokens[end:] + unit.r40.suffix if t not in own)))
 
 
 def _r40_match_denied(ctx: _UnitContext, view: _ViewUnit | None, start: int, end: int,
