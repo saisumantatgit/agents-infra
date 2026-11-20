@@ -23,6 +23,7 @@
 | 01:54 | analysis | D-130: R1 parser note, verified first-hand. | measured at morning report | 0 | reuse ladder (installed dependency vs write), CEILING |
 
 | 02:18 | BREAKER cycle 1 of 2 | Codex still EXHAUSTED; nothing in flight; main unchanged d8c2ec0; open PR #44 waits on Sai. Remaining queue items all need build capacity or a Sai ruling. | 1.99M | 0 | via negativa |
+| 02:31 | E1, E2 in flight (Codex) | D-131: breaker reset, Codex verified available; E1 and E2 dispatched. The morning report above is superseded at disarm. | 2.0M | in flight | critical path, reversibility |
 ---
 
 # MORNING REPORT — OVN-1121 (written 02:14 IST; budget and teardown lines updated at disarm)
