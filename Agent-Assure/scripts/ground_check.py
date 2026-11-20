@@ -3792,8 +3792,9 @@ class _DenialUnit:
     e1_context: bool
 
 
-_E1_REFERENTS = frozenset({"that", "this", "it", "these", "those"})
-_E1_UP_VERBS = _UP_FALSITY_VERBS | frozenset({"make", "makes", "made", "making"})
+_E1_UP_VERBS = frozenset({"make", "makes", "made", "making", "cook", "cooks", "cooked", "cooking",
+                          "dream", "dreams", "dreamed", "dreamt", "dreaming"})
+_E1_PARTICIPLES = frozenset({"made", "cooked", "dreamed", "dreamt"})
 
 
 def _e1_falsity(tokens: tuple[str, ...]) -> bool:
@@ -3807,27 +3808,48 @@ def _e1_falsity(tokens: tuple[str, ...]) -> bool:
     for i, word in enumerate(words):
         if word not in _E1_UP_VERBS:
             continue
-        # Active split object: "made that up", "cooked the whole thing up".
-        for obj in (("that",), ("this",), ("it",), ("these",), ("those",),
-                    ("all", "of", "it"), ("the", "whole", "thing")):
-            j = i + 1 + len(obj)
-            if tuple(words[i + 1:j]) == obj and j < len(words) and words[j] == "up":
+        if i + 1 < len(words) and words[i + 1] == "up":
+            # The active post-particle object must name discourse content.
+            rest = words[i + 2:i + 5]
+            object_words = rest[:]
+            if object_words and object_words[0] in {"the", "a", "an"}:
+                object_words = object_words[1:]
+            if object_words and object_words[0] == "whole":
+                object_words = object_words[1:]
+            if (rest and rest[0] != "of" and rest[:2] != ["the", "numbers"]
+                    and ((object_words and object_words[0] in _DISCOURSE_NOUNS)
+                         or rest[:3] == ["the", "whole", "thing"])):
                 return True
-        for j in range(i + 2, min(i + 4, len(words))):
-            if words[j] == "up" and set(words[i + 1:j]) & _DISCOURSE_NOUNS:
+            # A passive subject starts the clause, followed by an auxiliary.
+            for start in range(i) if not rest or rest[0] != "of" else ():
+                if start and words[start - 1] not in {"but", "and"}:
+                    continue
+                for subject in (("that",), ("this",), ("it",), ("these",), ("those",),
+                                ("all", "of", "it"), ("the", "whole", "thing")):
+                    tail = words[start + len(subject):i]
+                    if (tuple(words[start:start + len(subject)]) == subject and tail
+                            and tail[0] in {"is", "are", "was", "were", "be", "been", "being", "has", "have", "had", "will"}
+                            and all(w in {"is", "are", "was", "were", "be", "been", "being", "has", "have", "had", "will"} or w.endswith("ly") for w in tail)
+                            and word in _E1_PARTICIPLES):
+                        return True
+        # Active split object, with a terminal or bounded adjunct after 'up'.
+        for j in range(i + 2, min(i + 6, len(words))):
+            obj = words[i + 1:j]
+            valid = (tuple(obj) in {("it",), ("that",), ("this",), ("these",), ("those",),
+                                    ("it", "all"), ("all", "of", "it"), ("all", "that"),
+                                    ("everything",), ("stuff",), ("the", "whole", "thing")}
+                     or bool(set(obj) & _DISCOURSE_NOUNS))
+            after = words[j + 1:]
+            weekdays = {"monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"}
+            terminal = (not after or (after[0] == "by" and len(after) > 1)
+                        or (len(after) == 1 and after[0] in {"again", "yesterday", "today", "tomorrow"})
+                        or (len(after) == 2 and (
+                            (after[0] == "in" and len(after[1]) == 4 and after[1].isdigit())
+                            or (after[0] == "on" and after[1] in weekdays)
+                            or (after[0] in {"last", "this", "next"}
+                                and after[1] in weekdays | {"week", "month", "year", "morning", "evening"}))))
+            if words[j] == "up" and valid and terminal:
                 return True
-        if i + 1 >= len(words) or words[i + 1] != "up":
-            continue
-        if word in {"make", "makes", "made", "making"} and _made_up_takes_object(words[i + 2:]):
-            continue
-        # Passive subject or active post-particle object.
-        if (set(words[max(0, i - 6):i]) & _E1_REFERENTS
-                or any(words[j:j + 3] == ["the", "whole", "thing"]
-                       for j in range(max(0, i - 6), i - 2))
-                or (i + 2 < len(words) and words[i + 2] in _E1_REFERENTS)
-                or bool(set(words[i + 2:i + 4]) & _DISCOURSE_NOUNS)
-                or tuple(words[i + 2:i + 5]) in {("all", "of", "it"), ("the", "whole", "thing")}):
-            return True
     return False
 
 
@@ -3836,7 +3858,8 @@ def _e1_contexts(source_text: str) -> list[bool]:
     sentences = _split_sentences(source_text)
     spans = _sentence_spans(source_text, sentences)
     paragraphs = _paragraph_ids(source_text, spans)
-    flags = [_e1_falsity(tuple(_tokenize(s))) for s in sentences]
+    flags = [any(_e1_falsity(tuple(_tokenize(clause))) for clause in
+                 _re.split(r";|,\s*(?:but|and)\s+", s, flags=_re.IGNORECASE)) for s in sentences]
     return [((i > 0 and flags[i - 1]) or (i + 1 < len(flags) and flags[i + 1])
              or any(i != j and flags[j] and bool(paragraphs[i] & paragraphs[j])
                     for j in range(len(flags)))) for i in range(len(flags))]

@@ -1,28 +1,33 @@
-# E1 — pronoun and demonstrative phrasal falsity, 2026-11-21
+# E1 — pronoun and demonstrative phrasal falsity, round 3
 
-**Scope and authority.** Sai's AGREED C1, D-119/D-120, authorizes fail-closed changes only. E1 is Class S: traceable source text disowned by its source, a disclosed ADR-008 limitation. This is a refusal improvement, not a change to the PASS promise.
+**Authority and scope.** Sai's AGREED C1, D-119/D-120, authorizes fail-closed changes only. E1 is Class S: traceable text disowned by its source, a disclosed ADR-008 limitation. Round 3 adopts the orchestrator's narrower ruling and retains main and R40 as the first two refusal OR operands; R42's structural guard checks both. This design cannot turn a main refusal into a pass through this path.
 
-**Systemic rule.** A separate E1 reading identifies `_UP_FALSITY_VERBS` and make/makes/made/making with `up` and a demonstrative/pronoun or content object, including split objects; passive demonstrative subjects include all of it and the whole thing. It ORs same-sentence, adjacent-sentence and same-paragraph refusals onto the unchanged main and R40 verdicts. Existing made-up complement exemptions apply. This cannot remove a main or R40 refusal: the existing verdicts remain the first two OR operands. R42's main-path digest is unchanged; its structural guard now also pins the second operand to the R40 verdict, so no re-pin was needed.
+**Reading.** The E1 extension covers make, cook and dream (including dreamt), their inflections, and split objects. A passive pronoun/demonstrative subject must begin the clause and precede an auxiliary and the participle; active split objects must be terminal or have a recognized agent/time/again adjunct. A post-particle object must name a discourse noun, or be “the whole thing”. The existing honest “made up the numbers” control is exempt; this loses ambiguous falsity uses of that exact phrase. The whole-thing branch no longer dies behind the made-up complement exemption. Adjacent and paragraph reach use this narrowed reading. The extension does not apply to whipped, conjured or thought up: the three round-1 pronoun cases are strict xfails, with the ruling's reason; R40's content-subject rule is unchanged.
 
-**Proven red.** With `git show origin/main:Agent-Assure/scripts/ground_check.py > /tmp/e1-main-ground-check.py`, then `E1_GATE_PATH=/tmp/e1-main-ground-check.py .venv/bin/python -m pytest -q tests/red_team_moat/test_moat_e1_pronoun_made_up.py`, main returned exit 1: **34 failed, 6 passed**. The failures comprise all 24 requested phrase × distance × direction cases, eight additional predicate/referent cases and both same-sentence cases. The six passing cases are the already-refused forward-colon example and five honest controls, which are not supposed to fail on main. On the changed gate the E1 file plus R42 structural guard returned exit 0: **44 passed**.
+**Proven red/green.** Main's `ground_check.py` was extracted with `git show origin/main:Agent-Assure/scripts/ground_check.py > /tmp/e1-main-ground-check.py`. `E1_GATE_PATH=/tmp/e1-main-ground-check.py .venv/bin/python -m pytest -q tests/red_team_moat/test_moat_e1_round2.py` returned exit 1: **13 failed, 16 passed**. Every new attack failed on main; the passing controls are expected to pass there. The round-1 report had established 34 red attacks against main. The focused round-1, round-2 and R42 tests returned **70 passed, 3 xfailed**, exit 0; the three xfails are the ruling's explicit open cases.
 
-**Measurements.** All runners executed from `Agent-Assure/` with the project `.venv/bin/python`; baseline was main d8c2ec0. Both fabrication corpora had no class rise in escaped or certified counts.
+**Measurements.** Commands ran from `Agent-Assure/` with the project `.venv/bin/python`; main is d8c2ec0. Runners wrote results to `/tmp`; the usage runner's tracked output was restored. The v2 instrument is the expanded C2b worktree corpus, copied to `/tmp/e1r3-corpora/error_b_corpus_v2`, including `denied_after` and two heading classes; it is not the 224-draft v2 snapshot in this checkout. Main and E1 were measured against the same 269-draft instrument.
 
-Full suite: main **1427 passed, 2 skipped, 74 xfailed**; final **1467 passed, 2 skipped, 74 xfailed**, both exit 0. The final count includes 40 E1 cases; the structural assertion strengthens an existing test.
+The full suite returned exit 0: **1493 passed, 2 skipped, 77 xfailed**. Main's earlier full-suite baseline was 1427 passed, 2 skipped, 74 xfailed; the three additional xfails are the explicit round-3 ceilings.
 
-| Instrument | Main | E1 |
+| Instrument | Main | Round 3 |
 |---|---:|---:|
-| Fabrication v1: escaped / certified, 280 drafts | 11 / 7 | 5 / 5 |
-| v1 denied_2back escaped / certified | 3 / 1 | 0 / 0 |
-| v1 denied_3plus_back escaped / certified | 3 / 1 | 0 / 0 |
-| v1 honest control drafts passing | 190 / 280 | 189 / 280 |
-| Fabrication v2: escaped / certified, 224 drafts | 0 / 0 | 0 / 0 |
-| v2 honest controls passing | 93 / 224 | 93 / 224 |
-| Honest corpus grounded claims; passing drafts | 2044 / 3990; 5 / 336 | 2044 / 3990; 5 / 336 |
-| Usage genres grounded segments; passing drafts | 61 / 200; 4 / 40 | 61 / 200; 4 / 40 |
+| Fabrication v1, 280 drafts: escaped / certified | 11 / 7 | 5 / 5 |
+| v1 denied_2back, 16: escaped / certified | 3 / 1 | 0 / 0 |
+| v1 denied_3plus_back, 16: escaped / certified | 3 / 1 | 0 / 0 |
+| v1 control drafts passing | 190 / 280 | 189 / 280 |
+| Expanded fabrication v2, 269: escaped / certified | 12 / 12 | 0 / 0 |
+| v2 denied_after, 15: escaped / certified | 4 / 4 | 0 / 0 |
+| v2 reassembled headings, 15: escaped / certified | 4 / 4 | 0 / 0 |
+| v2 verbatim headings, 15: escaped / certified | 4 / 4 | 0 / 0 |
+| v2 control drafts passing | 138 / 269 | 138 / 269 |
+| Error-A corpus: grounded authored claims; passing drafts | 2044 / 3990; 5 / 336 | 2044 / 3990; 5 / 336 |
+| Usage genres: grounded segments; passing drafts | 61 / 200; 4 / 40 | 61 / 200; 4 / 40 |
 
-Every honest-corpus claim was compared by draft and position: **none lost**. The one lost v1 control is `howto_code_14_denied_3plus_back`: “The command prints one line for each file it handles [S1].” It changes GROUNDED → UNGROUNDED and the draft PASS → NEEDS_WORK because the unrelated denial is the next sentence across a paragraph break. Its other two claims remain GROUNDED. Usage-genres output is identical before and after. The 2 v1 certified cases lost are not the six escapes: four were already blocked by other claims. The five remaining v1 certified cases are claim headings, outside E1.
+The v2 heading variants share source shapes with `denied_after`; these measurements do not establish a general heading-fabrication fix. The five remaining v1 certified escapes are claim headings. Corpus zeroes measure only their examples, not a safety guarantee.
 
-**CEILING.** Pronouns can refer to unrelated real objects or events; the next-sentence rule crosses paragraph breaks and can refuse honest claims, as measured above. Earlier denials may point backward rather than forward. The predicate is lexical, not a parser: unlisted inflections, intervening modifiers, non-listed euphemisms and references outside the existing paragraph/adjacency windows remain open. The E1 reading does not add R40's extended comparison-copy normalization; obfuscated words may escape. Unrelated R45/R46 families, including heading claims and other denial vocabulary, remain open. Paragraph scanning currently compares sentences pairwise; long source performance is not separately benchmarked.
+Two v1 control claims lost grounding. `howto_code_14_denied_3plus_back`, “The command prints one line for each file it handles [S1],” changed GROUNDED → UNGROUNDED and PASS → NEEDS_WORK. `hr_policy_11_denied_2back`, “Managers respond to a request within 37 working days [S1],” changed GROUNDED → UNGROUNDED and NEEDS_WORK → FAIL. Both neighbor “That was cooked up by the press” across a paragraph break; the second may be the actual referent. The honest Error-A corpus had no authored claim changes against main in the measured comparison.
 
-Calibration, including the pre-existing stale checked-in features, is recorded in CR-014. A zero change on a corpus does not establish safety beyond its examples.
+**Calibration.** Regenerating v2 features returned exit 0, with feature md5 `9b2b4e60140dda089a100c89099238eb`, identical to regenerated main in CR-014. Gold `labels-v2.csv` md5 remains `6215b526d03147295b003d7ccb0d171f`. CR-014 records the pre-existing stale checked-in feature comparison and its adjudication.
+
+**CEILING.** The rule is lexical, not coreference: a qualifying pronoun may refer to an unrelated object and refuse honest claims, including via next-sentence reach across paragraphs. Conversely, pronoun-subject whipped/conjured/thought up remains open because honest and falsity uses have the same form; a coreference/discourse model is the upgrade path. “Made up the numbers” is likewise ambiguous. Unlisted modifiers, time expressions, obfuscation and falsity vocabulary can evade the reading. Clause boundaries and objects are approximated from tokens; this is not a parser. Paragraph scanning is pairwise and long-source performance was not separately measured.
