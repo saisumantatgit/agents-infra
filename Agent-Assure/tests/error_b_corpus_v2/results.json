@@ -1,14 +1,14 @@
 {
  "summary": {
   "all": {
-   "drafts": 224,
-   "escaped": 0,
-   "escaped_pct": 0.0,
-   "pass": 0,
-   "pass_pct": 0.0,
-   "NEEDS_WORK": 159,
+   "drafts": 269,
+   "escaped": 12,
+   "escaped_pct": 4.5,
+   "pass": 12,
+   "pass_pct": 4.5,
+   "NEEDS_WORK": 192,
    "FAIL": 65,
-   "control_pass": 93
+   "control_pass": 138
   },
   "by_class": {
    "comparative_flip": {
@@ -19,6 +19,16 @@
     "pass_pct": 0.0,
     "NEEDS_WORK": 22,
     "FAIL": 6,
+    "control_pass": 15
+   },
+   "denied_after": {
+    "drafts": 15,
+    "escaped": 4,
+    "escaped_pct": 26.7,
+    "pass": 4,
+    "pass_pct": 26.7,
+    "NEEDS_WORK": 11,
+    "FAIL": 0,
     "control_pass": 15
    },
    "direction_flip": {
@@ -40,6 +50,26 @@
     "NEEDS_WORK": 20,
     "FAIL": 8,
     "control_pass": 11
+   },
+   "heading_from_source_words_reassembled": {
+    "drafts": 15,
+    "escaped": 4,
+    "escaped_pct": 26.7,
+    "pass": 4,
+    "pass_pct": 26.7,
+    "NEEDS_WORK": 11,
+    "FAIL": 0,
+    "control_pass": 15
+   },
+   "heading_from_source_words_verbatim": {
+    "drafts": 15,
+    "escaped": 4,
+    "escaped_pct": 26.7,
+    "pass": 4,
+    "pass_pct": 26.7,
+    "NEEDS_WORK": 11,
+    "FAIL": 0,
+    "control_pass": 15
    },
    "hedge_dropped": {
     "drafts": 28,
@@ -194,14 +224,14 @@
     "control_pass": 7
    },
    "product_docs": {
-    "drafts": 16,
-    "escaped": 0,
-    "escaped_pct": 0.0,
-    "pass": 0,
-    "pass_pct": 0.0,
-    "NEEDS_WORK": 13,
+    "drafts": 61,
+    "escaped": 12,
+    "escaped_pct": 19.7,
+    "pass": 12,
+    "pass_pct": 19.7,
+    "NEEDS_WORK": 46,
     "FAIL": 3,
-    "control_pass": 8
+    "control_pass": 53
    },
    "readme": {
     "drafts": 16,
@@ -314,6 +344,156 @@
     "NEEDS_WORK": 0,
     "FAIL": 3,
     "control_pass": 0
+   },
+   "denied_after/form0": {
+    "drafts": 1,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "denied_after/form1": {
+    "drafts": 1,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "denied_after/form10": {
+    "drafts": 1,
+    "escaped": 1,
+    "escaped_pct": 100.0,
+    "pass": 1,
+    "pass_pct": 100.0,
+    "NEEDS_WORK": 0,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "denied_after/form11": {
+    "drafts": 1,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "denied_after/form12": {
+    "drafts": 1,
+    "escaped": 1,
+    "escaped_pct": 100.0,
+    "pass": 1,
+    "pass_pct": 100.0,
+    "NEEDS_WORK": 0,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "denied_after/form13": {
+    "drafts": 1,
+    "escaped": 1,
+    "escaped_pct": 100.0,
+    "pass": 1,
+    "pass_pct": 100.0,
+    "NEEDS_WORK": 0,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "denied_after/form14": {
+    "drafts": 1,
+    "escaped": 1,
+    "escaped_pct": 100.0,
+    "pass": 1,
+    "pass_pct": 100.0,
+    "NEEDS_WORK": 0,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "denied_after/form2": {
+    "drafts": 1,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "denied_after/form3": {
+    "drafts": 1,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "denied_after/form4": {
+    "drafts": 1,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "denied_after/form5": {
+    "drafts": 1,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "denied_after/form6": {
+    "drafts": 1,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "denied_after/form7": {
+    "drafts": 1,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "denied_after/form8": {
+    "drafts": 1,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "denied_after/form9": {
+    "drafts": 1,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
+    "FAIL": 0,
+    "control_pass": 1
    },
    "direction_flip/form0_style0": {
     "drafts": 4,
@@ -474,6 +654,306 @@
     "NEEDS_WORK": 0,
     "FAIL": 4,
     "control_pass": 0
+   },
+   "heading_from_source_words_reassembled/form0": {
+    "drafts": 1,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "heading_from_source_words_reassembled/form1": {
+    "drafts": 1,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "heading_from_source_words_reassembled/form10": {
+    "drafts": 1,
+    "escaped": 1,
+    "escaped_pct": 100.0,
+    "pass": 1,
+    "pass_pct": 100.0,
+    "NEEDS_WORK": 0,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "heading_from_source_words_reassembled/form11": {
+    "drafts": 1,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "heading_from_source_words_reassembled/form12": {
+    "drafts": 1,
+    "escaped": 1,
+    "escaped_pct": 100.0,
+    "pass": 1,
+    "pass_pct": 100.0,
+    "NEEDS_WORK": 0,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "heading_from_source_words_reassembled/form13": {
+    "drafts": 1,
+    "escaped": 1,
+    "escaped_pct": 100.0,
+    "pass": 1,
+    "pass_pct": 100.0,
+    "NEEDS_WORK": 0,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "heading_from_source_words_reassembled/form14": {
+    "drafts": 1,
+    "escaped": 1,
+    "escaped_pct": 100.0,
+    "pass": 1,
+    "pass_pct": 100.0,
+    "NEEDS_WORK": 0,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "heading_from_source_words_reassembled/form2": {
+    "drafts": 1,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "heading_from_source_words_reassembled/form3": {
+    "drafts": 1,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "heading_from_source_words_reassembled/form4": {
+    "drafts": 1,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "heading_from_source_words_reassembled/form5": {
+    "drafts": 1,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "heading_from_source_words_reassembled/form6": {
+    "drafts": 1,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "heading_from_source_words_reassembled/form7": {
+    "drafts": 1,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "heading_from_source_words_reassembled/form8": {
+    "drafts": 1,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "heading_from_source_words_reassembled/form9": {
+    "drafts": 1,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "heading_from_source_words_verbatim/form0": {
+    "drafts": 1,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "heading_from_source_words_verbatim/form1": {
+    "drafts": 1,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "heading_from_source_words_verbatim/form10": {
+    "drafts": 1,
+    "escaped": 1,
+    "escaped_pct": 100.0,
+    "pass": 1,
+    "pass_pct": 100.0,
+    "NEEDS_WORK": 0,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "heading_from_source_words_verbatim/form11": {
+    "drafts": 1,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "heading_from_source_words_verbatim/form12": {
+    "drafts": 1,
+    "escaped": 1,
+    "escaped_pct": 100.0,
+    "pass": 1,
+    "pass_pct": 100.0,
+    "NEEDS_WORK": 0,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "heading_from_source_words_verbatim/form13": {
+    "drafts": 1,
+    "escaped": 1,
+    "escaped_pct": 100.0,
+    "pass": 1,
+    "pass_pct": 100.0,
+    "NEEDS_WORK": 0,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "heading_from_source_words_verbatim/form14": {
+    "drafts": 1,
+    "escaped": 1,
+    "escaped_pct": 100.0,
+    "pass": 1,
+    "pass_pct": 100.0,
+    "NEEDS_WORK": 0,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "heading_from_source_words_verbatim/form2": {
+    "drafts": 1,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "heading_from_source_words_verbatim/form3": {
+    "drafts": 1,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "heading_from_source_words_verbatim/form4": {
+    "drafts": 1,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "heading_from_source_words_verbatim/form5": {
+    "drafts": 1,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "heading_from_source_words_verbatim/form6": {
+    "drafts": 1,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "heading_from_source_words_verbatim/form7": {
+    "drafts": 1,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "heading_from_source_words_verbatim/form8": {
+    "drafts": 1,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
+    "FAIL": 0,
+    "control_pass": 1
+   },
+   "heading_from_source_words_verbatim/form9": {
+    "drafts": 1,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
+    "FAIL": 0,
+    "control_pass": 1
    },
    "hedge_dropped/form0_style0": {
     "drafts": 4,
@@ -4683,6 +5163,771 @@
     "FACTUAL"
    ],
    "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "denied_after_00",
+   "genre": "product_docs",
+   "class": "denied_after",
+   "variant": "form0",
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "denied_after_01",
+   "genre": "product_docs",
+   "class": "denied_after",
+   "variant": "form1",
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "denied_after_02",
+   "genre": "product_docs",
+   "class": "denied_after",
+   "variant": "form2",
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "denied_after_03",
+   "genre": "product_docs",
+   "class": "denied_after",
+   "variant": "form3",
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "denied_after_04",
+   "genre": "product_docs",
+   "class": "denied_after",
+   "variant": "form4",
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "denied_after_05",
+   "genre": "product_docs",
+   "class": "denied_after",
+   "variant": "form5",
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "denied_after_06",
+   "genre": "product_docs",
+   "class": "denied_after",
+   "variant": "form6",
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "denied_after_07",
+   "genre": "product_docs",
+   "class": "denied_after",
+   "variant": "form7",
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "denied_after_08",
+   "genre": "product_docs",
+   "class": "denied_after",
+   "variant": "form8",
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "denied_after_09",
+   "genre": "product_docs",
+   "class": "denied_after",
+   "variant": "form9",
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "denied_after_10",
+   "genre": "product_docs",
+   "class": "denied_after",
+   "variant": "form10",
+   "gate": "PASS",
+   "score": 100.0,
+   "fab_verdicts": [
+    "GROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": true,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "denied_after_11",
+   "genre": "product_docs",
+   "class": "denied_after",
+   "variant": "form11",
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "denied_after_12",
+   "genre": "product_docs",
+   "class": "denied_after",
+   "variant": "form12",
+   "gate": "PASS",
+   "score": 100.0,
+   "fab_verdicts": [
+    "GROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": true,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "denied_after_13",
+   "genre": "product_docs",
+   "class": "denied_after",
+   "variant": "form13",
+   "gate": "PASS",
+   "score": 100.0,
+   "fab_verdicts": [
+    "GROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": true,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "denied_after_14",
+   "genre": "product_docs",
+   "class": "denied_after",
+   "variant": "form14",
+   "gate": "PASS",
+   "score": 100.0,
+   "fab_verdicts": [
+    "GROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": true,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "heading_from_source_words_verbatim_00",
+   "genre": "product_docs",
+   "class": "heading_from_source_words_verbatim",
+   "variant": "form0",
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "heading_from_source_words_verbatim_01",
+   "genre": "product_docs",
+   "class": "heading_from_source_words_verbatim",
+   "variant": "form1",
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "heading_from_source_words_verbatim_02",
+   "genre": "product_docs",
+   "class": "heading_from_source_words_verbatim",
+   "variant": "form2",
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "heading_from_source_words_verbatim_03",
+   "genre": "product_docs",
+   "class": "heading_from_source_words_verbatim",
+   "variant": "form3",
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "heading_from_source_words_verbatim_04",
+   "genre": "product_docs",
+   "class": "heading_from_source_words_verbatim",
+   "variant": "form4",
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "heading_from_source_words_verbatim_05",
+   "genre": "product_docs",
+   "class": "heading_from_source_words_verbatim",
+   "variant": "form5",
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "heading_from_source_words_verbatim_06",
+   "genre": "product_docs",
+   "class": "heading_from_source_words_verbatim",
+   "variant": "form6",
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "heading_from_source_words_verbatim_07",
+   "genre": "product_docs",
+   "class": "heading_from_source_words_verbatim",
+   "variant": "form7",
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "heading_from_source_words_verbatim_08",
+   "genre": "product_docs",
+   "class": "heading_from_source_words_verbatim",
+   "variant": "form8",
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "heading_from_source_words_verbatim_09",
+   "genre": "product_docs",
+   "class": "heading_from_source_words_verbatim",
+   "variant": "form9",
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "heading_from_source_words_verbatim_10",
+   "genre": "product_docs",
+   "class": "heading_from_source_words_verbatim",
+   "variant": "form10",
+   "gate": "PASS",
+   "score": 100.0,
+   "fab_verdicts": [
+    "GROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": true,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "heading_from_source_words_verbatim_11",
+   "genre": "product_docs",
+   "class": "heading_from_source_words_verbatim",
+   "variant": "form11",
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "heading_from_source_words_verbatim_12",
+   "genre": "product_docs",
+   "class": "heading_from_source_words_verbatim",
+   "variant": "form12",
+   "gate": "PASS",
+   "score": 100.0,
+   "fab_verdicts": [
+    "GROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": true,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "heading_from_source_words_verbatim_13",
+   "genre": "product_docs",
+   "class": "heading_from_source_words_verbatim",
+   "variant": "form13",
+   "gate": "PASS",
+   "score": 100.0,
+   "fab_verdicts": [
+    "GROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": true,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "heading_from_source_words_verbatim_14",
+   "genre": "product_docs",
+   "class": "heading_from_source_words_verbatim",
+   "variant": "form14",
+   "gate": "PASS",
+   "score": 100.0,
+   "fab_verdicts": [
+    "GROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": true,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "heading_from_source_words_reassembled_00",
+   "genre": "product_docs",
+   "class": "heading_from_source_words_reassembled",
+   "variant": "form0",
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "heading_from_source_words_reassembled_01",
+   "genre": "product_docs",
+   "class": "heading_from_source_words_reassembled",
+   "variant": "form1",
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "heading_from_source_words_reassembled_02",
+   "genre": "product_docs",
+   "class": "heading_from_source_words_reassembled",
+   "variant": "form2",
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "heading_from_source_words_reassembled_03",
+   "genre": "product_docs",
+   "class": "heading_from_source_words_reassembled",
+   "variant": "form3",
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "heading_from_source_words_reassembled_04",
+   "genre": "product_docs",
+   "class": "heading_from_source_words_reassembled",
+   "variant": "form4",
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "heading_from_source_words_reassembled_05",
+   "genre": "product_docs",
+   "class": "heading_from_source_words_reassembled",
+   "variant": "form5",
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "heading_from_source_words_reassembled_06",
+   "genre": "product_docs",
+   "class": "heading_from_source_words_reassembled",
+   "variant": "form6",
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "heading_from_source_words_reassembled_07",
+   "genre": "product_docs",
+   "class": "heading_from_source_words_reassembled",
+   "variant": "form7",
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "heading_from_source_words_reassembled_08",
+   "genre": "product_docs",
+   "class": "heading_from_source_words_reassembled",
+   "variant": "form8",
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "heading_from_source_words_reassembled_09",
+   "genre": "product_docs",
+   "class": "heading_from_source_words_reassembled",
+   "variant": "form9",
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "heading_from_source_words_reassembled_10",
+   "genre": "product_docs",
+   "class": "heading_from_source_words_reassembled",
+   "variant": "form10",
+   "gate": "PASS",
+   "score": 100.0,
+   "fab_verdicts": [
+    "GROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": true,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "heading_from_source_words_reassembled_11",
+   "genre": "product_docs",
+   "class": "heading_from_source_words_reassembled",
+   "variant": "form11",
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
+   "fab_verdicts": [
+    "UNGROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": false,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "heading_from_source_words_reassembled_12",
+   "genre": "product_docs",
+   "class": "heading_from_source_words_reassembled",
+   "variant": "form12",
+   "gate": "PASS",
+   "score": 100.0,
+   "fab_verdicts": [
+    "GROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": true,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "heading_from_source_words_reassembled_13",
+   "genre": "product_docs",
+   "class": "heading_from_source_words_reassembled",
+   "variant": "form13",
+   "gate": "PASS",
+   "score": 100.0,
+   "fab_verdicts": [
+    "GROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": true,
+   "other_refused": 0,
+   "control_gate": "PASS"
+  },
+  {
+   "id": "heading_from_source_words_reassembled_14",
+   "genre": "product_docs",
+   "class": "heading_from_source_words_reassembled",
+   "variant": "form14",
+   "gate": "PASS",
+   "score": 100.0,
+   "fab_verdicts": [
+    "GROUNDED"
+   ],
+   "fab_kinds": [
+    "FACTUAL"
+   ],
+   "escaped": true,
    "other_refused": 0,
    "control_gate": "PASS"
   }
