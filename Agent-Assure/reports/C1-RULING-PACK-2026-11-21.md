@@ -1,76 +1,81 @@
 # C1 ruling pack: heading fabrications and far denials (OVN-1121, 2026-11-21)
 
-**Verdict: neither family can be closed tonight without a ruling from Sai, and one of them should not be closed by a gate change.**
+**Verdict: main certifies two families of fabrication as PASS 100 today, both reproduced first-hand. The fixes only ever refuse more, so they are inside tonight's C1 authority. They were not built because Codex is out of quota until 26 Nov 13:52 and D-119 bars a Claude build fallback.**
 
-- **Heading fabrications (Family H):** a simple rule catches all 15 attack headings. It also scores 33% of honest headings, so it trades honest refusals for safety. That is Escalation #1 and Sai's call.
-- **Far denials (Family D):** the corpus labels look wrong. In both classes the denial comes *before* the claim and points backward. Read as English, the source asserts the claim, so the two PASSes in these classes are probably not fabrications.
+- **E1, pronoun-subject "made up" after the claim.** A source sentence such as "Quay Trust was acquired by a larger rival last spring." followed by "That was cooked up by the press.", "It was cooked up." or "The press made that up." gets the claim GROUNDED and the draft certified PASS 100. "That never happened." in the same place is refused.
+- **E2, a heading built from source words.** A draft heading is never scored (`NON_CLAIM`) if it passes the existing headline tests. That includes a verbatim copy of a sentence the source denies (`## The regulator found fraud at Quay Trust`, source: "… That never happened.") and reassemblies (`## Fraud at Quay Trust`, `## The council never met`). Each certifies PASS 100.
 
-Measured on main `d8c2ec0` (2026-11-21). No gate code was changed. Codex is out of quota until 26 Nov 13:52, so no build was attempted (D-121).
+Measured on main `d8c2ec0`. This pack was challenged by an Opus adversary (prompt: "attack the conclusions… re-derive independently"). Its first version was **corrected**: the Family D diagnosis was refuted and the Family H sibling and cost were corrected. The review is summarised at the end, and the first version is in git history (`c5e64a4`).
 
 ## Terms
 
 | Term | Meaning here |
 |---|---|
 | Error-B | A fabrication certified PASS. Unrecoverable; the moat. |
-| Error-A | An honest claim refused. Recoverable: the writer rewords or cites. |
-| Novel word | A heading word, outside a 40-word stop list, that occurs in none of the draft's captured sources. Lower-cased, NFKC. |
-| Scored heading | A heading the gate checks as a claim instead of treating as a label (`NON_CLAIM`). |
+| Error-A | An honest claim refused. Recoverable. |
+| Scored heading | A heading checked as a claim. Uncited, it reads UNCITED, and the draft goes to NEEDS_WORK (FAIL in a short draft). |
+| Novel word | A heading word, outside a stop list, found in none of the draft's sources (NFKC, lower-cased). |
+| R40 | The 2026-11-15 fail-closed fix that refuses "cooked up" only after a content-noun subject ("The story was cooked up"). |
 
-## Family H: claim headings
+## E1: pronoun-subject "made up" (was "Family D")
 
-The draft opens with a heading that asserts something no source says, for example `## Regulator: Plover lied`. The gate classifies it as a label, never scores it, and the draft is certified PASS. That happens in 5 of the 15 `claim_heading` drafts on the v1 fabrication corpus.
+**Cause:** a lexical gap in the R40 fix. `_UP_FALSITY_VERBS` (`ground_check.py:3270`) is read only with a content-noun subject, and `cooked` is not in `_DENIAL_TOKENS` (`ground_check.py:3009`). A pronoun subject (`That`, `It`), or "made that up" with the object in the middle, evades it. This is an evasion of a shipped fix.
 
-**Candidate rule H1:** a heading may stay a label only if every content word in it occurs in a captured source the draft cites. Otherwise it is scored. A scored heading has no citation, so the draft becomes NEEDS_WORK with a reason that names the words.
+**Corpus evidence:**
 
-| Measure | Result |
+- All 6 escapes in `denied_2back` and `denied_3plus_back` use "That was cooked up by the press.".
+- Swapping in "That never happened." at the same distance gets all 4 tested drafts refused.
+- The two PASSes are a special case: there "That was cooked up…" opens a paragraph *before* the claim, so its antecedent is the earlier paragraph. Those two are arguably not fabrications.
+- Moved *after* the claim, the same phrase denies it and still certifies PASS 100. That is the live Error-B.
+
+**Fix (fail-closed, build when capacity returns):**
+
+1. Read the `_UP_FALSITY_VERBS` predicates ("cooked up", "dreamed up", "made up", "whipped up", …) with a pronoun or demonstrative subject or object too, in the sentence after the claim and within the paragraph.
+2. Use proven-red tests for: `That/It was cooked up.`, `The press made that up.`, `Reporters cooked that up.`, and with 0–2 fillers between.
+3. Sibling to check: the same verbs before the claim when the pronoun is forward-pointing ("This was made up: …").
+4. Measure on the Error-A corpus. Pronoun-subject "made up" in honest prose ("It was made up of three parts") is the obvious Error-A risk; R38 already exempts the constituting sense "made up of". Measure that it holds.
+
+**Withdrawn from the first version:** "the corpus label is the problem" and "narrow the two-back rule". The two-back rule decides 0 of the 26 refused far-denial drafts. They are refused by the paragraph-falsity rule (15), the hedge rule (5) and other paths (6). So narrowing it changes no Family D outcome. "Do not widen the denial window" stands, for a different reason: the misses are lexical, so widening closes nothing.
+
+**Corpus repair (Codex, tests only):** add the denial-after-claim shape with every DENIALS phrase, so E1 is measured by the corpus and not only by a probe. With the current DENIALS list, that rebuild will show the E1 PASSes.
+
+## E2: headings (was "Family H")
+
+On v1, 10 of the 15 `claim_heading` attacks are already scored by the existing headline tests (`ground_check.py:1093-1150`). 5 reach `NON_CLAIM` and PASS. The reviewer found the worse sibling: headings made only of source words, including a verbatim copy of a denied sentence. No body-path denial rule applies to them, because headings never reach `_unit_denial_reason`.
+
+| Candidate rule | Closes | Leaves open | Honest drafts that PASS today and lose PASS (Error-A corpus 5 + usage_genres 4 = 9) | Honest headings scored |
+|---|---|---|---|---|
+| H1: score a heading with any novel word | 15/15 v1 attack headings | every source-word heading (E2 siblings) | 6 of 9 (PASS 9→3) | 175 of 532 (33%) |
+| S: score every heading that is not a verbatim source heading | all of the above, plus the siblings | a heading copied from a source *heading* that the body denies (not measured) | 7 of 9 (PASS 9→2) | 198 of 532 (37%) |
+| S + closed label list: as S, but exempt a heading whose every word is in a short closed list of structural labels (notes, overview, summary, steps, known, issues, …) | as S, except claims spelled only in label words | claims spelled only in label words | not measured; it needs the list written first | not measured |
+
+- **The fabrication-corpus control rows are vacuous.** v1 and v2 control drafts contain no headings (0/280, 0/224), so their "0 lost" proves nothing. The 9 honest PASS drafts above are the only measurement.
+- **H1's refusal reason is an oracle.** A reason that names the novel words tells a retrying model which words to swap for source words, which is exactly the E2 sibling. Whatever rule ships, its reason should say "a heading not taken from your sources is checked like a sentence", not list words.
+- **A closed label list fails safe.** A word missing from it means the heading is scored (refused), never passed.
+
+**Recommendation: ship S + a closed label list, built by Codex (or Claude, on Sai's word), with these measured before merge:**
+
+- the list's Error-A gain over S on the 9 PASS drafts and all 532 headings;
+- the label-word claims it leaves open (for example `## Known issues` claims that issues exist);
+- an Opus adversary round.
+
+Why: E2 is a live Error-B on main with no rewording needed, and only S-class rules close it. The list recovers the commonest honest headings without letting entity or predicate words through. H1 alone is rejected because it leaves E2 open and its refusal reason points attackers at the open part.
+
+What would flip it: the measured list recovering too little (PASS stays near 2/9). Then the choice becomes a product one for Sai. Either PASS certifies body claims only and the report lists headings as unchecked text (a verdict-semantics change, ADR first), or the writer cites headings.
+
+## Side finding: next-sentence denial across a paragraph break
+
+`verbatim_but_next_sentence_denies` refuses 183 honest claims on the Error-A corpus. 19 of them cross a paragraph break. **A paragraph cut is not safe:** it would certify `<claim>.` followed in the next paragraph by `Quay Trust denies this.` The reviewer estimates that treating "that" after a reporting verb as not pointing back would free about 91 of 183, with its own attack to measure. Both widen passes, so both are Sai's.
+
+## Adversary review (summary)
+
+| Claim in first version | Verdict |
 |---|---|
-| Attack headings caught | 15 / 15 have at least one novel word, including all 5 that PASS today |
-| Honest drafts that PASS today and would lose PASS: Error-A corpus | 3 of 5 (`Known issues`, `Cost pressures`, `Regional targets`) |
-| Same: v1 fabrication-corpus honest controls | 0 of 190 |
-| Same: v2 fabrication-corpus honest controls | 0 of 93 |
-| Honest headings with a novel word (Error-A corpus + usage_genres) | 175 of 532 (33%) |
-| Most common novel words in honest headings | rises 17, limits 16, price 14, changes 8, common 7, steps 7, breaking 6, features 6, issues 6 |
+| Family D is a labelling problem; narrow two-back | REFUTED (lexical R40 gap; two-back decides 0 of 26) |
+| H1 sibling = reassembled source words only | CORRECTED (verbatim denied sentence as heading, PASS 100) |
+| H1 cost 5→2; controls 0/190, 0/93 | CORRECTED (9→3 incl. usage_genres; controls have no headings) |
+| "The gate never reads headings" | CORRECTED (10/15 attack headings already scored) |
+| Paragraph-break cut is "more principled" | CORRECTED (has its own attack) |
+| Numbers 15/15, 3/5, 175/532, 13/16, 37, 183/193 | UPHELD |
 
-**Why not an exemption list:** exempting the honest words would take a list of 60 or more, and it would include claim-bearing words such as `rises` (`Price rises` is honest 15 times here). A list tuned to these corpora is the Goodhart failure CLAUDE.md warns about.
-
-A list whose missing members point toward refusal is not unsafe, because a missing word gets the heading scored. The cost is maintenance: every honest heading word outside the list becomes an Error-A complaint.
-
-**Sibling hole, which H1 does not close:** a heading built only from source words that reverses the source. For example, the source says "no fraud was found at Larkspur" and the draft heading is `# Fraud at Larkspur`. Every word is in the source, so H1 leaves it unscored.
-
-**Recommendation: ship H1 with a refusal reason that names the novel words, after Sai rules YES.** Why:
-
-- Error-B is unrecoverable. A heading is a free text channel the gate never reads, and 5 certified fabrications use it today.
-- H1's Error-A is recoverable at the writer's desk: reword the heading with the source's words, or delete it. The refusal says exactly which words to change.
-- Honest PASS on the Error-A corpus would fall from 5 to 2. That number is already too small to judge from, which is the separate Error-A problem in the 2026-11-15 ruling pack.
-
-What would flip it: alpha testers' real drafts showing heading rewording as the main source of friction. Then the upgrade path is the one the code's CEILING comments already name, a part-of-speech tagger on headings.
-
-## Family D: far denials
-
-The v1 builder (`tests/error_b_corpus/fabrications.py`, `b_denied_2back` and `b_denied_3plus`) writes the source as:
-
-`<denial>. <1-4 unrelated filler sentences>. <claim>.`
-
-For example: "That never happened. Staff left early. Quay Trust was acquired by a larger rival last spring."
-
-- **The label is the problem.** Six of the twelve denial phrases point back ("That never happened.", "This is a myth."). Put before the claim, they refer to whatever came earlier, not to the claim that follows. So the source asserts the claim, and certifying it is arguably correct.
-- **The gate already refuses 13 of 16 in each class.** That is the same refusal rule that costs honest claims below.
-- **The rule's honest cost is measured.** On the Error-A corpus, `verbatim_but_sentence_two_back_denies` refuses 37 honest claims. Typical case: "The rate limit is 3668 requests per minute for each key" is refused because two sentences earlier "The beta `cursor` filter never left preview and is not documented here" negates a different subject.
-
-**Recommendation: do not widen the denial window (C1-D as planned). Instead:**
-
-1. **Relabel the corpus (Codex, after 26 Nov; tests only, no ruling needed).** Rebuild `denied_2back` and `denied_3plus_back` so the denial can only refer to the claim. Either it comes after the claim and points back, with fillers between, or it is an explicit forward pointer ("The following report is false:"). Keep the current shapes as honest controls.
-2. **Narrow the two-back rule (needs Sai, Escalation #1, because it lets claims pass).** Require that the denial's subject or back-reference resolves to the claim's subject. Measure on both fabrication corpora and the Error-A corpus before shipping.
-
-What would flip it: Sai reading "That never happened. Staff left early. X." as denying X. Then the label stands, the 2 PASSes are Error-B, and the fix is a wider window with its Error-A cost measured first.
-
-## Side finding: a denial in the next paragraph
-
-`verbatim_but_next_sentence_denies` refuses 183 honest claims on the Error-A corpus (193 segments). 19 of them are refused across a paragraph break: the "next sentence" is the first sentence of the following paragraph. Stopping that rule at a paragraph break lets claims pass, so it is Sai's call. It is a smaller, more principled cut than the 164 same-paragraph cases.
-
-## Reproduce
-
-The measurement scripts lived in the run's scratch directory and were removed at teardown. Each is under 40 lines and reads only `results.json` and `manifest.json` of the corpora, plus their sources:
-
-- **Heading cost:** extract ATX (`#`) and setext headings, tokenise `[a-z0-9]+` after NFKC and lower-casing, and drop stop words. A heading has a novel word if any token is missing from all of that draft's sources. Count over drafts whose gate (or `control_gate`) is PASS.
-- **Two-back and next-paragraph cases:** for each claim whose segment diagnostic is the named one, find the claim text in its source's paragraphs and report what follows it.
+Main-loop re-checks, first-hand on `d8c2ec0` with passing positive controls: E1 (4 phrasings, PASS 100; "That never happened." FAIL) and E2 (5 headings, PASS 100; control PASS). The S-rule cost (7 of 9; 198/532) was measured by the main loop after the review.

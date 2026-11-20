@@ -1,6 +1,6 @@
 # Error-A map: where the honest refusals are, and which ruling unlocks each (OVN-1121, 2026-11-21)
 
-**Verdict: four rulings Sai has already been asked for would address up to 1,186 of the 1,946 honest claims the gate refuses (61%). No gate change is needed to find out which.**
+**Verdict: three rulings Sai has already been asked for would address up to 1,167 of the 1,946 honest claims the gate refuses (60%). No gate change is needed to find out which.**
 
 Measured on main `d8c2ec0`, Error-A corpus: 336 honest drafts, 3,990 authored claims, 2,044 grounded, 1,946 refused. The cause is each refused claim's first refused segment, as reported by `results.json`. These are counts of what the gate refuses today, not measured gains. A gain is known only after a candidate is run against the fabrication corpora, which is what each ruling's "measure first" step does.
 
@@ -19,13 +19,13 @@ Measured on main `d8c2ec0`, Error-A corpus: 336 honest drafts, 3,990 authored cl
 |---|---|---:|---:|---|---|
 | 1 | Hedge word in the 5 tokens before the match (`verbatim_but_hedge_word_before_it`) | 658 | 34% | (c) stop the hedge window at a sentence boundary | Asked 2026-11-15, open |
 | 2 | List ordinal read as a figure ("1. Members open…" → UNVERIFIED_NUMBER) | 406 | 21% | C1u list numbers (2026-11-15 pack measured +292) | Asked; my recommendation was NO (it keys on capitalisation) |
-| 3 | Next sentence holds a denial word (`verbatim_but_next_sentence_denies`) | 174 | 9% | Narrow to a back-reference that resolves to the claim; first cut: stop at a paragraph break (19 cases) | New tonight |
+| 3 | Next sentence holds a denial word (`verbatim_but_next_sentence_denies`) | 174 | 9% | Narrow to a back-reference that resolves to the claim (the reviewer's estimate: about 91 of 174 if "that" after a reporting verb does not point back). A paragraph-break cut (19) is NOT safe: it certifies `<claim>.` followed by a new paragraph "Quay Trust denies this." | New tonight, Sai's |
 | 4 | Absence claim, search rule not met (UNVERIFIED_ABSENCE) | 120 | 6% | None proposed; by design (2-query rule) | — |
 | 5 | Spelled percent ("85 percent" → UNVERIFIED_NUMBER) | 103 | 5% | C2 "N percent" (pack measured +69, 0/11 attacks pass) | Asked; recommendation YES |
 | 6 | No cited verbatim source (UNCITED) | 99 | 5% | None; working as intended | — |
 | 7 | All other diagnostics (11 kinds) | 386 | 20% | Not mapped tonight | — |
 
-Up to 1,186 = 658 + 406 + 19 + 103. That counts row 3 at its 19 paragraph-break cases only.
+Up to 1,167 = 658 + 406 + 103. Row 3 is excluded, because its only measured cut has an attack.
 
 ## Row 1 in detail: most hedge refusals look back across a full stop
 
@@ -47,7 +47,7 @@ This is the same pattern as the far-denial finding in `C1-RULING-PACK-2026-11-21
 
 1. **C2 "N percent": rule YES now (+69 measured).** Why: it was measured on 15 Nov, 0 of 11 attacks pass, and the code's own docstring already promises `25% == 25 percent`. What would flip it: an attack class the 11 do not cover, for example `85 percent` against a source `85 percentile`, which was tested and refused.
 2. **(c) hedge window at a sentence boundary: rule "measure it" now.** It's the largest single cause, at up to 541 segments. Codex builds the candidate after 26 Nov. It ships only if both fabrication corpora show no rise in any class and an Opus adversary round finds 0 blockers. What would flip it: the corpora showing even one new certified fabrication. The window then stays, and the upgrade path is a clause parser.
-3. **Next-sentence denial at a paragraph break: rule "measure it" (19 cases).** Small, and paragraph breaks are a structural signal the draft author cannot set in the *source*.
+3. **Next-sentence denial: no ruling asked yet.** The paragraph-break cut is withdrawn: an adversary showed `<claim>.` followed by a new paragraph "Quay Trust denies this." would certify. A back-reference rule needs designing first (see `C1-RULING-PACK-2026-11-21.md`).
 4. **C1u list ordinals:** I'm keeping my 15 Nov NO. The measured gain (+292) is large, but the candidate keyed on capitalisation, which this project has already lost to twice (round 4). A better candidate drops the ordinal on both sides, but only where the source line itself starts with the same ordinal. It needs designing, not a ruling.
 
 ## Reproduce
