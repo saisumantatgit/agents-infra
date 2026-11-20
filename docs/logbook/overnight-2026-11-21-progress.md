@@ -18,3 +18,4 @@
 | 01:24 | R46 DONE | R46 consolidated, D-127 (42 families total). Red-team rounds stopped deliberately: more families will not change the rulings needed. | measured next tick | 0 | via negativa, opportunity cost |
 | 01:25 | analysis | D-128: 42 families split into 22 traceability breaks (bugs by the written promise) and 20 support breaks (Sai's product call). R45 rec 1 withdrawn as new work. | measured next tick | 0 | contradiction-as-locator, JTBD (what a tester acts on), Chesterton (why the scope field says what it says) |
 | 01:29 | analysis | D-129: classification corrected by the adversary; T 20 / S 22; four withdrawals logged. | measured next tick | 0 | contradiction-as-locator, Chesterton (ADR-008), calibration |
+| 01:30 | analysis | Corpora re-read as T/S: v1 T 5/184 certified, S 2/96; v2 T 0/224. The corpora cover 1 of the 20 Class T families found by hand. | measured next tick | 0 | Goodhart |

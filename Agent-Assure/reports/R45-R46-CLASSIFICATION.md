@@ -61,3 +61,15 @@ Counted families: 22 here (excluding the E2 row) + 20 in Class T = 42. E2 is cou
 3. **Label every red-team finding and corpus class T or S.** Report Error-B only for T, and report S as "disclosed limitation, refused where detectable". Why: the moat number should mean one thing.
 4. **Cheap S-class refusals are still worth building:** D8 (all-of-cited, latest capture) and D11 (do not ground on a partial read whose cut point is inside the paragraph). Near-zero honest cost; inside the fail-closed authority.
 5. **For Sai, when the five buyer interviews ADR-008 names exist:** decide whether PASS should promise support. The R2 clause-prefix measurement (8/2,044 on a text model, unchecked) is the starting evidence, not the answer.
+
+## The fabrication corpora, re-read as T and S
+
+Mechanical split: a corpus draft is Class S exactly when its manifest says `fabricated_in_source: true`, meaning the fabricated text is verbatim in the source, which then disowns it. Results on main `d8c2ec0`:
+
+| Corpus | Class | Drafts | Escaped | Certified PASS |
+|---|---|---:|---:|---:|
+| v1 (`error_b_corpus`) | T (12 classes) | 184 | 5 | **5** (all `claim_heading`) |
+| v1 | S (6 `denied_*` classes) | 96 | 6 | 2 |
+| v2 (`error_b_corpus_v2`) | T (8 classes) | 224 | 0 | **0** |
+
+The corpora measure 5 Class T breaks. R45 and R46 found 20 Class T families by hand, and only one of them (E2/claim headings) has a corpus class. So the corpus Error-B number is a floor on what is known, not an estimate of what exists. The C2b brief adds the R45/R46 families. Each new class should carry its T/S label in the manifest, and BASELINE.md should report Error-B for T only, with S as "disclosed, refused where detectable".
