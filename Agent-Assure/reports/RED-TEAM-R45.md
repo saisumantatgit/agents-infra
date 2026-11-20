@@ -68,7 +68,7 @@ The corpora are an instrument, not the goal (§2-A Goodhart). Each R45 family sh
 
 ## Recommended order (for Sai)
 
-1. **Today, no build needed:** do not present PASS to alpha testers as a guarantee. Present it as "no known fabrication shape found", with this report linked. Why: every family above is live, and a tester will hit R1 shapes by accident.
+1. **WITHDRAWN as new work (see R45-R46-CLASSIFICATION.md): the tester guide already says PASS means "traceable, never true, never supported".** What it lacks is the list of traceability breaks. Original text: do not present PASS to alpha testers as a guarantee. Present it as "no known fabrication shape found", with this report linked. Why: every family above is live, and a tester will hit R1 shapes by accident.
 2. **First build, fail-closed, inside C1 authority:** E1 + E3 (briefs written) and R3 (E2 brief, extended to lead-in lists, continuations and definition lists). These are local changes with measurable Error-A.
 3. **Decide R1 (render first):** I recommend YES. It closes 6 families structurally and makes the gate read what the reader reads, which is the product's promise. The cost is a parsing dependency and an install change (Escalation #4). What would flip it: no parser that is deterministic, offline and pure Python fits the moat's "no network, no model" rule.
 4. **Decide R2 (assertion test) after measuring it:** I recommend having it measured on a scratch copy, honest corpora first, then ruled. Why: it is the only fix that ends the synonym race, but it will refuse honest attributed facts ("According to the annual report, revenue rose 4%"). That is a product decision about what PASS means.
