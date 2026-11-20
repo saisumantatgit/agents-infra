@@ -932,6 +932,13 @@ def decompose(draft: str) -> list[Claim]:
                 split_from=split_from,
             ))
             index += 1
+    # Add setext headings without removing or reclassifying any original claim.
+    # This deliberately preserves all existing refusals.
+    for match in _re.finditer(r"(?m)^([^\n]+)\n[ \t]{0,3}(?:=+|-+)[ \t]*$", draft):
+        heading = match.group(1).strip()
+        claims.append(Claim(index=index, text="## " + heading,
+                            kind=ClaimKind.FACTUAL, citations=(), numeric_tokens=()))
+        index += 1
     return claims
 
 
@@ -7472,6 +7479,53 @@ def scope_statement(session_scoped: bool) -> str:
     return _SCOPE_SESSION if session_scoped else _SCOPE_STORE
 
 
+# CEILING: claims made entirely of structural label words remain exempt;
+# a POS tagger is the upgrade. Missing words are scored, never exempted.
+_E2_LABELS = frozenset("overview summary introduction background notes details steps next known issues faq questions answers changes changelog contents appendix references sources glossary examples usage installation setup configuration requirements limitations results method methods discussion conclusion action items".split())
+_E2_REASON = "A heading not taken from your sources is checked like a sentence; copy the source's heading or cite it."
+
+
+def _e2_normalize_heading(text: str) -> str:
+    text = _nfkc(text).casefold().strip()
+    text = _re.sub(r"\s+", " ", text)
+    while text and (text[0].isspace() or unicodedata.category(text[0]).startswith("P")):
+        text = text[1:]
+    while text and (text[-1].isspace() or unicodedata.category(text[-1]).startswith("P")):
+        text = text[:-1]
+    return text
+
+
+def _e2_source_headings(store: dict, self_source_ids: frozenset) -> set[str]:
+    headings = set()
+    for source in store.values():
+        if source.source_id in self_source_ids or source.full_text_source != "verbatim" or source.retrieval_status == "failed":
+            continue
+        in_fence = False
+        lines = source.text.splitlines()
+        for i, line in enumerate(lines):
+            if _re.match(r"^ {0,3}(`{3,}|~{3,})", line):
+                in_fence = not in_fence
+                continue
+            if in_fence:
+                continue
+            atx = _re.match(r"^ {0,3}#{1,6}\s+(.+?)\s*#*\s*$", line)
+            if atx:
+                headings.add(_e2_normalize_heading(atx.group(1)))
+            elif i + 1 < len(lines) and _re.fullmatch(r" {0,3}(?:=+|-+)\s*", lines[i + 1]) and line.strip():
+                headings.add(_e2_normalize_heading(line))
+    return headings
+
+
+def _e2_requires_scoring(text: str, source_headings: set[str]) -> bool:
+    match = _re.match(r"^#{1,6}\s+(.+)$", text, _re.DOTALL)
+    if not match:
+        return False
+    body = _e2_normalize_heading(match.group(1))
+    words = _tokenize(body)
+    content = _content_words(words)
+    return body not in source_headings and (not content or any(w.casefold() not in _E2_LABELS for w in content))
+
+
 def score_report(
     claims: list[Claim],
     store: dict[str, RetrievedSource],
@@ -7544,12 +7598,18 @@ def score_report(
     numerator = 0
     has_unverified_citation = False
 
+    source_headings = _e2_source_headings(store, self_source_ids)
     for claim in claims:
+        e2_scored = claim.kind == ClaimKind.NON_CLAIM and _e2_requires_scoring(claim.text, source_headings)
+        if e2_scored:
+            claim = Claim(claim.index, claim.text, ClaimKind.FACTUAL, claim.citations, claim.numeric_tokens, claim.split_from)
         verdict = ground(claim, store, lex_tau, self_source_ids,
                          inferred_self_ids)
         # REASONS-FOR-REFUSAL: the reason is computed only AFTER the verdict,
         # from the verdict, and is never fed back (display only).
         basis = evidence_basis(claim, store, self_source_ids)
+        if e2_scored:
+            basis += " " + _E2_REASON
         refusal: VerbatimRefusal | None = None
         if verdict == Verdict.UNGROUNDED:
             refusal = verbatim_refusal(claim, _certifying_verbatim(
