@@ -1,0 +1,5 @@
+The billing service began returning errors on Monday at 35 minutes past the hour [S1]. The on-call engineer was paged within 6 minutes of the first alert [S1].
+
+| Claim |
+|---|
+| The checkout service retains records after the review [S1]. |
