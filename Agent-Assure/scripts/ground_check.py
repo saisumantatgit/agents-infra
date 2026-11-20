@@ -1868,7 +1868,7 @@ def _claim_contained_verbatim(
 
 
 def _contained_with_matching_polarity(
-    claim_tokens: list[str], source_text: str
+    claim_tokens: list[str], source_text: str, *, denial_only: bool = False
 ) -> bool:
     """True iff one sentence unit of *source_text* contains *claim_tokens*
     contiguously and passes _negation_polarity_matches. Pure."""
@@ -1878,6 +1878,10 @@ def _contained_with_matching_polarity(
         starts = [i for i in range(len(toks) - width + 1)
                   if toks[i:i + width] == claim_tokens]
         if not starts:
+            continue
+        if denial_only:
+            if any(_match_denied(unit, i, i + width, frozenset()) for i in starts):
+                return True
             continue
         # H1: a denial before the span or a back-referring denial after it.
         # R40: or a falsity statement after it in the same sentence, or a
@@ -4969,12 +4973,43 @@ def spelled_quantity_ok(
     # straddle them. Sentinel spaces make the containment test exact without a
     # second regex dialect ( _contains_word's lookarounds are for needles that
     # carry punctuation; these never do).
-    streams = [" " + " ".join(_tokenize(source.text)) + " " for source in sources]
+    streams = [set(_spelled_quantity_phrases(source.text)) for source in sources]
     for phrase in phrases:
-        needle = " " + phrase + " "
-        if not any(needle in stream for stream in streams):
+        if not any(phrase in stream for stream in streams):
             return False
     return True
+
+
+# Additional refusal only: preserve the existing numeric parser and T1 result.
+_COMPOSITE_FIGURE = _re.compile(
+    r"(?<![\w.])(?:\d{4}-\d{1,2}-\d{1,2}|\d{1,2}/\d{1,2}/\d{4}"
+    r"|\d{1,2}:\d{2}(?::\d{2})?|\d+(?:\.\d+)+"
+    r"|\d{1,3}(?: \d{3})+)(?!\w|\.\d)"
+)
+
+
+def _composite_figures_agree(claim_text: str, source_text: str) -> bool:
+    """Refuse altered composite figures and components borrowed from one."""
+    claim = _CITATION_RE.sub("", _nfkc(claim_text))
+    source = _nfkc(source_text)
+    claim_composites = [m.group() for m in _COMPOSITE_FIGURE.finditer(claim)]
+    source_composites = [m.group() for m in _COMPOSITE_FIGURE.finditer(source)]
+    if any(item not in source_composites for item in claim_composites):
+        return False
+    claim_digits = set(_re.findall(r"\d+", claim))
+    for item in source_composites:
+        if item not in claim_composites and claim_digits.intersection(_re.findall(r"\d+", item)):
+            return False
+    return True
+
+
+def _cited_denial(claim: Claim, sources: list[RetrievedSource]) -> bool:
+    """Apply both existing denial readings to matching claim spans in each source."""
+    tokens = _tokenize(_strip_citations(claim.text))
+    if not tokens:
+        return False
+    return any(_contained_with_matching_polarity(tokens, source.text, denial_only=True)
+               for source in sources)
 
 
 # ---------------------------------------------------------------------------
@@ -6350,6 +6385,20 @@ def ground(
     # sentence at PASS 100.0. Only an explicit "failed" is excluded: a record
     # with NO status (any store before 2026-10-10) grounds exactly as before.
     verbatim = _certifying_verbatim(sources, self_source_ids)
+    # A cited denial can only refuse; an unrelated or summary source cannot
+    # supply a denial. Capture order is JSONL/store insertion order, not the
+    # legacy fetched_at sentinel.
+    if _cited_denial(claim, verbatim):
+        return Verdict.UNGROUNDED
+    ordered = list(store.values())
+    latest = []
+    for source in verbatim:
+        index = next(i for i, entry in enumerate(ordered) if entry.source_id == source.source_id)
+        if not any((source.file_path and source.file_path == later.file_path)
+                   or (source.url and source.url == later.url)
+                   for later in ordered[index + 1:]):
+            latest.append(source)
+    verbatim = latest
     if not verbatim:
         # UNGROUNDABLE-SHORT-SOURCE (alpha walkthrough, 2026-11-15): when the
         # only verbatim sources were removed as the draft by INFERENCE (R26-04
@@ -6411,6 +6460,9 @@ def ground(
     # reachable from nothing at all.
     if not spelled_quantity_ok(claim, verbatim):
         return Verdict.UNVERIFIED_NUMBER
+
+    # Preserve all pre-existing checks; this only removes candidate sources.
+    verbatim = [s for s in verbatim if _composite_figures_agree(claim.text, s.text)]
 
     # T2 IS NO LONGER CONSULTED HERE (ADR-006, 2026-09-02). T1 alone certifies.
     #
