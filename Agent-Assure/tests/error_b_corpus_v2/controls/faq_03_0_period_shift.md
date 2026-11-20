@@ -1,0 +1,5 @@
+Nimbus Pay is available in 4 languages [S1]. Passwords are stored as salted hashes [S1].
+
+| Claim |
+|---|
+| The export page held 97 entries in 2022 [S1]. |

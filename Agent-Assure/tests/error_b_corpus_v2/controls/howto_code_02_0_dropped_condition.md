@@ -1,0 +1,3 @@
+This guide assumes `tar` is already installed [S1]. Open a terminal in the folder that holds your notes [S1].
+
+Only when the review is complete does the local server run. [S1]
