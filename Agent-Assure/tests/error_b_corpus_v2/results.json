@@ -2,11 +2,11 @@
  "summary": {
   "all": {
    "drafts": 269,
-   "escaped": 12,
-   "escaped_pct": 4.5,
-   "pass": 12,
-   "pass_pct": 4.5,
-   "NEEDS_WORK": 192,
+   "escaped": 0,
+   "escaped_pct": 0.0,
+   "pass": 0,
+   "pass_pct": 0.0,
+   "NEEDS_WORK": 204,
    "FAIL": 65,
    "control_pass": 138
   },
@@ -23,11 +23,11 @@
    },
    "denied_after": {
     "drafts": 15,
-    "escaped": 4,
-    "escaped_pct": 26.7,
-    "pass": 4,
-    "pass_pct": 26.7,
-    "NEEDS_WORK": 11,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 15,
     "FAIL": 0,
     "control_pass": 15
    },
@@ -53,21 +53,21 @@
    },
    "heading_from_source_words_reassembled": {
     "drafts": 15,
-    "escaped": 4,
-    "escaped_pct": 26.7,
-    "pass": 4,
-    "pass_pct": 26.7,
-    "NEEDS_WORK": 11,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 15,
     "FAIL": 0,
     "control_pass": 15
    },
    "heading_from_source_words_verbatim": {
     "drafts": 15,
-    "escaped": 4,
-    "escaped_pct": 26.7,
-    "pass": 4,
-    "pass_pct": 26.7,
-    "NEEDS_WORK": 11,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 15,
     "FAIL": 0,
     "control_pass": 15
    },
@@ -225,11 +225,11 @@
    },
    "product_docs": {
     "drafts": 61,
-    "escaped": 12,
-    "escaped_pct": 19.7,
-    "pass": 12,
-    "pass_pct": 19.7,
-    "NEEDS_WORK": 46,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 58,
     "FAIL": 3,
     "control_pass": 53
    },
@@ -367,11 +367,11 @@
    },
    "denied_after/form10": {
     "drafts": 1,
-    "escaped": 1,
-    "escaped_pct": 100.0,
-    "pass": 1,
-    "pass_pct": 100.0,
-    "NEEDS_WORK": 0,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
     "FAIL": 0,
     "control_pass": 1
    },
@@ -387,31 +387,31 @@
    },
    "denied_after/form12": {
     "drafts": 1,
-    "escaped": 1,
-    "escaped_pct": 100.0,
-    "pass": 1,
-    "pass_pct": 100.0,
-    "NEEDS_WORK": 0,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
     "FAIL": 0,
     "control_pass": 1
    },
    "denied_after/form13": {
     "drafts": 1,
-    "escaped": 1,
-    "escaped_pct": 100.0,
-    "pass": 1,
-    "pass_pct": 100.0,
-    "NEEDS_WORK": 0,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
     "FAIL": 0,
     "control_pass": 1
    },
    "denied_after/form14": {
     "drafts": 1,
-    "escaped": 1,
-    "escaped_pct": 100.0,
-    "pass": 1,
-    "pass_pct": 100.0,
-    "NEEDS_WORK": 0,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
     "FAIL": 0,
     "control_pass": 1
    },
@@ -677,11 +677,11 @@
    },
    "heading_from_source_words_reassembled/form10": {
     "drafts": 1,
-    "escaped": 1,
-    "escaped_pct": 100.0,
-    "pass": 1,
-    "pass_pct": 100.0,
-    "NEEDS_WORK": 0,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
     "FAIL": 0,
     "control_pass": 1
    },
@@ -697,31 +697,31 @@
    },
    "heading_from_source_words_reassembled/form12": {
     "drafts": 1,
-    "escaped": 1,
-    "escaped_pct": 100.0,
-    "pass": 1,
-    "pass_pct": 100.0,
-    "NEEDS_WORK": 0,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
     "FAIL": 0,
     "control_pass": 1
    },
    "heading_from_source_words_reassembled/form13": {
     "drafts": 1,
-    "escaped": 1,
-    "escaped_pct": 100.0,
-    "pass": 1,
-    "pass_pct": 100.0,
-    "NEEDS_WORK": 0,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
     "FAIL": 0,
     "control_pass": 1
    },
    "heading_from_source_words_reassembled/form14": {
     "drafts": 1,
-    "escaped": 1,
-    "escaped_pct": 100.0,
-    "pass": 1,
-    "pass_pct": 100.0,
-    "NEEDS_WORK": 0,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
     "FAIL": 0,
     "control_pass": 1
    },
@@ -827,11 +827,11 @@
    },
    "heading_from_source_words_verbatim/form10": {
     "drafts": 1,
-    "escaped": 1,
-    "escaped_pct": 100.0,
-    "pass": 1,
-    "pass_pct": 100.0,
-    "NEEDS_WORK": 0,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
     "FAIL": 0,
     "control_pass": 1
    },
@@ -847,31 +847,31 @@
    },
    "heading_from_source_words_verbatim/form12": {
     "drafts": 1,
-    "escaped": 1,
-    "escaped_pct": 100.0,
-    "pass": 1,
-    "pass_pct": 100.0,
-    "NEEDS_WORK": 0,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
     "FAIL": 0,
     "control_pass": 1
    },
    "heading_from_source_words_verbatim/form13": {
     "drafts": 1,
-    "escaped": 1,
-    "escaped_pct": 100.0,
-    "pass": 1,
-    "pass_pct": 100.0,
-    "NEEDS_WORK": 0,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
     "FAIL": 0,
     "control_pass": 1
    },
    "heading_from_source_words_verbatim/form14": {
     "drafts": 1,
-    "escaped": 1,
-    "escaped_pct": 100.0,
-    "pass": 1,
-    "pass_pct": 100.0,
-    "NEEDS_WORK": 0,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
     "FAIL": 0,
     "control_pass": 1
    },
@@ -5341,15 +5341,15 @@
    "genre": "product_docs",
    "class": "denied_after",
    "variant": "form10",
-   "gate": "PASS",
-   "score": 100.0,
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNGROUNDED"
    ],
    "fab_kinds": [
     "FACTUAL"
    ],
-   "escaped": true,
+   "escaped": false,
    "other_refused": 0,
    "control_gate": "PASS"
   },
@@ -5375,15 +5375,15 @@
    "genre": "product_docs",
    "class": "denied_after",
    "variant": "form12",
-   "gate": "PASS",
-   "score": 100.0,
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNGROUNDED"
    ],
    "fab_kinds": [
     "FACTUAL"
    ],
-   "escaped": true,
+   "escaped": false,
    "other_refused": 0,
    "control_gate": "PASS"
   },
@@ -5392,15 +5392,15 @@
    "genre": "product_docs",
    "class": "denied_after",
    "variant": "form13",
-   "gate": "PASS",
-   "score": 100.0,
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNGROUNDED"
    ],
    "fab_kinds": [
     "FACTUAL"
    ],
-   "escaped": true,
+   "escaped": false,
    "other_refused": 0,
    "control_gate": "PASS"
   },
@@ -5409,15 +5409,15 @@
    "genre": "product_docs",
    "class": "denied_after",
    "variant": "form14",
-   "gate": "PASS",
-   "score": 100.0,
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNGROUNDED"
    ],
    "fab_kinds": [
     "FACTUAL"
    ],
-   "escaped": true,
+   "escaped": false,
    "other_refused": 0,
    "control_gate": "PASS"
   },
@@ -5596,15 +5596,15 @@
    "genre": "product_docs",
    "class": "heading_from_source_words_verbatim",
    "variant": "form10",
-   "gate": "PASS",
-   "score": 100.0,
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNGROUNDED"
    ],
    "fab_kinds": [
     "FACTUAL"
    ],
-   "escaped": true,
+   "escaped": false,
    "other_refused": 0,
    "control_gate": "PASS"
   },
@@ -5630,15 +5630,15 @@
    "genre": "product_docs",
    "class": "heading_from_source_words_verbatim",
    "variant": "form12",
-   "gate": "PASS",
-   "score": 100.0,
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNGROUNDED"
    ],
    "fab_kinds": [
     "FACTUAL"
    ],
-   "escaped": true,
+   "escaped": false,
    "other_refused": 0,
    "control_gate": "PASS"
   },
@@ -5647,15 +5647,15 @@
    "genre": "product_docs",
    "class": "heading_from_source_words_verbatim",
    "variant": "form13",
-   "gate": "PASS",
-   "score": 100.0,
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNGROUNDED"
    ],
    "fab_kinds": [
     "FACTUAL"
    ],
-   "escaped": true,
+   "escaped": false,
    "other_refused": 0,
    "control_gate": "PASS"
   },
@@ -5664,15 +5664,15 @@
    "genre": "product_docs",
    "class": "heading_from_source_words_verbatim",
    "variant": "form14",
-   "gate": "PASS",
-   "score": 100.0,
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNGROUNDED"
    ],
    "fab_kinds": [
     "FACTUAL"
    ],
-   "escaped": true,
+   "escaped": false,
    "other_refused": 0,
    "control_gate": "PASS"
   },
@@ -5851,15 +5851,15 @@
    "genre": "product_docs",
    "class": "heading_from_source_words_reassembled",
    "variant": "form10",
-   "gate": "PASS",
-   "score": 100.0,
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNGROUNDED"
    ],
    "fab_kinds": [
     "FACTUAL"
    ],
-   "escaped": true,
+   "escaped": false,
    "other_refused": 0,
    "control_gate": "PASS"
   },
@@ -5885,15 +5885,15 @@
    "genre": "product_docs",
    "class": "heading_from_source_words_reassembled",
    "variant": "form12",
-   "gate": "PASS",
-   "score": 100.0,
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNGROUNDED"
    ],
    "fab_kinds": [
     "FACTUAL"
    ],
-   "escaped": true,
+   "escaped": false,
    "other_refused": 0,
    "control_gate": "PASS"
   },
@@ -5902,15 +5902,15 @@
    "genre": "product_docs",
    "class": "heading_from_source_words_reassembled",
    "variant": "form13",
-   "gate": "PASS",
-   "score": 100.0,
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNGROUNDED"
    ],
    "fab_kinds": [
     "FACTUAL"
    ],
-   "escaped": true,
+   "escaped": false,
    "other_refused": 0,
    "control_gate": "PASS"
   },
@@ -5919,15 +5919,15 @@
    "genre": "product_docs",
    "class": "heading_from_source_words_reassembled",
    "variant": "form14",
-   "gate": "PASS",
-   "score": 100.0,
+   "gate": "NEEDS_WORK",
+   "score": 66.7,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNGROUNDED"
    ],
    "fab_kinds": [
     "FACTUAL"
    ],
-   "escaped": true,
+   "escaped": false,
    "other_refused": 0,
    "control_gate": "PASS"
   }

@@ -155,6 +155,10 @@ def test_match_denied_ors_r40_onto_main_verdict() -> None:
             and first.func.id == "_unit_denied"
             and isinstance(first.args[0], ast.Attribute) and first.args[0].attr == "main"), (
         "the first operand of _match_denied must be main's verdict: _unit_denied(unit.main, ...)")
+    second = expr.values[1]
+    assert (isinstance(second, ast.Call) and isinstance(second.func, ast.Name)
+            and second.func.id == "_r40_match_denied"), (
+        "E1 must retain the complete R40 verdict as the second OR operand")
 
 
 def test_r40_reading_is_entered_only_through_match_denied() -> None:
