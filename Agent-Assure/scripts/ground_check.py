@@ -3789,6 +3789,90 @@ class _DenialUnit:
     main: _UnitContext
     r40: _UnitContext
     view: _ViewUnit | None
+    e1_context: bool
+
+
+_E1_UP_VERBS = frozenset({"make", "makes", "made", "making", "cook", "cooks", "cooked", "cooking",
+                          "dream", "dreams", "dreamed", "dreamt", "dreaming"})
+_E1_PARTICIPLES = frozenset({"made", "cooked", "dreamed", "dreamt"})
+
+
+def _e1_falsity(tokens: tuple[str, ...]) -> bool:
+    """Pronoun-subject or object phrasal falsity, solely for additive refusal.
+
+    CEILING: lexical, not coreference: an unrelated pronoun can refer to a
+    physical object (Error-A); unlisted verbs and intervening modifiers can
+    evade it (fail-open). Zero-width and soft-hyphen verb breaks, long relative
+    clauses, acquisition/deal objects, whipped/conjured/thought up, "the
+    following", distant later paragraphs, unlisted reporting frames and purpose
+    verbs, comma-following clauses, and passive "made up to deceive" remain
+    open. A parser and discourse model are the upgrade path.
+    """
+    words = [_confusable_fold(t) for t in tokens]
+    for i, word in enumerate(words):
+        if word not in _E1_UP_VERBS:
+            continue
+        if i + 1 < len(words) and words[i + 1] == "up":
+            # The active post-particle object must name discourse content.
+            rest = words[i + 2:i + 5]
+            object_words = rest[:]
+            if object_words and object_words[0] in {"the", "a", "an"}:
+                object_words = object_words[1:]
+            if object_words and object_words[0] == "whole":
+                object_words = object_words[1:]
+            if (rest and rest[0] != "of" and rest[:2] != ["the", "numbers"]
+                    and ((object_words and object_words[0] in _DISCOURSE_NOUNS)
+                         or rest[:3] == ["the", "whole", "thing"])):
+                return True
+            # Preserve constituting and "made up to ..." idioms.
+            for start in range(i) if not rest or (rest[0] != "of" and not (word == "made" and rest[0] == "to")) else ():
+                if start and words[start - 1] not in {"but", "and", "yet", "however", "frankly", "truth", "said", "say", "says", "reported"}:
+                    continue
+                for subject in (("that", "one"), ("this", "one"), ("that",), ("this",), ("it",), ("these",), ("those",),
+                                ("all", "of", "it"), ("the", "whole", "thing")):
+                    tail = words[start + len(subject):i]
+                    auxiliaries = {"is", "are", "was", "were", "be", "been", "being", "has", "have", "had", "will", "may", "might", "must", "could", "would", "should", "can", "got"}
+                    modifiers = {"all", "just", "then", "entirely", "completely", "simply", "really", "totally"}
+                    if (tuple(words[start:start + len(subject)]) == subject and tail
+                            and any(w in auxiliaries for w in tail)
+                            and all(w in auxiliaries | modifiers or w.endswith("ly") for w in tail)
+                            and word in _E1_PARTICIPLES):
+                        return True
+        # Active split object, with a terminal or bounded adjunct after 'up'.
+        for j in range(i + 2, min(i + 6, len(words))):
+            obj = words[i + 1:j]
+            valid = (tuple(obj) in {("it",), ("that",), ("this",), ("these",), ("those",),
+                                    ("it", "all"), ("all", "of", "it"), ("all", "that"),
+                                    ("everything",), ("stuff",), ("the", "whole", "thing")}
+                     or bool(set(obj) & _DISCOURSE_NOUNS))
+            after = words[j + 1:]
+            weekdays = {"monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"}
+            terminal = (not after or (after[0] == "by" and len(after) > 1)
+                        or (len(after) == 1 and (after[0].endswith("ly") or after[0] == "wholesale"))
+                        or after[:3] in (["out", "of", "thin"], ["out", "of", "whole"], ["out", "of", "nothing"])
+                        or after[:2] == ["as", "a"]
+                        or (len(after) >= 2 and after[0] == "to" and after[1] in {"sell", "deceive", "mislead", "trick", "fool"})
+                        or (len(after) == 1 and after[0] in {"again", "yesterday", "today", "tomorrow"})
+                        or (len(after) == 2 and (
+                            (after[0] == "in" and len(after[1]) == 4 and after[1].isdigit())
+                            or (after[0] == "on" and after[1] in weekdays)
+                            or (after[0] in {"last", "this", "next"}
+                                and after[1] in weekdays | {"week", "month", "year", "morning", "evening"}))))
+            if words[j] == "up" and valid and terminal:
+                return True
+    return False
+
+
+def _e1_contexts(source_text: str) -> list[bool]:
+    """New paragraph and adjacent-sentence flags; never alter R40's flags."""
+    sentences = _split_sentences(source_text)
+    spans = _sentence_spans(source_text, sentences)
+    paragraphs = _paragraph_ids(source_text, spans)
+    flags = [any(_e1_falsity(tuple(_tokenize(clause))) for clause in
+                 _re.split(r";|,\s*(?:but|and)\s+", s, flags=_re.IGNORECASE)) for s in sentences]
+    return [((i > 0 and flags[i - 1]) or (i + 1 < len(flags) and flags[i + 1])
+             or any(i != j and flags[j] and bool(paragraphs[i] & paragraphs[j])
+                    for j in range(len(flags)))) for i in range(len(flags))]
 
 
 def _denial_units(source_text: str) -> list[_DenialUnit]:
@@ -3800,7 +3884,8 @@ def _denial_units(source_text: str) -> list[_DenialUnit]:
     if len(main) != len(r40) or any(m.tokens != r.tokens for m, r in zip(main, r40)):
         raise RuntimeError("main and R40 denial readings split the source into different units")
     views = _view_unit_contexts(source_text, r40)
-    return [_DenialUnit(m, r, v) for m, r, v in zip(main, r40, views)]
+    e1 = _e1_contexts(source_text)
+    return [_DenialUnit(m, r, v, e1[m.sentence_index]) for m, r, v in zip(main, r40, views)]
 
 
 def _match_denied(unit: _DenialUnit, start: int, end: int, own: frozenset[str]) -> bool:
@@ -3809,7 +3894,11 @@ def _match_denied(unit: _DenialUnit, start: int, end: int, own: frozenset[str]) 
     (`_unit_denied` on `unit.main`), then the R40 reading OR'd
     (`_r40_match_denied`). So the branch refuses whenever main refuses, for
     every input, by construction (RED-TEAM-R42; D-69). Pure."""
-    return _unit_denied(unit.main, start) or _r40_match_denied(unit.r40, unit.view, start, end, own)
+    return (_unit_denied(unit.main, start)
+            or _r40_match_denied(unit.r40, unit.view, start, end, own)
+            or unit.e1_context
+            or _e1_falsity(unit.r40.prefix + unit.r40.tokens[:start])
+            or _e1_falsity(tuple(t for t in unit.r40.tokens[end:] + unit.r40.suffix if t not in own)))
 
 
 def _r40_match_denied(ctx: _UnitContext, view: _ViewUnit | None, start: int, end: int,
