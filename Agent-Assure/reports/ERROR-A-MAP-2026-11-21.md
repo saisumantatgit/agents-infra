@@ -1,8 +1,8 @@
 # Error-A map: where the honest refusals are, and which ruling unlocks each (OVN-1121, 2026-11-21)
 
-**Verdict: three rulings Sai has already been asked for would address up to 1,167 of the 1,946 honest claims the gate refuses (60%). No gate change is needed to find out which.**
+**Verdict: measured gains from the three candidate rulings total 706 of the 1,946 honest claims the gate refuses (36%). Only one of them, C2 "N percent" (+69, 0 attacks pass), is ready to ship. The largest, a sentence-boundary stop on the hedge window (+351), fails its own Error-B test and stays parked.**
 
-Measured on main `d8c2ec0`, Error-A corpus: 336 honest drafts, 3,990 authored claims, 2,044 grounded, 1,946 refused. The cause is each refused claim's first refused segment, as reported by `results.json`. These are counts of what the gate refuses today, not measured gains. A gain is known only after a candidate is run against the fabrication corpora, which is what each ruling's "measure first" step does.
+Measured on main `d8c2ec0`, Error-A corpus: 336 honest drafts, 3,990 authored claims, 2,044 grounded, 1,946 refused. This map was challenged by an Opus adversary and **corrected**: the headline, the hedge numbers and the C1u record were wrong in the first version, which is in git history (`3110525`). The adversary's gains were measured on scratch-patched copies of the gate; no repo file was edited.
 
 ## Terms
 
@@ -11,45 +11,48 @@ Measured on main `d8c2ec0`, Error-A corpus: 336 honest drafts, 3,990 authored cl
 | Error-A | An honest claim refused. Recoverable. |
 | Error-B | A fabrication certified PASS. Unrecoverable. |
 | Hedge window | The 5 source tokens before a verbatim match. A hedge word there (`not`, `no`, `never`, `per`, `claims`…) refuses the match (`_SPAN_HEDGE_LOOKBACK`, `ground_check.py:1665`). |
-| Pass-widening | Any change that lets a claim pass that main refuses. Escalation #1, so it needs Sai. |
+| Refused count vs gain | Refused is what the gate refuses today for that cause. Gain is what a candidate rule actually frees once every other rule has run. The two differ. |
 
-## The map
+## The map (refused counts reproduce exactly)
 
-| # | Cause (diagnostic) | Refused | Share | Ruling that addresses it | Status |
-|---|---|---:|---:|---|---|
-| 1 | Hedge word in the 5 tokens before the match (`verbatim_but_hedge_word_before_it`) | 658 | 34% | (c) stop the hedge window at a sentence boundary | Asked 2026-11-15, open |
-| 2 | List ordinal read as a figure ("1. Members open…" → UNVERIFIED_NUMBER) | 406 | 21% | C1u list numbers (2026-11-15 pack measured +292) | Asked; my recommendation was NO (it keys on capitalisation) |
-| 3 | Next sentence holds a denial word (`verbatim_but_next_sentence_denies`) | 174 | 9% | Narrow to a back-reference that resolves to the claim (the reviewer's estimate: about 91 of 174 if "that" after a reporting verb does not point back). A paragraph-break cut (19) is NOT safe: it certifies `<claim>.` followed by a new paragraph "Quay Trust denies this." | New tonight, Sai's |
-| 4 | Absence claim, search rule not met (UNVERIFIED_ABSENCE) | 120 | 6% | None proposed; by design (2-query rule) | — |
-| 5 | Spelled percent ("85 percent" → UNVERIFIED_NUMBER) | 103 | 5% | C2 "N percent" (pack measured +69, 0/11 attacks pass) | Asked; recommendation YES |
-| 6 | No cited verbatim source (UNCITED) | 99 | 5% | None; working as intended | — |
-| 7 | All other diagnostics (11 kinds) | 386 | 20% | Not mapped tonight | — |
+| # | Cause (first refused segment) | Refused | Share | Candidate | Measured gain | Error-B result |
+|---|---|---:|---:|---|---:|---|
+| 1 | Hedge word in the 5 tokens before the match | 658 | 34% | (c) stop the window at a sentence boundary | +351 | **Fails:** v1 certified fabrications 7→9; 5 of 15 probe shapes newly PASS |
+| 2 | List ordinal read as a figure | 406 | 21% | C1u list numbers | +286 | Pack 2026-11-15: ship with a CEILING; keys on capitalisation |
+| 3 | Next sentence holds a denial word | 174 | 9% | Back-reference rule (not designed) | not measured | A paragraph-break cut certifies `<claim>.` followed by a new paragraph "Quay Trust denies this." |
+| 4 | Absence search rule not met | 120 | 6% | none | — | by design |
+| 5 | Spelled percent | 103 | 5% | C2 "N percent" | +69 | **0 lost, no fabrication draft moves to PASS, 0 of 12 new attacks pass** (re-measured on `d8c2ec0`) |
+| 6 | UNCITED | 99 | 5% | none | — | working as intended |
+| 7 | 11 other diagnostics | 386 | 20% | not mapped | — | — |
 
-Up to 1,167 = 658 + 406 + 103. Row 3 is excluded, because its only measured cut has an attack.
+## Row 1: why the sentence-boundary stop is parked
 
-## Row 1 in detail: most hedge refusals look back across a full stop
+- **What it frees:** with the gate's own tokenizer, all 682 hedge-refused segments are located. 576 have the hedge word only in an earlier sentence. The stop actually frees 351 claims, because the next denial rules still catch the rest. My first version's "541, upper bound" came from my approximate tokenizer and is withdrawn.
+- **What it opens:**
+  - Two certified fabrications on v1, both via the open E1 "cooked up" hole (`C1-RULING-PACK-2026-11-21.md`).
+  - Five probe shapes that newly PASS:
+    - `The vendor says:` then a line break, then the claim;
+    - `A spokesman said:` then a blockquoted claim;
+    - `Larch Holdings denies the report. <claim>.`;
+    - two hypothetical framings.
 
-For each of the 682 hedge-refused segments, I found the claim in its source and located the last hedge word in the 5 words before it.
+  The attacks my first version named ("They claim X", "That is false: X", "Not so. X") stay refused, so they were the wrong examples.
+- **It is a restructure, not a patch:** `_span_is_hedged` receives a token list with the punctuation already stripped (`ground_check.py:7006-7010`). A sentence-boundary stop needs the boundary carried into that call.
+- **Next step, if Sai wants it:** after E1 is fixed, re-measure a stop that treats a colon and line break as continuing the clause. That closes the colon and blockquote probes, at a smaller gain.
 
-| Where the hedge word sits | Segments | Example |
-|---|---:|---|
-| In an earlier sentence (a `. ! ?` or line break lies between it and the claim) | 541 | "…is not documented here. Each project keeps its attachments for 28 days…" |
-| In the claim's own sentence | 37 | "no" inside the same sentence |
-| Not found by my tokenizer | 104 | mostly one-word answers ("Yes", "No") I could not place uniquely |
+## A third live fabrication found by the same review (E3)
 
-Most frequent hedge words in the earlier-sentence group: `not` 125, `no` 115, `never` 96, `per` 71, `without` 43, `false` 43, `unless` 24.
+`According to an anonymous forum post, Quay Trust was acquired by a larger rival last spring.` in the source, cited as the plain claim, **certifies PASS 100 on main**. The attribution is 6 tokens before the claim, one past the window. `According to a forum post, …` (5 tokens) is refused.
 
-This is the same pattern as the far-denial finding in `C1-RULING-PACK-2026-11-21.md`: a negation in a previous sentence is read as governing a claim it doesn't refer to. A hedge that genuinely governs a claim across a full stop also exists ("Critics disagree. They claim X." or "That is false: X"). That is why stopping at the boundary widens passes and needs the fabrication corpora (504 drafts across v1 and v2) run as the Error-B check before it ships.
+Reproduced first-hand with a passing plain control: 6 and 7 tokens PASS, 5 FAIL. This is the round-7 "hedge beyond the 5-token window" class, still open for sentence-initial `According to …,` frames. Fail-closed fix: refuse when an attribution frame opens the claim's own sentence, at any distance up to the clause comma. Brief: `docs/planning/briefs/OVN-1121-E3-attribution-beyond-window.md`.
 
-**Limit:** my tokenizer approximates the gate's own (regex words, NFKC). The 541 is an upper bound on what the ruling could free. The gate's own run on a candidate patch is the measurement.
+## Recommendations
 
-## Recommendation, in order of value per unit of risk
-
-1. **C2 "N percent": rule YES now (+69 measured).** Why: it was measured on 15 Nov, 0 of 11 attacks pass, and the code's own docstring already promises `25% == 25 percent`. What would flip it: an attack class the 11 do not cover, for example `85 percent` against a source `85 percentile`, which was tested and refused.
-2. **(c) hedge window at a sentence boundary: rule "measure it" now.** It's the largest single cause, at up to 541 segments. Codex builds the candidate after 26 Nov. It ships only if both fabrication corpora show no rise in any class and an Opus adversary round finds 0 blockers. What would flip it: the corpora showing even one new certified fabrication. The window then stays, and the upgrade path is a clause parser.
-3. **Next-sentence denial: no ruling asked yet.** The paragraph-break cut is withdrawn: an adversary showed `<claim>.` followed by a new paragraph "Quay Trust denies this." would certify. A back-reference rule needs designing first (see `C1-RULING-PACK-2026-11-21.md`).
-4. **C1u list ordinals:** I'm keeping my 15 Nov NO. The measured gain (+292) is large, but the candidate keyed on capitalisation, which this project has already lost to twice (round 4). A better candidate drops the ordinal on both sides, but only where the source line itself starts with the same ordinal. It needs designing, not a ruling.
+1. **C2 "N percent": rule YES (+69, 0 lost, 0/12 attacks).** Why: re-measured tonight on current main, independently of the 15 Nov pack, and the code's own `numeric_ok` docstring already promises `25% == 25 percent`. What would flip it: a number shape outside the 12 tested (count, percentile, percentage points, `%`, decimal shift, wrong value, rise vs fall, other subject, denied source).
+2. **(c) hedge-window stop: rule NO for now.** It frees 351 but opens Error-B as built. Revisit after E1 is fixed, as the colon-aware variant.
+3. **C1u list ordinals: the records disagree, so Sai should settle it.** The 15 Nov pack and register row D-116 record "ship with a CEILING". A logbook line records my NO. The measured gain is +286 (my first version said +292, which is C1's figure). I still lean NO, because the candidate keys on capitalisation, which this project has lost to before (round 4). A version that drops the ordinal only where the source line starts with the same ordinal avoids that and should be measured first.
+4. **Next-sentence denial:** no ruling asked. Design a back-reference rule first. The adversary estimates that treating "that" after a reporting verb as not pointing back would free about 91 of 183 claims, with its own attack to measure.
 
 ## Reproduce
 
-Read `tests/error_a_corpus/results.json`, `manifest.json` and `drafts/`. A refused claim is one with `grounded == false`. Its cause is its first non-GROUNDED segment's verdict and diagnostic. A claim counts as a list ordinal when its draft line starts `\d+[.)]` and the verdict is UNVERIFIED_NUMBER, and as a spelled percent when its text contains `percent` and the verdict is UNVERIFIED_NUMBER.
+Refused counts: in `tests/error_a_corpus/results.json`, a refused claim has `grounded == false`, and its cause is its first non-GROUNDED segment. A list ordinal is a claim whose draft line starts `\d+[.)]` and reads UNVERIFIED_NUMBER. A spelled percent is a claim containing `percent` that reads UNVERIFIED_NUMBER. Gains were measured by running each corpus through a scratch-patched copy of `ground_check.py`. The scripts lived in the run's scratch directory and were removed at teardown; the method is stated here.
