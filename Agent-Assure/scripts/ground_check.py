@@ -996,7 +996,13 @@ _BYTE_SUFFIX = r"(?:kilo|mega|giga|tera|peta|exa)?bytes?|[kmgtpe]i?b|(?-i:B)"
 # matches another space-grouped figure — see _SPACE_GROUPED_MARK). Upgrade
 # path: read grouping from the source's own convention (does it group
 # elsewhere?) rather than from one occurrence.
-_DIGIT_BODY = r"(?:\d{1,3}(?: \d{3})+(?:\.\d+)?(?![\d,]|\.\d)|\d[\d,.]*)"
+# The grouped form never touches a word or an identifier joiner on either side
+# ("A1 200", "GPT-4 200", "1 200A"): there `_identifier_span` would fold the
+# head digit into an identifier and the swallowed "200" would go unchecked —
+# a figure main DID check (adversary audit, D-146). Such text falls back to
+# main's reading.
+_DIGIT_BODY = (r"(?:(?<![\w\-.:/])\d{1,3}(?: \d{3})+(?:\.\d+)?(?![\w,]|\.\d)"
+               r"|\d[\d,.]*)")
 _NUMERIC_RE = _re.compile(
     r"\$?" + _DIGIT_BODY + r"\s?(?:(?:%|" + _BYTE_SUFFIX + r"|million|billion|bn|k|m)(?![A-Za-z]))?",
     _re.IGNORECASE,
@@ -4255,16 +4261,7 @@ def _claim_figures(text: str) -> tuple[str, ...]:
     NFKC-normalised and citation-stripped), in order. Pure."""
     out: list[str] = []
     seen_ids: set[tuple[int, int]] = set()
-    # R5 / N10: a slash/dash date is ONE figure, emitted once, whole.
-    dates = _date_spans(text)
-    seen_dates: set[tuple[int, int]] = set()
     for m in _NUMERIC_RE.finditer(text):
-        date = next((d for d in dates if d[0] <= m.start() < d[1]), None)
-        if date is not None:
-            if date not in seen_dates:
-                seen_dates.add(date)
-                out.append(text[date[0]:date[1]])
-            continue
         tok = m.group(0)
         digit_start = m.start() + (len(tok) - len(tok.lstrip("$")))
         span = None if tok.startswith("$") else _identifier_span(text, digit_start, m.end())
@@ -4983,11 +4980,6 @@ def _date_spans(text: str) -> tuple[tuple[int, int], ...]:
     return tuple(m.span() for m in _DATE_RE.finditer(text))
 
 
-def _is_date_token(token: str) -> bool:
-    """True iff *token* is exactly one slash/dash date. Pure."""
-    return _DATE_RE.fullmatch(token) is not None
-
-
 def _date_in_sources(token: str, sources: list[RetrievedSource]) -> bool:
     """True iff the date *token* is written identically, as a whole date, in
     at least one source (NFKC). Pure."""
@@ -5063,10 +5055,11 @@ def _figure_marks_agree(claim_quals: frozenset[str], bound: str | None,
 
 def _extract_numeric_mentions(
     text: str,
-) -> list[tuple[float, str, str | None, str | None, frozenset[str], str | None]]:
+) -> list[tuple[float, str, str | None, str | None, frozenset[str], str | None, bool]]:
     """Return all parseable (value, unit, rate, quantity, qualifiers,
-    fraction_digits) tuples in *text*. Digits inside a slash/dash date are not
-    figures (R5 / N10): a date is matched only whole, by _date_in_sources.
+    fraction_digits, in_date) tuples in *text*. `in_date` is True for a digit
+    group inside a slash/dash date (R5 / N10): numeric_ok lets it match only a
+    claim figure that is itself inside a date.
 
     NFKC-normalizes before scanning; the dimensional context (measured quantity
     + rate denominator) is read from the windows around each numeric mention:
@@ -5075,11 +5068,9 @@ def _extract_numeric_mentions(
     May contain duplicates. Pure function.
     """
     normalized = _nfkc(text)
-    out: list[tuple[float, str, str | None, str | None, frozenset[str], str | None]] = []
+    out: list[tuple[float, str, str | None, str | None, frozenset[str], str | None, bool]] = []
     dates = _date_spans(normalized)
     for m in _SOURCE_NUMERIC_RE.finditer(normalized):
-        if any(lo <= m.start() < hi for lo, hi in dates):
-            continue
         _tok = m.group(0)
         _ds = m.start() + (len(_tok) - len(_tok.lstrip("$")))
         if not _tok.startswith("$") and _identifier_span(normalized, _ds, m.end()) is not None:
@@ -5097,7 +5088,8 @@ def _extract_numeric_mentions(
             ) | _written_form_marks(
                 normalized[:digit_start], m.group(0), normalized[m.end():]
             )
-            out.append((value, unit, rate, quantity, quals, _fraction_digits(m.group(0))))
+            in_date = any(lo <= m.start() < hi for lo, hi in dates)
+            out.append((value, unit, rate, quantity, quals, _fraction_digits(m.group(0)), in_date))
     return out
 
 
@@ -5139,7 +5131,7 @@ def numeric_ok(claim: Claim, sources: list[RetrievedSource]) -> bool:
         return False
 
     # Pre-compute all source (value, unit, rate, quantity) mentions once.
-    source_mentions: list[tuple[float, str, str | None, str | None, frozenset[str], str | None]] = []
+    source_mentions: list[tuple[float, str, str | None, str | None, frozenset[str], str | None, bool]] = []
     for source in sources:
         source_mentions.extend(_extract_numeric_mentions(source.text))
 
@@ -5148,16 +5140,9 @@ def numeric_ok(claim: Claim, sources: list[RetrievedSource]) -> bool:
     # occurrences. A token not locatable in the text (e.g. a hand-built Claim)
     # carries no context — status-quo semantics, never a new false PASS.
     claim_text_normalized = _CITATION_RE.sub("", _nfkc(claim.text))
+    claim_dates = _date_spans(claim_text_normalized)
     search_from = 0
     for token in claim.numeric_tokens:
-        if _is_date_token(token):
-            # R5 / N10: a date is matched whole, as the same ordered string.
-            if not _date_in_sources(token, sources):
-                return False
-            pos = claim_text_normalized.find(token, search_from)
-            if pos != -1:
-                search_from = pos + len(token)
-            continue
         if _is_identifier_token(token):
             # B2: an identifier is matched EXACTLY (whole word), never by value.
             if not _identifier_in_sources(token, sources):
@@ -5181,6 +5166,9 @@ def numeric_ok(claim: Claim, sources: list[RetrievedSource]) -> bool:
         # R5: a token not locatable in the text still carries its own grouping.
         claim_quals = claim_quals | _written_form_marks("", token, "")
         claim_frac = _fraction_digits(token)
+        # R5 / N10: an unlocatable token is treated as NOT in a date, so it can
+        # never borrow a source date's digits (fail-closed).
+        claim_in_date = False
         pos = claim_text_normalized.find(token, search_from)
         if pos == -1:
             pos = claim_text_normalized.find(token)
@@ -5198,11 +5186,16 @@ def numeric_ok(claim: Claim, sources: list[RetrievedSource]) -> bool:
                 claim_text_normalized[token_end:],
             )
             claim_bound = _claim_bound_mark(claim_text_normalized[:digit_start])
+            claim_in_date = any(lo <= pos < hi for lo, hi in claim_dates)
             search_from = token_end
 
         matched = False
-        for s_val, s_unit, s_rate, s_quantity, s_quals, s_frac in source_mentions:
+        for s_val, s_unit, s_rate, s_quantity, s_quals, s_frac, s_in_date in source_mentions:
             if claim_val != s_val or claim_unit != s_unit:
+                continue
+            # R5 / N10: a digit group of a source DATE is not a standalone
+            # figure; only a claim figure inside a date may match it.
+            if s_in_date and not claim_in_date:
                 continue
             # R5 / N10: two figures both written with a decimal point must
             # carry the same fraction digits ("2.10" is not "2.1").
@@ -5222,6 +5215,15 @@ def numeric_ok(claim: Claim, sources: list[RetrievedSource]) -> bool:
             matched = True
             break
         if not matched:
+            return False
+
+    # R5 / N10, ADDITIONAL to every per-component check above (each digit group
+    # of a date has already been matched with its own qualifiers, unit and
+    # context, exactly as on main): a slash/dash date in the claim must also be
+    # written identically, as a whole date, in a source — so the components
+    # cannot be reordered ("04/03/2023" against "03/04/2023").
+    for lo, hi in claim_dates:
+        if not _date_in_sources(claim_text_normalized[lo:hi], sources):
             return False
 
     return True
@@ -5317,6 +5319,28 @@ _SPELLED_NUMBER_WORDS: frozenset[str] = frozenset({
 _SPELLED_RUN_CONNECTORS: frozenset[str] = frozenset({"and", "to", "or", "point"})
 
 
+def _spelled_runs(tokens: list[str]) -> tuple[str, ...]:
+    """Maximal runs of spelled number words in a token stream (connector rule
+    as in _spelled_quantity_phrases). Any other token — including the "s3" of
+    a citation marker left in a SOURCE — ends a run. Pure."""
+    phrases: list[str] = []
+    run: list[str] = []
+    for i, tok in enumerate(tokens):
+        if tok in _SPELLED_NUMBER_WORDS:
+            run.append(tok)
+            continue
+        if (run and tok in _SPELLED_RUN_CONNECTORS and i + 1 < len(tokens)
+                and tokens[i + 1] in _SPELLED_NUMBER_WORDS):
+            run.append(tok)
+            continue
+        if run:
+            phrases.append(" ".join(run))
+            run = []
+    if run:
+        phrases.append(" ".join(run))
+    return tuple(phrases)
+
+
 def _spelled_quantity_phrases(text: str) -> tuple[str, ...]:
     """Return the maximal runs of spelled number words in *text*, in order.
 
@@ -5336,23 +5360,7 @@ def _spelled_quantity_phrases(text: str) -> tuple[str, ...]:
 
     Pure function — no mutation, no LLM/network/random/wall-clock.
     """
-    tokens = _tokenize(_strip_citations(text))
-    phrases: list[str] = []
-    run: list[str] = []
-    for i, tok in enumerate(tokens):
-        if tok in _SPELLED_NUMBER_WORDS:
-            run.append(tok)
-            continue
-        if (run and tok in _SPELLED_RUN_CONNECTORS and i + 1 < len(tokens)
-                and tokens[i + 1] in _SPELLED_NUMBER_WORDS):
-            run.append(tok)
-            continue
-        if run:
-            phrases.append(" ".join(run))
-            run = []
-    if run:
-        phrases.append(" ".join(run))
-    return tuple(phrases)
+    return _spelled_runs(_tokenize(_strip_citations(text)))
 
 
 def spelled_quantity_ok(
@@ -5387,12 +5395,21 @@ def spelled_quantity_ok(
     if not sources:
         return False
 
-    # R5 / N7: run to run, never phrase-in-stream. Both sides go through the
-    # same `_spelled_quantity_phrases`, so the claim's phrase must EQUAL one
-    # whole run of a single source: "two" is not a run of "two hundred".
-    source_runs = [frozenset(_spelled_quantity_phrases(source.text)) for source in sources]
+    # Main's check, kept: the phrase must occur contiguously, on word
+    # boundaries, in the token stream of a single source.
+    streams = [_tokenize(source.text) for source in sources]
+    joined = [" " + " ".join(stream) + " " for stream in streams]
+    # R5 / N7, ADDITIONAL: the phrase must also EQUAL one whole run of that
+    # same source: "two" is not a run of "two hundred". Source runs are built
+    # from the UNSTRIPPED stream, so a citation marker inside a source ("two
+    # [S3] hundred") breaks the run instead of joining its halves.
+    # CEILING: a spelled bound ("up to fifty") is refused against a spelled
+    # range ("forty to fifty"), while the digit form grounds (Error-A,
+    # recoverable). Upgrade path: carry the range ends of a spelled run.
+    runs = [frozenset(_spelled_runs(stream)) for stream in streams]
     for phrase in phrases:
-        if not any(phrase in runs for runs in source_runs):
+        needle = " " + phrase + " "
+        if not any(needle in j and phrase in r for j, r in zip(joined, runs)):
             return False
     return True
 

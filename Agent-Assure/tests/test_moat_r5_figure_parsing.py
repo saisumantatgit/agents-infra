@@ -130,6 +130,33 @@ ATTACKS = [
     pytest.param(*_pair("published version 2.10 during the annual review, 1 week late",
                         "published version 2.1 during the annual review"),
                  id="N10-version-tokens-present"),
+    # Adversary D-146, BLOCKER 1 — on b4d3905 the date branch exact-matched the
+    # date string and skipped main's per-component qualifier/unit checks, so a
+    # sign, comparator, percent or per-mille on a date certified PASS. The date
+    # check must be ADDITIONAL to those checks, never a replacement.
+    pytest.param(*_pair("adopted the 3/2/1 bonus schedule for pilots", "adopted the 3/2/1% bonus schedule for pilots"),
+                 id="B1-date-trailing-percent"),
+    pytest.param(*_pair("adopted the 3-2-1 bonus schedule for pilots", "adopted the 3-2-1% bonus schedule for pilots"),
+                 id="B1-dash-date-trailing-percent"),
+    pytest.param(*_pair("adopted the 10/20/30 rule for pilots", "adopted the 10/20/30 million rule for pilots"),
+                 id="B1-date-magnitude"),
+    pytest.param(*_pair("enrolled pilots on 03/04/2023 in the annual training program",
+                        "enrolled pilots on +03/04/2023 in the annual training program"), id="B1-date-plus"),
+    pytest.param(*_pair("enrolled pilots on 03/04/2023 in the annual training program",
+                        "enrolled pilots on ~03/04/2023 in the annual training program"), id="B1-date-tilde"),
+    pytest.param(*_pair("recorded a 10/12/15 split in the annual training program",
+                        "recorded a >10/12/15 split in the annual training program"), id="B1-date-greater"),
+    pytest.param(*_pair("recorded a 10-12-15 split in the annual training program",
+                        "recorded a \u221210-12-15 split in the annual training program"), id="B1-date-unicode-minus"),
+    pytest.param(*_pair("recorded a 10/12/15 split in the annual training program",
+                        "recorded a 10/12/15\u2030 split in the annual training program"), id="B1-date-per-mille"),
+    # Adversary D-146, BLOCKER 2 — on b4d3905 source runs were built from the
+    # citation-STRIPPED text, so "two [S3] hundred" joined into "two hundred".
+    pytest.param(*_pair(f"enrolled two [S3] hundred {TRAINING}", f"enrolled two hundred {TRAINING}"),
+                 id="B2-citation-joins-spelled-run"),
+    pytest.param(*_pair("enrolled twenty [S2] five-year veterans in the annual training program",
+                        "enrolled twenty-five veterans in the annual training program"),
+                 id="B2-citation-joins-twenty-five"),
 ]
 
 
@@ -230,6 +257,12 @@ FIGURE_LAYER = [
     # are real values (the v3 r46_n11 honest control). Main's behaviour, kept.
     pytest.param("enrollment rose by 300 to 1,000.", "enrollment rose by 300", True, id="change-by-is-not-a-range"),
     pytest.param("costs fell from $50 to $40.", "costs fell to $40", True, id="change-from-is-not-a-range"),
+    # Adversary audit (D-146): the grouped form must never swallow a figure
+    # next to an identifier — "A1 200" read as the identifier "A1" alone, so
+    # the "200" main checked went unchecked.
+    pytest.param("trained the A1 cohort of 30 pilots.", "trained the A1 200 pilots", False, id="identifier-head-swallow"),
+    pytest.param("trained the GPT-4 cohort of 30 pilots.", "trained GPT-4 200 pilots", False, id="joiner-identifier-swallow"),
+    pytest.param("trained 1 pilot on the 300A line.", "trained 1 200A pilots", False, id="identifier-tail-swallow"),
 ]
 
 
