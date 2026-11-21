@@ -1,0 +1,219 @@
+== h01_kv
+  main: FAIL 0.0 '- Headquarters: London [S1]\n- Revenue: 1':UNGROUNDED
+  c1  : FAIL 0.0 '- Headquarters: London [S1]\n- Revenue: 1':UNGROUNDED
+== h02_founded
+  main: FAIL 0.0 '- Founded in 1998 [S1]\n- Employs 40 peop':UNGROUNDED
+  c1  : FAIL 0.0 '- Founded in 1998 [S1]\n- Employs 40 peop':UNGROUNDED
+== h03_leadin
+  main: FAIL 0.0 'The source gives these figures for Fento':UNCITED | '- 12 million dollars in revenue in 2023 ':UNVERIFIED_NUMBER
+  c1  : FAIL 0.0 'The source gives these figures for Fento':UNCITED | '- 12 million dollars in revenue in 2023 ':UNVERIFIED_NUMBER
+== h04_names  <<DIFF
+  main: PASS 100.0 '- Fenton Ltd [S1]':GROUNDED
+  c1  : FAIL 0.0 '- Fenton Ltd [S1]':UNGROUNDED
+== p00_f3  <<DIFF
+  main: PASS 100.0 '- Alder Haulage [S1]':GROUNDED
+  c1  : FAIL 0.0 '- Alder Haulage [S1]':UNGROUNDED
+== p01_interpose_sent  <<DIFF
+  main: PASS 100.0 'Alder Haulage delivers cargo [S1].':GROUNDED | '- Alder Haulage [S1]':GROUNDED
+  c1  : FAIL 50.0 'Alder Haulage delivers cargo [S1].':GROUNDED | '- Alder Haulage [S1]':UNGROUNDED
+== p02_interpose_hr  <<DIFF
+  main: PASS 100.0 '- Alder Haulage [S1]':GROUNDED
+  c1  : FAIL 0.0 '- Alder Haulage [S1]':UNGROUNDED
+== p03_interpose_comment  <<DIFF
+  main: PASS 100.0 '- Alder Haulage [S1]':GROUNDED
+  c1  : FAIL 0.0 '- Alder Haulage [S1]':UNGROUNDED
+== p04_subheading  <<DIFF
+  main: PASS 100.0 '- Alder Haulage [S1]':GROUNDED
+  c1  : FAIL 0.0 '- Alder Haulage [S1]':UNGROUNDED
+== p05_setext  <<DIFF
+  main: FAIL 50.0 'Criminals\n=========':UNCITED | '- Alder Haulage [S1]':GROUNDED
+  c1  : FAIL 0.0 'Criminals\n=========':UNCITED | '- Alder Haulage [S1]':UNGROUNDED
+== p06_aux_comment  <<DIFF
+  main: PASS 100.0 '- Alder Haulage   [S1]':GROUNDED
+  c1  : FAIL 0.0 '- Alder Haulage   [S1]':UNGROUNDED
+== p07_inner_ed
+  main: FAIL 0.0 '- Alder Haulage (listed) Ltd [S1]':UNGROUNDED
+  c1  : FAIL 0.0 '- Alder Haulage (listed) Ltd [S1]':UNGROUNDED
+== p08_convicted
+  main: FAIL 0.0 '- Alder Haulage, convicted [S1]':UNGROUNDED
+  c1  : FAIL 0.0 '- Alder Haulage, convicted [S1]':UNGROUNDED
+== p09_fake_table_tail
+  main: FAIL 0.0 '| x |\n|---|\n- Alder Haulage [S1] |':UNGROUNDED
+  c1  : FAIL 0.0 '| x |\n|---|\n- Alder Haulage [S1] |':UNGROUNDED
+== p10_table_substring  <<DIFF
+  main: FAIL 50.0 '- Alder Haulage [S1]':GROUNDED | '| Index |\n|---|\n| - Alder Haulage [S1] |':UNGROUNDED
+  c1  : FAIL 0.0 '- Alder Haulage [S1]':UNGROUNDED | '| Index |\n|---|\n| - Alder Haulage [S1] |':UNGROUNDED
+== p11_real_table
+  main: FAIL 0.0 '| Firm |\n|---|\n| Alder Haulage [S1] |':UNGROUNDED
+  c1  : FAIL 0.0 '| Firm |\n|---|\n| Alder Haulage [S1] |':UNGROUNDED
+== p12_dot  <<DIFF
+  main: PASS 100.0 '- Alder Haulage [S1]':GROUNDED
+  c1  : FAIL 0.0 '- Alder Haulage [S1]':UNGROUNDED
+== p13_nbsp  <<DIFF
+  main: FAIL 50.0 '&nbsp [S1]':UNGROUNDED | '- Alder Haulage [S1]':GROUNDED
+  c1  : FAIL 0.0 '&nbsp [S1]':UNGROUNDED | '- Alder Haulage [S1]':UNGROUNDED
+== p14_aux_word
+  main: FAIL 0.0 '- Alder Haulage, is [S1]':UNGROUNDED
+  c1  : FAIL 0.0 '- Alder Haulage, is [S1]':UNGROUNDED
+== p15_aux_has
+  main: FAIL 0.0 '- Alder Haulage (has) [S1]':UNGROUNDED
+  c1  : FAIL 0.0 '- Alder Haulage (has) [S1]':UNGROUNDED
+== p16_numbered
+  main: FAIL 0.0 '1. Alder Haulage [S1]':UNVERIFIED_NUMBER
+  c1  : FAIL 0.0 '1. Alder Haulage [S1]':UNVERIFIED_NUMBER
+== p17_star  <<DIFF
+  main: PASS 100.0 '* Alder Haulage [S1]':GROUNDED
+  c1  : FAIL 0.0 '* Alder Haulage [S1]':UNGROUNDED
+== p18_plus  <<DIFF
+  main: PASS 100.0 '+ Alder Haulage [S1]':GROUNDED
+  c1  : FAIL 0.0 '+ Alder Haulage [S1]':UNGROUNDED
+== p19_paren
+  main: FAIL 0.0 '1) Alder Haulage [S1]':UNVERIFIED_NUMBER
+  c1  : FAIL 0.0 '1) Alder Haulage [S1]':UNVERIFIED_NUMBER
+== p20_leadin_dash  <<DIFF
+  main: FAIL 50.0 'The council fined the following firms fo':UNCITED | '- Alder Haulage [S1]':GROUNDED
+  c1  : FAIL 0.0 'The council fined the following firms fo':UNCITED | '- Alder Haulage [S1]':UNGROUNDED
+== p21_s1s2
+  main: FAIL 0.0 '- Alder Haulage [S1][S2]':UNVERIFIED_CITATION
+  c1  : FAIL 0.0 '- Alder Haulage [S1][S2]':UNVERIFIED_CITATION
+== p22_stars  <<DIFF
+  main: PASS 100.0 '- Alder Haulage [S1]':GROUNDED
+  c1  : FAIL 0.0 '- Alder Haulage [S1]':UNGROUNDED
+== p23_underscores  <<DIFF
+  main: PASS 100.0 '- Alder Haulage [S1]':GROUNDED
+  c1  : FAIL 0.0 '- Alder Haulage [S1]':UNGROUNDED
+== p24_br  <<DIFF
+  main: FAIL 50.0 '<br>':UNCITED | '- Alder Haulage [S1]':GROUNDED
+  c1  : FAIL 0.0 '<br>':UNCITED | '- Alder Haulage [S1]':UNGROUNDED
+== p25_zwsp  <<DIFF
+  main: PASS 100.0 '- Alder Haulage [S1]':GROUNDED
+  c1  : FAIL 0.0 '- Alder Haulage [S1]':UNGROUNDED
+== p26_ellipsis  <<DIFF
+  main: PASS 100.0 '- Alder Haulage [S1]':GROUNDED
+  c1  : FAIL 0.0 '- Alder Haulage [S1]':UNGROUNDED
+== p27_subhead_src  <<DIFF
+  main: PASS 100.0 '- Alder Haulage [S1]':GROUNDED
+  c1  : FAIL 0.0 '- Alder Haulage [S1]':UNGROUNDED
+== p28_f8_dot  <<DIFF
+  main: PASS 100.0 '- Alder Haulage [S1]':GROUNDED | '12 million dollars [S1]':GROUNDED
+  c1  : FAIL 0.0 '- Alder Haulage [S1]':UNGROUNDED | '12 million dollars [S1]':UNGROUNDED
+== p29_f8_orig  <<DIFF
+  main: PASS 100.0 '- Alder Haulage [S1]':GROUNDED | '12 million dollars [S1]':GROUNDED
+  c1  : FAIL 0.0 '- Alder Haulage [S1]':UNGROUNDED | '12 million dollars [S1]':UNGROUNDED
+== p30_f7_dot  <<DIFF
+  main: PASS 100.0 'The Alder council fined the following fi':GROUNDED | '- Alder Haulage [S1]':GROUNDED
+  c1  : FAIL 50.0 'The Alder council fined the following fi':GROUNDED | '- Alder Haulage [S1]':UNGROUNDED
+== p31_f7_orig  <<DIFF
+  main: PASS 100.0 'The Alder council fined the following fi':GROUNDED | '- Alder Haulage [S1]':GROUNDED
+  c1  : FAIL 50.0 'The Alder council fined the following fi':GROUNDED | '- Alder Haulage [S1]':UNGROUNDED
+== p32_dash_item  <<DIFF
+  main: PASS 100.0 '-\n- Alder Haulage [S1]':GROUNDED
+  c1  : FAIL 0.0 '-\n- Alder Haulage [S1]':UNGROUNDED
+== p33_hr_inlist
+  main: FAIL 0.0 '- Alder Haulage [S1]\n- - -\n- Fenton [S1]':UNGROUNDED
+  c1  : FAIL 0.0 '- Alder Haulage [S1]\n- - -\n- Fenton [S1]':UNGROUNDED
+== p34_f8_hr  <<DIFF
+  main: PASS 100.0 '- Alder Haulage [S1]':GROUNDED | '12 million dollars [S1]':GROUNDED
+  c1  : FAIL 0.0 '- Alder Haulage [S1]':UNGROUNDED | '12 million dollars [S1]':UNGROUNDED
+== p35_cited_dot  <<DIFF
+  main: FAIL 50.0 '. [S1]':UNGROUNDED | '- Alder Haulage [S1]':GROUNDED
+  c1  : FAIL 0.0 '. [S1]':UNGROUNDED | '- Alder Haulage [S1]':UNGROUNDED
+== p36_f8_full  <<DIFF
+  main: PASS 100.0 '- Alder Haulage [S1]':GROUNDED | '12 million dollars [S1]':GROUNDED
+  c1  : FAIL 0.0 '- Alder Haulage [S1]':UNGROUNDED | '12 million dollars [S1]':UNGROUNDED
+== p37_f3_multi
+  main: FAIL 0.0 '- Alder Haulage [S1]\n- Alder Storage [S1':UNGROUNDED
+  c1  : FAIL 0.0 '- Alder Haulage [S1]\n- Alder Storage [S1':UNGROUNDED
+== p38_f8_star  <<DIFF
+  main: PASS 100.0 '- Alder Haulage [S1]':GROUNDED | '12 million dollars [S1]':GROUNDED
+  c1  : FAIL 0.0 '- Alder Haulage [S1]':UNGROUNDED | '12 million dollars [S1]':UNGROUNDED
+== p39_tbl2col
+  main: FAIL 0.0 '| Firm | Activity |\n|---|---|\n| Alder Ha':UNGROUNDED
+  c1  : FAIL 0.0 '| Firm | Activity |\n|---|---|\n| Alder Ha':UNGROUNDED
+== p40_tbl_sentence
+  main: FAIL 0.0 '| Note |\n|---|\n| Alder Haulage delivers ':UNGROUNDED
+  c1  : FAIL 0.0 '| Note |\n|---|\n| Alder Haulage delivers ':UNGROUNDED
+== p41_tbl_substr  <<DIFF
+  main: NEEDS_WORK 66.7 '- Alder Haulage [S1]':GROUNDED | '| Note |\n|---|\n| Alder Haulage delivers ':UNCITED | '- Alder Haulage [S1] |':GROUNDED
+  c1  : FAIL 33.3 '- Alder Haulage [S1]':UNGROUNDED | '| Note |\n|---|\n| Alder Haulage delivers ':UNCITED | '- Alder Haulage [S1] |':GROUNDED
+== p42_tbl_substr2  <<DIFF
+  main: FAIL 50.0 '- Alder Haulage [S1]':GROUNDED | '| Firm | Activity |\n|---|---|\n| - Alder ':UNGROUNDED
+  c1  : FAIL 0.0 '- Alder Haulage [S1]':UNGROUNDED | '| Firm | Activity |\n|---|---|\n| - Alder ':UNGROUNDED
+== p43_tbl_question  <<DIFF
+  main: FAIL 50.0 '- Alder Haulage [S1]':GROUNDED | '| Who is - Alder Haulage [S1]?':UNGROUNDED
+  c1  : FAIL 0.0 '- Alder Haulage [S1]':UNGROUNDED | '| Who is - Alder Haulage [S1]?':UNGROUNDED
+== p44_tbl_and  <<DIFF
+  main: FAIL 50.0 '- Alder Haulage [S1]':GROUNDED | '| Firm | Note |\n|---|---|\n| X | Alder Ha':UNGROUNDED
+  c1  : FAIL 0.0 '- Alder Haulage [S1]':UNGROUNDED | '| Firm | Note |\n|---|---|\n| X | Alder Ha':UNGROUNDED
+== p45_tbl_cited_src  <<DIFF
+  main: FAIL 50.0 '- Alder Haulage [S1]':GROUNDED | '| Firm |\n|---|\n| - Alder Haulage [S1] |':UNGROUNDED
+  c1  : FAIL 0.0 '- Alder Haulage [S1]':UNGROUNDED | '| Firm |\n|---|\n| - Alder Haulage [S1] |':UNGROUNDED
+== p46_t02
+  main: FAIL 0.0 '| Index type | Best suited for | Support':UNCITED | 'range comparisons [S1] | Yes |\n| Hash | ':UNGROUNDED
+  c1  : FAIL 0.0 '| Index type | Best suited for | Support':UNCITED | 'range comparisons [S1] | Yes |\n| Hash | ':UNGROUNDED
+== p47_t02_attack
+  main: FAIL 0.0 '- Hash | Simple equality comparisons [S1':UNGROUNDED | '| Index type | Best suited for | Support':UNCITED | 'range comparisons [S1] | Yes |\n| Hash | ':UNGROUNDED
+  c1  : FAIL 0.0 '- Hash | Simple equality comparisons [S1':UNGROUNDED | '| Index type | Best suited for | Support':UNCITED | 'range comparisons [S1] | Yes |\n| Hash | ':UNGROUNDED
+== p48_tbl_in_comment  <<DIFF
+  main: FAIL 50.0 '- Alder Haulage [S1]':GROUNDED | '<!--\n| x |\n|---|\n| - Alder Haulage   |\n-':UNCITED
+  c1  : FAIL 0.0 '- Alder Haulage [S1]':UNGROUNDED | '<!--\n| x |\n|---|\n| - Alder Haulage   |\n-':UNCITED
+== p49_tbl_in_fence  <<DIFF
+  main: FAIL 50.0 '- Alder Haulage [S1]':GROUNDED | '```\n| x |\n|---|\n| - Alder Haulage [S1] |':UNGROUNDED
+  c1  : FAIL 0.0 '- Alder Haulage [S1]':UNGROUNDED | '```\n| x |\n|---|\n| - Alder Haulage [S1] |':UNGROUNDED
+== p50_f8_comment_tbl  <<DIFF
+  main: NEEDS_WORK 66.7 '- Alder Haulage [S1]':GROUNDED | '12 million dollars [S1]':GROUNDED | '<!--\n| x |\n|---|\n| - Alder Haulage   12 ':UNCITED
+  c1  : FAIL 0.0 '- Alder Haulage [S1]':UNGROUNDED | '12 million dollars [S1]':UNGROUNDED | '<!--\n| x |\n|---|\n| - Alder Haulage   12 ':UNCITED
+== p51_f7_comment_tbl
+  main: FAIL 50.0 'The Alder council fined the following fi':GROUNDED | '- Alder Haulage [S1]\n<!-- |a|\n|-|\n|- Ald':UNGROUNDED
+  c1  : FAIL 50.0 'The Alder council fined the following fi':GROUNDED | '- Alder Haulage [S1]\n<!-- |a|\n|-|\n|- Ald':UNGROUNDED
+== p52_tbl_srcwords  <<DIFF
+  main: FAIL 50.0 '- Alder Haulage [S1]':GROUNDED | '| Alder Haulage |\n|---|\n| - Alder Haulag':UNGROUNDED
+  c1  : FAIL 0.0 '- Alder Haulage [S1]':UNGROUNDED | '| Alder Haulage |\n|---|\n| - Alder Haulag':UNGROUNDED
+== p53_tbl_srcwords2  <<DIFF
+  main: FAIL 50.0 '- Alder Haulage [S1]':GROUNDED | '| Alder |\n| --- |\n| Alder Haulage delive':UNGROUNDED
+  c1  : FAIL 0.0 '- Alder Haulage [S1]':UNGROUNDED | '| Alder |\n| --- |\n| Alder Haulage delive':UNGROUNDED
+== p54_tbl_nonclaim  <<DIFF
+  main: FAIL 33.3 '- Alder Haulage [S1]':GROUNDED | '| Maybe?':UNCITED | '|\n|---|\n| perhaps - Alder Haulage [S1]?':UNGROUNDED
+  c1  : FAIL 0.0 '- Alder Haulage [S1]':UNGROUNDED | '| Maybe?':UNCITED | '|\n|---|\n| perhaps - Alder Haulage [S1]?':UNGROUNDED
+== p55_nested_dot
+  main: FAIL 0.0 '- Criminals:\n  - Alder Haulage [S1]':UNGROUNDED
+  c1  : FAIL 0.0 '- Criminals:\n  - Alder Haulage [S1]':UNGROUNDED
+== p56_nested_heading_plain
+  main: FAIL 0.0 '- Criminals:\n  - Alder Haulage [S1]':UNGROUNDED
+  c1  : FAIL 0.0 '- Criminals:\n  - Alder Haulage [S1]':UNGROUNDED
+== p57_may
+  main: FAIL 0.0 '- Alder Haulage (may) [S1]':UNGROUNDED
+  c1  : FAIL 0.0 '- Alder Haulage (may) [S1]':UNGROUNDED
+== p58_delivers  <<DIFF
+  main: PASS 100.0 '- Alder Haulage delivers [S1]':GROUNDED
+  c1  : FAIL 0.0 '- Alder Haulage delivers [S1]':UNGROUNDED
+== p59_bold_leadin  <<DIFF
+  main: FAIL 50.0 '**Criminals:**':UNCITED | '- Alder Haulage [S1]':GROUNDED
+  c1  : FAIL 0.0 '**Criminals:**':UNCITED | '- Alder Haulage [S1]':UNGROUNDED
+== p60_heading_cited  <<DIFF
+  main: FAIL 50.0 '## Criminals [S1]':UNGROUNDED | '- Alder Haulage [S1]':GROUNDED
+  c1  : FAIL 0.0 '## Criminals [S1]':UNGROUNDED | '- Alder Haulage [S1]':UNGROUNDED
+== p61_heading_src_word  <<DIFF
+  main: PASS 100.0 '- Alder Haulage [S1]':GROUNDED
+  c1  : FAIL 0.0 '- Alder Haulage [S1]':UNGROUNDED
+== p62_continuation_blank_nonindent  <<DIFF
+  main: PASS 100.0 '- Alder Haulage delivers cargo [S1]':GROUNDED | 'Alder Haulage [S1]':GROUNDED
+  c1  : FAIL 50.0 '- Alder Haulage delivers cargo [S1]':GROUNDED | 'Alder Haulage [S1]':UNGROUNDED
+== p63_item_then_heading_then_frag  <<DIFF
+  main: FAIL 50.0 '- Alder Haulage delivers cargo [S1]\n## C':UNGROUNDED | 'Alder Haulage [S1]':GROUNDED
+  c1  : FAIL 0.0 '- Alder Haulage delivers cargo [S1]\n## C':UNGROUNDED | 'Alder Haulage [S1]':UNGROUNDED
+== p64_asfollows  <<DIFF
+  main: FAIL 50.0 'As follows:':UNCITED | '- Alder Haulage [S1]':GROUNDED
+  c1  : FAIL 0.0 'As follows:':UNCITED | '- Alder Haulage [S1]':UNGROUNDED
+== p65_theyare  <<DIFF
+  main: PASS 100.0 '- Alder Haulage [S1]':GROUNDED
+  c1  : FAIL 0.0 '- Alder Haulage [S1]':UNGROUNDED
+== p66_emoji  <<DIFF
+  main: PASS 100.0 '- Alder Haulage [S1]':GROUNDED
+  c1  : FAIL 0.0 '- Alder Haulage [S1]':UNGROUNDED
+== p67_dash_line  <<DIFF
+  main: PASS 100.0 '- Alder Haulage [S1]':GROUNDED
+  c1  : FAIL 0.0 '- Alder Haulage [S1]':UNGROUNDED
+== p68_image  <<DIFF
+  main: FAIL 50.0 '![](x.png)':UNCITED | '- Alder Haulage [S1]':GROUNDED
+  c1  : FAIL 0.0 '![](x.png)':UNCITED | '- Alder Haulage [S1]':UNGROUNDED
