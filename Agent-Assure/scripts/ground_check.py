@@ -3947,8 +3947,18 @@ def _e2_heading_asserts(body: str, sources: Iterable[RetrievedSource]) -> bool:
         units = _denial_units(source.text)
         for sentence_index, sentence in enumerate(_split_sentences(source.text)):
             normalized = " ".join(_nfkc(sentence).casefold().split())
+            # A source heading can be welded to the following sentence by the
+            # sentence splitter. It is not itself an asserted source sentence.
+            sentence_body = sentence.rsplit("\n", 1)[-1]
+            equal_sentence = body == _e2_trim(sentence_body)
             pos = normalized.find(body)
             while pos >= 0:
+                # This is a refusal-only lexical approximation to a main verb,
+                # not a parser. Noun senses and unlisted verbs remain ambiguous.
+                has_predicate = any(w in _E2_HEADING_PREDICATES - {"fraud", "guilty"}
+                                    for w in words[1:])
+                if not has_predicate or (not equal_sentence and len(words) < 6):
+                    break
                 start = len(_tokenize(normalized[:pos]))
                 end = start + len(_tokenize(body))
                 offset = 0

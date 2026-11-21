@@ -51,3 +51,23 @@ Error-A whole-draft gates are PASS 5 → 5, NEEDS_WORK 156 → 155, FAIL 175 →
 - Regenerated v2 calibration features in `/private/tmp` with `--features-only`. They were byte-identical to a fresh main regeneration; the checked-in feature file differs from both fresh runs, so its existing drift is not attributed to this change. Authored gold labels were not touched.
 
 No adversarial review beyond the listed tests and corpus comparisons is claimed. The lexical predicate ceiling, source sentence segmentation, existing denial vocabulary, and the remaining v2/v3 certified fabrications limit the result.
+
+## Round 2 update (merged main `0c0ddc4`)
+
+The round-1 figures above describe the older baseline and are superseded by this section. Rule (a) no longer promotes a short heading merely because it occurs inside a denied sentence. It checks the trimmed sentence or a substring of at least six tokens and requires a word from the existing E2 predicate vocabulary; rule (b) is unchanged. Promotion still applies only to headings classified `NON_CLAIM` by main, so this change cannot turn a main refusal into a PASS. Sai's D-119/D-120 authorisation remains limited to fail-closed changes. No commit was made.
+
+**Important limitation:** the predicate check is lexical, not a main-verb parser. It misses unlisted verbs even in an exact sentence and may mistake a subordinate verb or noun for a main verb. In an extra probe, `## Review of where investigators found missing records` is a label, but is scored FACTUAL and the draft FAILs when a source says `The review of where investigators found missing records was thorough. That never happened.` Therefore the requested unconditional guarantee that a label is never scored by (a), and complete recognition of equal sentences and six-token runs with a main verb, are **not achieved**. The 45 controls below do not prove that general guarantee.
+
+All measurements below use the project `.venv/bin/python`. Main values are from `origin/main`'s committed `results.json` at `0c0ddc4`; changed values were regenerated into `/private/tmp`, with the same checked-out corpus data. Existing modified result files were preserved. Certified means whole-draft PASS, not an assertion of general safety.
+
+| Instrument | Main certified / controls PASS | Round 2 certified / controls PASS | Main PASS controls lost |
+|---|---:|---:|---:|
+| Error-B v1 | 5/280 / 189 | 0/280 / 189 | 0 |
+| Error-B v2 | 0/269 / 138 | 0/269 / 138 | 0 |
+| Error-B v3 | 490/510 / 510 | 490/510 / 510 | 0 |
+
+Per-class control loss is **zero for every class**: v1's 18 classes, v2's 11 classes, and v3's 34 classes. In particular, v2 `denied_after`, `heading_from_source_words_verbatim`, and `heading_from_source_words_reassembled` each retain 15/15 main PASS controls (0 lost per class). No measured fabricated draft changes from non-PASS to PASS. The v3 escapes remain open.
+
+Error-A: 5 PASS, 156 NEEDS_WORK, 175 FAIL, 2,044/3,990 authored claims grounded, matching main's committed summary. Usage genres: 4 PASS, 3 NEEDS_WORK, 33 FAIL; 61/200 scored segments grounded, matching main's committed measurements. Gold `calibration/labels-v2.csv` MD5 is `6215b526d03147295b003d7ccb0d171f`; regenerated features MD5 is `9b2b4e60140dda089a100c89099238eb`, matching the fresh-main value recorded in CR-014.
+
+Verification: full suite **1580 passed, 2 skipped, 86 xfailed**, exit 0; focused E2 tests **52 passed**, exit 0. The new 45 actual corpus-control tests failed on the round-1 checker (45 failed, attack passed) and pass after narrowing. They pass on main by definition, so a demand that each control fail against main is incompatible with retaining main's behavior. Against the extracted main checker, the 45 controls passed and the new exact-copy attack failed (1 failed, 45 passed); all 46 pass on the changed checker. The four corpus runners and usage runner exited 0. `git diff --check` exited 0. The small probe above demonstrates a remaining honest-label false alarm despite these passing measurements.
