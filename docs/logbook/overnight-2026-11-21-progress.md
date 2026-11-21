@@ -34,89 +34,119 @@
 | 04:51 | E2-lite r2 in flight | D-138: round 1 closed every heading attack and kept honest PASS, but cost 45 v2 controls through my brief's over-broad 'contained in'; narrowing. | measured next tick | 1 lane | FMEA detectability (the twin controls caught it), calibration |
 | 06:01 | E2-lite r3 (bounded, cut-off 06:55) | D-139. | 2.62M (main 0.74M + 10 agents 1.87M) | 1 lane | COST OF DELAY vs ERROR (cut-off), degradation under constraint |
 | 06:18 | E2-lite follow-up (IndexError → named error, CEILING notes) in flight, cut-off 06:40 | D-140: #50 merged; main 1a94d08 verified first-hand (suite 1585; v1 0/280; v2 0/269; v3 490/510; Error-A unchanged). Teardown started: 7 worktrees removed; merged branches deleted local+remote; remote branches kept for open PRs #44 #45 #48. | ~2.9M (measured at disarm) | 1 lane | reversibility |
+| 05:19–05:50 | (no checkpoint rows written at these two ticks: a miss against the instrument; their work is in D-138/D-139) | | | | |
+| 06:30 | close-out | E2-lite follow-up held as draft #51; teardown done; morning report final; D-141. | 2.84M | 0 | — |
+
 ---
 
-# MORNING REPORT — OVN-1121 (written 02:14 IST; budget and teardown lines updated at disarm)
+# MORNING REPORT — OVN-1121 (final; supersedes the 02:14 draft, in git history at cf11ad7)
 
-Verdict: the goal was not met. The heading and far-denial fabrications still certify PASS, because Codex ran out of quota at 00:18 (until 26 Nov 13:52) and D-119 barred a Claude build fallback. The fabrication corpus did grow (PR #43, 224 drafts). The night's real output is the map of what the gate gets wrong: 42 fabrication families certify PASS on main, all reproduced first-hand. 20 of them break the product's own written promise ("PASS means traceable"), and those are bugs.
+Verdict: the goal is met on the corpora, and both fixes are merged. Fabrications written as a document heading (E2-lite, PR #50), or disowned by the source around the claim (E1, PR #49), are no longer certified PASS. Fabrication corpus v1 went 7 → 0 of 280 certified, and v2 went 12 → 0 of 269. Honest-draft results are unchanged. Two new corpora now measure all 42 fabrication families found tonight. The 490 of 510 still certified on v3 are the families awaiting your rulings.
 
-## 1. DONE
+## 1. DONE (each proven by output the main loop saw)
 
-- **PR #43 merged (C2):** fabrication corpus v2, tests only, 224 drafts in 8 classes. Baseline 0/224 certified, control PASS 93. Proof: `cd Agent-Assure && uv run python tests/error_b_corpus_v2/run.py --base $PWD` → "drafts: 224 | fabrication GROUNDED (escaped): 0 | draft PASS (certified): 0". Suite 1427 passed, 2 skipped, 74 xfailed. Merge d8c2ec0; `origin/main^{tree}` equals the tested tree (TREE_MATCH).
-- **Red-team rounds R45 and R46 (analysis):** 42 families certify PASS 100 on main d8c2ec0.
-  - 35 were reproduced by my own scripts, with my own claim text and both controls.
-  - 5 by re-running the agent's script with controls; 2 attack-only.
-  - Reports: `Agent-Assure/reports/RED-TEAM-R45.md`, `RED-TEAM-R46.md`.
-- **Classification (D-129):** `R45-R46-CLASSIFICATION.md`. Class T has 20 families, where the reader's claim is not an unbroken run of cited source text; these are bugs. Class S has 22: traceable text the source disowns, disclosed under ADR-008.
-- **Measurements for your rulings:**
-  - `C1-RULING-PACK-2026-11-21.md`: headings and denial-after-claim.
-  - `ERROR-A-MAP-2026-11-21.md`: the 1,946 honest refusals by cause. Measured gains: hedge stop +351, C1u +286, C2 +69.
-  - `R2-CLAUSE-PREFIX-MEASUREMENT.md`: a word-list-free frame test, honest cost 8/2,044 on a text model.
-  - `R1-RENDER-FIRST-PARSER-NOTE.md`: markdown-it-py 4.3.0, MIT, verified on PyPI.
-- **Ready-to-run briefs:** `docs/planning/briefs/` holds E1 (pronoun "made up"), E2 (headings), E3 (attribution past the window), and C2b (corpus classes for every R45/R46 family).
-- **PR #44 opened, not merged:** tester-guide Known issues listing the Class T shapes. This is your call, because it changes what testers are told.
-- **Every report was adversary-checked.** Four challenges, all came back corrected, all corrections adopted (D-122, D-123, D-129, plus the classification).
+- **PR #43 (C2): fabrication corpus v2.** 224 drafts, 8 classes, tests only.
+- **PR #46 (C2b part 1): 3 T/S-labelled classes.** denied_after, and source-word headings in verbatim and reassembled forms.
+- **PR #47 (C2b part 2): corpus v3.** All 34 R45/R46 families, 510 drafts, each with an honest twin. Baseline on main: Class T 270/285 certified, Class S 220/225.
+- **PR #49 (E1): fail-closed.** "That was cooked up", "It was cooked up" and "The press made that up" no longer certify a disowned claim.
+  - **Fabrications:** v1 7 → 5; v2 12 → 0.
+  - **Honest drafts:** Error-A corpus and usage unchanged; 1 v1 honest control lost.
+  - **Adversary:** 3 rounds; the last found 0 blockers across 2,494 corpus jobs and 218 probes.
+  - **Latency:** none (0.84 s → 0.53 s, 200 sources).
+- **PR #50 (E2-lite): fail-closed.** A draft heading that copies a sentence the source disowns, or asserts a predicate found in no source, is scored as a claim.
+  - **Fabrications:** v1 `claim_heading` 5 → 0, so v1 is 0/280.
+  - **Honest drafts:** 0 honest controls lost in any corpus; Error-A and usage identical to main.
+  - **Latency:** at main's level (0.23 s, 200 sources).
+  - **Adversary:** 3 rounds; the last found 0 blockers. Remaining honest-label refusals: 1/21 probes (`Lost and found`).
+- **Every merge:** proven-red tests (they fail on main), the suite green on the merged tree, gold md5 unchanged, and `origin/main^{tree}` equal to the tested tree.
+- **Final first-hand run on main `1a94d08`:**
+
+  | Check | Result |
+  |---|---|
+  | Suite | 1585 passed, 2 skipped, 88 xfailed |
+  | v1 | 0/280 certified |
+  | v2 | 0/269 certified |
+  | v3 | 490/510 certified |
+  | Error-A corpus | PASS 5 / NW 156 / FAIL 175, 2044/3990 grounded (unchanged) |
+  | Gold labels md5 | 6215b526d03147295b003d7ccb0d171f |
+
+  Commands, from `Agent-Assure/`: `uv run pytest -q`, then `uv run python tests/<corpus>/run.py --base $PWD`.
+- **Analysis**, in `Agent-Assure/reports/` (this PR):
+  - RED-TEAM-R45 and R46: 42 families, all reproduced first-hand;
+  - R45-R46-CLASSIFICATION: Class T 20 / Class S 22;
+  - C1-RULING-PACK, ERROR-A-MAP, R2-CLAUSE-PREFIX-MEASUREMENT, R1-RENDER-FIRST-PARSER-NOTE;
+  - the reviewers' evidence in `reports/ovn-1121-evidence/`.
+- **Briefs:** `docs/planning/briefs/`.
 
 ## 2. NOT DONE
 
-- **C1, heading and far-denial fixes:** BLOCKED on capacity (Codex EXHAUSTED, D-121). Next command, after 26 Nov 13:52 or once credits are added: `(caffeinate -dimsu codex exec -s workspace-write -C <worktree> -m gpt-6.1-terra -c model_reasoning_effort="high" --json -o final.md "$(cat docs/planning/briefs/OVN-1121-E2-headings.md)" < /dev/null > events.jsonl 2> stderr.txt &)`. Same for E1, E3 and C2b.
-- **C3:** nothing to close. C2 found 0 escapes; R45/R46 replace it.
-- **Codex cannot commit in its sandbox** (git index.lock outside the workspace). The main loop commits for it, so this is a process note, not a blocker.
+- **Draft #45, the full E2 heading rule:** superseded by #50. It costs honest PASS 9 → 3 and reverses OI-MOAT-31. Recommendation: close it.
+- **Draft #48, D8N:** contrary evidence plus number parsing. It needs capture provenance, which is a hook change (Escalation #4), and as built it costs 94 honest claims.
+- **Draft #51, E2-lite follow-up:** it makes some headings (`__ Bank fines`) crash the whole report and adds a flag parameter. Recommendation: refuse the heading instead of raising.
+- **The other Class T fixes** need your rulings: render-first (R1), compose-before-grounding (R3), number agreement (R4). Once ruled, the next step is dispatching the matching brief to Codex.
 
 ## 3. DENIED
 
-- **The harness blocked one red-team agent's write** of its findings file ("subagents should return findings as text"). The agent did not work around it, and I wrote the file from its hand-back.
-- **Nothing else was denied.** No action was routed to another session or identity.
+- **One harness block:** an R46 agent's findings-file write was blocked. It did not work around it; I wrote the file from its hand-back.
+- **Codex quota:** exhausted from 00:18 to about 02:29. Builds were not routed to Claude (D-119). A peer relayed "Codex is back", and I verified that first-hand before resuming.
+- **Nothing was rerouted.**
 
-## 4. ONE-WAY DOORS QUEUED (for you)
+## 4. ONE-WAY DOORS QUEUED
 
-- **Buy Codex credits:** this is a payment, so I didn't. https://chatgpt.com/codex/settings/usage. Otherwise the quota resets 26 Nov 13:52.
-- **Or authorise Claude Opus build agents for the fail-closed fixes** until Codex is back. One sentence from you, with a token cap. My recommendation is YES for D8 and E2, which are small and moat-relevant.
-- **Merge PR #44** (tester guide), if you approve the wording.
+- **PR #44 (tester guide, Class T list):** merge if you approve the wording.
+- **Codex session logs from tonight:** 20 files, 21 MB; deletion command in section 10.
 
-## 5. DECISIONS WAITING ON YOU (each with my recommendation and why)
+## 5. DECISIONS WAITING ON YOU (recommendation and why)
 
-1. **C2 "N percent": YES.** +69 honest claims, 0 lost, 0 of 12 new attacks pass, re-measured tonight on current main, and it also closes N11.
-2. **Build order once capacity returns:** Class T first, all fail-closed, inside the existing authority. R46 lists the order: D8 and D11 as cheap S-class refusals, E2/R3 headings and lists, the number parser fixes N7/N8/N10/N11, then render-first.
-3. **R1, render-first parser dependency (Escalation #4, install change): YES.** It closes 6 families structurally. The library is MIT and pure Python with one MIT dependency.
-4. **Label every finding and corpus class T or S, and report Error-B for T only: YES.** On the corpora today, Class T certified is 5/184 (v1) and 0/224 (v2), while 20 Class T families were found by hand.
-5. **Hedge-window sentence stop: NO for now.** It frees 351 honest claims, but it raises certified fabrications 7→9 and newly PASSes 5 of 15 attack shapes.
-6. **C1u list ordinals:** the records disagree. The 15 Nov pack and D-116 say ship-with-CEILING; my logbook line says NO. I still lean NO, because it keys on capitalisation. Settle which record stands.
-7. **The CLAUDE.md Escalation #1 reading** (fail-closed = agent authority) is still unratified. Codex stopped on it, correctly. Ratify it or reject it.
-8. **Whether PASS should promise support, not just traceability:** this supersedes ADR-008, so it waits for the five buyer interviews ADR-008 names. No action now.
+1. **C2 "N percent": YES.** +69 honest claims, 0 lost, 0/12 attacks pass, and it closes N11.
+2. **R1 render-first dependency (markdown-it-py 4.3.0 and mdurl, both MIT): YES.** It closes 6 Class T families structurally (Escalation #4).
+3. **Report Error-B for Class T only, and Class S as disclosed: YES.** Class T is 270/285 certified on v3.
+4. **Hedge-window sentence stop: NO for now.** It frees 351 honest claims but opens Error-B.
+5. **C1u list ordinals:** the records disagree (D-116 vs my logbook). Settle which stands.
+6. **The CLAUDE.md Escalation #1 reading (fail-closed = agent authority): ratify or reject.** Codex stopped on it, correctly. Tonight's fail-closed builds outside C1 were held as drafts because of it.
+7. **Close draft #45:** E2-lite supersedes it without E2's honest cost. What would flip it: a source-word heading attack E2-lite misses and E2 catches.
+8. **Drafts #48 and #51:** see section 2.
 
 ## 6. UNKNOWNS
 
-- **Unprobed surfaces:** families on surfaces R45/R46 did not try (currency words, multi-source figures, the relational branch beyond J-57…J-64).
-- **The 8 newly refused claims under the clause-prefix rule are unchecked**, and the rule was measured on my text model, not the gate.
-- **markdown-it-py determinism** was spot-checked, not audited.
-- **The other lane holding Codex quota:** a Codex session started 23:27 in another repo. I don't know whether its usage exhausted the quota before C1 started.
+- **The 8 claims the clause-prefix measurement would refuse** are unchecked, and it ran on a text model.
+- **E2-lite's lexical predicate test** can misread a title-cased noun compound.
+- **markdown-it-py determinism** is spot-checked only.
+- **Surfaces not probed:** currency words, multi-source figures, and the relational branch beyond J-57…J-64.
+- **Codex quota:** whether another repo's Codex lane caused the exhaustion.
 
 ## 7. BUDGET
 
-- **Claude:** 1.99M new tokens of 10M sanctioned (ceiling 12M), counted as output plus cache creation, each message counted once. Main loop 0.53M (output 0.16M, cache creation 0.37M); 7 agents 1.46M (5 Opus: reviewer and four red-team lanes; 1 Sonnet: research; plus the reviewer's three rounds). Derived from the session transcript and the subagent transcripts since 2026-11-20 18:04Z.
-- **Codex:** 1.22M input (1.15M cached) and 8.4k output, across 2 runs, from its events.jsonl. Then EXHAUSTED.
+- **Claude:** 2.84M new tokens of 10M sanctioned (ceiling 12M), counted as output plus cache creation, each message counted once, from the session and subagent transcripts since 2026-11-20 18:04Z. Main loop 0.81M (output 0.27M, cache creation 0.54M); 11 agents 2.03M (10 Opus reviewers and red-team lanes, 1 Sonnet researcher).
+- **Codex:** 15 runs; 48.8M input tokens, of which 47.5M cached (1.33M uncached), and 0.18M output, from events.jsonl `turn.completed`.
 
 ## 8. WITHDRAWALS
 
-- **"The C2 templates are too short to test the whole-claim rule":** a probe showed one-word flips inside 29-token sentences are refused.
-- **Family D was "a labelling problem; narrow the two-back rule":** the two-back rule decides 0 of 26, and the escapes are a lexical gap in R40 (D-122).
-- **The paragraph-break cut for next-sentence denial:** it has an attack.
-- **"Up to 1,167 (60%)" honest claims unlockable:** that summed refused counts. Measured gains are 706, or 36% (D-123).
-- **"541, upper bound" for the hedge stop:** the gate's tokenizer gives 576 earlier-sentence cases and 351 freed.
-- **"My C1u recommendation was NO", stated as settled:** the records disagree.
-- **R45 recommendation 1 ("don't present PASS as a guarantee") as new work:** the guide already disclaims that.
-- **"D7 and D8 are Error-B under any reading":** D7 is documented (README:200).
-- **D7 in Class T:** moved to S.
-- **Recommendation (a), "promise support now":** it would supersede ADR-008 without its evidence.
-- **The "promise vs direction" contradiction:** the real gap is measurement (D-129).
+- **From the 02:14 draft, all stand:** the C2 template hypothesis; the Family D label diagnosis; the paragraph-break cut; "1,167 / 60%"; the "541" bound; C1u stated as settled; R45 recommendation 1 as new work; "D7/D8 Error-B under any reading"; D7 in Class T; recommendation (a); the overstated contradiction.
+- **My E1 round-2 brief** contradicted round 1. Codex flagged it, and I ruled that the narrower rule governs.
+- **My E2-lite brief's rule (a), "contained in",** cost 45 honest controls. Narrowed.
+- **"E1 closes the heading classes":** not claimed. That was a side effect of the corpus's cooked-up sources.
+- **Process mistakes:**
+  - two unquoted heredocs stripped identifiers from two briefs (both runs killed and re-dispatched);
+  - no checkpoint rows at the 05:19 and 05:50 ticks;
+  - early rows carried an estimated token figure;
+  - my scratch deletion removed the filled-in morning-report draft before I had written it into the log. I rewrote it from the text in the session; this is that rewrite.
 
 ## 9. FRAMEWORKS
 
-- **Error-cost asymmetry and Goodhart** set the night: red-teaming over idling, and corpus numbers read as a floor, not a rate.
-- **Contradiction-as-locator:** five times, each time a reviewer or a record disagreed with me.
-- **Cost of delay vs error, inverted at night:** stop-and-record rather than routing around D-119.
-- **Via negativa:** stopping red-teaming once more families could not change a ruling.
-- **Chesterton:** ADR-008 before proposing to replace it.
-- **CEILING:** block-level source mapping in R1.
-- **Degradation under constraint:** briefs written so the builds start on capacity.
+- **Error-cost asymmetry and Goodhart:** red-team before fixing; corpora read as a floor; the T/S split.
+- **Contradiction-as-locator:** every reviewer correction.
+- **Chesterton:** ADR-008, OI-MOAT-31.
+- **Cost of delay vs error, inverted at night:** bounded rounds, cut-offs, drafts rather than merges outside authority.
+- **D-107 precedent:** narrow before merge.
+- **FMEA detectability:** strict-xfail tripwires record each open hole.
+- **Reversibility:** a revert row for every merge.
+
+## 10. TEARDOWN (disk)
+
+- **Worktrees removed (12):** ai-ovn1121-c1, c2, e1, e2, e2l, e2f, c2b, d8n, guide, mainchk, plus the two perf check worktrees. Their `.venv`s went with them. The docs worktree ai-overnight-1121 is removed after its PR merges.
+- **Branches:** merged branches deleted locally and on GitHub (ovn-1121-c2, -e1, -c2b, -c2c, -e2l). Remote branches kept only for open PRs: ovn-1121-guide (#44), -e2 (#45), -d8n (#48), -e2f (#51).
+- **Scratch:** 95 MB removed (briefs, events logs, probes, perf fixtures). The adversary reviews and red-team findings were copied first into `Agent-Assure/reports/ovn-1121-evidence/` (156 KB of text).
+- **Disk:** Agents folder 3.6G before, 3.6G after; volume 690Gi free before, 704Gi after.
+- **Drive:** nothing to move. The largest artefact kept in the repo is corpus v3 at 638 KB.
+- **Queued for you (one-way door):** Codex's own session logs from tonight's 20 runs, 21 MB in `~/.codex/sessions/2026/11/20` and `/21`. They are needed for `codex resume`, so I left them. To delete them: `cd ~/.codex/sessions/2026/11 && for f in 20/*.jsonl 21/*.jsonl; do head -1 "$f" | grep -q ai-ovn1121 && rm "$f"; done`.
