@@ -3901,6 +3901,94 @@ def _match_denied(unit: _DenialUnit, start: int, end: int, own: frozenset[str]) 
             or _e1_falsity(tuple(t for t in unit.r40.tokens[end:] + unit.r40.suffix if t not in own)))
 
 
+# CEILING: lexical; upgrade: POS tagger. Missing words leave main's heading
+# classification unchanged. Some forms also have noun senses (honest cost).
+_E2_HEADING_PREDICATES = frozenset({
+    "found", "find", "finds", "finding", "lied", "lie", "lies", "lying",
+    "hid", "hide", "hides", "hiding", "admit", "admits", "admitted", "admitting",
+    "collapse", "collapses", "collapsed", "collapsing", "fold", "folds", "folded", "folding",
+    "fail", "fails", "failed", "failing", "fine", "fines", "fined", "fining",
+    "charge", "charges", "charged", "charging", "arrest", "arrests", "arrested", "arresting",
+    "resign", "resigns", "resigned", "resigning", "quit", "quits", "quitting",
+    "sue", "sues", "sued", "suing", "guilty", "fraud", "ban", "bans", "banned", "banning",
+    "cheat", "cheats", "cheated", "cheating", "leak", "leaks", "leaked", "leaking",
+    "hack", "hacks", "hacked", "hacking", "stumble", "stumbles", "stumbled", "stumbling",
+    "double", "doubles", "doubled", "doubling", "halve", "halves", "halved", "halving",
+    "crash", "crashes", "crashed", "crashing",
+})
+
+
+def _e2_trim(text: str) -> str:
+    text = " ".join(_nfkc(text).casefold().split())
+    start, end = 0, len(text)
+    while start < end and (text[start].isspace() or unicodedata.category(text[start]).startswith("P")):
+        start += 1
+    while end > start and (text[end - 1].isspace() or unicodedata.category(text[end - 1]).startswith("P")):
+        end -= 1
+    return text[start:end]
+
+
+def _e2_heading_asserts(body: str, sources: Iterable[RetrievedSource],
+                        cache: dict) -> bool:
+    """Additional refusal only: novel predicate or a disowned source span."""
+    sources = list(sources)
+    original_words = _re.findall(r"\w+", _expand_negation_contractions(_nfkc(body)))
+    body = _e2_trim(body)
+    if not body:
+        return False
+    words = _tokenize(body)
+    if "words" not in cache:
+        cache["words"] = {w for source in sources for w in _tokenize(_nfkc(source.text).casefold())}
+    source_words = cache["words"]
+    if any(word not in source_words and word in _E2_HEADING_PREDICATES
+           and word not in {"fraud", "guilty"} and not word.endswith("ing")
+           and i > 0 and not all(_is_heading_premodifier(w) for w in words[:i])
+           and (len(words) > 2 or not word.endswith("s") or original_words[i][:1].isupper())
+           and (i == len(words) - 1 or word in {"found", "lied", "hid"}
+                or word.endswith("ed"))
+           for i, word in enumerate(words)):
+        return True
+    has_predicate = any(w in _E2_HEADING_PREDICATES - {"fraud", "guilty"}
+                        for w in words[1:])
+    if not has_predicate:
+        return False
+    for source in sources:
+        normalized_sources = cache.setdefault("normalized_sources", {})
+        if source.text not in normalized_sources:
+            normalized_sources[source.text] = " ".join(_nfkc(source.text).casefold().split())
+        if body not in normalized_sources[source.text]:
+            continue
+        for sentence_index, sentence in enumerate(_split_sentences(source.text)):
+            normalized = " ".join(_nfkc(sentence).casefold().split())
+            # A source heading can be welded to the following sentence by the
+            # sentence splitter. It is not itself an asserted source sentence.
+            sentence_body = sentence.rsplit("\n", 1)[-1]
+            equal_sentence = body == _e2_trim(sentence_body)
+            pos = normalized.find(body)
+            while pos >= 0:
+                # This is a refusal-only lexical approximation to a main verb,
+                # not a parser. Noun senses and unlisted verbs remain ambiguous.
+                if not has_predicate or (not equal_sentence and len(words) < 6):
+                    break
+                units_by_text = cache.setdefault("units", {})
+                if source.text not in units_by_text:
+                    units_by_text[source.text] = _denial_units(source.text)
+                units = units_by_text[source.text]
+                start = len(_tokenize(normalized[:pos]))
+                end = start + len(_tokenize(body))
+                offset = 0
+                for unit in (u for u in units if u.main.sentence_index == sentence_index):
+                    limit = offset + len(unit.main.tokens)
+                    if offset <= start < limit:
+                        if _match_denied(unit, start - offset, min(end, limit) - offset,
+                                         frozenset(_tokenize(body))):
+                            return True
+                        break
+                    offset = limit
+                pos = normalized.find(body, pos + 1)
+    return False
+
+
 def _r40_match_denied(ctx: _UnitContext, view: _ViewUnit | None, start: int, end: int,
                       own: frozenset[str]) -> bool:
     """The R40 reading of a match denial: `_unit_denied_r40` or
@@ -7889,6 +7977,17 @@ def main() -> None:
         except ValueError as exc:
             _refuse_input(str(exc), exc, debug=args.debug)
     claims = [classify(c) for c in decompose(draft_text)]
+    # Only promote existing NON_CLAIM headings; leave all other claims intact.
+    e2_cache: dict = {}
+    for i, claim in enumerate(claims):
+        match = _NO_FINITE_VERB_RE.match(claim.text)
+        setext = _re.fullmatch(r"([^\n]+)\n {0,3}(?:=+|-+)\s*", claim.text)
+        body = claim.text[match.end():] if match else (setext.group(1) if setext else None)
+        if (claim.kind == ClaimKind.NON_CLAIM and not claim.citations and body is not None
+                and _e2_heading_asserts(body, store.values(), e2_cache)):
+            claims[i] = Claim(index=claim.index, text=claim.text, kind=ClaimKind.FACTUAL,
+                              citations=claim.citations, numeric_tokens=claim.numeric_tokens,
+                              split_from=claim.split_from)
     report = score_report(
         claims, store, threshold=args.threshold,
         session_scoped=args.session_id is not None,

@@ -2,11 +2,11 @@
  "summary": {
   "all": {
    "drafts": 280,
-   "escaped": 5,
-   "escaped_pct": 1.8,
-   "pass": 5,
-   "pass_pct": 1.8,
-   "NEEDS_WORK": 215,
+   "escaped": 0,
+   "escaped_pct": 0.0,
+   "pass": 0,
+   "pass_pct": 0.0,
+   "NEEDS_WORK": 220,
    "FAIL": 60,
    "control_pass": 189
   },
@@ -33,11 +33,11 @@
    },
    "claim_heading": {
     "drafts": 15,
-    "escaped": 5,
-    "escaped_pct": 33.3,
-    "pass": 5,
-    "pass_pct": 33.3,
-    "NEEDS_WORK": 9,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 14,
     "FAIL": 1,
     "control_pass": 14
    },
@@ -195,11 +195,11 @@
   "by_genre": {
    "api_reference": {
     "drafts": 20,
-    "escaped": 1,
-    "escaped_pct": 5.0,
-    "pass": 1,
-    "pass_pct": 5.0,
-    "NEEDS_WORK": 14,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 15,
     "FAIL": 5,
     "control_pass": 12
    },
@@ -225,11 +225,11 @@
    },
    "faq": {
     "drafts": 20,
-    "escaped": 1,
-    "escaped_pct": 5.0,
-    "pass": 1,
-    "pass_pct": 5.0,
-    "NEEDS_WORK": 12,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 13,
     "FAIL": 7,
     "control_pass": 11
    },
@@ -245,11 +245,11 @@
    },
    "howto_code": {
     "drafts": 20,
-    "escaped": 1,
-    "escaped_pct": 5.0,
-    "pass": 1,
-    "pass_pct": 5.0,
-    "NEEDS_WORK": 15,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 16,
     "FAIL": 4,
     "control_pass": 14
    },
@@ -295,21 +295,21 @@
    },
    "product_docs": {
     "drafts": 20,
-    "escaped": 1,
-    "escaped_pct": 5.0,
-    "pass": 1,
-    "pass_pct": 5.0,
-    "NEEDS_WORK": 17,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 18,
     "FAIL": 2,
     "control_pass": 16
    },
    "readme": {
     "drafts": 20,
-    "escaped": 1,
-    "escaped_pct": 5.0,
-    "pass": 1,
-    "pass_pct": 5.0,
-    "NEEDS_WORK": 17,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 18,
     "FAIL": 2,
     "control_pass": 14
    },
@@ -427,11 +427,11 @@
    },
    "claim_heading/heading0": {
     "drafts": 2,
-    "escaped": 2,
-    "escaped_pct": 100.0,
-    "pass": 2,
-    "pass_pct": 100.0,
-    "NEEDS_WORK": 0,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 2,
     "FAIL": 0,
     "control_pass": 2
    },
@@ -457,11 +457,11 @@
    },
    "claim_heading/heading11": {
     "drafts": 1,
-    "escaped": 1,
-    "escaped_pct": 100.0,
-    "pass": 1,
-    "pass_pct": 100.0,
-    "NEEDS_WORK": 0,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
     "FAIL": 0,
     "control_pass": 1
    },
@@ -477,11 +477,11 @@
    },
    "claim_heading/heading3": {
     "drafts": 1,
-    "escaped": 1,
-    "escaped_pct": 100.0,
-    "pass": 1,
-    "pass_pct": 100.0,
-    "NEEDS_WORK": 0,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
     "FAIL": 0,
     "control_pass": 1
    },
@@ -497,11 +497,11 @@
    },
    "claim_heading/heading5": {
     "drafts": 1,
-    "escaped": 1,
-    "escaped_pct": 100.0,
-    "pass": 1,
-    "pass_pct": 100.0,
-    "NEEDS_WORK": 0,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
     "FAIL": 0,
     "control_pass": 1
    },
@@ -1173,15 +1173,15 @@
    "genre": "api_reference",
    "class": "claim_heading",
    "variant": "heading0",
-   "gate": "PASS",
-   "score": 100.0,
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNCITED"
    ],
    "fab_kinds": [
-    "NON_CLAIM"
+    "FACTUAL"
    ],
-   "escaped": true,
+   "escaped": false,
    "other_refused": 0,
    "control_gate": "PASS"
   },
@@ -2093,15 +2093,15 @@
    "genre": "faq",
    "class": "claim_heading",
    "variant": "heading3",
-   "gate": "PASS",
-   "score": 100.0,
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNCITED"
    ],
    "fab_kinds": [
-    "NON_CLAIM"
+    "FACTUAL"
    ],
-   "escaped": true,
+   "escaped": false,
    "other_refused": 0,
    "control_gate": "PASS"
   },
@@ -2705,15 +2705,15 @@
    "genre": "howto_code",
    "class": "claim_heading",
    "variant": "heading5",
-   "gate": "PASS",
-   "score": 100.0,
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNCITED"
    ],
    "fab_kinds": [
-    "NON_CLAIM"
+    "FACTUAL"
    ],
-   "escaped": true,
+   "escaped": false,
    "other_refused": 0,
    "control_gate": "PASS"
   },
@@ -4547,15 +4547,15 @@
    "genre": "product_docs",
    "class": "claim_heading",
    "variant": "heading11",
-   "gate": "PASS",
-   "score": 100.0,
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNCITED"
    ],
    "fab_kinds": [
-    "NON_CLAIM"
+    "FACTUAL"
    ],
-   "escaped": true,
+   "escaped": false,
    "other_refused": 0,
    "control_gate": "PASS"
   },
@@ -4853,15 +4853,15 @@
    "genre": "readme",
    "class": "claim_heading",
    "variant": "heading0",
-   "gate": "PASS",
-   "score": 100.0,
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNCITED"
    ],
    "fab_kinds": [
-    "NON_CLAIM"
+    "FACTUAL"
    ],
-   "escaped": true,
+   "escaped": false,
    "other_refused": 0,
    "control_gate": "PASS"
   },
