@@ -7,7 +7,7 @@ Pure functions only — never mutate inputs or globals.
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 
 import hashlib
 import json
@@ -23,7 +23,7 @@ import re as _re
 import unicodedata
 from pathlib import Path
 from collections import Counter
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from enum import Enum
 from typing import Iterator
 
@@ -7649,6 +7649,378 @@ def scope_statement(session_scoped: bool) -> str:
     return _SCOPE_SESSION if session_scoped else _SCOPE_STORE
 
 
+# ---------------------------------------------------------------------------
+# R3 — compose before grounding (RED-TEAM-R45 F3, F7, F8; OVN-1122-C1)
+# ---------------------------------------------------------------------------
+#
+# A fragment with no predicate — a bare name, a bare figure — asserts nothing
+# by itself. It used to ground by being MENTIONED in its cited source, while
+# the draft's own structure supplied the predicate the reader actually reads,
+# unchecked:
+#
+#     ## Criminals                      the reader reads
+#     - Alder Haulage [S1]              "Criminals: Alder Haulage"
+#
+#     The council fined the following firms for fraud in 2024 [S2]:
+#     - Alder Haulage [S1]              "...fined ... for fraud: Alder Haulage"
+#
+#     - Alder Haulage [S1]
+#       12 million dollars [S1]         "Alder Haulage: 12 million dollars"
+#
+# S1 said only "Alder Haulage delivers cargo" (and, for the figure, that a
+# DIFFERENT firm earned it), and all three certified PASS 100.0. The rule
+# below grounds the claim the reader reads: a predicate-free fragment is
+# composed with the structure that supplies its predicate (the heading, the
+# lead-in, the list parent, the item it continues) and the COMPOSITION must
+# ground under the ordinary `ground()` path against the FRAGMENT's own
+# citations. A fragment with no such structure is never GROUNDED alone.
+#
+# REFUSAL ONLY. `score_report` applies the result solely to a verdict that is
+# already in the numerator, turning it into UNGROUNDED; nothing here can move
+# a claim toward GROUNDED. The rule keys on STRUCTURE (the fragment lacks a
+# predicate; a preceding element supplies one), never on heading words or
+# lengths.
+#
+# NOT COVERED — F2 (`## Myths` over a full, verbatim claim). The item has its
+# own predicate, so nothing is missing for the heading to supply; the heading
+# FLIPS the sense of a complete claim. Composing every headed item instead
+# refuses every honest headed list whose heading is not source text, and
+# separating "## Findings" from "## Myths" needs the meaning of the heading
+# word, which is the author-controlled lexicon this rule may not key on.
+# Tripwired strict-xfail in tests/test_moat_r3_compose_before_grounding.py.
+
+
+def _is_list_item_text(text: str) -> bool:
+    """True iff the claim text opens with a Markdown list marker. Pure."""
+    return bool(_LIST_ITEM_RE.match(text))
+
+
+def _structural_body(text: str) -> str:
+    """The words of *text* without heading/list markers, citations or a
+    trailing lead-in colon. Pure."""
+    body = _strip_citations(text)
+    heading = _NO_FINITE_VERB_RE.match(body)
+    if heading:
+        body = body[heading.end():]
+    item = _LIST_ITEM_RE.match(body)
+    if item:
+        body = body[item.end():]
+    return body.strip().rstrip(":").strip()
+
+
+def _lacks_predicate(text: str) -> bool:
+    """True iff *text* carries no detectable predicate: no auxiliary/copula/
+    modal, and no verb-suffixed word in a position a finite verb can occupy.
+
+    The error direction is the design: calling a real predicate missing only
+    sends the claim through composition (a possible refusal, Error-A);
+    calling a missing predicate present would let a bare name through. So the
+    suffix test (`_VERB_SUFFIXES`) is NARROWED relative to `_has_finite_verb`:
+    a suffixed word counts only when it is neither the first nor the last word.
+    A declarative finite verb follows its subject, and the head of a bare noun
+    phrase ends it — "12 million dollars", "other companies", "Haven Haulage"
+    (a name ending in -en) are all predicate-free here, while "Alder Haulage
+    delivers cargo" is not. Case is not consulted (the draft's author owns it).
+
+    CEILING: lexical, not a parser. A name of three or more words with a
+    suffixed INNER word ("Fenton Holdings Group", "Reading Borough Council")
+    reads as predicate-bearing, so a bare mention of it is not composed and
+    still grounds by mention. An irregular or phrase-final verb ("Revenue rose
+    4%", "Prices fell") reads as predicate-free and is composed — refusal-side.
+    Upgrade path: a deterministic POS tagger / dependency parse (offline,
+    pinned), which is the same dependency R1/R2 need.
+
+    Pure function.
+    """
+    words = [w for w in _re.findall(r"\w+", _expand_negation_contractions(
+        _structural_body(text)).casefold())]
+    if any(w in _AUXILIARIES for w in words):
+        return False
+    inner = words[1:-1]
+    return not any(len(w) >= _VERB_SUFFIX_MIN_LEN
+                   and any(w.endswith(s) for s in _VERB_SUFFIXES)
+                   for w in inner)
+
+
+def _is_whole_source_sentence(text: str, sources: Iterable[RetrievedSource]) -> bool:
+    """True iff the words of *text* (markers and citations removed) are
+    exactly the words of one whole sentence of one of *sources*.
+
+    The narrowing that keeps R3 off honest prose (measured, OVN-1122-C1): a
+    sentence whose verb the lexical test cannot see ("The council held a
+    public meeting", "Revenue rose 4%") is still a complete statement when the
+    SOURCE states exactly that as a sentence of its own. The property is read
+    off the source, not the draft, so the draft's author cannot set it; a bare
+    name or figure lifted out of a longer source sentence never satisfies it.
+
+    CEILING: a source that itself carries a predicate-free line (its own
+    heading, list item or caption, e.g. a line reading "Alder Haulage") makes a
+    bare mention of that line exempt, and it then grounds by mention under any
+    draft heading. Upgrade path: the R1 render step, which knows a source
+    heading or list item from a source sentence and can refuse the exemption
+    for non-sentence source blocks.
+
+    Pure function.
+    """
+    words = _tokenize(_structural_body(text))
+    if not words:
+        return False
+    for source in sources:
+        for sentence in _split_sentences(source.text):
+            # A source heading can be welded to the next sentence by the
+            # splitter (same handling as `_e2_heading_asserts`).
+            for line in sentence.split("\n"):
+                if _tokenize(line) == words:
+                    return True
+    return False
+
+
+def _predicate_supplier(claims: list[Claim], position: int) -> int | None:
+    """Position of the claim that supplies the predicate for the fragment at
+    *position*, or None when nothing precedes it.
+
+    A list item is governed by the nearest preceding claim that is NOT a list
+    item (its heading, its lead-in, or the paragraph that introduces the
+    list); sibling items are skipped. Any other fragment is governed by the
+    claim immediately before it (the item or sentence it continues, or the
+    heading over it).
+
+    CEILING: decompose() discards indentation, so nesting is invisible: a
+    nested item composes with the outer list's governor, not its parent item,
+    and a list item following an item's continuation paragraph composes with
+    that paragraph. Both err toward composing with the wrong text, i.e. toward
+    refusal. Upgrade path: carry line/indent spans through decompose (the R1
+    render step) and compose along the real Markdown tree.
+
+    Pure function.
+    """
+    list_item = _is_list_item_text(claims[position].text)
+    for earlier in range(position - 1, -1, -1):
+        # A claim with no word tokens ("---", "***", ".", "…", "—", an emoji)
+        # supplies no predicate: it is TRANSPARENT and the search climbs past
+        # it (D-147: `## Criminals / --- / - Alder Haulage [S1]` certified
+        # PASS 100.0 because "---" was taken as the supplier and its empty
+        # reading composed to the bare name). Nothing left -> None -> refused.
+        if not _has_words(claims[earlier].text):
+            continue
+        if not list_item or not _is_list_item_text(claims[earlier].text):
+            return earlier
+    return None
+
+
+def _has_words(text: str) -> bool:
+    """True iff the structural body of *text* has at least one word token. Pure."""
+    return bool(_tokenize(_structural_body(text)))
+
+
+def _nearest_worded(claims: list[Claim], position: int) -> int | None:
+    """Position of the nearest claim before *position* that has words. Pure."""
+    return next((i for i in range(position - 1, -1, -1)
+                 if _has_words(claims[i].text)), None)
+
+
+_GFM_DELIMITER_ROW_RE = _re.compile(
+    r"^\s{0,3}\|?\s*:?-+:?\s*(?:\|\s*:?-+:?\s*)*\|?\s*$")
+
+
+def _gfm_table_line_flags(lines: list[str]) -> list[bool]:
+    """Per line: True iff it is a row of a GFM table the renderer would draw —
+    a header line containing `|`, immediately followed by a delimiter row
+    (`|---|---|`) with the same cell count, then each following non-blank line
+    containing `|`. Lines inside a fenced code block are never table rows.
+
+    CEILING: line-level GFM only; a table nested in a list item or blockquote
+    (prefixed lines) is not recognised, so its cells fall INTO R3 scope
+    (refusal-side). Upgrade path: the R1 render step's real table nodes.
+
+    Pure function.
+    """
+    in_fence = [False] * len(lines)
+    fence: str | None = None
+    for i, line in enumerate(lines):
+        match = _FENCE_RE.match(line)
+        if fence is None and match:
+            fence = match.group("fence")[0]
+            in_fence[i] = True
+        elif fence is not None:
+            in_fence[i] = True
+            if match and match.group("fence")[0] == fence:
+                fence = None
+    flags = [False] * len(lines)
+    i = 0
+    while i + 1 < len(lines):
+        header, delimiter = lines[i], lines[i + 1]
+        if (not in_fence[i] and not in_fence[i + 1]
+                and "|" in header and "|" in delimiter
+                and _GFM_DELIMITER_ROW_RE.match(delimiter)
+                and len(header.strip().strip("|").split("|"))
+                == len(delimiter.strip().strip("|").split("|"))):
+            flags[i] = flags[i + 1] = True
+            j = i + 2
+            while j < len(lines) and not in_fence[j] and "|" in lines[j] \
+                    and lines[j].strip():
+                flags[j] = True
+                j += 1
+            i = j
+            continue
+        i += 1
+    return flags
+
+
+def gfm_table_cells(draft: str, claims: list[Claim]) -> frozenset[int]:
+    """Indices of the claims that decompose() cut from a row of a real GFM
+    table (`_gfm_table_line_flags`). Provenance by POSITION, not by text:
+    claims are aligned to the draft's lines in order (a cursor that never
+    moves backwards), so a list item that merely repeats a table row's text
+    elsewhere in the draft is NOT a table cell, and a table inside an HTML
+    comment or a code fence is no table at all (comments are stripped exactly
+    as decompose() strips them; fences are excluded).
+
+    A claim whose lines cannot be aligned is not a table cell — fail-closed:
+    it stays in R3 scope.
+
+    CEILING: table cells are OUT of R3's scope and keep exactly the pre-R3
+    behaviour (D-144). The sibling defect stays open: a real cell such as
+    "Yes [S1]" or "62 [S1]" grounds by MENTION of its value anywhere in the
+    cited source, whatever row and column the reader reads it under, and an
+    author can move an F3 list into a real table. Upgrade path: once
+    decomposition keeps table structure (R1 render step), join each cell to
+    its row label + column header and ground that reading.
+
+    Pure function.
+    """
+    text = _nfkc(_strip_html_comments_outside_code(
+        _scrub_citations_in_comments(draft)))
+    lines = text.splitlines()
+    flags = _gfm_table_line_flags(lines)
+    cells: set[int] = set()
+    cursor = 0
+    for claim in claims:
+        parts = [part.strip() for part in claim.text.splitlines() if part.strip()]
+        if not parts:
+            continue
+        found = next((i for i in range(cursor, len(lines)) if parts[0] in lines[i]), None)
+        if found is None:
+            continue
+        cursor = found
+        span = range(found, min(found + len(parts), len(lines)))
+        if len(span) == len(parts) and all(flags[i] and parts[k] in lines[i]
+                                           for k, i in enumerate(span)):
+            cells.add(claim.index)
+    return frozenset(cells)
+
+
+def _predicate_test_text(claim: Claim) -> str:
+    """The text the predicate test reads: a conjunction-split piece is read as
+    the sentence it was cut from ("...was held in the hall and lasted 28
+    minutes", not "lasted 28 minutes", whose verb is first). Pure."""
+    return claim.split_from or claim.text
+
+
+def _r3_in_scope(claims: list[Claim], position: int,
+                 table_cells: frozenset[int]) -> bool:
+    """True iff the claim at *position* is a predicate-free cited fragment in a
+    structure R3 composes: a LIST ITEM (governed by its heading / lead-in /
+    list parent), or a CONTINUATION (a non-list claim right after a list
+    item). Prose after a heading or a sentence, and table cells, are out of
+    scope and keep the pre-R3 behaviour.
+
+    CEILING: scope is the R45 family shapes (D-144), not every place a
+    structure can supply a predicate. A bare figure in its own paragraph
+    directly under a heading ("## Alder Haulage" / "12 million dollars [S1]")
+    still grounds by mention. Upgrade path: the Markdown tree from the R1
+    render step, composing along real parent links.
+
+    Pure function.
+    """
+    claim = claims[position]
+    if claim.kind == ClaimKind.NON_CLAIM or not claim.citations:
+        return False
+    if claim.index in table_cells \
+            or not _lacks_predicate(_predicate_test_text(claim)):
+        return False
+    if _is_list_item_text(claim.text):
+        return True
+    previous = _nearest_worded(claims, position)
+    return previous is not None and _is_list_item_text(claims[previous].text) \
+        and claims[previous].index not in table_cells
+
+
+def _reader_text(claims: list[Claim], position: int,
+                 table_cells: frozenset[int]) -> str:
+    """The words the reader reads at *position*: a predicate-free cited
+    fragment is prefixed by its supplier's own reader text; anything else is
+    its structural body. Citations are dropped (the caller re-attaches the
+    fragment's own). Pure; recursion depth is bounded by *position*."""
+    body = _structural_body(claims[position].text)
+    claim = claims[position]
+    if not _r3_in_scope(claims, position, table_cells):
+        return body
+    supplier = _predicate_supplier(claims, position)
+    if supplier is None:
+        return body
+    return f"{_reader_text(claims, supplier, table_cells)} {body}".strip()
+
+
+R3_NO_SUPPLIER = "no_structure_supplies_a_predicate"
+
+
+def r3_uncomposed(
+    claims: list[Claim],
+    store: dict[str, RetrievedSource],
+    table_cells: frozenset[int],
+    self_source_ids: frozenset[str] = frozenset(),
+    inferred_self_ids: frozenset[str] = frozenset(),
+) -> dict[int, str]:
+    """Claim index -> composed reading, for every predicate-free cited
+    fragment whose composition does NOT ground (or, value `R3_NO_SUPPLIER`,
+    that has no structure to compose with).
+
+    The composition is ground()ed exactly as an authored claim would be,
+    against the FRAGMENT's citations only (T1 is per-source; the lead-in's
+    citation must not lend the fragment its source). A composition that
+    classifies NON_CLAIM is scored as FACTUAL — an "I don't know" must not
+    leave the denominator.
+
+    Pure function — returns a new dict; mutates nothing.
+    """
+    refused: dict[int, str] = {}
+    for position, claim in enumerate(claims):
+        if not _r3_in_scope(claims, position, table_cells):
+            continue
+        cited = [src for src in (resolve(c, store) for c in claim.citations)
+                 if src is not None]
+        if _is_whole_source_sentence(
+                claim.text, _certifying_verbatim(cited, self_source_ids)):
+            continue
+        if _predicate_supplier(claims, position) is None:
+            refused[claim.index] = R3_NO_SUPPLIER
+            continue
+        reading = _reader_text(claims, position, table_cells)
+        composed = classify(Claim(
+            index=claim.index,
+            text=f"{reading} {' '.join(claim.citations)}",
+            kind=ClaimKind.FACTUAL, citations=(), numeric_tokens=()))
+        if composed.kind == ClaimKind.NON_CLAIM:
+            composed = replace(composed, kind=ClaimKind.FACTUAL)
+        verdict = ground(composed, store, _LEX_TAU_DEFAULT, self_source_ids,
+                         inferred_self_ids)
+        if verdict not in _NUMERATOR_VERDICTS:
+            refused[claim.index] = reading
+    return refused
+
+
+def r3_refusal_note(reading: str) -> str:
+    """The evidence-basis sentence for an R3 refusal. Display only. Pure."""
+    if reading == R3_NO_SUPPLIER:
+        return (" R3: this fragment has no predicate and nothing in the draft "
+                "supplies one, so being mentioned in the source does not "
+                "ground it.")
+    return (f" R3: this fragment has no predicate of its own; the reader "
+            f"reads it as {_quote(reading)}, and that composed reading is not "
+            f"grounded in the fragment's cited source.")
+
+
 def score_report(
     claims: list[Claim],
     store: dict[str, RetrievedSource],
@@ -7657,6 +8029,7 @@ def score_report(
     session_scoped: bool = False,
     self_source_ids: frozenset[str] = frozenset(),
     inferred_self_ids: frozenset[str] = frozenset(),
+    uncomposed: Mapping[int, str] | None = None,
 ) -> dict:
     """Compute the grounding SCORE, gate, and retained-violation appendix (spec §4.5).
 
@@ -7724,11 +8097,21 @@ def score_report(
     for claim in claims:
         verdict = ground(claim, store, lex_tau, self_source_ids,
                          inferred_self_ids)
+        # R3 (compose before grounding): refusal only — applied solely to a
+        # verdict already in the numerator, so it can never lift a claim.
+        r3_reading = (uncomposed or {}).get(claim.index)
+        if (r3_reading is not None and claim.kind != ClaimKind.NON_CLAIM
+                and verdict in _NUMERATOR_VERDICTS):
+            verdict = Verdict.UNGROUNDED
+        else:
+            r3_reading = None
         # REASONS-FOR-REFUSAL: the reason is computed only AFTER the verdict,
         # from the verdict, and is never fed back (display only).
         basis = evidence_basis(claim, store, self_source_ids)
+        if r3_reading is not None:
+            basis = basis + r3_refusal_note(r3_reading)
         refusal: VerbatimRefusal | None = None
-        if verdict == Verdict.UNGROUNDED:
+        if verdict == Verdict.UNGROUNDED and r3_reading is None:
             refusal = verbatim_refusal(claim, _certifying_verbatim(
                 [src for src in (resolve(c, store) for c in claim.citations)
                  if src is not None and src.retrieval_status != "failed"],
@@ -7988,14 +8371,17 @@ def main() -> None:
             claims[i] = Claim(index=claim.index, text=claim.text, kind=ClaimKind.FACTUAL,
                               citations=claim.citations, numeric_tokens=claim.numeric_tokens,
                               split_from=claim.split_from)
+    self_ids = _self_source_ids(args.draft, draft_text, store)
+    # Inferred-only: near-copy matches that no identity test also made.
+    inferred_ids = (_near_copy_source_ids(draft_text, store)
+                    - _self_source_ids_by_identity(args.draft, draft_text, store))
     report = score_report(
         claims, store, threshold=args.threshold,
         session_scoped=args.session_id is not None,
-        self_source_ids=_self_source_ids(args.draft, draft_text, store),
-        # Inferred-only: near-copy matches that no identity test also made.
-        inferred_self_ids=(_near_copy_source_ids(draft_text, store)
-                           - _self_source_ids_by_identity(
-                               args.draft, draft_text, store)),
+        self_source_ids=self_ids,
+        inferred_self_ids=inferred_ids,
+        uncomposed=r3_uncomposed(claims, store, gfm_table_cells(draft_text, claims),
+                                 self_ids, inferred_ids),
     )
 
     gate: str = report["gate"]
