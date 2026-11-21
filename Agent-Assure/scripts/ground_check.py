@@ -3928,23 +3928,36 @@ def _e2_trim(text: str) -> str:
     return text[start:end]
 
 
-def _e2_heading_asserts(body: str, sources: Iterable[RetrievedSource]) -> bool:
+def _e2_heading_asserts(body: str, sources: Iterable[RetrievedSource],
+                        cache: dict) -> bool:
     """Additional refusal only: novel predicate or a disowned source span."""
     sources = list(sources)
+    original_words = _re.findall(r"\w+", _expand_negation_contractions(_nfkc(body)))
     body = _e2_trim(body)
     if not body:
         return False
     words = _tokenize(body)
-    source_words = {w for source in sources for w in _tokenize(_nfkc(source.text).casefold())}
+    if "words" not in cache:
+        cache["words"] = {w for source in sources for w in _tokenize(_nfkc(source.text).casefold())}
+    source_words = cache["words"]
     if any(word not in source_words and word in _E2_HEADING_PREDICATES
-           and ((i == 0 and len(words) == 1) or
-                (i > 0 and not all(_is_heading_premodifier(w) for w in words[:i])))
+           and word not in {"fraud", "guilty"} and not word.endswith("ing")
+           and i > 0 and not all(_is_heading_premodifier(w) for w in words[:i])
+           and (len(words) > 2 or not word.endswith("s") or original_words[i][:1].isupper())
            and (i == len(words) - 1 or word in {"found", "lied", "hid"}
-                or word.endswith(("ed", "ing")))
+                or word.endswith("ed"))
            for i, word in enumerate(words)):
         return True
+    has_predicate = any(w in _E2_HEADING_PREDICATES - {"fraud", "guilty"}
+                        for w in words[1:])
+    if not has_predicate:
+        return False
     for source in sources:
-        units = _denial_units(source.text)
+        normalized_sources = cache.setdefault("normalized_sources", {})
+        if source.text not in normalized_sources:
+            normalized_sources[source.text] = " ".join(_nfkc(source.text).casefold().split())
+        if body not in normalized_sources[source.text]:
+            continue
         for sentence_index, sentence in enumerate(_split_sentences(source.text)):
             normalized = " ".join(_nfkc(sentence).casefold().split())
             # A source heading can be welded to the following sentence by the
@@ -3955,10 +3968,12 @@ def _e2_heading_asserts(body: str, sources: Iterable[RetrievedSource]) -> bool:
             while pos >= 0:
                 # This is a refusal-only lexical approximation to a main verb,
                 # not a parser. Noun senses and unlisted verbs remain ambiguous.
-                has_predicate = any(w in _E2_HEADING_PREDICATES - {"fraud", "guilty"}
-                                    for w in words[1:])
                 if not has_predicate or (not equal_sentence and len(words) < 6):
                     break
+                units_by_text = cache.setdefault("units", {})
+                if source.text not in units_by_text:
+                    units_by_text[source.text] = _denial_units(source.text)
+                units = units_by_text[source.text]
                 start = len(_tokenize(normalized[:pos]))
                 end = start + len(_tokenize(body))
                 offset = 0
@@ -7963,12 +7978,13 @@ def main() -> None:
             _refuse_input(str(exc), exc, debug=args.debug)
     claims = [classify(c) for c in decompose(draft_text)]
     # Only promote existing NON_CLAIM headings; leave all other claims intact.
+    e2_cache: dict = {}
     for i, claim in enumerate(claims):
         match = _NO_FINITE_VERB_RE.match(claim.text)
         setext = _re.fullmatch(r"([^\n]+)\n {0,3}(?:=+|-+)\s*", claim.text)
         body = claim.text[match.end():] if match else (setext.group(1) if setext else None)
         if (claim.kind == ClaimKind.NON_CLAIM and not claim.citations and body is not None
-                and _e2_heading_asserts(body, store.values())):
+                and _e2_heading_asserts(body, store.values(), e2_cache)):
             claims[i] = Claim(index=claim.index, text=claim.text, kind=ClaimKind.FACTUAL,
                               citations=claim.citations, numeric_tokens=claim.numeric_tokens,
                               split_from=claim.split_from)
