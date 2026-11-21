@@ -3789,6 +3789,90 @@ class _DenialUnit:
     main: _UnitContext
     r40: _UnitContext
     view: _ViewUnit | None
+    e1_context: bool
+
+
+_E1_UP_VERBS = frozenset({"make", "makes", "made", "making", "cook", "cooks", "cooked", "cooking",
+                          "dream", "dreams", "dreamed", "dreamt", "dreaming"})
+_E1_PARTICIPLES = frozenset({"made", "cooked", "dreamed", "dreamt"})
+
+
+def _e1_falsity(tokens: tuple[str, ...]) -> bool:
+    """Pronoun-subject or object phrasal falsity, solely for additive refusal.
+
+    CEILING: lexical, not coreference: an unrelated pronoun can refer to a
+    physical object (Error-A); unlisted verbs and intervening modifiers can
+    evade it (fail-open). Zero-width and soft-hyphen verb breaks, long relative
+    clauses, acquisition/deal objects, whipped/conjured/thought up, "the
+    following", distant later paragraphs, unlisted reporting frames and purpose
+    verbs, comma-following clauses, and passive "made up to deceive" remain
+    open. A parser and discourse model are the upgrade path.
+    """
+    words = [_confusable_fold(t) for t in tokens]
+    for i, word in enumerate(words):
+        if word not in _E1_UP_VERBS:
+            continue
+        if i + 1 < len(words) and words[i + 1] == "up":
+            # The active post-particle object must name discourse content.
+            rest = words[i + 2:i + 5]
+            object_words = rest[:]
+            if object_words and object_words[0] in {"the", "a", "an"}:
+                object_words = object_words[1:]
+            if object_words and object_words[0] == "whole":
+                object_words = object_words[1:]
+            if (rest and rest[0] != "of" and rest[:2] != ["the", "numbers"]
+                    and ((object_words and object_words[0] in _DISCOURSE_NOUNS)
+                         or rest[:3] == ["the", "whole", "thing"])):
+                return True
+            # Preserve constituting and "made up to ..." idioms.
+            for start in range(i) if not rest or (rest[0] != "of" and not (word == "made" and rest[0] == "to")) else ():
+                if start and words[start - 1] not in {"but", "and", "yet", "however", "frankly", "truth", "said", "say", "says", "reported"}:
+                    continue
+                for subject in (("that", "one"), ("this", "one"), ("that",), ("this",), ("it",), ("these",), ("those",),
+                                ("all", "of", "it"), ("the", "whole", "thing")):
+                    tail = words[start + len(subject):i]
+                    auxiliaries = {"is", "are", "was", "were", "be", "been", "being", "has", "have", "had", "will", "may", "might", "must", "could", "would", "should", "can", "got"}
+                    modifiers = {"all", "just", "then", "entirely", "completely", "simply", "really", "totally"}
+                    if (tuple(words[start:start + len(subject)]) == subject and tail
+                            and any(w in auxiliaries for w in tail)
+                            and all(w in auxiliaries | modifiers or w.endswith("ly") for w in tail)
+                            and word in _E1_PARTICIPLES):
+                        return True
+        # Active split object, with a terminal or bounded adjunct after 'up'.
+        for j in range(i + 2, min(i + 6, len(words))):
+            obj = words[i + 1:j]
+            valid = (tuple(obj) in {("it",), ("that",), ("this",), ("these",), ("those",),
+                                    ("it", "all"), ("all", "of", "it"), ("all", "that"),
+                                    ("everything",), ("stuff",), ("the", "whole", "thing")}
+                     or bool(set(obj) & _DISCOURSE_NOUNS))
+            after = words[j + 1:]
+            weekdays = {"monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"}
+            terminal = (not after or (after[0] == "by" and len(after) > 1)
+                        or (len(after) == 1 and (after[0].endswith("ly") or after[0] == "wholesale"))
+                        or after[:3] in (["out", "of", "thin"], ["out", "of", "whole"], ["out", "of", "nothing"])
+                        or after[:2] == ["as", "a"]
+                        or (len(after) >= 2 and after[0] == "to" and after[1] in {"sell", "deceive", "mislead", "trick", "fool"})
+                        or (len(after) == 1 and after[0] in {"again", "yesterday", "today", "tomorrow"})
+                        or (len(after) == 2 and (
+                            (after[0] == "in" and len(after[1]) == 4 and after[1].isdigit())
+                            or (after[0] == "on" and after[1] in weekdays)
+                            or (after[0] in {"last", "this", "next"}
+                                and after[1] in weekdays | {"week", "month", "year", "morning", "evening"}))))
+            if words[j] == "up" and valid and terminal:
+                return True
+    return False
+
+
+def _e1_contexts(source_text: str) -> list[bool]:
+    """New paragraph and adjacent-sentence flags; never alter R40's flags."""
+    sentences = _split_sentences(source_text)
+    spans = _sentence_spans(source_text, sentences)
+    paragraphs = _paragraph_ids(source_text, spans)
+    flags = [any(_e1_falsity(tuple(_tokenize(clause))) for clause in
+                 _re.split(r";|,\s*(?:but|and)\s+", s, flags=_re.IGNORECASE)) for s in sentences]
+    return [((i > 0 and flags[i - 1]) or (i + 1 < len(flags) and flags[i + 1])
+             or any(i != j and flags[j] and bool(paragraphs[i] & paragraphs[j])
+                    for j in range(len(flags)))) for i in range(len(flags))]
 
 
 def _denial_units(source_text: str) -> list[_DenialUnit]:
@@ -3800,7 +3884,8 @@ def _denial_units(source_text: str) -> list[_DenialUnit]:
     if len(main) != len(r40) or any(m.tokens != r.tokens for m, r in zip(main, r40)):
         raise RuntimeError("main and R40 denial readings split the source into different units")
     views = _view_unit_contexts(source_text, r40)
-    return [_DenialUnit(m, r, v) for m, r, v in zip(main, r40, views)]
+    e1 = _e1_contexts(source_text)
+    return [_DenialUnit(m, r, v, e1[m.sentence_index]) for m, r, v in zip(main, r40, views)]
 
 
 def _match_denied(unit: _DenialUnit, start: int, end: int, own: frozenset[str]) -> bool:
@@ -3809,7 +3894,99 @@ def _match_denied(unit: _DenialUnit, start: int, end: int, own: frozenset[str]) 
     (`_unit_denied` on `unit.main`), then the R40 reading OR'd
     (`_r40_match_denied`). So the branch refuses whenever main refuses, for
     every input, by construction (RED-TEAM-R42; D-69). Pure."""
-    return _unit_denied(unit.main, start) or _r40_match_denied(unit.r40, unit.view, start, end, own)
+    return (_unit_denied(unit.main, start)
+            or _r40_match_denied(unit.r40, unit.view, start, end, own)
+            or unit.e1_context
+            or _e1_falsity(unit.r40.prefix + unit.r40.tokens[:start])
+            or _e1_falsity(tuple(t for t in unit.r40.tokens[end:] + unit.r40.suffix if t not in own)))
+
+
+# CEILING: lexical; upgrade: POS tagger. Missing words leave main's heading
+# classification unchanged. Some forms also have noun senses (honest cost).
+_E2_HEADING_PREDICATES = frozenset({
+    "found", "find", "finds", "finding", "lied", "lie", "lies", "lying",
+    "hid", "hide", "hides", "hiding", "admit", "admits", "admitted", "admitting",
+    "collapse", "collapses", "collapsed", "collapsing", "fold", "folds", "folded", "folding",
+    "fail", "fails", "failed", "failing", "fine", "fines", "fined", "fining",
+    "charge", "charges", "charged", "charging", "arrest", "arrests", "arrested", "arresting",
+    "resign", "resigns", "resigned", "resigning", "quit", "quits", "quitting",
+    "sue", "sues", "sued", "suing", "guilty", "fraud", "ban", "bans", "banned", "banning",
+    "cheat", "cheats", "cheated", "cheating", "leak", "leaks", "leaked", "leaking",
+    "hack", "hacks", "hacked", "hacking", "stumble", "stumbles", "stumbled", "stumbling",
+    "double", "doubles", "doubled", "doubling", "halve", "halves", "halved", "halving",
+    "crash", "crashes", "crashed", "crashing",
+})
+
+
+def _e2_trim(text: str) -> str:
+    text = " ".join(_nfkc(text).casefold().split())
+    start, end = 0, len(text)
+    while start < end and (text[start].isspace() or unicodedata.category(text[start]).startswith("P")):
+        start += 1
+    while end > start and (text[end - 1].isspace() or unicodedata.category(text[end - 1]).startswith("P")):
+        end -= 1
+    return text[start:end]
+
+
+def _e2_heading_asserts(body: str, sources: Iterable[RetrievedSource],
+                        cache: dict) -> bool:
+    """Additional refusal only: novel predicate or a disowned source span."""
+    sources = list(sources)
+    original_words = _re.findall(r"\w+", _expand_negation_contractions(_nfkc(body)))
+    body = _e2_trim(body)
+    if not body:
+        return False
+    words = _tokenize(body)
+    if "words" not in cache:
+        cache["words"] = {w for source in sources for w in _tokenize(_nfkc(source.text).casefold())}
+    source_words = cache["words"]
+    if any(word not in source_words and word in _E2_HEADING_PREDICATES
+           and word not in {"fraud", "guilty"} and not word.endswith("ing")
+           and i > 0 and not all(_is_heading_premodifier(w) for w in words[:i])
+           and (len(words) > 2 or not word.endswith("s") or original_words[i][:1].isupper())
+           and (i == len(words) - 1 or word in {"found", "lied", "hid"}
+                or word.endswith("ed"))
+           for i, word in enumerate(words)):
+        return True
+    has_predicate = any(w in _E2_HEADING_PREDICATES - {"fraud", "guilty"}
+                        for w in words[1:])
+    if not has_predicate:
+        return False
+    for source in sources:
+        normalized_sources = cache.setdefault("normalized_sources", {})
+        if source.text not in normalized_sources:
+            normalized_sources[source.text] = " ".join(_nfkc(source.text).casefold().split())
+        if body not in normalized_sources[source.text]:
+            continue
+        for sentence_index, sentence in enumerate(_split_sentences(source.text)):
+            normalized = " ".join(_nfkc(sentence).casefold().split())
+            # A source heading can be welded to the following sentence by the
+            # sentence splitter. It is not itself an asserted source sentence.
+            sentence_body = sentence.rsplit("\n", 1)[-1]
+            equal_sentence = body == _e2_trim(sentence_body)
+            pos = normalized.find(body)
+            while pos >= 0:
+                # This is a refusal-only lexical approximation to a main verb,
+                # not a parser. Noun senses and unlisted verbs remain ambiguous.
+                if not has_predicate or (not equal_sentence and len(words) < 6):
+                    break
+                units_by_text = cache.setdefault("units", {})
+                if source.text not in units_by_text:
+                    units_by_text[source.text] = _denial_units(source.text)
+                units = units_by_text[source.text]
+                start = len(_tokenize(normalized[:pos]))
+                end = start + len(_tokenize(body))
+                offset = 0
+                for unit in (u for u in units if u.main.sentence_index == sentence_index):
+                    limit = offset + len(unit.main.tokens)
+                    if offset <= start < limit:
+                        if _match_denied(unit, start - offset, min(end, limit) - offset,
+                                         frozenset(_tokenize(body))):
+                            return True
+                        break
+                    offset = limit
+                pos = normalized.find(body, pos + 1)
+    return False
 
 
 def _r40_match_denied(ctx: _UnitContext, view: _ViewUnit | None, start: int, end: int,
@@ -7800,6 +7977,17 @@ def main() -> None:
         except ValueError as exc:
             _refuse_input(str(exc), exc, debug=args.debug)
     claims = [classify(c) for c in decompose(draft_text)]
+    # Only promote existing NON_CLAIM headings; leave all other claims intact.
+    e2_cache: dict = {}
+    for i, claim in enumerate(claims):
+        match = _NO_FINITE_VERB_RE.match(claim.text)
+        setext = _re.fullmatch(r"([^\n]+)\n {0,3}(?:=+|-+)\s*", claim.text)
+        body = claim.text[match.end():] if match else (setext.group(1) if setext else None)
+        if (claim.kind == ClaimKind.NON_CLAIM and not claim.citations and body is not None
+                and _e2_heading_asserts(body, store.values(), e2_cache)):
+            claims[i] = Claim(index=claim.index, text=claim.text, kind=ClaimKind.FACTUAL,
+                              citations=claim.citations, numeric_tokens=claim.numeric_tokens,
+                              split_from=claim.split_from)
     report = score_report(
         claims, store, threshold=args.threshold,
         session_scoped=args.session_id is not None,

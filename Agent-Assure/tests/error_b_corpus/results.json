@@ -2,13 +2,13 @@
  "summary": {
   "all": {
    "drafts": 280,
-   "escaped": 11,
-   "escaped_pct": 3.9,
-   "pass": 7,
-   "pass_pct": 2.5,
-   "NEEDS_WORK": 218,
-   "FAIL": 55,
-   "control_pass": 190
+   "escaped": 0,
+   "escaped_pct": 0.0,
+   "pass": 0,
+   "pass_pct": 0.0,
+   "NEEDS_WORK": 220,
+   "FAIL": 60,
+   "control_pass": 189
   },
   "by_class": {
    "absence_claim": {
@@ -33,33 +33,33 @@
    },
    "claim_heading": {
     "drafts": 15,
-    "escaped": 5,
-    "escaped_pct": 33.3,
-    "pass": 5,
-    "pass_pct": 33.3,
-    "NEEDS_WORK": 9,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 14,
     "FAIL": 1,
     "control_pass": 14
    },
    "denied_2back": {
     "drafts": 16,
-    "escaped": 3,
-    "escaped_pct": 18.8,
-    "pass": 1,
-    "pass_pct": 6.2,
-    "NEEDS_WORK": 11,
-    "FAIL": 4,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 10,
+    "FAIL": 6,
     "control_pass": 9
    },
    "denied_3plus_back": {
     "drafts": 16,
-    "escaped": 3,
-    "escaped_pct": 18.8,
-    "pass": 1,
-    "pass_pct": 6.2,
-    "NEEDS_WORK": 8,
-    "FAIL": 7,
-    "control_pass": 6
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 6,
+    "FAIL": 10,
+    "control_pass": 5
    },
    "denied_adjacent": {
     "drafts": 16,
@@ -195,22 +195,22 @@
   "by_genre": {
    "api_reference": {
     "drafts": 20,
-    "escaped": 1,
-    "escaped_pct": 5.0,
-    "pass": 1,
-    "pass_pct": 5.0,
-    "NEEDS_WORK": 14,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 15,
     "FAIL": 5,
     "control_pass": 12
    },
    "changelog": {
     "drafts": 20,
-    "escaped": 1,
-    "escaped_pct": 5.0,
+    "escaped": 0,
+    "escaped_pct": 0.0,
     "pass": 0,
     "pass_pct": 0.0,
-    "NEEDS_WORK": 15,
-    "FAIL": 5,
+    "NEEDS_WORK": 14,
+    "FAIL": 6,
     "control_pass": 11
    },
    "code_review": {
@@ -225,12 +225,12 @@
    },
    "faq": {
     "drafts": 20,
-    "escaped": 2,
-    "escaped_pct": 10.0,
-    "pass": 1,
-    "pass_pct": 5.0,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
     "NEEDS_WORK": 13,
-    "FAIL": 6,
+    "FAIL": 7,
     "control_pass": 11
    },
    "financial_report": {
@@ -245,22 +245,22 @@
    },
    "howto_code": {
     "drafts": 20,
-    "escaped": 2,
-    "escaped_pct": 10.0,
-    "pass": 2,
-    "pass_pct": 10.0,
-    "NEEDS_WORK": 15,
-    "FAIL": 3,
-    "control_pass": 15
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 16,
+    "FAIL": 4,
+    "control_pass": 14
    },
    "hr_policy": {
     "drafts": 20,
-    "escaped": 1,
-    "escaped_pct": 5.0,
+    "escaped": 0,
+    "escaped_pct": 0.0,
     "pass": 0,
     "pass_pct": 0.0,
-    "NEEDS_WORK": 15,
-    "FAIL": 5,
+    "NEEDS_WORK": 14,
+    "FAIL": 6,
     "control_pass": 10
    },
    "incident": {
@@ -285,31 +285,31 @@
    },
    "news_brief": {
     "drafts": 20,
-    "escaped": 2,
-    "escaped_pct": 10.0,
-    "pass": 1,
-    "pass_pct": 5.0,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
     "NEEDS_WORK": 15,
-    "FAIL": 4,
+    "FAIL": 5,
     "control_pass": 14
    },
    "product_docs": {
     "drafts": 20,
-    "escaped": 1,
-    "escaped_pct": 5.0,
-    "pass": 1,
-    "pass_pct": 5.0,
-    "NEEDS_WORK": 17,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 18,
     "FAIL": 2,
     "control_pass": 16
    },
    "readme": {
     "drafts": 20,
-    "escaped": 1,
-    "escaped_pct": 5.0,
-    "pass": 1,
-    "pass_pct": 5.0,
-    "NEEDS_WORK": 17,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 18,
     "FAIL": 2,
     "control_pass": 14
    },
@@ -427,11 +427,11 @@
    },
    "claim_heading/heading0": {
     "drafts": 2,
-    "escaped": 2,
-    "escaped_pct": 100.0,
-    "pass": 2,
-    "pass_pct": 100.0,
-    "NEEDS_WORK": 0,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 2,
     "FAIL": 0,
     "control_pass": 2
    },
@@ -457,11 +457,11 @@
    },
    "claim_heading/heading11": {
     "drafts": 1,
-    "escaped": 1,
-    "escaped_pct": 100.0,
-    "pass": 1,
-    "pass_pct": 100.0,
-    "NEEDS_WORK": 0,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
     "FAIL": 0,
     "control_pass": 1
    },
@@ -477,11 +477,11 @@
    },
    "claim_heading/heading3": {
     "drafts": 1,
-    "escaped": 1,
-    "escaped_pct": 100.0,
-    "pass": 1,
-    "pass_pct": 100.0,
-    "NEEDS_WORK": 0,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
     "FAIL": 0,
     "control_pass": 1
    },
@@ -497,11 +497,11 @@
    },
    "claim_heading/heading5": {
     "drafts": 1,
-    "escaped": 1,
-    "escaped_pct": 100.0,
-    "pass": 1,
-    "pass_pct": 100.0,
-    "NEEDS_WORK": 0,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 1,
     "FAIL": 0,
     "control_pass": 1
    },
@@ -547,32 +547,32 @@
    },
    "denied_2back/one_filler": {
     "drafts": 16,
-    "escaped": 3,
-    "escaped_pct": 18.8,
-    "pass": 1,
-    "pass_pct": 6.2,
-    "NEEDS_WORK": 11,
-    "FAIL": 4,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
+    "NEEDS_WORK": 10,
+    "FAIL": 6,
     "control_pass": 9
    },
    "denied_3plus_back/2_fillers": {
     "drafts": 6,
-    "escaped": 1,
-    "escaped_pct": 16.7,
-    "pass": 1,
-    "pass_pct": 16.7,
+    "escaped": 0,
+    "escaped_pct": 0.0,
+    "pass": 0,
+    "pass_pct": 0.0,
     "NEEDS_WORK": 2,
-    "FAIL": 3,
-    "control_pass": 2
+    "FAIL": 4,
+    "control_pass": 1
    },
    "denied_3plus_back/3_fillers": {
     "drafts": 5,
-    "escaped": 2,
-    "escaped_pct": 40.0,
+    "escaped": 0,
+    "escaped_pct": 0.0,
     "pass": 0,
     "pass_pct": 0.0,
-    "NEEDS_WORK": 4,
-    "FAIL": 1,
+    "NEEDS_WORK": 2,
+    "FAIL": 3,
     "control_pass": 2
    },
    "denied_3plus_back/4_fillers": {
@@ -1173,15 +1173,15 @@
    "genre": "api_reference",
    "class": "claim_heading",
    "variant": "heading0",
-   "gate": "PASS",
-   "score": 100.0,
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNCITED"
    ],
    "fab_kinds": [
-    "NON_CLAIM"
+    "FACTUAL"
    ],
-   "escaped": true,
+   "escaped": false,
    "other_refused": 0,
    "control_gate": "PASS"
   },
@@ -1411,15 +1411,15 @@
    "genre": "changelog",
    "class": "denied_3plus_back",
    "variant": "3_fillers",
-   "gate": "NEEDS_WORK",
-   "score": 75.0,
+   "gate": "FAIL",
+   "score": 50.0,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNGROUNDED"
    ],
    "fab_kinds": [
     "FACTUAL"
    ],
-   "escaped": true,
+   "escaped": false,
    "other_refused": 1,
    "control_gate": "NEEDS_WORK"
   },
@@ -2093,15 +2093,15 @@
    "genre": "faq",
    "class": "claim_heading",
    "variant": "heading3",
-   "gate": "PASS",
-   "score": 100.0,
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNCITED"
    ],
    "fab_kinds": [
-    "NON_CLAIM"
+    "FACTUAL"
    ],
-   "escaped": true,
+   "escaped": false,
    "other_refused": 0,
    "control_gate": "PASS"
   },
@@ -2314,15 +2314,15 @@
    "genre": "faq",
    "class": "denied_2back",
    "variant": "one_filler",
-   "gate": "NEEDS_WORK",
-   "score": 75.0,
+   "gate": "FAIL",
+   "score": 50.0,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNGROUNDED"
    ],
    "fab_kinds": [
     "NUMERIC"
    ],
-   "escaped": true,
+   "escaped": false,
    "other_refused": 1,
    "control_gate": "NEEDS_WORK"
   },
@@ -2705,15 +2705,15 @@
    "genre": "howto_code",
    "class": "claim_heading",
    "variant": "heading5",
-   "gate": "PASS",
-   "score": 100.0,
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNCITED"
    ],
    "fab_kinds": [
-    "NON_CLAIM"
+    "FACTUAL"
    ],
-   "escaped": true,
+   "escaped": false,
    "other_refused": 0,
    "control_gate": "PASS"
   },
@@ -2945,17 +2945,17 @@
    "genre": "howto_code",
    "class": "denied_3plus_back",
    "variant": "2_fillers",
-   "gate": "PASS",
-   "score": 100.0,
+   "gate": "FAIL",
+   "score": 50.0,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNGROUNDED"
    ],
    "fab_kinds": [
     "FACTUAL"
    ],
-   "escaped": true,
-   "other_refused": 0,
-   "control_gate": "PASS"
+   "escaped": false,
+   "other_refused": 1,
+   "control_gate": "NEEDS_WORK"
   },
   {
    "id": "howto_code_15_denied_same_sentence",
@@ -3234,17 +3234,17 @@
    "genre": "hr_policy",
    "class": "denied_2back",
    "variant": "one_filler",
-   "gate": "NEEDS_WORK",
-   "score": 75.0,
+   "gate": "FAIL",
+   "score": 25.0,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNGROUNDED"
    ],
    "fab_kinds": [
     "NUMERIC"
    ],
-   "escaped": true,
-   "other_refused": 1,
-   "control_gate": "NEEDS_WORK"
+   "escaped": false,
+   "other_refused": 2,
+   "control_gate": "FAIL"
   },
   {
    "id": "hr_policy_12_denied_3plus_back",
@@ -4156,15 +4156,15 @@
    "genre": "news_brief",
    "class": "denied_2back",
    "variant": "one_filler",
-   "gate": "PASS",
-   "score": 100.0,
+   "gate": "NEEDS_WORK",
+   "score": 80.0,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNGROUNDED"
    ],
    "fab_kinds": [
     "FACTUAL"
    ],
-   "escaped": true,
+   "escaped": false,
    "other_refused": 0,
    "control_gate": "PASS"
   },
@@ -4173,15 +4173,15 @@
    "genre": "news_brief",
    "class": "denied_3plus_back",
    "variant": "3_fillers",
-   "gate": "NEEDS_WORK",
-   "score": 60.0,
+   "gate": "FAIL",
+   "score": 40.0,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNGROUNDED"
    ],
    "fab_kinds": [
     "FACTUAL"
    ],
-   "escaped": true,
+   "escaped": false,
    "other_refused": 2,
    "control_gate": "FAIL"
   },
@@ -4547,15 +4547,15 @@
    "genre": "product_docs",
    "class": "claim_heading",
    "variant": "heading11",
-   "gate": "PASS",
-   "score": 100.0,
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNCITED"
    ],
    "fab_kinds": [
-    "NON_CLAIM"
+    "FACTUAL"
    ],
-   "escaped": true,
+   "escaped": false,
    "other_refused": 0,
    "control_gate": "PASS"
   },
@@ -4853,15 +4853,15 @@
    "genre": "readme",
    "class": "claim_heading",
    "variant": "heading0",
-   "gate": "PASS",
-   "score": 100.0,
+   "gate": "NEEDS_WORK",
+   "score": 75.0,
    "fab_verdicts": [
-    "GROUNDED"
+    "UNCITED"
    ],
    "fab_kinds": [
-    "NON_CLAIM"
+    "FACTUAL"
    ],
-   "escaped": true,
+   "escaped": false,
    "other_refused": 0,
    "control_gate": "PASS"
   },

@@ -31,12 +31,12 @@ OPEN_SOURCES = {
 }
 
 OPEN_HEADINGS = [
-    "# Bank Folds",       # plural-noun sense: "Training folds", "Protein folds"
-    "# Stock Drops",      # "Packet drops", "Frame drops"
-    "# Bank Defaults",    # "Configuration defaults"
-    "# CEO Out",          # phrasal verbs: "Sign out", "Scale out"
-    "# CEO Lies",         # "Where the problem lies"
-    "## Revenue Doubling",  # "Frequency doubling"
+    "# Bank Folds",       # E2-lite closes this when folds is novel
+    pytest.param("# Stock Drops", marks=pytest.mark.xfail(strict=True, reason="R40 ceiling")),
+    pytest.param("# Bank Defaults", marks=pytest.mark.xfail(strict=True, reason="R40 ceiling")),
+    pytest.param("# CEO Out", marks=pytest.mark.xfail(strict=True, reason="R40 ceiling")),
+    "# CEO Lies",         # E2-lite closes this when lies is novel
+    pytest.param("## Revenue Doubling", marks=pytest.mark.xfail(strict=True, reason="ambiguous gerund noun label")),
 ]
 
 HEAD_SOURCE = CLAIM + "."
@@ -50,7 +50,6 @@ def test_r40_open_source_shape_is_refused(tmp_path: Path, name: str) -> None:
     assert report["gate"] != "PASS", (name, report["gate"])
 
 
-@pytest.mark.xfail(strict=True, reason="R40 CEILING: open on main ef3ae1f and after R40")
 @pytest.mark.parametrize("heading", OPEN_HEADINGS)
 def test_r40_open_heading_shape_is_scored(tmp_path: Path, heading: str) -> None:
     report = gate(tmp_path, HEAD_SOURCE, heading + "\n\n" + HEAD_BODY)

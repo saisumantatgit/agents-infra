@@ -155,6 +155,10 @@ def test_match_denied_ors_r40_onto_main_verdict() -> None:
             and first.func.id == "_unit_denied"
             and isinstance(first.args[0], ast.Attribute) and first.args[0].attr == "main"), (
         "the first operand of _match_denied must be main's verdict: _unit_denied(unit.main, ...)")
+    second = expr.values[1]
+    assert (isinstance(second, ast.Call) and isinstance(second.func, ast.Name)
+            and second.func.id == "_r40_match_denied"), (
+        "E1 must retain the complete R40 verdict as the second OR operand")
 
 
 def test_r40_reading_is_entered_only_through_match_denied() -> None:
@@ -164,12 +168,12 @@ def test_r40_reading_is_entered_only_through_match_denied() -> None:
     allowed = {
         "_source_unit_contexts_r40": {"_denial_units", "_view_unit_contexts"},
         "_r40_match_denied": {"_match_denied"},
-        "_denial_units": {"_contained_with_matching_polarity", "_anchor_sentence_covers"},
+        "_denial_units": {"_contained_with_matching_polarity", "_anchor_sentence_covers", "_e2_heading_asserts"},
     }
     for target, callers in allowed.items():
         actual = {name for name, node in funcs.items() if target in _names(node) and name != target}
         assert actual <= callers, f"{target} is read by {sorted(actual - callers)}, outside {sorted(callers)}"
-    # The two consumers must decide through _match_denied, never _unit_denied/_unit_denied_r40.
+    # Every consumer must decide through _match_denied, never either reading alone.
     for consumer in allowed["_denial_units"]:
         names = _names(funcs[consumer])
         assert "_match_denied" in names, consumer
