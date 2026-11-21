@@ -3918,8 +3918,9 @@ _E2_HEADING_PREDICATES = frozenset({
 })
 
 
-def _e2_trim(text: str) -> str:
-    text = " ".join(_nfkc(text).casefold().split())
+def _e2_trim(text: str, *, preserve_case: bool = False) -> str:
+    text = _nfkc(text)
+    text = " ".join((text if preserve_case else text.casefold()).split())
     start, end = 0, len(text)
     while start < end and (text[start].isspace() or unicodedata.category(text[start]).startswith("P")):
         start += 1
@@ -3928,22 +3929,41 @@ def _e2_trim(text: str) -> str:
     return text[start:end]
 
 
+class HeadingAlignmentError(ValueError):
+    pass
+
+
 def _e2_heading_asserts(body: str, sources: Iterable[RetrievedSource],
                         cache: dict) -> bool:
     """Additional refusal only: novel predicate or a disowned source span."""
     sources = list(sources)
-    original_words = _re.findall(r"\w+", _expand_negation_contractions(_nfkc(body)))
+    heading = body
+    legacy_words = _re.findall(r"\w+", _expand_negation_contractions(_nfkc(body)))
+    original = _expand_negation_contractions(_e2_trim(body, preserve_case=True))
+    folded = "".join(char.casefold() for char in original)
+    uppercase = [char.isupper() for char in original for _ in char.casefold()]
+    matches = list(_re.finditer(r"\w+", folded))
     body = _e2_trim(body)
     if not body:
         return False
     words = _tokenize(body)
+    if [match.group() for match in matches] != words:
+        raise HeadingAlignmentError(f"Heading tokens do not align: {heading!r}")
+    def capitalized(index: int) -> bool:
+        aligned = uppercase[matches[index].start()]
+        if len(legacy_words) > index and legacy_words[index][:1].isupper() and not aligned:
+            raise HeadingAlignmentError(f"Heading capitalization does not align: {heading!r}")
+        return aligned
+
+    # CEILING: This unkeyed cache is valid only while main() uses one store per run;
+    # key by store identity before allowing a cache to serve multiple stores.
     if "words" not in cache:
         cache["words"] = {w for source in sources for w in _tokenize(_nfkc(source.text).casefold())}
     source_words = cache["words"]
     if any(word not in source_words and word in _E2_HEADING_PREDICATES
            and word not in {"fraud", "guilty"} and not word.endswith("ing")
            and i > 0 and not all(_is_heading_premodifier(w) for w in words[:i])
-           and (len(words) > 2 or not word.endswith("s") or original_words[i][:1].isupper())
+           and (len(words) > 2 or not word.endswith("s") or capitalized(i))
            and (i == len(words) - 1 or word in {"found", "lied", "hid"}
                 or word.endswith("ed"))
            for i, word in enumerate(words)):
@@ -3971,6 +3991,8 @@ def _e2_heading_asserts(body: str, sources: Iterable[RetrievedSource],
                 if not has_predicate or (not equal_sentence and len(words) < 6):
                     break
                 units_by_text = cache.setdefault("units", {})
+                # CEILING: Disowned spans cost ~1.2s vs 0.2s at 30 headings x 200
+                # sources; larger stores break latency budgets: index spans by store.
                 if source.text not in units_by_text:
                     units_by_text[source.text] = _denial_units(source.text)
                 units = units_by_text[source.text]
