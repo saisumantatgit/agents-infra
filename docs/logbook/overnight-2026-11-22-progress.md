@@ -29,3 +29,4 @@ Verdict: PENDING (C2 merge gate in flight).
 ## 8. WITHDRAWALS
 ## 9. FRAMEWORKS
 ## 10. TEARDOWN
+| 11 | 00:26 IST | 1 (C2) | C2 round 3 committed c31df39, pushed, PR #54 opened. First-hand: suite 1659/2/87 exit 0; v1/v2/Error-A/usage results.json byte-identical to main's; v3 435 (n7-n10 → 0, n11 15); 195 adversary probes re-run by main loop: 0 more permissive. Final Opus adversary on c31df39 in flight to 00:55. | not measured (at close) | Reversibility (merge waits for adversary) |
