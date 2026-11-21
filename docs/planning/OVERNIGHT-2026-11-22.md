@@ -42,8 +42,10 @@ C1 R3 compose-before-grounding — Class T families F2, F3, F7, F8 (R45) and E2-
    structural guard (test_moat_r42_additive_structure) kept, re-pinned only with the reason in the PR;
    Opus adversary round with 0 blockers vs main; merged under D-100. If a family cannot close without
    refusing honest prose: CEILING + strict-xfail tripwire + report, not merged.
-C2 R4/R5 run agreement — Class T families N1, N2, N4–N11 and D9 (R46): a word or figure inside the claim
-   differs from, or is missing from, the source run; or a mid-sentence condition is dropped. Same DONE bar.
+C2 R5 figure parsing — Class T families N7, N8, N9, N10 (R46 Root B): spelled numbers, space-grouped
+   numbers, ranges, dates and versions. Same DONE bar. Built IN PARALLEL with C1 (D-143); merges after C1
+   on the combined tree. N1–N6 (R4) need Sai's ruling per R46; N11 is the pending C2-percent ruling; D9 needs
+   a controls re-run first — all three are re-derive candidates, not tonight's C2.
 Stretch (only once C1 is DONE or BLOCKED; C2 first):
 S0 #51 rework — a heading that E2-lite cannot align is REFUSED (scored as an ungrounded claim), never raised
    as an exception that kills the whole report; no flag parameter. Same DONE bar; the new PR names #51 as
