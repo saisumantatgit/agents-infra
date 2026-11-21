@@ -178,15 +178,13 @@ def test_CONTROL_the_same_denial_BEFORE_the_span_is_caught(tmp_path):
     assert code == 1
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "R14-02 OPEN, CRITICAL: _SPELLED_NUMBER_WORDS deliberately EXCLUDES "
-    "'one' — a CEILING recorded during J-43 — and that exclusion BREAKS the "
-    "word run, so 'one million' is checked only as 'million', which the "
-    "source does contain. A fabricated magnitude certifies while the "
-    "'ninety million' and '1 million' controls are refused. The recorded "
-    "ceiling is the attack."))
 def test_a_fabricated_magnitude_spelled_with_one_is_refused(tmp_path):
     """J-80: a fabricated FIGURE must be refused AS a figure problem.
+
+    R14-02, CLOSED by R5 / N7 (OVN-1122-C2, 2026-11-21): 'one' is still
+    excluded from _SPELLED_NUMBER_WORDS, so 'one million' reads as the run
+    'million' — but a spelled phrase must now EQUAL a whole source run, and the
+    source's run is 'nine million'. Was a strict xfail on this tripwire.
 
     `UNVERIFIED_NUMBER` is the only verdict that means "the number is not in the
     source". Any other refusal here — UNGROUNDED, UNCITED — would mean the
