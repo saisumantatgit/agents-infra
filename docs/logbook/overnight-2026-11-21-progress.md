@@ -32,6 +32,7 @@
 | 04:21 | E1 final adversary in flight; D8N held (draft #48) | D-136. | measured next tick | 0 Codex lanes | competence boundary (hook = Escalation #4) |
 | 04:24 | E1 MERGED (#49); E2-lite in flight | D-137: the far-denial half of the goal is met on the corpora (denied_2back/3plus/after certified 0). | measured next tick | 1 lane | error-cost asymmetry |
 | 04:51 | E2-lite r2 in flight | D-138: round 1 closed every heading attack and kept honest PASS, but cost 45 v2 controls through my brief's over-broad 'contained in'; narrowing. | measured next tick | 1 lane | FMEA detectability (the twin controls caught it), calibration |
+| 06:01 | E2-lite r3 (bounded, cut-off 06:55) | D-139. | 2.62M (main 0.74M + 10 agents 1.87M) | 1 lane | COST OF DELAY vs ERROR (cut-off), degradation under constraint |
 ---
 
 # MORNING REPORT — OVN-1121 (written 02:14 IST; budget and teardown lines updated at disarm)
