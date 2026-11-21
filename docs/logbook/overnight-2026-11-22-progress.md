@@ -13,3 +13,19 @@
 | 8 | 00:02 IST | 2 (C1, C2) | C1 round 4 committed bd1b37d (adversary probes 0/73 PASS; testimony); first-hand gate running. C1 → draft PR (D-148). C2 round 2 committed 81e7013; first-hand gate running; Opus adversary round 2 to 00:35. | not measured (at close) | Asymmetry of error cost; Goodhart |
 | 9 | 00:10 IST | 1 (C2) | C1 → draft PR #53 (first-hand gate on bd1b37d: suite 1636/2/91 green, v3 450, Error-A identical). C2 round 2 gated first-hand green; adversary r2 found 2 punctuation evasions; round 3 in flight to 00:45. DIFF = C2 only (C1 owned by Sai, reason: unmeasured honest cost). | not measured (at close) | Asymmetry of error cost |
 | 10 | 00:12 IST | 1 (C2) | C2 round 3 in flight (hand-back 00:45). Spend so far ~3.23M new tokens (main 0.30M + agents 2.93M; output + cache creation, de-duplicated by message id, since 22:34 IST). | ~3.23M | — |
+
+# MORNING REPORT — OVN-1122 (skeleton written 00:25 IST; filled at close)
+
+Verdict: PENDING (C2 merge gate in flight).
+
+## 1. DONE
+## 2. NOT DONE
+## 3. DENIED
+- **C2 builder:** the harness blocked its findings-file write ("subagents should return findings as text"). The detail was kept from its hand-back. Nothing was rerouted.
+## 4. ONE-WAY DOORS QUEUED
+## 5. DECISIONS WAITING ON YOU
+## 6. UNKNOWNS
+## 7. BUDGET
+## 8. WITHDRAWALS
+## 9. FRAMEWORKS
+## 10. TEARDOWN
