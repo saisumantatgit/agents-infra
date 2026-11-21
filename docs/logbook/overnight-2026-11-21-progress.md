@@ -33,6 +33,7 @@
 | 04:24 | E1 MERGED (#49); E2-lite in flight | D-137: the far-denial half of the goal is met on the corpora (denied_2back/3plus/after certified 0). | measured next tick | 1 lane | error-cost asymmetry |
 | 04:51 | E2-lite r2 in flight | D-138: round 1 closed every heading attack and kept honest PASS, but cost 45 v2 controls through my brief's over-broad 'contained in'; narrowing. | measured next tick | 1 lane | FMEA detectability (the twin controls caught it), calibration |
 | 06:01 | E2-lite r3 (bounded, cut-off 06:55) | D-139. | 2.62M (main 0.74M + 10 agents 1.87M) | 1 lane | COST OF DELAY vs ERROR (cut-off), degradation under constraint |
+| 06:18 | E2-lite follow-up (IndexError → named error, CEILING notes) in flight, cut-off 06:40 | D-140: #50 merged; main 1a94d08 verified first-hand (suite 1585; v1 0/280; v2 0/269; v3 490/510; Error-A unchanged). Teardown started: 7 worktrees removed; merged branches deleted local+remote; remote branches kept for open PRs #44 #45 #48. | ~2.9M (measured at disarm) | 1 lane | reversibility |
 ---
 
 # MORNING REPORT — OVN-1121 (written 02:14 IST; budget and teardown lines updated at disarm)
