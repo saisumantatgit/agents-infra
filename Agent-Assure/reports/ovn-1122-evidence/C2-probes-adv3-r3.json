@@ -1,0 +1,12 @@
+[
+{"id":"hc_list_of_figs","kind":"honest","src":"the three sites enrolled 12 450 300 pilots in the spring session","claim":"the three sites enrolled 450 pilots in the spring session"},
+{"id":"hc_up_to_spaced","kind":"honest","src":"enrolled 40 – 50 pilots in the spring session","claim":"enrolled up to 50 pilots in the spring session"},
+{"id":"hc_from_to","kind":"honest","src":"pilots rose from 40 to 50 in the spring session","claim":"pilots rose to 50 in the spring session"},
+{"id":"hc_tilde_approx","kind":"honest","src":"enrolled ~50 pilots in the spring session","claim":"enrolled ~50 pilots in the spring session"},
+{"id":"hc_score_dash","kind":"honest","src":"the team won 3-1 against the visitors with 200 pilots watching in the spring session","claim":"the team won with 200 pilots watching in the spring session"},
+{"id":"hc_page_range","kind":"honest","src":"see pages 12-15 where 200 pilots are listed in the spring session","claim":"200 pilots are listed in the spring session"},
+{"id":"hc_through_year","kind":"honest","src":"enrolled 200 pilots from 2019 through 2023 in the spring session","claim":"enrolled 200 pilots in 2023 in the spring session"},
+{"id":"hc_year_range","kind":"honest","src":"between 2019-2023 the office enrolled 200 pilots in the spring session","claim":"by 2023 the office enrolled 200 pilots in the spring session"},
+{"id":"hc_date_dash_name","kind":"honest","src":"on 03/04/2023 - a Monday - 200 pilots enrolled in the spring session","claim":"on 03/04/2023 200 pilots enrolled in the spring session"},
+{"id":"hc_dec_trailing","kind":"honest","src":"grew 2.50% in the spring session","claim":"grew 2.5% in the spring session"}
+]

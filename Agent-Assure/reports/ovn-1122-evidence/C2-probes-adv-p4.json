@@ -1,0 +1,13 @@
+[
+{"id":"date_comma_glue","kind":"fab","src":"on 03/04/2023, 200 pilots enrolled in the annual training program","claim":"on 03/04/2023,900 pilots enrolled in the annual training program"},
+{"id":"date_comma_glue2","kind":"fab","src":"on 03/04/2023 the pilots enrolled in the annual training program","claim":"on 03/04/2023,900 the pilots enrolled in the annual training program"},
+{"id":"date_pct_schedule","kind":"fab","src":"adopted the 3/2/1 bonus schedule for pilots in the annual training program","claim":"adopted the 3/2/1% bonus schedule for pilots in the annual training program"},
+{"id":"date_pct_schedule_main_ctrl","kind":"fab","src":"adopted the 3-2-1 bonus schedule for pilots in the annual training program","claim":"adopted the 3-2-1% bonus schedule for pilots in the annual training program"},
+{"id":"sp_cite_join_25","kind":"fab","src":"enrolled twenty [S2] five-year veterans in the annual training program","claim":"enrolled twenty-five veterans in the annual training program"},
+{"id":"grp_after_date","kind":"fab","src":"on 03/04/2023 the pilots enrolled 1 200 pilots in the annual training program","claim":"on 03/04/2023 the pilots enrolled 200 pilots in the annual training program"},
+{"id":"bound_upto_spelled_dash","kind":"honest","src":"enrolled 40–50 pilots in the annual training program","claim":"enrolled up to 50 pilots in the annual training program"},
+{"id":"grp_year_head","kind":"honest","src":"in 2023 200 pilots enrolled in the annual training program","claim":"in 2023 200 pilots enrolled in the annual training program"},
+{"id":"grp_may5","kind":"honest","src":"on May 5 200 pilots enrolled in the annual training program","claim":"200 pilots enrolled on May 5 in the annual training program"},
+{"id":"range_honest_both","kind":"honest","src":"enrolled 40-50 pilots in the annual training program","claim":"enrolled 40 to 50 pilots in the annual training program"},
+{"id":"range_honest_between","kind":"honest","src":"enrolled 40-50 pilots in the annual training program","claim":"enrolled between 40 and 50 pilots in the annual training program"}
+]

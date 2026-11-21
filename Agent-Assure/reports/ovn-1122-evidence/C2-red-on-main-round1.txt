@@ -1,0 +1,473 @@
+Using CPython 3.12.14
+Creating virtual environment at: .venv
+Installed 8 packages in 68ms
+FFFFFFFFFFFFFFFFFFF..................FF....F...                          [100%]
+=================================== FAILURES ===================================
+_ test_fragment_of_the_source_figure_is_refused_as_a_figure[N7-two-of-two-hundred] _
+
+tmp_path = PosixPath('/private/var/folders/ry/kmdls03154s9q4dp4v5nlxxw0000gn/T/pytest-of-saisumanth/pytest-4436/test_fragment_of_the_source_fi0')
+source_text = 'The Harbor Board, following a detailed review of the annual records by staff, enrolled two hundred pilots in the annual training program. The figures are unaudited.'
+claim_text = 'The Harbor Board, following a detailed review of the annual records by staff, enrolled two pilots in the annual training program'
+
+    @pytest.mark.parametrize("source_text,claim_text", ATTACKS)
+    def test_fragment_of_the_source_figure_is_refused_as_a_figure(
+        tmp_path: Path, source_text: str, claim_text: str
+    ) -> None:
+        code, verdict = _verdict(tmp_path, source_text, claim_text)
+>       assert verdict == "UNVERIFIED_NUMBER", (
+            f"refused as {verdict}, not as a figure problem — the figure reader may "
+            f"still take a fragment of the source's figure")
+E       AssertionError: refused as GROUNDED, not as a figure problem — the figure reader may still take a fragment of the source's figure
+E       assert 'GROUNDED' == 'UNVERIFIED_NUMBER'
+E         
+E         - UNVERIFIED_NUMBER
+E         + GROUNDED
+
+tests/test_moat_r5_figure_parsing.py:141: AssertionError
+_ test_fragment_of_the_source_figure_is_refused_as_a_figure[N7-hundred-of-two-hundred] _
+
+tmp_path = PosixPath('/private/var/folders/ry/kmdls03154s9q4dp4v5nlxxw0000gn/T/pytest-of-saisumanth/pytest-4436/test_fragment_of_the_source_fi1')
+source_text = 'The Harbor Board, following a detailed review of the annual records by staff, enrolled two hundred pilots in the annual training program. The figures are unaudited.'
+claim_text = 'The Harbor Board, following a detailed review of the annual records by staff, enrolled hundred pilots in the annual training program'
+
+    @pytest.mark.parametrize("source_text,claim_text", ATTACKS)
+    def test_fragment_of_the_source_figure_is_refused_as_a_figure(
+        tmp_path: Path, source_text: str, claim_text: str
+    ) -> None:
+        code, verdict = _verdict(tmp_path, source_text, claim_text)
+>       assert verdict == "UNVERIFIED_NUMBER", (
+            f"refused as {verdict}, not as a figure problem — the figure reader may "
+            f"still take a fragment of the source's figure")
+E       AssertionError: refused as GROUNDED, not as a figure problem — the figure reader may still take a fragment of the source's figure
+E       assert 'GROUNDED' == 'UNVERIFIED_NUMBER'
+E         
+E         - UNVERIFIED_NUMBER
+E         + GROUNDED
+
+tests/test_moat_r5_figure_parsing.py:141: AssertionError
+_ test_fragment_of_the_source_figure_is_refused_as_a_figure[N7-compound-with-and] _
+
+tmp_path = PosixPath('/private/var/folders/ry/kmdls03154s9q4dp4v5nlxxw0000gn/T/pytest-of-saisumanth/pytest-4436/test_fragment_of_the_source_fi2')
+source_text = 'The Harbor Board, following a detailed review of the annual records by staff, enrolled two hundred and fifty pilots in the annual training program. The figures are unaudited.'
+claim_text = 'The Harbor Board, following a detailed review of the annual records by staff, enrolled two hundred pilots in the annual training program'
+
+    @pytest.mark.parametrize("source_text,claim_text", ATTACKS)
+    def test_fragment_of_the_source_figure_is_refused_as_a_figure(
+        tmp_path: Path, source_text: str, claim_text: str
+    ) -> None:
+        code, verdict = _verdict(tmp_path, source_text, claim_text)
+>       assert verdict == "UNVERIFIED_NUMBER", (
+            f"refused as {verdict}, not as a figure problem — the figure reader may "
+            f"still take a fragment of the source's figure")
+E       AssertionError: refused as GROUNDED, not as a figure problem — the figure reader may still take a fragment of the source's figure
+E       assert 'GROUNDED' == 'UNVERIFIED_NUMBER'
+E         
+E         - UNVERIFIED_NUMBER
+E         + GROUNDED
+
+tests/test_moat_r5_figure_parsing.py:141: AssertionError
+_ test_fragment_of_the_source_figure_is_refused_as_a_figure[N7-spelled-range-endpoint] _
+
+tmp_path = PosixPath('/private/var/folders/ry/kmdls03154s9q4dp4v5nlxxw0000gn/T/pytest-of-saisumanth/pytest-4436/test_fragment_of_the_source_fi3')
+source_text = 'The Harbor Board, following a detailed review of the annual records by staff, enrolled forty to fifty pilots in the annual training program. The figures are unaudited.'
+claim_text = 'The Harbor Board, following a detailed review of the annual records by staff, enrolled fifty pilots in the annual training program'
+
+    @pytest.mark.parametrize("source_text,claim_text", ATTACKS)
+    def test_fragment_of_the_source_figure_is_refused_as_a_figure(
+        tmp_path: Path, source_text: str, claim_text: str
+    ) -> None:
+        code, verdict = _verdict(tmp_path, source_text, claim_text)
+>       assert verdict == "UNVERIFIED_NUMBER", (
+            f"refused as {verdict}, not as a figure problem — the figure reader may "
+            f"still take a fragment of the source's figure")
+E       AssertionError: refused as GROUNDED, not as a figure problem — the figure reader may still take a fragment of the source's figure
+E       assert 'GROUNDED' == 'UNVERIFIED_NUMBER'
+E         
+E         - UNVERIFIED_NUMBER
+E         + GROUNDED
+
+tests/test_moat_r5_figure_parsing.py:141: AssertionError
+__ test_fragment_of_the_source_figure_is_refused_as_a_figure[N8-space-group] ___
+
+tmp_path = PosixPath('/private/var/folders/ry/kmdls03154s9q4dp4v5nlxxw0000gn/T/pytest-of-saisumanth/pytest-4436/test_fragment_of_the_source_fi4')
+source_text = 'The Harbor Board, following a detailed review of the annual records by staff, enrolled 1 200 pilots in the annual training program. The figures are unaudited.'
+claim_text = 'The Harbor Board, following a detailed review of the annual records by staff, enrolled 200 pilots in the annual training program'
+
+    @pytest.mark.parametrize("source_text,claim_text", ATTACKS)
+    def test_fragment_of_the_source_figure_is_refused_as_a_figure(
+        tmp_path: Path, source_text: str, claim_text: str
+    ) -> None:
+        code, verdict = _verdict(tmp_path, source_text, claim_text)
+>       assert verdict == "UNVERIFIED_NUMBER", (
+            f"refused as {verdict}, not as a figure problem — the figure reader may "
+            f"still take a fragment of the source's figure")
+E       AssertionError: refused as GROUNDED, not as a figure problem — the figure reader may still take a fragment of the source's figure
+E       assert 'GROUNDED' == 'UNVERIFIED_NUMBER'
+E         
+E         - UNVERIFIED_NUMBER
+E         + GROUNDED
+
+tests/test_moat_r5_figure_parsing.py:141: AssertionError
+___ test_fragment_of_the_source_figure_is_refused_as_a_figure[N8-nbsp-group] ___
+
+tmp_path = PosixPath('/private/var/folders/ry/kmdls03154s9q4dp4v5nlxxw0000gn/T/pytest-of-saisumanth/pytest-4436/test_fragment_of_the_source_fi5')
+source_text = 'The Harbor Board, following a detailed review of the annual records by staff, enrolled 1\xa0200 pilots in the annual training program. The figures are unaudited.'
+claim_text = 'The Harbor Board, following a detailed review of the annual records by staff, enrolled 200 pilots in the annual training program'
+
+    @pytest.mark.parametrize("source_text,claim_text", ATTACKS)
+    def test_fragment_of_the_source_figure_is_refused_as_a_figure(
+        tmp_path: Path, source_text: str, claim_text: str
+    ) -> None:
+        code, verdict = _verdict(tmp_path, source_text, claim_text)
+>       assert verdict == "UNVERIFIED_NUMBER", (
+            f"refused as {verdict}, not as a figure problem — the figure reader may "
+            f"still take a fragment of the source's figure")
+E       AssertionError: refused as GROUNDED, not as a figure problem — the figure reader may still take a fragment of the source's figure
+E       assert 'GROUNDED' == 'UNVERIFIED_NUMBER'
+E         
+E         - UNVERIFIED_NUMBER
+E         + GROUNDED
+
+tests/test_moat_r5_figure_parsing.py:141: AssertionError
+___ test_fragment_of_the_source_figure_is_refused_as_a_figure[N8-two-groups] ___
+
+tmp_path = PosixPath('/private/var/folders/ry/kmdls03154s9q4dp4v5nlxxw0000gn/T/pytest-of-saisumanth/pytest-4436/test_fragment_of_the_source_fi6')
+source_text = 'The Harbor Board, following a detailed review of the annual records by staff, enrolled 12 450 300 pilots in the annual training program. The figures are unaudited.'
+claim_text = 'The Harbor Board, following a detailed review of the annual records by staff, enrolled 450 300 pilots in the annual training program'
+
+    @pytest.mark.parametrize("source_text,claim_text", ATTACKS)
+    def test_fragment_of_the_source_figure_is_refused_as_a_figure(
+        tmp_path: Path, source_text: str, claim_text: str
+    ) -> None:
+        code, verdict = _verdict(tmp_path, source_text, claim_text)
+>       assert verdict == "UNVERIFIED_NUMBER", (
+            f"refused as {verdict}, not as a figure problem — the figure reader may "
+            f"still take a fragment of the source's figure")
+E       AssertionError: refused as GROUNDED, not as a figure problem — the figure reader may still take a fragment of the source's figure
+E       assert 'GROUNDED' == 'UNVERIFIED_NUMBER'
+E         
+E         - UNVERIFIED_NUMBER
+E         + GROUNDED
+
+tests/test_moat_r5_figure_parsing.py:141: AssertionError
+_ test_fragment_of_the_source_figure_is_refused_as_a_figure[N9-hyphen-high-end] _
+
+tmp_path = PosixPath('/private/var/folders/ry/kmdls03154s9q4dp4v5nlxxw0000gn/T/pytest-of-saisumanth/pytest-4436/test_fragment_of_the_source_fi7')
+source_text = 'The Harbor Board, following a detailed review of the annual records by staff, enrolled 40-50 pilots in the annual training program. The figures are unaudited.'
+claim_text = 'The Harbor Board, following a detailed review of the annual records by staff, enrolled 50 pilots in the annual training program'
+
+    @pytest.mark.parametrize("source_text,claim_text", ATTACKS)
+    def test_fragment_of_the_source_figure_is_refused_as_a_figure(
+        tmp_path: Path, source_text: str, claim_text: str
+    ) -> None:
+        code, verdict = _verdict(tmp_path, source_text, claim_text)
+>       assert verdict == "UNVERIFIED_NUMBER", (
+            f"refused as {verdict}, not as a figure problem — the figure reader may "
+            f"still take a fragment of the source's figure")
+E       AssertionError: refused as GROUNDED, not as a figure problem — the figure reader may still take a fragment of the source's figure
+E       assert 'GROUNDED' == 'UNVERIFIED_NUMBER'
+E         
+E         - UNVERIFIED_NUMBER
+E         + GROUNDED
+
+tests/test_moat_r5_figure_parsing.py:141: AssertionError
+_ test_fragment_of_the_source_figure_is_refused_as_a_figure[N9-hyphen-low-end] _
+
+tmp_path = PosixPath('/private/var/folders/ry/kmdls03154s9q4dp4v5nlxxw0000gn/T/pytest-of-saisumanth/pytest-4436/test_fragment_of_the_source_fi8')
+source_text = 'The Harbor Board, following a detailed review of the annual records by staff, enrolled 40-50 pilots in the annual training program. The figures are unaudited.'
+claim_text = 'The Harbor Board, following a detailed review of the annual records by staff, enrolled 40 pilots in the annual training program'
+
+    @pytest.mark.parametrize("source_text,claim_text", ATTACKS)
+    def test_fragment_of_the_source_figure_is_refused_as_a_figure(
+        tmp_path: Path, source_text: str, claim_text: str
+    ) -> None:
+        code, verdict = _verdict(tmp_path, source_text, claim_text)
+>       assert verdict == "UNVERIFIED_NUMBER", (
+            f"refused as {verdict}, not as a figure problem — the figure reader may "
+            f"still take a fragment of the source's figure")
+E       AssertionError: refused as GROUNDED, not as a figure problem — the figure reader may still take a fragment of the source's figure
+E       assert 'GROUNDED' == 'UNVERIFIED_NUMBER'
+E         
+E         - UNVERIFIED_NUMBER
+E         + GROUNDED
+
+tests/test_moat_r5_figure_parsing.py:141: AssertionError
+____ test_fragment_of_the_source_figure_is_refused_as_a_figure[N9-en-dash] _____
+
+tmp_path = PosixPath('/private/var/folders/ry/kmdls03154s9q4dp4v5nlxxw0000gn/T/pytest-of-saisumanth/pytest-4436/test_fragment_of_the_source_fi9')
+source_text = 'The Harbor Board, following a detailed review of the annual records by staff, enrolled 40–50 pilots in the annual training program. The figures are unaudited.'
+claim_text = 'The Harbor Board, following a detailed review of the annual records by staff, enrolled 50 pilots in the annual training program'
+
+    @pytest.mark.parametrize("source_text,claim_text", ATTACKS)
+    def test_fragment_of_the_source_figure_is_refused_as_a_figure(
+        tmp_path: Path, source_text: str, claim_text: str
+    ) -> None:
+        code, verdict = _verdict(tmp_path, source_text, claim_text)
+>       assert verdict == "UNVERIFIED_NUMBER", (
+            f"refused as {verdict}, not as a figure problem — the figure reader may "
+            f"still take a fragment of the source's figure")
+E       AssertionError: refused as GROUNDED, not as a figure problem — the figure reader may still take a fragment of the source's figure
+E       assert 'GROUNDED' == 'UNVERIFIED_NUMBER'
+E         
+E         - UNVERIFIED_NUMBER
+E         + GROUNDED
+
+tests/test_moat_r5_figure_parsing.py:141: AssertionError
+_______ test_fragment_of_the_source_figure_is_refused_as_a_figure[N9-to] _______
+
+tmp_path = PosixPath('/private/var/folders/ry/kmdls03154s9q4dp4v5nlxxw0000gn/T/pytest-of-saisumanth/pytest-4436/test_fragment_of_the_source_fi10')
+source_text = 'The Harbor Board, following a detailed review of the annual records by staff, enrolled 40 to 50 pilots in the annual training program. The figures are unaudited.'
+claim_text = 'The Harbor Board, following a detailed review of the annual records by staff, enrolled 50 pilots in the annual training program'
+
+    @pytest.mark.parametrize("source_text,claim_text", ATTACKS)
+    def test_fragment_of_the_source_figure_is_refused_as_a_figure(
+        tmp_path: Path, source_text: str, claim_text: str
+    ) -> None:
+        code, verdict = _verdict(tmp_path, source_text, claim_text)
+>       assert verdict == "UNVERIFIED_NUMBER", (
+            f"refused as {verdict}, not as a figure problem — the figure reader may "
+            f"still take a fragment of the source's figure")
+E       AssertionError: refused as GROUNDED, not as a figure problem — the figure reader may still take a fragment of the source's figure
+E       assert 'GROUNDED' == 'UNVERIFIED_NUMBER'
+E         
+E         - UNVERIFIED_NUMBER
+E         + GROUNDED
+
+tests/test_moat_r5_figure_parsing.py:141: AssertionError
+__ test_fragment_of_the_source_figure_is_refused_as_a_figure[N9-between-and] ___
+
+tmp_path = PosixPath('/private/var/folders/ry/kmdls03154s9q4dp4v5nlxxw0000gn/T/pytest-of-saisumanth/pytest-4436/test_fragment_of_the_source_fi11')
+source_text = 'The Harbor Board, following a detailed review of the annual records by staff, enrolled between 40 and 50 pilots in the annual training program. The figures are unaudited.'
+claim_text = 'The Harbor Board, following a detailed review of the annual records by staff, enrolled 50 pilots in the annual training program'
+
+    @pytest.mark.parametrize("source_text,claim_text", ATTACKS)
+    def test_fragment_of_the_source_figure_is_refused_as_a_figure(
+        tmp_path: Path, source_text: str, claim_text: str
+    ) -> None:
+        code, verdict = _verdict(tmp_path, source_text, claim_text)
+>       assert verdict == "UNVERIFIED_NUMBER", (
+            f"refused as {verdict}, not as a figure problem — the figure reader may "
+            f"still take a fragment of the source's figure")
+E       AssertionError: refused as GROUNDED, not as a figure problem — the figure reader may still take a fragment of the source's figure
+E       assert 'GROUNDED' == 'UNVERIFIED_NUMBER'
+E         
+E         - UNVERIFIED_NUMBER
+E         + GROUNDED
+
+tests/test_moat_r5_figure_parsing.py:141: AssertionError
+_ test_fragment_of_the_source_figure_is_refused_as_a_figure[N9-upper-bound-on-low-end] _
+
+tmp_path = PosixPath('/private/var/folders/ry/kmdls03154s9q4dp4v5nlxxw0000gn/T/pytest-of-saisumanth/pytest-4436/test_fragment_of_the_source_fi12')
+source_text = 'The Harbor Board, following a detailed review of the annual records by staff, enrolled 40-50 pilots in the annual training program. The figures are unaudited.'
+claim_text = 'The Harbor Board, following a detailed review of the annual records by staff, enrolled up to 40 pilots in the annual training program'
+
+    @pytest.mark.parametrize("source_text,claim_text", ATTACKS)
+    def test_fragment_of_the_source_figure_is_refused_as_a_figure(
+        tmp_path: Path, source_text: str, claim_text: str
+    ) -> None:
+        code, verdict = _verdict(tmp_path, source_text, claim_text)
+>       assert verdict == "UNVERIFIED_NUMBER", (
+            f"refused as {verdict}, not as a figure problem — the figure reader may "
+            f"still take a fragment of the source's figure")
+E       AssertionError: refused as GROUNDED, not as a figure problem — the figure reader may still take a fragment of the source's figure
+E       assert 'GROUNDED' == 'UNVERIFIED_NUMBER'
+E         
+E         - UNVERIFIED_NUMBER
+E         + GROUNDED
+
+tests/test_moat_r5_figure_parsing.py:141: AssertionError
+_ test_fragment_of_the_source_figure_is_refused_as_a_figure[N9-lower-bound-on-high-end] _
+
+tmp_path = PosixPath('/private/var/folders/ry/kmdls03154s9q4dp4v5nlxxw0000gn/T/pytest-of-saisumanth/pytest-4436/test_fragment_of_the_source_fi13')
+source_text = 'The Harbor Board, following a detailed review of the annual records by staff, enrolled 40-50 pilots in the annual training program. The figures are unaudited.'
+claim_text = 'The Harbor Board, following a detailed review of the annual records by staff, enrolled at least 50 pilots in the annual training program'
+
+    @pytest.mark.parametrize("source_text,claim_text", ATTACKS)
+    def test_fragment_of_the_source_figure_is_refused_as_a_figure(
+        tmp_path: Path, source_text: str, claim_text: str
+    ) -> None:
+        code, verdict = _verdict(tmp_path, source_text, claim_text)
+>       assert verdict == "UNVERIFIED_NUMBER", (
+            f"refused as {verdict}, not as a figure problem — the figure reader may "
+            f"still take a fragment of the source's figure")
+E       AssertionError: refused as UNGROUNDED, not as a figure problem — the figure reader may still take a fragment of the source's figure
+E       assert 'UNGROUNDED' == 'UNVERIFIED_NUMBER'
+E         
+E         - UNVERIFIED_NUMBER
+E         + UNGROUNDED
+
+tests/test_moat_r5_figure_parsing.py:141: AssertionError
+__ test_fragment_of_the_source_figure_is_refused_as_a_figure[N10-date-slash] ___
+
+tmp_path = PosixPath('/private/var/folders/ry/kmdls03154s9q4dp4v5nlxxw0000gn/T/pytest-of-saisumanth/pytest-4436/test_fragment_of_the_source_fi14')
+source_text = 'The Harbor Board, following a detailed review of the annual records by staff, published the annual review on 03/04/2023. The figures are unaudited.'
+claim_text = 'The Harbor Board, following a detailed review of the annual records by staff, published the annual review on 04/03/2023'
+
+    @pytest.mark.parametrize("source_text,claim_text", ATTACKS)
+    def test_fragment_of_the_source_figure_is_refused_as_a_figure(
+        tmp_path: Path, source_text: str, claim_text: str
+    ) -> None:
+        code, verdict = _verdict(tmp_path, source_text, claim_text)
+>       assert verdict == "UNVERIFIED_NUMBER", (
+            f"refused as {verdict}, not as a figure problem — the figure reader may "
+            f"still take a fragment of the source's figure")
+E       AssertionError: refused as GROUNDED, not as a figure problem — the figure reader may still take a fragment of the source's figure
+E       assert 'GROUNDED' == 'UNVERIFIED_NUMBER'
+E         
+E         - UNVERIFIED_NUMBER
+E         + GROUNDED
+
+tests/test_moat_r5_figure_parsing.py:141: AssertionError
+___ test_fragment_of_the_source_figure_is_refused_as_a_figure[N10-date-iso] ____
+
+tmp_path = PosixPath('/private/var/folders/ry/kmdls03154s9q4dp4v5nlxxw0000gn/T/pytest-of-saisumanth/pytest-4436/test_fragment_of_the_source_fi15')
+source_text = 'The Harbor Board, following a detailed review of the annual records by staff, published the annual review on 2023-03-04. The figures are unaudited.'
+claim_text = 'The Harbor Board, following a detailed review of the annual records by staff, published the annual review on 2023-04-03'
+
+    @pytest.mark.parametrize("source_text,claim_text", ATTACKS)
+    def test_fragment_of_the_source_figure_is_refused_as_a_figure(
+        tmp_path: Path, source_text: str, claim_text: str
+    ) -> None:
+        code, verdict = _verdict(tmp_path, source_text, claim_text)
+>       assert verdict == "UNVERIFIED_NUMBER", (
+            f"refused as {verdict}, not as a figure problem — the figure reader may "
+            f"still take a fragment of the source's figure")
+E       AssertionError: refused as GROUNDED, not as a figure problem — the figure reader may still take a fragment of the source's figure
+E       assert 'GROUNDED' == 'UNVERIFIED_NUMBER'
+E         
+E         - UNVERIFIED_NUMBER
+E         + GROUNDED
+
+tests/test_moat_r5_figure_parsing.py:141: AssertionError
+_ test_fragment_of_the_source_figure_is_refused_as_a_figure[N10-date-component-as-figure] _
+
+tmp_path = PosixPath('/private/var/folders/ry/kmdls03154s9q4dp4v5nlxxw0000gn/T/pytest-of-saisumanth/pytest-4436/test_fragment_of_the_source_fi16')
+source_text = 'The Harbor Board, following a detailed review of the annual records by staff, published the annual review on 03/04/2023. The figures are unaudited.'
+claim_text = 'The Harbor Board, following a detailed review of the annual records by staff, published the annual review in 2023 on 4'
+
+    @pytest.mark.parametrize("source_text,claim_text", ATTACKS)
+    def test_fragment_of_the_source_figure_is_refused_as_a_figure(
+        tmp_path: Path, source_text: str, claim_text: str
+    ) -> None:
+        code, verdict = _verdict(tmp_path, source_text, claim_text)
+>       assert verdict == "UNVERIFIED_NUMBER", (
+            f"refused as {verdict}, not as a figure problem — the figure reader may "
+            f"still take a fragment of the source's figure")
+E       AssertionError: refused as UNGROUNDED, not as a figure problem — the figure reader may still take a fragment of the source's figure
+E       assert 'UNGROUNDED' == 'UNVERIFIED_NUMBER'
+E         
+E         - UNVERIFIED_NUMBER
+E         + UNGROUNDED
+
+tests/test_moat_r5_figure_parsing.py:141: AssertionError
+____ test_fragment_of_the_source_figure_is_refused_as_a_figure[N10-version] ____
+
+tmp_path = PosixPath('/private/var/folders/ry/kmdls03154s9q4dp4v5nlxxw0000gn/T/pytest-of-saisumanth/pytest-4436/test_fragment_of_the_source_fi17')
+source_text = 'The Harbor Board, following a detailed review of the annual records by staff, published version 2.10 during the annual review. The figures are unaudited.'
+claim_text = 'The Harbor Board, following a detailed review of the annual records by staff, published version 2.1 during the annual review'
+
+    @pytest.mark.parametrize("source_text,claim_text", ATTACKS)
+    def test_fragment_of_the_source_figure_is_refused_as_a_figure(
+        tmp_path: Path, source_text: str, claim_text: str
+    ) -> None:
+        code, verdict = _verdict(tmp_path, source_text, claim_text)
+>       assert verdict == "UNVERIFIED_NUMBER", (
+            f"refused as {verdict}, not as a figure problem — the figure reader may "
+            f"still take a fragment of the source's figure")
+E       AssertionError: refused as UNGROUNDED, not as a figure problem — the figure reader may still take a fragment of the source's figure
+E       assert 'UNGROUNDED' == 'UNVERIFIED_NUMBER'
+E         
+E         - UNVERIFIED_NUMBER
+E         + UNGROUNDED
+
+tests/test_moat_r5_figure_parsing.py:141: AssertionError
+_ test_fragment_of_the_source_figure_is_refused_as_a_figure[N10-version-tokens-present] _
+
+tmp_path = PosixPath('/private/var/folders/ry/kmdls03154s9q4dp4v5nlxxw0000gn/T/pytest-of-saisumanth/pytest-4436/test_fragment_of_the_source_fi18')
+source_text = 'The Harbor Board, following a detailed review of the annual records by staff, published version 2.10 during the annual review, 1 week late. The figures are unaudited.'
+claim_text = 'The Harbor Board, following a detailed review of the annual records by staff, published version 2.1 during the annual review'
+
+    @pytest.mark.parametrize("source_text,claim_text", ATTACKS)
+    def test_fragment_of_the_source_figure_is_refused_as_a_figure(
+        tmp_path: Path, source_text: str, claim_text: str
+    ) -> None:
+        code, verdict = _verdict(tmp_path, source_text, claim_text)
+>       assert verdict == "UNVERIFIED_NUMBER", (
+            f"refused as {verdict}, not as a figure problem — the figure reader may "
+            f"still take a fragment of the source's figure")
+E       AssertionError: refused as GROUNDED, not as a figure problem — the figure reader may still take a fragment of the source's figure
+E       assert 'GROUNDED' == 'UNVERIFIED_NUMBER'
+E         
+E         - UNVERIFIED_NUMBER
+E         + GROUNDED
+
+tests/test_moat_r5_figure_parsing.py:141: AssertionError
+_________ test_figure_layer_range_bounds_and_grouping[at-most-low-end] _________
+
+source_text = 'enrolled 40-50 pilots.'
+claim_text = 'enrolled at most 40 pilots', expected = False
+
+    @pytest.mark.parametrize("source_text,claim_text,expected", FIGURE_LAYER)
+    def test_figure_layer_range_bounds_and_grouping(
+        source_text: str, claim_text: str, expected: bool
+    ) -> None:
+>       assert numeric_ok(_claim(claim_text), [_src(source_text)]) is expected
+E       AssertionError: assert True is False
+E        +  where True = numeric_ok(Claim(index=0, text='enrolled at most 40 pilots', kind=<ClaimKind.NUMERIC: 'NUMERIC'>, citations=(), numeric_tokens=('40',), split_from=''), [RetrievedSource(source_id='S1', url=None, file_path=None, fetched_at='t', tool='Read', content_sha256='x', text='enro...xt_source='verbatim', captured_via='inline', query_provenance='q', session_id='', retrieval_status='', read_extent='')])
+E        +    where Claim(index=0, text='enrolled at most 40 pilots', kind=<ClaimKind.NUMERIC: 'NUMERIC'>, citations=(), numeric_tokens=('40',), split_from='') = _claim('enrolled at most 40 pilots')
+
+tests/test_moat_r5_figure_parsing.py:240: AssertionError
+_____ test_figure_layer_range_bounds_and_grouping[unlisted-bound-refused] ______
+
+source_text = 'enrolled 40-50 pilots.', claim_text = 'enrolled about 50 pilots'
+expected = False
+
+    @pytest.mark.parametrize("source_text,claim_text,expected", FIGURE_LAYER)
+    def test_figure_layer_range_bounds_and_grouping(
+        source_text: str, claim_text: str, expected: bool
+    ) -> None:
+>       assert numeric_ok(_claim(claim_text), [_src(source_text)]) is expected
+E       AssertionError: assert True is False
+E        +  where True = numeric_ok(Claim(index=0, text='enrolled about 50 pilots', kind=<ClaimKind.NUMERIC: 'NUMERIC'>, citations=(), numeric_tokens=('50',), split_from=''), [RetrievedSource(source_id='S1', url=None, file_path=None, fetched_at='t', tool='Read', content_sha256='x', text='enro...xt_source='verbatim', captured_via='inline', query_provenance='q', session_id='', retrieval_status='', read_extent='')])
+E        +    where Claim(index=0, text='enrolled about 50 pilots', kind=<ClaimKind.NUMERIC: 'NUMERIC'>, citations=(), numeric_tokens=('50',), split_from='') = _claim('enrolled about 50 pilots')
+
+tests/test_moat_r5_figure_parsing.py:240: AssertionError
+_____ test_figure_layer_range_bounds_and_grouping[fraction-digits-differ] ______
+
+source_text = 'costs $4.50 each.', claim_text = 'costs $4.5 each'
+expected = False
+
+    @pytest.mark.parametrize("source_text,claim_text,expected", FIGURE_LAYER)
+    def test_figure_layer_range_bounds_and_grouping(
+        source_text: str, claim_text: str, expected: bool
+    ) -> None:
+>       assert numeric_ok(_claim(claim_text), [_src(source_text)]) is expected
+E       AssertionError: assert True is False
+E        +  where True = numeric_ok(Claim(index=0, text='costs $4.5 each', kind=<ClaimKind.NUMERIC: 'NUMERIC'>, citations=(), numeric_tokens=('$4.5',), split_from=''), [RetrievedSource(source_id='S1', url=None, file_path=None, fetched_at='t', tool='Read', content_sha256='x', text='cost...xt_source='verbatim', captured_via='inline', query_provenance='q', session_id='', retrieval_status='', read_extent='')])
+E        +    where Claim(index=0, text='costs $4.5 each', kind=<ClaimKind.NUMERIC: 'NUMERIC'>, citations=(), numeric_tokens=('$4.5',), split_from='') = _claim('costs $4.5 each')
+
+tests/test_moat_r5_figure_parsing.py:240: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_moat_r5_figure_parsing.py::test_fragment_of_the_source_figure_is_refused_as_a_figure[N7-two-of-two-hundred]
+FAILED tests/test_moat_r5_figure_parsing.py::test_fragment_of_the_source_figure_is_refused_as_a_figure[N7-hundred-of-two-hundred]
+FAILED tests/test_moat_r5_figure_parsing.py::test_fragment_of_the_source_figure_is_refused_as_a_figure[N7-compound-with-and]
+FAILED tests/test_moat_r5_figure_parsing.py::test_fragment_of_the_source_figure_is_refused_as_a_figure[N7-spelled-range-endpoint]
+FAILED tests/test_moat_r5_figure_parsing.py::test_fragment_of_the_source_figure_is_refused_as_a_figure[N8-space-group]
+FAILED tests/test_moat_r5_figure_parsing.py::test_fragment_of_the_source_figure_is_refused_as_a_figure[N8-nbsp-group]
+FAILED tests/test_moat_r5_figure_parsing.py::test_fragment_of_the_source_figure_is_refused_as_a_figure[N8-two-groups]
+FAILED tests/test_moat_r5_figure_parsing.py::test_fragment_of_the_source_figure_is_refused_as_a_figure[N9-hyphen-high-end]
+FAILED tests/test_moat_r5_figure_parsing.py::test_fragment_of_the_source_figure_is_refused_as_a_figure[N9-hyphen-low-end]
+FAILED tests/test_moat_r5_figure_parsing.py::test_fragment_of_the_source_figure_is_refused_as_a_figure[N9-en-dash]
+FAILED tests/test_moat_r5_figure_parsing.py::test_fragment_of_the_source_figure_is_refused_as_a_figure[N9-to]
+FAILED tests/test_moat_r5_figure_parsing.py::test_fragment_of_the_source_figure_is_refused_as_a_figure[N9-between-and]
+FAILED tests/test_moat_r5_figure_parsing.py::test_fragment_of_the_source_figure_is_refused_as_a_figure[N9-upper-bound-on-low-end]
+FAILED tests/test_moat_r5_figure_parsing.py::test_fragment_of_the_source_figure_is_refused_as_a_figure[N9-lower-bound-on-high-end]
+FAILED tests/test_moat_r5_figure_parsing.py::test_fragment_of_the_source_figure_is_refused_as_a_figure[N10-date-slash]
+FAILED tests/test_moat_r5_figure_parsing.py::test_fragment_of_the_source_figure_is_refused_as_a_figure[N10-date-iso]
+FAILED tests/test_moat_r5_figure_parsing.py::test_fragment_of_the_source_figure_is_refused_as_a_figure[N10-date-component-as-figure]
+FAILED tests/test_moat_r5_figure_parsing.py::test_fragment_of_the_source_figure_is_refused_as_a_figure[N10-version]
+FAILED tests/test_moat_r5_figure_parsing.py::test_fragment_of_the_source_figure_is_refused_as_a_figure[N10-version-tokens-present]
+FAILED tests/test_moat_r5_figure_parsing.py::test_figure_layer_range_bounds_and_grouping[at-most-low-end]
+FAILED tests/test_moat_r5_figure_parsing.py::test_figure_layer_range_bounds_and_grouping[unlisted-bound-refused]
+FAILED tests/test_moat_r5_figure_parsing.py::test_figure_layer_range_bounds_and_grouping[fraction-digits-differ]
+22 failed, 25 passed in 28.84s

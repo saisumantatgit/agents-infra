@@ -1,0 +1,556 @@
+FFF..FF.F.FxFFFFFFFF.FFFFFFFFFFFFF...Fxx.                                [100%]
+=================================== FAILURES ===================================
+______ test_f3_heading_over_bare_name_is_refused[Criminals-Alder Haulage] ______
+
+tmp_path = PosixPath('/private/var/folders/ry/kmdls03154s9q4dp4v5nlxxw0000gn/T/pytest-of-saisumanth/pytest-4447/test_f3_heading_over_bare_name0')
+heading = 'Criminals', name = 'Alder Haulage'
+
+    @pytest.mark.parametrize("heading,name", [
+        ("Criminals", "Alder Haulage"),
+        ("Fraudsters", "Haven Haulage"),        # name ends in -en (verb suffix)
+        ("Sanctioned operators", "Alder Holdings"),  # name ends in -s
+    ])
+    def test_f3_heading_over_bare_name_is_refused(tmp_path, heading, name):
+        report = gate(tmp_path, {"S1": f"{name} delivers cargo." + FILLER},
+                      f"## {heading}\n\n- {name} [S1]\n")
+>       assert report["gate"] != "PASS", report
+E       AssertionError: {'gate': 'PASS', 'grounding_score': 100.0, 'per_claim': [{'evidence_basis': 'Not scored: this line was not classified ...'index': 1, 'kind': 'FACTUAL', 'support_diagnostic': 'no_hedge_in_cited_sentence', ...}], 'retained_appendix': [], ...}
+E       assert 'PASS' != 'PASS'
+
+tests/test_moat_r3_compose_before_grounding.py:73: AssertionError
+_____ test_f3_heading_over_bare_name_is_refused[Fraudsters-Haven Haulage] ______
+
+tmp_path = PosixPath('/private/var/folders/ry/kmdls03154s9q4dp4v5nlxxw0000gn/T/pytest-of-saisumanth/pytest-4447/test_f3_heading_over_bare_name1')
+heading = 'Fraudsters', name = 'Haven Haulage'
+
+    @pytest.mark.parametrize("heading,name", [
+        ("Criminals", "Alder Haulage"),
+        ("Fraudsters", "Haven Haulage"),        # name ends in -en (verb suffix)
+        ("Sanctioned operators", "Alder Holdings"),  # name ends in -s
+    ])
+    def test_f3_heading_over_bare_name_is_refused(tmp_path, heading, name):
+        report = gate(tmp_path, {"S1": f"{name} delivers cargo." + FILLER},
+                      f"## {heading}\n\n- {name} [S1]\n")
+>       assert report["gate"] != "PASS", report
+E       AssertionError: {'gate': 'PASS', 'grounding_score': 100.0, 'per_claim': [{'evidence_basis': 'Not scored: this line was not classified ...'index': 1, 'kind': 'FACTUAL', 'support_diagnostic': 'no_hedge_in_cited_sentence', ...}], 'retained_appendix': [], ...}
+E       assert 'PASS' != 'PASS'
+
+tests/test_moat_r3_compose_before_grounding.py:73: AssertionError
+_ test_f3_heading_over_bare_name_is_refused[Sanctioned operators-Alder Holdings] _
+
+tmp_path = PosixPath('/private/var/folders/ry/kmdls03154s9q4dp4v5nlxxw0000gn/T/pytest-of-saisumanth/pytest-4447/test_f3_heading_over_bare_name2')
+heading = 'Sanctioned operators', name = 'Alder Holdings'
+
+    @pytest.mark.parametrize("heading,name", [
+        ("Criminals", "Alder Haulage"),
+        ("Fraudsters", "Haven Haulage"),        # name ends in -en (verb suffix)
+        ("Sanctioned operators", "Alder Holdings"),  # name ends in -s
+    ])
+    def test_f3_heading_over_bare_name_is_refused(tmp_path, heading, name):
+        report = gate(tmp_path, {"S1": f"{name} delivers cargo." + FILLER},
+                      f"## {heading}\n\n- {name} [S1]\n")
+        assert report["gate"] != "PASS", report
+>       assert _verdict(report, f"- {name}") == "UNGROUNDED"
+E       AssertionError: assert 'GROUNDED' == 'UNGROUNDED'
+E         
+E         - UNGROUNDED
+E         ? --
+E         + GROUNDED
+
+tests/test_moat_r3_compose_before_grounding.py:74: AssertionError
+___________ test_f7_lead_in_over_name_from_another_source_is_refused ___________
+
+tmp_path = PosixPath('/private/var/folders/ry/kmdls03154s9q4dp4v5nlxxw0000gn/T/pytest-of-saisumanth/pytest-4447/test_f7_lead_in_over_name_from0')
+
+    def test_f7_lead_in_over_name_from_another_source_is_refused(tmp_path):
+        report = gate(tmp_path, {"S1": CARGO + FILLER, "S2": f"{LEAD}: other companies." + FILLER},
+                      f"{LEAD} [S2]:\n\n- Alder Haulage [S1]\n")
+>       assert report["gate"] != "PASS", report
+E       AssertionError: {'gate': 'PASS', 'grounding_score': 100.0, 'per_claim': [{'evidence_basis': 'Checked verbatim against 1 cited source: ...'index': 1, 'kind': 'FACTUAL', 'support_diagnostic': 'no_hedge_in_cited_sentence', ...}], 'retained_appendix': [], ...}
+E       assert 'PASS' != 'PASS'
+
+tests/test_moat_r3_compose_before_grounding.py:97: AssertionError
+__________ test_f7_lead_in_and_name_citing_the_same_source_is_refused __________
+
+tmp_path = PosixPath('/private/var/folders/ry/kmdls03154s9q4dp4v5nlxxw0000gn/T/pytest-of-saisumanth/pytest-4447/test_f7_lead_in_and_name_citin0')
+
+    def test_f7_lead_in_and_name_citing_the_same_source_is_refused(tmp_path):
+        # The lead-in's 8-gram is verbatim in S2 and S2 also mentions the name in
+        # another sentence: the composed reading is in no single sentence of S2.
+        report = gate(tmp_path, {"S2": f"{LEAD}: other companies. {CARGO}" + FILLER},
+                      f"{LEAD} [S2]:\n\n- Alder Haulage [S2]\n")
+>       assert report["gate"] != "PASS", report
+E       AssertionError: {'gate': 'PASS', 'grounding_score': 100.0, 'per_claim': [{'evidence_basis': 'Checked verbatim against 1 cited source: ...'index': 1, 'kind': 'FACTUAL', 'support_diagnostic': 'no_hedge_in_cited_sentence', ...}], 'retained_appendix': [], ...}
+E       assert 'PASS' != 'PASS'
+
+tests/test_moat_r3_compose_before_grounding.py:106: AssertionError
+____________________ test_f8_continuation_figure_is_refused ____________________
+
+tmp_path = PosixPath('/private/var/folders/ry/kmdls03154s9q4dp4v5nlxxw0000gn/T/pytest-of-saisumanth/pytest-4447/test_f8_continuation_figure_is0')
+
+    def test_f8_continuation_figure_is_refused(tmp_path):
+        source = "Alder Haulage delivers cargo. Alder Storage earned 12 million dollars." + FILLER
+        report = gate(tmp_path, {"S1": source},
+                      "- Alder Haulage [S1]\n\n  12 million dollars [S1]\n")
+>       assert report["gate"] != "PASS", report
+E       AssertionError: {'gate': 'PASS', 'grounding_score': 100.0, 'per_claim': [{'evidence_basis': 'Checked verbatim against 1 cited source: ...'index': 1, 'kind': 'NUMERIC', 'support_diagnostic': 'no_hedge_in_cited_sentence', ...}], 'retained_appendix': [], ...}
+E       assert 'PASS' != 'PASS'
+
+tests/test_moat_r3_compose_before_grounding.py:122: AssertionError
+_________ test_bare_fragment_with_no_structure_is_never_grounded_alone _________
+
+tmp_path = PosixPath('/private/var/folders/ry/kmdls03154s9q4dp4v5nlxxw0000gn/T/pytest-of-saisumanth/pytest-4447/test_bare_fragment_with_no_str0')
+
+    def test_bare_fragment_with_no_structure_is_never_grounded_alone(tmp_path):
+        report = gate(tmp_path, {"S1": CARGO + FILLER}, "- Alder Haulage [S1]\n")
+>       assert report["gate"] != "PASS", report
+E       AssertionError: {'gate': 'PASS', 'grounding_score': 100.0, 'per_claim': [{'evidence_basis': 'Checked verbatim against 1 cited source: ...'index': 0, 'kind': 'FACTUAL', 'support_diagnostic': 'no_hedge_in_cited_sentence', ...}], 'retained_appendix': [], ...}
+E       assert 'PASS' != 'PASS'
+
+tests/test_moat_r3_compose_before_grounding.py:136: AssertionError
+________________ test_uncomposed_mapping_never_lifts_a_verdict _________________
+
+    def test_uncomposed_mapping_never_lifts_a_verdict():
+        # A claim that is UNCITED stays UNCITED and a NON_CLAIM stays out of the
+        # denominator even when the mapping names them: R3 acts only on numerator
+        # verdicts.
+        claims = _claims("## Carriers\n\nAlder Haulage hauls freight daily.\n")
+        store = _store(CARGO)
+        plain = gc.score_report(claims, store)
+>       marked = gc.score_report(claims, store, uncomposed={c.index: "x" for c in claims})
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: score_report() got an unexpected keyword argument 'uncomposed'
+
+tests/test_moat_r3_compose_before_grounding.py:175: TypeError
+__________________________ test_r3_uncomposed_is_pure __________________________
+
+    def test_r3_uncomposed_is_pure():
+        claims = _claims("## Criminals\n\n- Alder Haulage [S1]\n")
+        before = list(claims)
+        store = _store(CARGO)
+>       first = gc.r3_uncomposed(claims, store, frozenset())
+                ^^^^^^^^^^^^^^^^
+E       AttributeError: module 'ground_check' has no attribute 'r3_uncomposed'
+
+tests/test_moat_r3_compose_before_grounding.py:185: AttributeError
+_______________ test_lacks_predicate[- Alder Haulage [S1]-True] ________________
+
+text = '- Alder Haulage [S1]', lacks = True
+
+    @pytest.mark.parametrize("text,lacks", [
+        ("- Alder Haulage [S1]", True),
+        ("12 million dollars [S1]", True),
+        ("- Haven Haulage [S1]", True),
+        ("- other companies [S2]", True),
+        ("- Alder Haulage delivers cargo [S1].", False),
+        ("- Alder Haulage is a carrier [S1].", False),
+    ])
+    def test_lacks_predicate(text, lacks):
+>       assert gc._lacks_predicate(text) is lacks
+               ^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'ground_check' has no attribute '_lacks_predicate'
+
+tests/test_moat_r3_compose_before_grounding.py:200: AttributeError
+______________ test_lacks_predicate[12 million dollars [S1]-True] ______________
+
+text = '12 million dollars [S1]', lacks = True
+
+    @pytest.mark.parametrize("text,lacks", [
+        ("- Alder Haulage [S1]", True),
+        ("12 million dollars [S1]", True),
+        ("- Haven Haulage [S1]", True),
+        ("- other companies [S2]", True),
+        ("- Alder Haulage delivers cargo [S1].", False),
+        ("- Alder Haulage is a carrier [S1].", False),
+    ])
+    def test_lacks_predicate(text, lacks):
+>       assert gc._lacks_predicate(text) is lacks
+               ^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'ground_check' has no attribute '_lacks_predicate'
+
+tests/test_moat_r3_compose_before_grounding.py:200: AttributeError
+_______________ test_lacks_predicate[- Haven Haulage [S1]-True] ________________
+
+text = '- Haven Haulage [S1]', lacks = True
+
+    @pytest.mark.parametrize("text,lacks", [
+        ("- Alder Haulage [S1]", True),
+        ("12 million dollars [S1]", True),
+        ("- Haven Haulage [S1]", True),
+        ("- other companies [S2]", True),
+        ("- Alder Haulage delivers cargo [S1].", False),
+        ("- Alder Haulage is a carrier [S1].", False),
+    ])
+    def test_lacks_predicate(text, lacks):
+>       assert gc._lacks_predicate(text) is lacks
+               ^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'ground_check' has no attribute '_lacks_predicate'
+
+tests/test_moat_r3_compose_before_grounding.py:200: AttributeError
+______________ test_lacks_predicate[- other companies [S2]-True] _______________
+
+text = '- other companies [S2]', lacks = True
+
+    @pytest.mark.parametrize("text,lacks", [
+        ("- Alder Haulage [S1]", True),
+        ("12 million dollars [S1]", True),
+        ("- Haven Haulage [S1]", True),
+        ("- other companies [S2]", True),
+        ("- Alder Haulage delivers cargo [S1].", False),
+        ("- Alder Haulage is a carrier [S1].", False),
+    ])
+    def test_lacks_predicate(text, lacks):
+>       assert gc._lacks_predicate(text) is lacks
+               ^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'ground_check' has no attribute '_lacks_predicate'
+
+tests/test_moat_r3_compose_before_grounding.py:200: AttributeError
+_______ test_lacks_predicate[- Alder Haulage delivers cargo [S1].-False] _______
+
+text = '- Alder Haulage delivers cargo [S1].', lacks = False
+
+    @pytest.mark.parametrize("text,lacks", [
+        ("- Alder Haulage [S1]", True),
+        ("12 million dollars [S1]", True),
+        ("- Haven Haulage [S1]", True),
+        ("- other companies [S2]", True),
+        ("- Alder Haulage delivers cargo [S1].", False),
+        ("- Alder Haulage is a carrier [S1].", False),
+    ])
+    def test_lacks_predicate(text, lacks):
+>       assert gc._lacks_predicate(text) is lacks
+               ^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'ground_check' has no attribute '_lacks_predicate'
+
+tests/test_moat_r3_compose_before_grounding.py:200: AttributeError
+________ test_lacks_predicate[- Alder Haulage is a carrier [S1].-False] ________
+
+text = '- Alder Haulage is a carrier [S1].', lacks = False
+
+    @pytest.mark.parametrize("text,lacks", [
+        ("- Alder Haulage [S1]", True),
+        ("12 million dollars [S1]", True),
+        ("- Haven Haulage [S1]", True),
+        ("- other companies [S2]", True),
+        ("- Alder Haulage delivers cargo [S1].", False),
+        ("- Alder Haulage is a carrier [S1].", False),
+    ])
+    def test_lacks_predicate(text, lacks):
+>       assert gc._lacks_predicate(text) is lacks
+               ^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'ground_check' has no attribute '_lacks_predicate'
+
+tests/test_moat_r3_compose_before_grounding.py:200: AttributeError
+_____________________ test_table_cells_are_out_of_r3_scope _____________________
+
+    def test_table_cells_are_out_of_r3_scope():
+        # D-144: a cell keeps exactly the pre-R3 verdict, so R3 names no cell.
+        draft = ("## Feature matrix\n\n| Feature | Starter | Team |\n|---|---|---|\n"
+                 "| Guest access | Yes [S1]. | Yes [S1]. |\n| Audit export | No [S1]. | Yes [S1]. |\n")
+        claims = _claims(draft)
+        assert any("|" in c.text and c.citations for c in claims)
+>       rows = gc.gfm_table_rows(draft)
+               ^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'ground_check' has no attribute 'gfm_table_rows'
+
+tests/test_moat_r3_compose_before_grounding.py:218: AttributeError
+_____ test_pipe_inside_a_list_item_does_not_exempt[- Alder Haulage | [S1]] _____
+
+tmp_path = PosixPath('/private/var/folders/ry/kmdls03154s9q4dp4v5nlxxw0000gn/T/pytest-of-saisumanth/pytest-4447/test_pipe_inside_a_list_item_d0')
+item = '- Alder Haulage | [S1]'
+
+    @pytest.mark.parametrize("item", [
+        "- Alder Haulage | [S1]",
+        "- Alder | Haulage [S1]",
+        "- Alder Haulage [S1]",
+    ])
+    def test_pipe_inside_a_list_item_does_not_exempt(tmp_path, item):
+        report = gate(tmp_path, {"S1": CARGO + FILLER}, f"## Criminals\n\n{item}\n")
+>       assert report["gate"] != "PASS", report
+E       AssertionError: {'gate': 'PASS', 'grounding_score': 100.0, 'per_claim': [{'evidence_basis': 'Not scored: this line was not classified ...'index': 1, 'kind': 'FACTUAL', 'support_diagnostic': 'no_hedge_in_cited_sentence', ...}], 'retained_appendix': [], ...}
+E       assert 'PASS' != 'PASS'
+
+tests/test_moat_r3_compose_before_grounding.py:231: AssertionError
+_____ test_pipe_inside_a_list_item_does_not_exempt[- Alder | Haulage [S1]] _____
+
+tmp_path = PosixPath('/private/var/folders/ry/kmdls03154s9q4dp4v5nlxxw0000gn/T/pytest-of-saisumanth/pytest-4447/test_pipe_inside_a_list_item_d1')
+item = '- Alder | Haulage [S1]'
+
+    @pytest.mark.parametrize("item", [
+        "- Alder Haulage | [S1]",
+        "- Alder | Haulage [S1]",
+        "- Alder Haulage [S1]",
+    ])
+    def test_pipe_inside_a_list_item_does_not_exempt(tmp_path, item):
+        report = gate(tmp_path, {"S1": CARGO + FILLER}, f"## Criminals\n\n{item}\n")
+>       assert report["gate"] != "PASS", report
+E       AssertionError: {'gate': 'PASS', 'grounding_score': 100.0, 'per_claim': [{'evidence_basis': 'Not scored: this line was not classified ...'index': 1, 'kind': 'FACTUAL', 'support_diagnostic': 'no_hedge_in_cited_sentence', ...}], 'retained_appendix': [], ...}
+E       assert 'PASS' != 'PASS'
+
+tests/test_moat_r3_compose_before_grounding.py:231: AssertionError
+______ test_pipe_inside_a_list_item_does_not_exempt[- Alder Haulage [S1]] ______
+
+tmp_path = PosixPath('/private/var/folders/ry/kmdls03154s9q4dp4v5nlxxw0000gn/T/pytest-of-saisumanth/pytest-4447/test_pipe_inside_a_list_item_d2')
+item = '- Alder Haulage [S1]'
+
+    @pytest.mark.parametrize("item", [
+        "- Alder Haulage | [S1]",
+        "- Alder | Haulage [S1]",
+        "- Alder Haulage [S1]",
+    ])
+    def test_pipe_inside_a_list_item_does_not_exempt(tmp_path, item):
+        report = gate(tmp_path, {"S1": CARGO + FILLER}, f"## Criminals\n\n{item}\n")
+>       assert report["gate"] != "PASS", report
+E       AssertionError: {'gate': 'PASS', 'grounding_score': 100.0, 'per_claim': [{'evidence_basis': 'Not scored: this line was not classified ...'index': 1, 'kind': 'FACTUAL', 'support_diagnostic': 'no_hedge_in_cited_sentence', ...}], 'retained_appendix': [], ...}
+E       assert 'PASS' != 'PASS'
+
+tests/test_moat_r3_compose_before_grounding.py:231: AssertionError
+______________ test_real_table_cell_keeps_pre_r3_scope_exemption _______________
+
+    def test_real_table_cell_keeps_pre_r3_scope_exemption():
+        draft = "| Firm | Status |\n|---|---|\n| Alder Haulage | Yes [S1]. |\n"
+        claims = _claims(draft)
+>       rows = gc.gfm_table_rows(draft)
+               ^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'ground_check' has no attribute 'gfm_table_rows'
+
+tests/test_moat_r3_compose_before_grounding.py:237: AttributeError
+__________________ test_gfm_table_rows_needs_a_delimiter_row ___________________
+
+    def test_gfm_table_rows_needs_a_delimiter_row():
+>       assert gc.gfm_table_rows("## Criminals\n\n- Alder Haulage | [S1]\n") == frozenset()
+               ^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'ground_check' has no attribute 'gfm_table_rows'
+
+tests/test_moat_r3_compose_before_grounding.py:243: AttributeError
+________ test_surface_variants_of_f3_are_refused[- Alder Haulage [S1].] ________
+
+tmp_path = PosixPath('/private/var/folders/ry/kmdls03154s9q4dp4v5nlxxw0000gn/T/pytest-of-saisumanth/pytest-4447/test_surface_variants_of_f3_ar0')
+item = '- Alder Haulage [S1].'
+
+    @pytest.mark.parametrize("item", [
+        "- Alder Haulage [S1].",          # trailing punctuation
+        "- [S1] Alder Haulage",           # citation placement
+        "- **Alder Haulage** [S1]",       # bold
+        "- *Alder Haulage* [S1]",         # italics
+        "- `Alder Haulage` [S1]",         # inline code
+        "+ Alder Haulage [S1]",           # + bullet
+        "* Alder Haulage [S1]",           # * bullet
+        "1. Alder Haulage [S1]",          # numbered list
+        "1) Alder Haulage [S1]",
+        "- Carriers\n  - Alder Haulage [S1]",  # nested indent
+        "- Alder Haulage, [S1]",
+    ])
+    def test_surface_variants_of_f3_are_refused(tmp_path, item):
+        report = gate(tmp_path, {"S1": CARGO + FILLER}, f"## Criminals\n\n{item}\n")
+>       assert report["gate"] != "PASS", report
+E       AssertionError: {'gate': 'PASS', 'grounding_score': 100.0, 'per_claim': [{'evidence_basis': 'Not scored: this line was not classified ...'index': 1, 'kind': 'FACTUAL', 'support_diagnostic': 'no_hedge_in_cited_sentence', ...}], 'retained_appendix': [], ...}
+E       assert 'PASS' != 'PASS'
+
+tests/test_moat_r3_compose_before_grounding.py:264: AssertionError
+________ test_surface_variants_of_f3_are_refused[- [S1] Alder Haulage] _________
+
+tmp_path = PosixPath('/private/var/folders/ry/kmdls03154s9q4dp4v5nlxxw0000gn/T/pytest-of-saisumanth/pytest-4447/test_surface_variants_of_f3_ar1')
+item = '- [S1] Alder Haulage'
+
+    @pytest.mark.parametrize("item", [
+        "- Alder Haulage [S1].",          # trailing punctuation
+        "- [S1] Alder Haulage",           # citation placement
+        "- **Alder Haulage** [S1]",       # bold
+        "- *Alder Haulage* [S1]",         # italics
+        "- `Alder Haulage` [S1]",         # inline code
+        "+ Alder Haulage [S1]",           # + bullet
+        "* Alder Haulage [S1]",           # * bullet
+        "1. Alder Haulage [S1]",          # numbered list
+        "1) Alder Haulage [S1]",
+        "- Carriers\n  - Alder Haulage [S1]",  # nested indent
+        "- Alder Haulage, [S1]",
+    ])
+    def test_surface_variants_of_f3_are_refused(tmp_path, item):
+        report = gate(tmp_path, {"S1": CARGO + FILLER}, f"## Criminals\n\n{item}\n")
+>       assert report["gate"] != "PASS", report
+E       AssertionError: {'gate': 'PASS', 'grounding_score': 100.0, 'per_claim': [{'evidence_basis': 'Not scored: this line was not classified ...'index': 1, 'kind': 'FACTUAL', 'support_diagnostic': 'no_hedge_in_cited_sentence', ...}], 'retained_appendix': [], ...}
+E       assert 'PASS' != 'PASS'
+
+tests/test_moat_r3_compose_before_grounding.py:264: AssertionError
+______ test_surface_variants_of_f3_are_refused[- **Alder Haulage** [S1]] _______
+
+tmp_path = PosixPath('/private/var/folders/ry/kmdls03154s9q4dp4v5nlxxw0000gn/T/pytest-of-saisumanth/pytest-4447/test_surface_variants_of_f3_ar2')
+item = '- **Alder Haulage** [S1]'
+
+    @pytest.mark.parametrize("item", [
+        "- Alder Haulage [S1].",          # trailing punctuation
+        "- [S1] Alder Haulage",           # citation placement
+        "- **Alder Haulage** [S1]",       # bold
+        "- *Alder Haulage* [S1]",         # italics
+        "- `Alder Haulage` [S1]",         # inline code
+        "+ Alder Haulage [S1]",           # + bullet
+        "* Alder Haulage [S1]",           # * bullet
+        "1. Alder Haulage [S1]",          # numbered list
+        "1) Alder Haulage [S1]",
+        "- Carriers\n  - Alder Haulage [S1]",  # nested indent
+        "- Alder Haulage, [S1]",
+    ])
+    def test_surface_variants_of_f3_are_refused(tmp_path, item):
+        report = gate(tmp_path, {"S1": CARGO + FILLER}, f"## Criminals\n\n{item}\n")
+>       assert report["gate"] != "PASS", report
+E       AssertionError: {'gate': 'PASS', 'grounding_score': 100.0, 'per_claim': [{'evidence_basis': 'Not scored: this line was not classified ...'index': 1, 'kind': 'FACTUAL', 'support_diagnostic': 'no_hedge_in_cited_sentence', ...}], 'retained_appendix': [], ...}
+E       assert 'PASS' != 'PASS'
+
+tests/test_moat_r3_compose_before_grounding.py:264: AssertionError
+_______ test_surface_variants_of_f3_are_refused[- *Alder Haulage* [S1]] ________
+
+tmp_path = PosixPath('/private/var/folders/ry/kmdls03154s9q4dp4v5nlxxw0000gn/T/pytest-of-saisumanth/pytest-4447/test_surface_variants_of_f3_ar3')
+item = '- *Alder Haulage* [S1]'
+
+    @pytest.mark.parametrize("item", [
+        "- Alder Haulage [S1].",          # trailing punctuation
+        "- [S1] Alder Haulage",           # citation placement
+        "- **Alder Haulage** [S1]",       # bold
+        "- *Alder Haulage* [S1]",         # italics
+        "- `Alder Haulage` [S1]",         # inline code
+        "+ Alder Haulage [S1]",           # + bullet
+        "* Alder Haulage [S1]",           # * bullet
+        "1. Alder Haulage [S1]",          # numbered list
+        "1) Alder Haulage [S1]",
+        "- Carriers\n  - Alder Haulage [S1]",  # nested indent
+        "- Alder Haulage, [S1]",
+    ])
+    def test_surface_variants_of_f3_are_refused(tmp_path, item):
+        report = gate(tmp_path, {"S1": CARGO + FILLER}, f"## Criminals\n\n{item}\n")
+>       assert report["gate"] != "PASS", report
+E       AssertionError: {'gate': 'PASS', 'grounding_score': 100.0, 'per_claim': [{'evidence_basis': 'Not scored: this line was not classified ...'index': 1, 'kind': 'FACTUAL', 'support_diagnostic': 'no_hedge_in_cited_sentence', ...}], 'retained_appendix': [], ...}
+E       assert 'PASS' != 'PASS'
+
+tests/test_moat_r3_compose_before_grounding.py:264: AssertionError
+_______ test_surface_variants_of_f3_are_refused[- `Alder Haulage` [S1]] ________
+
+tmp_path = PosixPath('/private/var/folders/ry/kmdls03154s9q4dp4v5nlxxw0000gn/T/pytest-of-saisumanth/pytest-4447/test_surface_variants_of_f3_ar4')
+item = '- `Alder Haulage` [S1]'
+
+    @pytest.mark.parametrize("item", [
+        "- Alder Haulage [S1].",          # trailing punctuation
+        "- [S1] Alder Haulage",           # citation placement
+        "- **Alder Haulage** [S1]",       # bold
+        "- *Alder Haulage* [S1]",         # italics
+        "- `Alder Haulage` [S1]",         # inline code
+        "+ Alder Haulage [S1]",           # + bullet
+        "* Alder Haulage [S1]",           # * bullet
+        "1. Alder Haulage [S1]",          # numbered list
+        "1) Alder Haulage [S1]",
+        "- Carriers\n  - Alder Haulage [S1]",  # nested indent
+        "- Alder Haulage, [S1]",
+    ])
+    def test_surface_variants_of_f3_are_refused(tmp_path, item):
+        report = gate(tmp_path, {"S1": CARGO + FILLER}, f"## Criminals\n\n{item}\n")
+>       assert report["gate"] != "PASS", report
+E       AssertionError: {'gate': 'PASS', 'grounding_score': 100.0, 'per_claim': [{'evidence_basis': 'Not scored: this line was not classified ...'index': 1, 'kind': 'FACTUAL', 'support_diagnostic': 'no_hedge_in_cited_sentence', ...}], 'retained_appendix': [], ...}
+E       assert 'PASS' != 'PASS'
+
+tests/test_moat_r3_compose_before_grounding.py:264: AssertionError
+________ test_surface_variants_of_f3_are_refused[+ Alder Haulage [S1]] _________
+
+tmp_path = PosixPath('/private/var/folders/ry/kmdls03154s9q4dp4v5nlxxw0000gn/T/pytest-of-saisumanth/pytest-4447/test_surface_variants_of_f3_ar5')
+item = '+ Alder Haulage [S1]'
+
+    @pytest.mark.parametrize("item", [
+        "- Alder Haulage [S1].",          # trailing punctuation
+        "- [S1] Alder Haulage",           # citation placement
+        "- **Alder Haulage** [S1]",       # bold
+        "- *Alder Haulage* [S1]",         # italics
+        "- `Alder Haulage` [S1]",         # inline code
+        "+ Alder Haulage [S1]",           # + bullet
+        "* Alder Haulage [S1]",           # * bullet
+        "1. Alder Haulage [S1]",          # numbered list
+        "1) Alder Haulage [S1]",
+        "- Carriers\n  - Alder Haulage [S1]",  # nested indent
+        "- Alder Haulage, [S1]",
+    ])
+    def test_surface_variants_of_f3_are_refused(tmp_path, item):
+        report = gate(tmp_path, {"S1": CARGO + FILLER}, f"## Criminals\n\n{item}\n")
+>       assert report["gate"] != "PASS", report
+E       AssertionError: {'gate': 'PASS', 'grounding_score': 100.0, 'per_claim': [{'evidence_basis': 'Not scored: this line was not classified ...'index': 1, 'kind': 'FACTUAL', 'support_diagnostic': 'no_hedge_in_cited_sentence', ...}], 'retained_appendix': [], ...}
+E       assert 'PASS' != 'PASS'
+
+tests/test_moat_r3_compose_before_grounding.py:264: AssertionError
+________ test_surface_variants_of_f3_are_refused[* Alder Haulage [S1]] _________
+
+tmp_path = PosixPath('/private/var/folders/ry/kmdls03154s9q4dp4v5nlxxw0000gn/T/pytest-of-saisumanth/pytest-4447/test_surface_variants_of_f3_ar6')
+item = '* Alder Haulage [S1]'
+
+    @pytest.mark.parametrize("item", [
+        "- Alder Haulage [S1].",          # trailing punctuation
+        "- [S1] Alder Haulage",           # citation placement
+        "- **Alder Haulage** [S1]",       # bold
+        "- *Alder Haulage* [S1]",         # italics
+        "- `Alder Haulage` [S1]",         # inline code
+        "+ Alder Haulage [S1]",           # + bullet
+        "* Alder Haulage [S1]",           # * bullet
+        "1. Alder Haulage [S1]",          # numbered list
+        "1) Alder Haulage [S1]",
+        "- Carriers\n  - Alder Haulage [S1]",  # nested indent
+        "- Alder Haulage, [S1]",
+    ])
+    def test_surface_variants_of_f3_are_refused(tmp_path, item):
+        report = gate(tmp_path, {"S1": CARGO + FILLER}, f"## Criminals\n\n{item}\n")
+>       assert report["gate"] != "PASS", report
+E       AssertionError: {'gate': 'PASS', 'grounding_score': 100.0, 'per_claim': [{'evidence_basis': 'Not scored: this line was not classified ...'index': 1, 'kind': 'FACTUAL', 'support_diagnostic': 'no_hedge_in_cited_sentence', ...}], 'retained_appendix': [], ...}
+E       assert 'PASS' != 'PASS'
+
+tests/test_moat_r3_compose_before_grounding.py:264: AssertionError
+________ test_surface_variants_of_f3_are_refused[- Alder Haulage, [S1]] ________
+
+tmp_path = PosixPath('/private/var/folders/ry/kmdls03154s9q4dp4v5nlxxw0000gn/T/pytest-of-saisumanth/pytest-4447/test_surface_variants_of_f3_ar10')
+item = '- Alder Haulage, [S1]'
+
+    @pytest.mark.parametrize("item", [
+        "- Alder Haulage [S1].",          # trailing punctuation
+        "- [S1] Alder Haulage",           # citation placement
+        "- **Alder Haulage** [S1]",       # bold
+        "- *Alder Haulage* [S1]",         # italics
+        "- `Alder Haulage` [S1]",         # inline code
+        "+ Alder Haulage [S1]",           # + bullet
+        "* Alder Haulage [S1]",           # * bullet
+        "1. Alder Haulage [S1]",          # numbered list
+        "1) Alder Haulage [S1]",
+        "- Carriers\n  - Alder Haulage [S1]",  # nested indent
+        "- Alder Haulage, [S1]",
+    ])
+    def test_surface_variants_of_f3_are_refused(tmp_path, item):
+        report = gate(tmp_path, {"S1": CARGO + FILLER}, f"## Criminals\n\n{item}\n")
+>       assert report["gate"] != "PASS", report
+E       AssertionError: {'gate': 'PASS', 'grounding_score': 100.0, 'per_claim': [{'evidence_basis': 'Not scored: this line was not classified ...'index': 1, 'kind': 'FACTUAL', 'support_diagnostic': 'no_hedge_in_cited_sentence', ...}], 'retained_appendix': [], ...}
+E       assert 'PASS' != 'PASS'
+
+tests/test_moat_r3_compose_before_grounding.py:264: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_moat_r3_compose_before_grounding.py::test_f3_heading_over_bare_name_is_refused[Criminals-Alder Haulage]
+FAILED tests/test_moat_r3_compose_before_grounding.py::test_f3_heading_over_bare_name_is_refused[Fraudsters-Haven Haulage]
+FAILED tests/test_moat_r3_compose_before_grounding.py::test_f3_heading_over_bare_name_is_refused[Sanctioned operators-Alder Holdings]
+FAILED tests/test_moat_r3_compose_before_grounding.py::test_f7_lead_in_over_name_from_another_source_is_refused
+FAILED tests/test_moat_r3_compose_before_grounding.py::test_f7_lead_in_and_name_citing_the_same_source_is_refused
+FAILED tests/test_moat_r3_compose_before_grounding.py::test_f8_continuation_figure_is_refused
+FAILED tests/test_moat_r3_compose_before_grounding.py::test_bare_fragment_with_no_structure_is_never_grounded_alone
+FAILED tests/test_moat_r3_compose_before_grounding.py::test_uncomposed_mapping_never_lifts_a_verdict
+FAILED tests/test_moat_r3_compose_before_grounding.py::test_r3_uncomposed_is_pure
+FAILED tests/test_moat_r3_compose_before_grounding.py::test_lacks_predicate[- Alder Haulage [S1]-True]
+FAILED tests/test_moat_r3_compose_before_grounding.py::test_lacks_predicate[12 million dollars [S1]-True]
+FAILED tests/test_moat_r3_compose_before_grounding.py::test_lacks_predicate[- Haven Haulage [S1]-True]
+FAILED tests/test_moat_r3_compose_before_grounding.py::test_lacks_predicate[- other companies [S2]-True]
+FAILED tests/test_moat_r3_compose_before_grounding.py::test_lacks_predicate[- Alder Haulage delivers cargo [S1].-False]
+FAILED tests/test_moat_r3_compose_before_grounding.py::test_lacks_predicate[- Alder Haulage is a carrier [S1].-False]
+FAILED tests/test_moat_r3_compose_before_grounding.py::test_table_cells_are_out_of_r3_scope
+FAILED tests/test_moat_r3_compose_before_grounding.py::test_pipe_inside_a_list_item_does_not_exempt[- Alder Haulage | [S1]]
+FAILED tests/test_moat_r3_compose_before_grounding.py::test_pipe_inside_a_list_item_does_not_exempt[- Alder | Haulage [S1]]
+FAILED tests/test_moat_r3_compose_before_grounding.py::test_pipe_inside_a_list_item_does_not_exempt[- Alder Haulage [S1]]
+FAILED tests/test_moat_r3_compose_before_grounding.py::test_real_table_cell_keeps_pre_r3_scope_exemption
+FAILED tests/test_moat_r3_compose_before_grounding.py::test_gfm_table_rows_needs_a_delimiter_row
+FAILED tests/test_moat_r3_compose_before_grounding.py::test_surface_variants_of_f3_are_refused[- Alder Haulage [S1].]
+FAILED tests/test_moat_r3_compose_before_grounding.py::test_surface_variants_of_f3_are_refused[- [S1] Alder Haulage]
+FAILED tests/test_moat_r3_compose_before_grounding.py::test_surface_variants_of_f3_are_refused[- **Alder Haulage** [S1]]
+FAILED tests/test_moat_r3_compose_before_grounding.py::test_surface_variants_of_f3_are_refused[- *Alder Haulage* [S1]]
+FAILED tests/test_moat_r3_compose_before_grounding.py::test_surface_variants_of_f3_are_refused[- `Alder Haulage` [S1]]
+FAILED tests/test_moat_r3_compose_before_grounding.py::test_surface_variants_of_f3_are_refused[+ Alder Haulage [S1]]
+FAILED tests/test_moat_r3_compose_before_grounding.py::test_surface_variants_of_f3_are_refused[* Alder Haulage [S1]]
+FAILED tests/test_moat_r3_compose_before_grounding.py::test_surface_variants_of_f3_are_refused[- Alder Haulage, [S1]]
+29 failed, 9 passed, 3 xfailed in 4.85s
