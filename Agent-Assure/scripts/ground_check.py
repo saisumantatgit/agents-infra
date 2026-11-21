@@ -7794,73 +7794,120 @@ def _predicate_supplier(claims: list[Claim], position: int) -> int | None:
 
     Pure function.
     """
-    if position == 0:
-        return None
-    if not _is_list_item_text(claims[position].text):
-        return position - 1
+    list_item = _is_list_item_text(claims[position].text)
     for earlier in range(position - 1, -1, -1):
-        if not _is_list_item_text(claims[earlier].text):
+        # A claim with no word tokens ("---", "***", ".", "…", "—", an emoji)
+        # supplies no predicate: it is TRANSPARENT and the search climbs past
+        # it (D-147: `## Criminals / --- / - Alder Haulage [S1]` certified
+        # PASS 100.0 because "---" was taken as the supplier and its empty
+        # reading composed to the bare name). Nothing left -> None -> refused.
+        if not _has_words(claims[earlier].text):
+            continue
+        if not list_item or not _is_list_item_text(claims[earlier].text):
             return earlier
     return None
+
+
+def _has_words(text: str) -> bool:
+    """True iff the structural body of *text* has at least one word token. Pure."""
+    return bool(_tokenize(_structural_body(text)))
+
+
+def _nearest_worded(claims: list[Claim], position: int) -> int | None:
+    """Position of the nearest claim before *position* that has words. Pure."""
+    return next((i for i in range(position - 1, -1, -1)
+                 if _has_words(claims[i].text)), None)
 
 
 _GFM_DELIMITER_ROW_RE = _re.compile(
     r"^\s{0,3}\|?\s*:?-+:?\s*(?:\|\s*:?-+:?\s*)*\|?\s*$")
 
 
-def gfm_table_rows(draft: str) -> frozenset[str]:
-    """Every line of *draft* (NFKC, stripped) that belongs to a GFM table the
-    renderer would draw: a header line containing `|`, immediately followed by
-    a delimiter row (`|---|---|`) with the same cell count, then each
-    following line that contains `|`, up to the first line that does not.
+def _gfm_table_line_flags(lines: list[str]) -> list[bool]:
+    """Per line: True iff it is a row of a GFM table the renderer would draw —
+    a header line containing `|`, immediately followed by a delimiter row
+    (`|---|---|`) with the same cell count, then each following non-blank line
+    containing `|`. Lines inside a fenced code block are never table rows.
 
-    Structural, not lexical: a `|` typed inside a list item, heading or
-    paragraph is not a table row, because no delimiter row follows it.
-
-    CEILING: line-level GFM only. A table nested in a list item or blockquote
+    CEILING: line-level GFM only; a table nested in a list item or blockquote
     (prefixed lines) is not recognised, so its cells fall INTO R3 scope
     (refusal-side). Upgrade path: the R1 render step's real table nodes.
 
     Pure function.
     """
-    lines = [_nfkc(line) for line in draft.splitlines()]
-    rows: set[str] = set()
+    in_fence = [False] * len(lines)
+    fence: str | None = None
+    for i, line in enumerate(lines):
+        match = _FENCE_RE.match(line)
+        if fence is None and match:
+            fence = match.group("fence")[0]
+            in_fence[i] = True
+        elif fence is not None:
+            in_fence[i] = True
+            if match and match.group("fence")[0] == fence:
+                fence = None
+    flags = [False] * len(lines)
     i = 0
     while i + 1 < len(lines):
         header, delimiter = lines[i], lines[i + 1]
-        if ("|" in header and "|" in delimiter
+        if (not in_fence[i] and not in_fence[i + 1]
+                and "|" in header and "|" in delimiter
                 and _GFM_DELIMITER_ROW_RE.match(delimiter)
                 and len(header.strip().strip("|").split("|"))
                 == len(delimiter.strip().strip("|").split("|"))):
-            rows.update({header.strip(), delimiter.strip()})
+            flags[i] = flags[i + 1] = True
             j = i + 2
-            while j < len(lines) and "|" in lines[j] and lines[j].strip():
-                rows.add(lines[j].strip())
+            while j < len(lines) and not in_fence[j] and "|" in lines[j] \
+                    and lines[j].strip():
+                flags[j] = True
                 j += 1
             i = j
             continue
         i += 1
-    return frozenset(rows)
+    return flags
 
 
-def _is_table_cell(text: str, table_rows: frozenset[str]) -> bool:
-    """True iff every non-empty line of the claim *text* lies inside a line of
-    a real GFM table of the draft (`gfm_table_rows`). Pure.
+def gfm_table_cells(draft: str, claims: list[Claim]) -> frozenset[int]:
+    """Indices of the claims that decompose() cut from a row of a real GFM
+    table (`_gfm_table_line_flags`). Provenance by POSITION, not by text:
+    claims are aligned to the draft's lines in order (a cursor that never
+    moves backwards), so a list item that merely repeats a table row's text
+    elsewhere in the draft is NOT a table cell, and a table inside an HTML
+    comment or a code fence is no table at all (comments are stripped exactly
+    as decompose() strips them; fences are excluded).
+
+    A claim whose lines cannot be aligned is not a table cell — fail-closed:
+    it stays in R3 scope.
 
     CEILING: table cells are OUT of R3's scope and keep exactly the pre-R3
-    behaviour (OVN-1122 D-144). That leaves the sibling defect open: a cell
-    such as "Yes [S1]" or "62 [S1]" grounds by MENTION of its value anywhere
-    in the cited source, whatever row and column the reader reads it under,
-    and an author can move an F3 list into a real table to keep a bare name
-    grounding (strict-xfail tripwire in the R3 test file). Composing cells
-    through decompose()'s claim chain is wrong (-126 honest grounded cells:
-    the chain runs through sibling cells, not the row label and header).
-    Upgrade path: once decomposition keeps table structure (R1 render step),
-    join each cell to its row label + column header and ground that reading.
+    behaviour (D-144). The sibling defect stays open: a real cell such as
+    "Yes [S1]" or "62 [S1]" grounds by MENTION of its value anywhere in the
+    cited source, whatever row and column the reader reads it under, and an
+    author can move an F3 list into a real table. Upgrade path: once
+    decomposition keeps table structure (R1 render step), join each cell to
+    its row label + column header and ground that reading.
+
+    Pure function.
     """
-    parts = [line.strip() for line in text.splitlines() if line.strip()]
-    return bool(parts) and all(any(part in row for row in table_rows)
-                               for part in parts)
+    text = _nfkc(_strip_html_comments_outside_code(
+        _scrub_citations_in_comments(draft)))
+    lines = text.splitlines()
+    flags = _gfm_table_line_flags(lines)
+    cells: set[int] = set()
+    cursor = 0
+    for claim in claims:
+        parts = [part.strip() for part in claim.text.splitlines() if part.strip()]
+        if not parts:
+            continue
+        found = next((i for i in range(cursor, len(lines)) if parts[0] in lines[i]), None)
+        if found is None:
+            continue
+        cursor = found
+        span = range(found, min(found + len(parts), len(lines)))
+        if len(span) == len(parts) and all(flags[i] and parts[k] in lines[i]
+                                           for k, i in enumerate(span)):
+            cells.add(claim.index)
+    return frozenset(cells)
 
 
 def _predicate_test_text(claim: Claim) -> str:
@@ -7871,7 +7918,7 @@ def _predicate_test_text(claim: Claim) -> str:
 
 
 def _r3_in_scope(claims: list[Claim], position: int,
-                 table_rows: frozenset[str]) -> bool:
+                 table_cells: frozenset[int]) -> bool:
     """True iff the claim at *position* is a predicate-free cited fragment in a
     structure R3 composes: a LIST ITEM (governed by its heading / lead-in /
     list parent), or a CONTINUATION (a non-list claim right after a list
@@ -7889,29 +7936,30 @@ def _r3_in_scope(claims: list[Claim], position: int,
     claim = claims[position]
     if claim.kind == ClaimKind.NON_CLAIM or not claim.citations:
         return False
-    if _is_table_cell(claim.text, table_rows) \
+    if claim.index in table_cells \
             or not _lacks_predicate(_predicate_test_text(claim)):
         return False
     if _is_list_item_text(claim.text):
         return True
-    return position > 0 and _is_list_item_text(claims[position - 1].text) \
-        and not _is_table_cell(claims[position - 1].text, table_rows)
+    previous = _nearest_worded(claims, position)
+    return previous is not None and _is_list_item_text(claims[previous].text) \
+        and claims[previous].index not in table_cells
 
 
 def _reader_text(claims: list[Claim], position: int,
-                 table_rows: frozenset[str]) -> str:
+                 table_cells: frozenset[int]) -> str:
     """The words the reader reads at *position*: a predicate-free cited
     fragment is prefixed by its supplier's own reader text; anything else is
     its structural body. Citations are dropped (the caller re-attaches the
     fragment's own). Pure; recursion depth is bounded by *position*."""
     body = _structural_body(claims[position].text)
     claim = claims[position]
-    if not _r3_in_scope(claims, position, table_rows):
+    if not _r3_in_scope(claims, position, table_cells):
         return body
     supplier = _predicate_supplier(claims, position)
     if supplier is None:
         return body
-    return f"{_reader_text(claims, supplier, table_rows)} {body}".strip()
+    return f"{_reader_text(claims, supplier, table_cells)} {body}".strip()
 
 
 R3_NO_SUPPLIER = "no_structure_supplies_a_predicate"
@@ -7920,7 +7968,7 @@ R3_NO_SUPPLIER = "no_structure_supplies_a_predicate"
 def r3_uncomposed(
     claims: list[Claim],
     store: dict[str, RetrievedSource],
-    table_rows: frozenset[str],
+    table_cells: frozenset[int],
     self_source_ids: frozenset[str] = frozenset(),
     inferred_self_ids: frozenset[str] = frozenset(),
 ) -> dict[int, str]:
@@ -7938,7 +7986,7 @@ def r3_uncomposed(
     """
     refused: dict[int, str] = {}
     for position, claim in enumerate(claims):
-        if not _r3_in_scope(claims, position, table_rows):
+        if not _r3_in_scope(claims, position, table_cells):
             continue
         cited = [src for src in (resolve(c, store) for c in claim.citations)
                  if src is not None]
@@ -7948,7 +7996,7 @@ def r3_uncomposed(
         if _predicate_supplier(claims, position) is None:
             refused[claim.index] = R3_NO_SUPPLIER
             continue
-        reading = _reader_text(claims, position, table_rows)
+        reading = _reader_text(claims, position, table_cells)
         composed = classify(Claim(
             index=claim.index,
             text=f"{reading} {' '.join(claim.citations)}",
@@ -8332,7 +8380,7 @@ def main() -> None:
         session_scoped=args.session_id is not None,
         self_source_ids=self_ids,
         inferred_self_ids=inferred_ids,
-        uncomposed=r3_uncomposed(claims, store, gfm_table_rows(draft_text),
+        uncomposed=r3_uncomposed(claims, store, gfm_table_cells(draft_text, claims),
                                  self_ids, inferred_ids),
     )
 

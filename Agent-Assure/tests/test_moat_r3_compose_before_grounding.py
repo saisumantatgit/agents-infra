@@ -215,8 +215,9 @@ def test_table_cells_are_out_of_r3_scope():
              "| Guest access | Yes [S1]. | Yes [S1]. |\n| Audit export | No [S1]. | Yes [S1]. |\n")
     claims = _claims(draft)
     assert any("|" in c.text and c.citations for c in claims)
-    rows = gc.gfm_table_rows(draft)
-    assert gc.r3_uncomposed(claims, _store("| Guest access | Yes | Yes |"), rows) == {}
+    cells = gc.gfm_table_cells(draft, claims)
+    assert cells, "cells of a real table carry table provenance"
+    assert gc.r3_uncomposed(claims, _store("| Guest access | Yes | Yes |"), cells) == {}
 
 
 # --- D-145: a `|` is not a table; only a real GFM table exempts ------------
@@ -234,14 +235,14 @@ def test_pipe_inside_a_list_item_does_not_exempt(tmp_path, item):
 def test_real_table_cell_keeps_pre_r3_scope_exemption():
     draft = "| Firm | Status |\n|---|---|\n| Alder Haulage | Yes [S1]. |\n"
     claims = _claims(draft)
-    rows = gc.gfm_table_rows(draft)
-    assert rows, "a header + delimiter row is a real table"
-    assert gc.r3_uncomposed(claims, _store(CARGO + " Yes."), rows) == {}
+    cells = gc.gfm_table_cells(draft, claims)
+    assert cells, "a header + delimiter row is a real table"
+    assert gc.r3_uncomposed(claims, _store(CARGO + " Yes."), cells) == {}
 
 
-def test_gfm_table_rows_needs_a_delimiter_row():
-    assert gc.gfm_table_rows("## Criminals\n\n- Alder Haulage | [S1]\n") == frozenset()
-    assert gc.gfm_table_rows("a | b\nc | d\n") == frozenset()
+def test_gfm_table_cells_needs_a_delimiter_row():
+    for draft in ("## Criminals\n\n- Alder Haulage | [S1]\n", "a | b [S1]\nc | d [S1]\n"):
+        assert gc.gfm_table_cells(draft, _claims(draft)) == frozenset()
 
 
 # --- Own red-team of author-controlled surface (D-145 item 3) -------------
@@ -290,3 +291,41 @@ def test_bare_name_in_real_table_under_disowning_header_is_refused(tmp_path):
                   "## Records\n\n| Status | Firm |\n|---|---|\n"
                   "| Convicted | Alder Haulage [S1]. |\n")
     assert report["gate"] != "PASS", report
+
+
+# --- D-147: wordless suppliers are transparent; table provenance is positional
+
+@pytest.mark.parametrize("interposed", ["---", ".", "***", "\u2026", "\u2014", "\u26a0\ufe0f"])
+def test_wordless_line_between_heading_and_item_is_transparent(tmp_path, interposed):
+    report = gate(tmp_path, {"S1": CARGO + FILLER},
+                  f"## Criminals\n\n{interposed}\n\n- Alder Haulage [S1]\n")
+    assert report["gate"] != "PASS", report
+    assert _verdict(report, "- Alder Haulage") == "UNGROUNDED"
+
+
+def test_f7_wordless_line_between_lead_in_and_item(tmp_path):
+    report = gate(tmp_path, {"S1": CARGO + FILLER, "S2": f"{LEAD}: other companies." + FILLER},
+                  f"{LEAD} [S2]:\n\n.\n\n- Alder Haulage [S1]\n")
+    assert report["gate"] != "PASS", report
+    assert _verdict(report, "- Alder Haulage") == "UNGROUNDED"
+
+
+def test_f8_wordless_lines_around_continuation(tmp_path):
+    source = "Alder Haulage delivers cargo. Alder Storage earned 12 million dollars." + FILLER
+    report = gate(tmp_path, {"S1": source},
+                  ".\n\n- Alder Haulage [S1]\n\n  .\n\n  12 million dollars [S1]\n")
+    assert report["gate"] != "PASS", report
+    assert _verdict(report, "12 million dollars") == "UNGROUNDED"
+
+
+@pytest.mark.parametrize("tail", [
+    "| Firm | Activity |\n|---|---|\n| - Alder Haulage [S1] | delivers cargo [S1] |\n",
+    "| Who is - Alder Haulage [S1]? |\n|---|\n",
+    "| Firm |\n|---|\n| - Alder Haulage [S1] |\n",
+    "<!--\n| x |\n|---|\n| - Alder Haulage [S1] |\n-->\n",
+    "```\n| x |\n|---|\n| - Alder Haulage [S1] |\n```\n",
+])
+def test_table_text_elsewhere_does_not_exempt_the_item(tmp_path, tail):
+    report = gate(tmp_path, {"S1": CARGO + FILLER},
+                  f"## Criminals\n\n- Alder Haulage [S1]\n\n{tail}")
+    assert _verdict(report, "- Alder Haulage") == "UNGROUNDED", report
