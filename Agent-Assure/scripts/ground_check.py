@@ -983,8 +983,22 @@ _RELATIONAL_TRIGGERS: tuple[str, ...] = (
 # alphabetic suffix must also END the word (`(?![A-Za-z])`), so "200 manual"
 # and "0.5 means" no longer borrow a letter as "m".
 _BYTE_SUFFIX = r"(?:kilo|mega|giga|tera|peta|exa)?bytes?|[kmgtpe]i?b|(?-i:B)"
+# R5 / N8 (red team R46): a SPACE-GROUPED figure ("1 200", SI / ISO 80000
+# style; NBSP, thin and narrow-NBSP spaces all fold to " " under NFKC) is ONE
+# figure. It used to read as "1" and "200", so a claim of "200 pilots"
+# grounded against "1 200 pilots". The grouped form is tried first and is
+# strict — a 1-3 digit head, then one or more groups of EXACTLY three digits —
+# so "2023 200" (a four-digit head) still reads as two figures.
+# CEILING: two separate figures that happen to fit the shape ("on May 5 200
+# pilots", a flattened table row "12 450 300") now read as one figure, so an
+# honest claim of either part is refused (Error-A, recoverable; never a new
+# acceptance, because the merged figure is also marked space-grouped and only
+# matches another space-grouped figure — see _SPACE_GROUPED_MARK). Upgrade
+# path: read grouping from the source's own convention (does it group
+# elsewhere?) rather than from one occurrence.
+_DIGIT_BODY = r"(?:\d{1,3}(?: \d{3})+(?:\.\d+)?(?![\d,]|\.\d)|\d[\d,.]*)"
 _NUMERIC_RE = _re.compile(
-    r"\$?\d[\d,.]*\s?(?:(?:%|" + _BYTE_SUFFIX + r"|million|billion|bn|k|m)(?![A-Za-z]))?",
+    r"\$?" + _DIGIT_BODY + r"\s?(?:(?:%|" + _BYTE_SUFFIX + r"|million|billion|bn|k|m)(?![A-Za-z]))?",
     _re.IGNORECASE,
 )
 
@@ -4241,7 +4255,16 @@ def _claim_figures(text: str) -> tuple[str, ...]:
     NFKC-normalised and citation-stripped), in order. Pure."""
     out: list[str] = []
     seen_ids: set[tuple[int, int]] = set()
+    # R5 / N10: a slash/dash date is ONE figure, emitted once, whole.
+    dates = _date_spans(text)
+    seen_dates: set[tuple[int, int]] = set()
     for m in _NUMERIC_RE.finditer(text):
+        date = next((d for d in dates if d[0] <= m.start() < d[1]), None)
+        if date is not None:
+            if date not in seen_dates:
+                seen_dates.add(date)
+                out.append(text[date[0]:date[1]])
+            continue
         tok = m.group(0)
         digit_start = m.start() + (len(tok) - len(tok.lstrip("$")))
         span = None if tok.startswith("$") else _identifier_span(text, digit_start, m.end())
@@ -4461,7 +4484,7 @@ def t2_lexical(
 # Word-boundary anchored on suffix to avoid substring matches (e.g. "25%" in
 # source must not also yield a stray "5" or "2" match from inside the token).
 _SOURCE_NUMERIC_RE = _re.compile(
-    r"\$?\d[\d,.]*\s?(?:(?:million|billion|percent|" + _BYTE_SUFFIX
+    r"\$?" + _DIGIT_BODY + r"\s?(?:(?:million|billion|percent|" + _BYTE_SUFFIX
     + r"|bn|k|m|%)(?![A-Za-z]))?(?!\d)",
     _re.IGNORECASE,
 )
@@ -4750,6 +4773,10 @@ def _parse_numeric_token(token: str) -> tuple[float, str] | None:
     raw = raw.lstrip("$")
     # Remove commas (thousands separators)
     raw = raw.replace(",", "")
+    # R5 / N8: remove the space of a space-grouped figure ("1 200" -> "1200").
+    # Its grouping is carried separately as _SPACE_GROUPED_MARK, so the value
+    # equality here never lets "1 200" match "1,200" or "1200".
+    raw = _re.sub(r"(?<=\d) (?=\d{3}(?!\d))", "", raw)
     # Extract trailing suffix (letters/%) and numeric body
     match = _re.match(r"^([\d.]+)\s*([a-zA-Z%]*)$", raw.strip())
     if not match:
@@ -4874,10 +4901,172 @@ def _figure_qualifiers(before: str, after: str) -> frozenset[str]:
     return frozenset(quals)
 
 
+# R5 (red team R46, families N8-N10): HOW A FIGURE IS WRITTEN is part of it.
+#
+# Four shapes certified PASS 100.0 on main, each because the reader took a
+# FRAGMENT of the written figure, or its float value, as the figure:
+#   N8  "1 200 pilots"  -> "200 pilots"   (space group read as two numbers)
+#   N9  "40-50 pilots"  -> "50 pilots"    (range endpoint stated as the value)
+#   N10 "03/04/2023"    -> "04/03/2023"   (date components matched in any order)
+#   N10 "2.10"          -> "2.1"          (version compared as a float)
+# The repair keeps the value comparison and adds what the writing states:
+#   * a space-grouped figure carries _SPACE_GROUPED_MARK (both sides);
+#   * a range endpoint carries _RANGE_LOW_MARK / _RANGE_HIGH_MARK (both sides);
+#   * a figure written with a decimal point carries its fraction digits, and
+#     two dotted figures match only when those digits are identical;
+#   * a slash/dash date is ONE token, matched as the same ordered string.
+# Every mark is compared by the existing qualifier-set EQUALITY, so each can
+# only split a match, never create one (fail-closed). The marks are private-use
+# code points so no source glyph can ever supply or cancel one.
+#
+# The one relaxation, and why it is not PASS-enabling: a claim that states a
+# BOUND ("up to 50", "at most 50", "no more than 50") may match a source's
+# upper range endpoint, and "at least 40" / "no fewer than 40" / "no less than
+# 40" its lower endpoint. That only re-admits what main already admitted (main
+# had no range reading at all); a missing bound phrase leaves the claim
+# REFUSED, so the lexicon's missing member points away from PASS (D-69).
+_SPACE_GROUPED_MARK = "\ue000"
+_RANGE_LOW_MARK = "\ue001"
+_RANGE_HIGH_MARK = "\ue002"
+
+_FIGURE_SUFFIX_WORDS = r"(?:%|percent|million|billion|bn|k|m)"
+_DASHES = "\\-\u2010\u2011\u2012\u2013\u2014\u2015"
+# Text BEFORE a figure that makes it the HIGH end of a range: "40-",
+# "between 40 and " (an optional "$" may sit right before the digit).
+_RANGE_HIGH_BEFORE_RE = _re.compile(
+    r"(?:\d[\d,.]*\s*" + _FIGURE_SUFFIX_WORDS + r"?\s*[" + _DASHES + r"]\s*"
+    r"|\bbetween\s+\$?\d[\d,.]*\s*" + _FIGURE_SUFFIX_WORDS + r"?\s+and\s+)\$?$",
+    _re.IGNORECASE,
+)
+# "40 to 50" is a range too — UNLESS the low figure follows "from" or "by",
+# where "X to Y" is a CHANGE of value ("rose by 300 to 1,000", "fell from 50 to
+# 40"): there both figures are real values and each grounds on its own. Group 1
+# captures that change word; a match with it is not a range. Narrowed ONCE
+# after measurement: without it the v3 corpus's honest r46_n11 control ("rose by
+# 300" against "rose by 300 to 1,000") fell 15 -> 0. Direction of a missing
+# member (D-69): a change word NOT listed leaves "X to Y" read as a range, i.e.
+# refused — the safe side.
+# CEILING: a SPAN written "from 40 to 50 pilots" is read as a change, so a claim
+# "50 pilots" grounds against it (main's behaviour, not a new acceptance).
+# Upgrade path: tell a change verb ("rose", "fell") from a span noun phrase.
+_RANGE_HIGH_TO_BEFORE_RE = _re.compile(
+    r"(\b(?:from|by)\s+)?\$?(?<![\d,.])\d[\d,.]*\s*" + _FIGURE_SUFFIX_WORDS
+    + r"?\s+to\s+\$?$",
+    _re.IGNORECASE,
+)
+_CHANGE_OF_VALUE_BEFORE_RE = _re.compile(r"\b(?:from|by)\s+\$?$", _re.IGNORECASE)
+# Text AFTER a figure token that makes it the LOW end of a range.
+_RANGE_LOW_AFTER_RE = _re.compile(
+    r"^\s*[" + _DASHES + r"]\s*\$?\d", _re.IGNORECASE,
+)
+_RANGE_LOW_TO_AFTER_RE = _re.compile(r"^\s*to\s+\$?\d", _re.IGNORECASE)
+_RANGE_LOW_BETWEEN_BEFORE_RE = _re.compile(r"\bbetween\s+\$?$", _re.IGNORECASE)
+_RANGE_LOW_BETWEEN_AFTER_RE = _re.compile(r"^\s*and\s+\$?\d", _re.IGNORECASE)
+# A claim's stated bound (the only words that let a single figure match a
+# range endpoint).
+_UPPER_BOUND_BEFORE_RE = _re.compile(
+    r"\b(?:up\s+to|at\s+most|no\s+more\s+than)\s+\$?$", _re.IGNORECASE)
+_LOWER_BOUND_BEFORE_RE = _re.compile(
+    r"\b(?:at\s+least|no\s+fewer\s+than|no\s+less\s+than)\s+\$?$", _re.IGNORECASE)
+
+# A date written with "/" or "-" between three digit groups, the same
+# separator twice: "03/04/2023", "2023-03-04". Matched as ONE ordered string.
+# CEILING: "3/4/2023" and "03/04/2023" (the same date, padded differently) do
+# not match, nor do "03.04.2023"-style dotted dates (still refused whole, as
+# on main, because the float parse of a two-dot token fails). Upgrade path: a
+# date parser that yields (component, position) without guessing locale.
+_DATE_RE = _re.compile(r"(?<![\w/\-.])\d{1,4}([/\-])\d{1,2}\1\d{1,4}(?![\w/\-]|\.\d)")
+
+
+def _date_spans(text: str) -> tuple[tuple[int, int], ...]:
+    """(start, end) of every slash/dash date in *text*. Pure."""
+    return tuple(m.span() for m in _DATE_RE.finditer(text))
+
+
+def _is_date_token(token: str) -> bool:
+    """True iff *token* is exactly one slash/dash date. Pure."""
+    return _DATE_RE.fullmatch(token) is not None
+
+
+def _date_in_sources(token: str, sources: list[RetrievedSource]) -> bool:
+    """True iff the date *token* is written identically, as a whole date, in
+    at least one source (NFKC). Pure."""
+    return any(m.group(0) == token
+               for src in sources for m in _DATE_RE.finditer(_nfkc(src.text)))
+
+
+def _fraction_digits(token: str) -> str | None:
+    """The digits after a figure's decimal point as written ("2.10" -> "10"),
+    or None when the figure has no decimal point. Pure.
+
+    CEILING: "2.0" against "2" (one side undotted) still matches by value, so
+    a version "2.0" grounds a claim "2". Upgrade path: tell version context
+    from quantity context.
+    """
+    m = _re.search(r"\d\.(\d+)", token)
+    return m.group(1) if m else None
+
+
+# The range and bound readers only look at the text right next to a figure.
+# Cutting the windows keeps a source scan linear: an end-anchored regex
+# searched over the WHOLE prefix of a long source is quadratic in its length.
+# CEILING: a range or bound phrase longer than the window (a figure of more
+# than ~40 characters before "to"/"and") is not read, so its figure is
+# compared as a bare value (main's behaviour). Upgrade path: tokenise figures
+# once per source and read neighbours by index.
+_FORM_WINDOW = 64
+
+
+def _written_form_marks(before: str, token: str, after: str) -> frozenset[str]:
+    """The R5 marks of a figure *token* between *before* and *after*:
+    space-grouped, low range end, high range end. Pure."""
+    before = before[-_FORM_WINDOW:]
+    after = after[:_FORM_WINDOW]
+    marks: set[str] = set()
+    if _re.search(r"\d \d{3}", token):
+        marks.add(_SPACE_GROUPED_MARK)
+    high_to = _RANGE_HIGH_TO_BEFORE_RE.search(before)
+    if _RANGE_HIGH_BEFORE_RE.search(before) or (high_to and not high_to.group(1)):
+        marks.add(_RANGE_HIGH_MARK)
+    if _RANGE_LOW_AFTER_RE.match(after) or (
+            _RANGE_LOW_TO_AFTER_RE.match(after)
+            and not _CHANGE_OF_VALUE_BEFORE_RE.search(before)) or (
+            _RANGE_LOW_BETWEEN_BEFORE_RE.search(before)
+            and _RANGE_LOW_BETWEEN_AFTER_RE.match(after)):
+        marks.add(_RANGE_LOW_MARK)
+    return frozenset(marks)
+
+
+def _claim_bound_mark(before: str) -> str | None:
+    """The range-end mark a claim's stated bound licenses ("up to 50" ->
+    _RANGE_HIGH_MARK, "at least 40" -> _RANGE_LOW_MARK), or None. Pure."""
+    before = before[-_FORM_WINDOW:]
+    if _UPPER_BOUND_BEFORE_RE.search(before):
+        return _RANGE_HIGH_MARK
+    if _LOWER_BOUND_BEFORE_RE.search(before):
+        return _RANGE_LOW_MARK
+    return None
+
+
+def _figure_marks_agree(claim_quals: frozenset[str], bound: str | None,
+                        source_quals: frozenset[str]) -> bool:
+    """True iff a claim figure's qualifiers agree with a source figure's: equal
+    (see _qualifiers_match), or the claim states the bound *bound* and the
+    source figure is that end of a range with otherwise equal qualifiers.
+    Pure."""
+    if _qualifiers_match(claim_quals, source_quals):
+        return True
+    if bound is None or bound not in source_quals or bound in claim_quals:
+        return False
+    return _qualifiers_match(claim_quals, source_quals - {bound})
+
+
 def _extract_numeric_mentions(
     text: str,
-) -> list[tuple[float, str, str | None, str | None, frozenset[str]]]:
-    """Return all parseable (value, unit, rate, quantity, qualifiers) tuples in *text*.
+) -> list[tuple[float, str, str | None, str | None, frozenset[str], str | None]]:
+    """Return all parseable (value, unit, rate, quantity, qualifiers,
+    fraction_digits) tuples in *text*. Digits inside a slash/dash date are not
+    figures (R5 / N10): a date is matched only whole, by _date_in_sources.
 
     NFKC-normalizes before scanning; the dimensional context (measured quantity
     + rate denominator) is read from the windows around each numeric mention:
@@ -4886,8 +5075,11 @@ def _extract_numeric_mentions(
     May contain duplicates. Pure function.
     """
     normalized = _nfkc(text)
-    out: list[tuple[float, str, str | None, str | None, frozenset[str]]] = []
+    out: list[tuple[float, str, str | None, str | None, frozenset[str], str | None]] = []
+    dates = _date_spans(normalized)
     for m in _SOURCE_NUMERIC_RE.finditer(normalized):
+        if any(lo <= m.start() < hi for lo, hi in dates):
+            continue
         _tok = m.group(0)
         _ds = m.start() + (len(_tok) - len(_tok.lstrip("$")))
         if not _tok.startswith("$") and _identifier_span(normalized, _ds, m.end()) is not None:
@@ -4902,8 +5094,10 @@ def _extract_numeric_mentions(
             digit_start = m.start() + (len(m.group(0)) - len(m.group(0).lstrip("$")))
             quals = _figure_qualifiers(
                 normalized[:digit_start], normalized[m.end():]
+            ) | _written_form_marks(
+                normalized[:digit_start], m.group(0), normalized[m.end():]
             )
-            out.append((value, unit, rate, quantity, quals))
+            out.append((value, unit, rate, quantity, quals, _fraction_digits(m.group(0))))
     return out
 
 
@@ -4945,7 +5139,7 @@ def numeric_ok(claim: Claim, sources: list[RetrievedSource]) -> bool:
         return False
 
     # Pre-compute all source (value, unit, rate, quantity) mentions once.
-    source_mentions: list[tuple[float, str, str | None, str | None, frozenset[str]]] = []
+    source_mentions: list[tuple[float, str, str | None, str | None, frozenset[str], str | None]] = []
     for source in sources:
         source_mentions.extend(_extract_numeric_mentions(source.text))
 
@@ -4956,6 +5150,14 @@ def numeric_ok(claim: Claim, sources: list[RetrievedSource]) -> bool:
     claim_text_normalized = _CITATION_RE.sub("", _nfkc(claim.text))
     search_from = 0
     for token in claim.numeric_tokens:
+        if _is_date_token(token):
+            # R5 / N10: a date is matched whole, as the same ordered string.
+            if not _date_in_sources(token, sources):
+                return False
+            pos = claim_text_normalized.find(token, search_from)
+            if pos != -1:
+                search_from = pos + len(token)
+            continue
         if _is_identifier_token(token):
             # B2: an identifier is matched EXACTLY (whole word), never by value.
             if not _identifier_in_sources(token, sources):
@@ -4975,6 +5177,10 @@ def numeric_ok(claim: Claim, sources: list[RetrievedSource]) -> bool:
         # W2B: a token not locatable in the text carries only the "$" its own
         # string states — never fewer qualifiers than it visibly has.
         claim_quals: frozenset[str] = frozenset({"$"}) if token.startswith("$") else frozenset()
+        claim_bound: str | None = None
+        # R5: a token not locatable in the text still carries its own grouping.
+        claim_quals = claim_quals | _written_form_marks("", token, "")
+        claim_frac = _fraction_digits(token)
         pos = claim_text_normalized.find(token, search_from)
         if pos == -1:
             pos = claim_text_normalized.find(token)
@@ -4987,16 +5193,25 @@ def numeric_ok(claim: Claim, sources: list[RetrievedSource]) -> bool:
             claim_quals = _figure_qualifiers(
                 claim_text_normalized[:digit_start],
                 claim_text_normalized[token_end:],
+            ) | _written_form_marks(
+                claim_text_normalized[:digit_start], token,
+                claim_text_normalized[token_end:],
             )
+            claim_bound = _claim_bound_mark(claim_text_normalized[:digit_start])
             search_from = token_end
 
         matched = False
-        for s_val, s_unit, s_rate, s_quantity, s_quals in source_mentions:
+        for s_val, s_unit, s_rate, s_quantity, s_quals, s_frac in source_mentions:
             if claim_val != s_val or claim_unit != s_unit:
                 continue
+            # R5 / N10: two figures both written with a decimal point must
+            # carry the same fraction digits ("2.10" is not "2.1").
+            if claim_frac is not None and s_frac is not None and claim_frac != s_frac:
+                continue
             # W2B: sign / comparator / currency / leading point / per-mille
-            # must be stated identically on both sides.
-            if not _qualifiers_match(claim_quals, s_quals):
+            # must be stated identically on both sides; R5 adds grouping and
+            # range ends, with a stated bound admitting its own range end.
+            if not _figure_marks_agree(claim_quals, claim_bound, s_quals):
                 continue
             # An asserted rate/quantity must be matched by the source mention;
             # an unasserted one imposes no constraint.
@@ -5075,6 +5290,33 @@ _SPELLED_NUMBER_WORDS: frozenset[str] = frozenset({
 })
 
 
+# R5 / N7 (red team R46, 2026-11-21): a spelled figure is the WHOLE run.
+#
+# `spelled_quantity_ok` used to ask only whether the claim's phrase occurred
+# contiguously somewhere in a source, so "two pilots" grounded against a source
+# saying "two hundred pilots" — "two" is a sub-run of "two hundred" — at PASS
+# 100.0. The digit form ("2" vs "200") was refused on the same store. The fix
+# compares RUN TO RUN: the claim's phrase must equal one of the source's own
+# maximal runs, so a fragment of a larger spelled figure is never that figure.
+#
+# A run also absorbs a CONNECTOR sandwiched between two number words ("two
+# hundred AND fifty", "forty TO fifty", "two OR three", "two POINT five"), so a
+# compound or a spelled range is one figure on both sides, and a single
+# endpoint ("fifty") is not a run of the source's "forty to fifty".
+#
+# Which way does a missing member point (D-69)? A word missing from
+# `_SPELLED_NUMBER_WORDS` or from `_SPELLED_RUN_CONNECTORS` SPLITS a source run
+# into sub-runs, and a claim equal to a sub-run grounds — which is exactly the
+# substring behaviour this replaces, never more. So a missing member leaves a
+# figure at main's (weaker) status quo; it can never accept what main refused.
+# CEILING: a source run split by an unlisted word ("forty-odd thousand",
+# "a hundred-plus") lets a claim of one fragment ("forty") ground. Upgrade
+# path: carry the source token AFTER the run and require the claim's counted
+# noun to follow it, or add the splitting word to the connector set once a
+# corpus shows it.
+_SPELLED_RUN_CONNECTORS: frozenset[str] = frozenset({"and", "to", "or", "point"})
+
+
 def _spelled_quantity_phrases(text: str) -> tuple[str, ...]:
     """Return the maximal runs of spelled number words in *text*, in order.
 
@@ -5083,11 +5325,11 @@ def _spelled_quantity_phrases(text: str) -> tuple[str, ...]:
     and NFKC variants collapse into one canonical form ("ninety-seven",
     "ninety seven" and full-width digits-as-words all normalise together).
 
-    Runs break at any non-number word, including the connector "and" — so
-    "two hundred and fifty" yields ("two hundred", "fifty"). That is
-    deliberate via-negativa: both runs still occur contiguously inside a source
-    that spells the whole figure out, so an honest source is unaffected, and
-    handling the connector would add a rule whose only effect is on drafts.
+    A connector word (`_SPELLED_RUN_CONNECTORS`) joins the run only when it
+    sits BETWEEN two number words: "two hundred and fifty" -> ("two hundred
+    and fifty",), "forty to fifty" -> ("forty to fifty",), but "two pilots and
+    staff" -> ("two",). The same function reads claim and source, so an honest
+    claim that spells the figure as its source does yields the same run.
 
     Duplicates are preserved: a claim naming two different spelled figures must
     have both of them present.
@@ -5097,8 +5339,12 @@ def _spelled_quantity_phrases(text: str) -> tuple[str, ...]:
     tokens = _tokenize(_strip_citations(text))
     phrases: list[str] = []
     run: list[str] = []
-    for tok in tokens:
+    for i, tok in enumerate(tokens):
         if tok in _SPELLED_NUMBER_WORDS:
+            run.append(tok)
+            continue
+        if (run and tok in _SPELLED_RUN_CONNECTORS and i + 1 < len(tokens)
+                and tokens[i + 1] in _SPELLED_NUMBER_WORDS):
             run.append(tok)
             continue
         if run:
@@ -5112,11 +5358,11 @@ def _spelled_quantity_phrases(text: str) -> tuple[str, ...]:
 def spelled_quantity_ok(
     claim: Claim, sources: list[RetrievedSource]
 ) -> bool:
-    """True iff every spelled quantity phrase in *claim* occurs VERBATIM in one
-    of *sources*.
+    """True iff every spelled quantity phrase in *claim* is a WHOLE spelled run
+    of one of *sources* (R5 / N7: "two" is not the run "two hundred").
 
-    Each phrase must appear, contiguously and on word boundaries, in a SINGLE
-    source — not assembled across two. A relational claim cites the sources
+    Each phrase must equal a maximal run of a SINGLE source — not assembled
+    across two. A relational claim cites the sources
     that corroborate its relation, and a figure belongs to one statement, so a
     "ninety" in one document and a "seven" in another is not evidence of
     "ninety-seven".
@@ -5141,15 +5387,12 @@ def spelled_quantity_ok(
     if not sources:
         return False
 
-    # Compare token stream to token stream: both sides go through _tokenize, so
-    # a phrase match is a match on WORDS, never on a substring that happens to
-    # straddle them. Sentinel spaces make the containment test exact without a
-    # second regex dialect ( _contains_word's lookarounds are for needles that
-    # carry punctuation; these never do).
-    streams = [" " + " ".join(_tokenize(source.text)) + " " for source in sources]
+    # R5 / N7: run to run, never phrase-in-stream. Both sides go through the
+    # same `_spelled_quantity_phrases`, so the claim's phrase must EQUAL one
+    # whole run of a single source: "two" is not a run of "two hundred".
+    source_runs = [frozenset(_spelled_quantity_phrases(source.text)) for source in sources]
     for phrase in phrases:
-        needle = " " + phrase + " "
-        if not any(needle in stream for stream in streams):
+        if not any(phrase in runs for runs in source_runs):
             return False
     return True
 
