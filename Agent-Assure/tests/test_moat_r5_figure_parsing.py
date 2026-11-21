@@ -157,6 +157,28 @@ ATTACKS = [
     pytest.param(*_pair("enrolled twenty [S2] five-year veterans in the annual training program",
                         "enrolled twenty-five veterans in the annual training program"),
                  id="B2-citation-joins-twenty-five"),
+    # Adversary D-149 — evasions of N8 and N10 on 81e7013.
+    pytest.param(*_pair("reported a total of 1 200, mostly pilots in the annual training program",
+                        "reported a total of 200, mostly pilots in the annual training program"),
+                 id="D149-N8-group-before-comma"),
+    pytest.param(*_pair("spent $1 200, mostly on pilots in the annual training program",
+                        "spent $200, mostly on pilots in the annual training program"),
+                 id="D149-N8-dollar-group-before-comma"),
+    pytest.param(*_pair(f"enrolled 1 200-1 500 {TRAINING}", f"enrolled 500 {TRAINING}"),
+                 id="D149-N8-grouped-range"),
+    pytest.param(*_pair(f"enrolled 300/1 200 {TRAINING}", f"enrolled 200 {TRAINING}"),
+                 id="D149-N8-grouped-ratio"),
+    pytest.param(*_pair("published the annual review for 01/04/2023-31/03/2024",
+                        "published the annual review for 04/01/2023-31/03/2024"),
+                 id="D149-N10-date-range-slash"),
+    pytest.param(*_pair("published the annual review for 2023-04-01-2024-03-31",
+                        "published the annual review for 2023-01-04-2024-03-31"),
+                 id="D149-N10-date-range-iso"),
+    pytest.param(*_pair(f"enrolled 40\u221250 {TRAINING}", f"enrolled 50 {TRAINING}"), id="D149-N9-unicode-minus-range"),
+    pytest.param(*_pair(f"enrolled 40~50 {TRAINING}", f"enrolled 50 {TRAINING}"), id="D149-N9-tilde-range"),
+    pytest.param(*_pair(f"enrolled 40 through 50 {TRAINING}", f"enrolled 50 {TRAINING}"), id="D149-N9-through-range"),
+    pytest.param(*_pair("logged 03/04/2023/ for pilots in the annual training program",
+                        "logged 04/03/2023/ for pilots in the annual training program"), id="D149-N10-date-trailing-slash"),
 ]
 
 
@@ -182,6 +204,12 @@ HONEST = [
                  id="N8-twin-same-grouping"),
     pytest.param(*_pair(f"enrolled 1 200 {TRAINING}", f"enrolled 1 200 {TRAINING}"),
                  id="N8-twin-nbsp-vs-space"),
+    pytest.param(*_pair("reported a total of 1 200, mostly pilots in the annual training program",
+                        "reported a total of 1 200, mostly pilots in the annual training program"),
+                 id="D149-twin-group-before-comma"),
+    pytest.param(*_pair("published the annual review for 01/04/2023-31/03/2024",
+                        "published the annual review for 01/04/2023-31/03/2024"),
+                 id="D149-twin-date-range"),
     pytest.param(*_pair(f"enrolled 40-50 {TRAINING}", f"enrolled 40-50 {TRAINING}"),
                  id="N9-twin-same-range"),
     pytest.param(*_pair(f"enrolled 40-50 {TRAINING}", f"enrolled 40 to 50 {TRAINING}"),
@@ -263,6 +291,7 @@ FIGURE_LAYER = [
     pytest.param("trained the A1 cohort of 30 pilots.", "trained the A1 200 pilots", False, id="identifier-head-swallow"),
     pytest.param("trained the GPT-4 cohort of 30 pilots.", "trained GPT-4 200 pilots", False, id="joiner-identifier-swallow"),
     pytest.param("trained 1 pilot on the 300A line.", "trained 1 200A pilots", False, id="identifier-tail-swallow"),
+    pytest.param("trained the A1-1 cohort of 30 pilots.", "trained the A1-1 200 pilots", False, id="D149-identifier-dash-swallow"),
 ]
 
 

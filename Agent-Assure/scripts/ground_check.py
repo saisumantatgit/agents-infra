@@ -1000,8 +1000,14 @@ _BYTE_SUFFIX = r"(?:kilo|mega|giga|tera|peta|exa)?bytes?|[kmgtpe]i?b|(?-i:B)"
 # ("A1 200", "GPT-4 200", "1 200A"): there `_identifier_span` would fold the
 # head digit into an identifier and the swallowed "200" would go unchecked —
 # a figure main DID check (adversary audit, D-146). Such text falls back to
-# main's reading.
-_DIGIT_BODY = (r"(?:(?<![\w\-.:/])\d{1,3}(?: \d{3})+(?:\.\d+)?(?![\w,]|\.\d)"
+# main's reading. A "-" or "/" directly after a DIGIT is a range or ratio
+# joiner, not an identifier joiner, so "1 200-1 500" and "300/1 200" keep the
+# grouped reading (D-149); `_claim_figures` also re-reads any digits an
+# identifier span leaves behind, so a grouped token can never hide a figure.
+# A trailing comma ends the figure ("a total of 1 200, mostly pilots"); only a
+# comma followed by a digit ("1 200,5") breaks the grouped reading (D-149).
+_DIGIT_BODY = (r"(?:(?<![\w.:])(?<![^\d]-)(?<![^\d]/)\d{1,3}(?: \d{3})+(?:\.\d+)?"
+               r"(?!\w|,\d|\.\d)"
                r"|\d[\d,.]*)")
 _NUMERIC_RE = _re.compile(
     r"\$?" + _DIGIT_BODY + r"\s?(?:(?:%|" + _BYTE_SUFFIX + r"|million|billion|bn|k|m)(?![A-Za-z]))?",
@@ -4270,10 +4276,13 @@ def _claim_figures(text: str) -> tuple[str, ...]:
             if cleaned and any(c.isdigit() for c in cleaned):
                 out.append(cleaned)
             continue
-        if span in seen_ids:
-            continue
-        seen_ids.add(span)
-        out.append(text[span[0]:span[1]])
+        if span not in seen_ids:
+            seen_ids.add(span)
+            out.append(text[span[0]:span[1]])
+        # D-149: a grouped match can run past the identifier ("A1-1 200"):
+        # the digits after the identifier are still a figure, as on main.
+        if span[1] < m.end():
+            out.extend(_claim_figures(text[span[1]:m.end()]))
     return tuple(out)
 
 
@@ -4927,7 +4936,8 @@ _RANGE_LOW_MARK = "\ue001"
 _RANGE_HIGH_MARK = "\ue002"
 
 _FIGURE_SUFFIX_WORDS = r"(?:%|percent|million|billion|bn|k|m)"
-_DASHES = "\\-\u2010\u2011\u2012\u2013\u2014\u2015"
+# U+2212 (minus) and "~" between two digits are also range joiners (D-149).
+_DASHES = "\\-\u2010\u2011\u2012\u2013\u2014\u2015\u2212~"
 # Text BEFORE a figure that makes it the HIGH end of a range: "40-",
 # "between 40 and " (an optional "$" may sit right before the digit).
 _RANGE_HIGH_BEFORE_RE = _re.compile(
@@ -4948,7 +4958,7 @@ _RANGE_HIGH_BEFORE_RE = _re.compile(
 # Upgrade path: tell a change verb ("rose", "fell") from a span noun phrase.
 _RANGE_HIGH_TO_BEFORE_RE = _re.compile(
     r"(\b(?:from|by)\s+)?\$?(?<![\d,.])\d[\d,.]*\s*" + _FIGURE_SUFFIX_WORDS
-    + r"?\s+to\s+\$?$",
+    + r"?\s+(?:to|through)\s+\$?$",
     _re.IGNORECASE,
 )
 _CHANGE_OF_VALUE_BEFORE_RE = _re.compile(r"\b(?:from|by)\s+\$?$", _re.IGNORECASE)
@@ -4956,7 +4966,7 @@ _CHANGE_OF_VALUE_BEFORE_RE = _re.compile(r"\b(?:from|by)\s+\$?$", _re.IGNORECASE
 _RANGE_LOW_AFTER_RE = _re.compile(
     r"^\s*[" + _DASHES + r"]\s*\$?\d", _re.IGNORECASE,
 )
-_RANGE_LOW_TO_AFTER_RE = _re.compile(r"^\s*to\s+\$?\d", _re.IGNORECASE)
+_RANGE_LOW_TO_AFTER_RE = _re.compile(r"^\s*(?:to|through)\s+\$?\d", _re.IGNORECASE)
 _RANGE_LOW_BETWEEN_BEFORE_RE = _re.compile(r"\bbetween\s+\$?$", _re.IGNORECASE)
 _RANGE_LOW_BETWEEN_AFTER_RE = _re.compile(r"^\s*and\s+\$?\d", _re.IGNORECASE)
 # A claim's stated bound (the only words that let a single figure match a
@@ -4972,7 +4982,14 @@ _LOWER_BOUND_BEFORE_RE = _re.compile(
 # not match, nor do "03.04.2023"-style dotted dates (still refused whole, as
 # on main, because the float parse of a two-dot token fails). Upgrade path: a
 # date parser that yields (component, position) without guessing locale.
-_DATE_RE = _re.compile(r"(?<![\w/\-.])\d{1,4}([/\-])\d{1,2}\1\d{1,4}(?![\w/\-]|\.\d)")
+# D-149: a date range written "01/04/2023-31/03/2024" (or ISO
+# "2023-04-01-2024-03-31") is two dates: a date may be followed by "-" when
+# another date follows, and may follow a "-" that follows a digit.
+# CEILING: the same date with a different separator ("03/04/2023" vs
+# "03-04-2023") is refused (Error-A, recoverable); upgrade path as above.
+_DATE_RE = _re.compile(
+    r"(?<![\w/.])(?<![^\d]-)\d{1,4}([/\-])\d{1,2}\1\d{1,4}"
+    r"(?!\w|/\w|\.\d|-(?!\d{1,4}[/\-]\d{1,2}[/\-]\d{1,4}))")
 
 
 def _date_spans(text: str) -> tuple[tuple[int, int], ...]:
@@ -4994,6 +5011,9 @@ def _fraction_digits(token: str) -> str | None:
     CEILING: "2.0" against "2" (one side undotted) still matches by value, so
     a version "2.0" grounds a claim "2". Upgrade path: tell version context
     from quantity context.
+    CEILING: trailing zeros now refuse — "2.50%" vs "2.5%", "1.50 million" vs
+    "1.5 million" (Error-A, recoverable). Upgrade path: same as above; only a
+    version context needs the digits compared as strings.
     """
     m = _re.search(r"\d\.(\d+)", token)
     return m.group(1) if m else None
@@ -5312,10 +5332,16 @@ _SPELLED_NUMBER_WORDS: frozenset[str] = frozenset({
 # substring behaviour this replaces, never more. So a missing member leaves a
 # figure at main's (weaker) status quo; it can never accept what main refused.
 # CEILING: a source run split by an unlisted word ("forty-odd thousand",
-# "a hundred-plus") lets a claim of one fragment ("forty") ground. Upgrade
+# "a hundred-plus") — or by a footnote mark, an HTML comment or a citation
+# marker ("two^1 hundred", "two [S3] hundred") — lets a claim of one fragment
+# ("forty", "two") ground. That is main's behaviour, never a new acceptance. Upgrade
 # path: carry the source token AFTER the run and require the claim's counted
 # noun to follow it, or add the splitting word to the connector set once a
 # corpus shows it.
+# CEILING: a spelled LIST merges into one run — "two, three and five
+# pilots" tokenises without the commas, so the claim "five pilots" is refused
+# against it (Error-A, recoverable). Upgrade path: break runs at punctuation
+# in the raw text before tokenising.
 _SPELLED_RUN_CONNECTORS: frozenset[str] = frozenset({"and", "to", "or", "point"})
 
 
